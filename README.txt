@@ -5,7 +5,9 @@ Open index.html: it is the welcome page. From there, Start leads to the system m
 so the whole folder works anywhere it is copied.
 
 Contents
-  index.html                      Contents page (start here)
+  index.html                      Welcome page (start here)
+  system-map.html                 The whole system, clickable, with reading order
+  contents.html                   All guides in reading order
   R1 to R6                        Radar basics: echo, antenna beam, detection and CFAR,
                                   pulse radar, FMCW, measuring targets
   A0                              Antenna fundamentals (deep dive)
@@ -25,4 +27,5 @@ Other ways to share
   - Copy the whole folder (or the zip) to a shared drive; people open index.html directly.
   - The pages need nothing installed. Fonts load from Google Fonts when online;
     offline they fall back to system fonts and still work.
+
 
