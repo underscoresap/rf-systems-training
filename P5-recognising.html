@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Recognising Emitters</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -89,10 +90,29 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
 .fcard dt{color:var(--muted);font-size:12px}
 .fcard dd{margin:0;font-family:var(--f-mono);font-size:12px}
 </style>
+<style id="trnav-css">
+#trnav{--tn-bg:rgba(255,255,255,.94);--tn-ink:#15202a;--tn-mut:#56646f;--tn-line:#d5dde2;--tn-acc:#c2410c}
+@media (prefers-color-scheme: dark){#trnav,#trnext{--tn-bg:rgba(18,25,31,.94);--tn-ink:#e4eaee;--tn-mut:#93a2ad;--tn-line:#2a3640;--tn-acc:#fb923c}}
+#trnav{position:sticky;top:0;z-index:1000;background:var(--tn-bg);backdrop-filter:blur(6px);border-bottom:1px solid var(--tn-line);font:500 14px "IBM Plex Sans",system-ui,"Segoe UI",sans-serif;color:var(--tn-ink);margin:0 0 8px}
+#trnav .in{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px 16px;flex-wrap:wrap}
+#trnav a{color:var(--tn-ink);text-decoration:none;border:1px solid var(--tn-line);border-radius:6px;padding:5px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+#trnav a:hover{border-color:var(--tn-acc);color:var(--tn-acc)}
+#trnav .home{font-weight:600}
+#trnav .where{color:var(--tn-mut);font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;margin-right:auto}
+#trnext{--tn-ink:#15202a;--tn-mut:#56646f;--tn-line:#d5dde2;--tn-acc:#c2410c;max-width:1040px;margin:40px auto 56px;padding:0 16px;font-family:"IBM Plex Sans",system-ui,"Segoe UI",sans-serif}
+#trnext .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+#trnext a{display:block;text-decoration:none;color:var(--tn-ink);border:1px solid var(--tn-line);border-radius:8px;padding:14px 16px}
+#trnext a:hover{border-color:var(--tn-acc)}
+#trnext .lbl{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--tn-acc)}
+#trnext .t{font-size:18px;font-weight:600;display:block;margin-top:2px}
+#trnext .next{border-color:var(--tn-acc)}
+</style><nav id="trnav"><div class="in"><a class="home" href="index.html">RF Systems Training</a><a href="contents.html">Contents</a><a href="system-map.html">System map</a><span class="where">Guide 10 of 25 · Part 3 · Listening and recognising</span><a href="P4-listening.html" title="P4 · Listening: how a receiver watches the spectrum">← P4</a><a href="M15-transmission-lines.html" title="M15 · Transmission lines, waveguide and rotary joints" style="border-color:var(--tn-acc);color:var(--tn-acc)">Next: M15 →</a></div></nav>
+
+
 
 <div class="wrap">
 <header class="top">
-  <div class="eyebrow">Part 5 of 6 · Recognise · RF Systems for Component Engineers</div>
+  <div class="eyebrow">Recognise · RF Systems for Component Engineers</div>
   <h1>Recognising: from a stream of pulses to a list of radars</h1>
   <p class="lede">Part 4's listener measured every pulse and wrote one record per pulse, the pulse descriptor word (PDW). On a real hilltop, pulses from many radars arrive mixed together, about 10 000 of them every second. This page is about processing, not hardware. It first takes the measurable parameters one at a time (frequency, direction, pulse width, amplitude, timing, the inside of the pulse and the scan) and, for six example radars, shows why each radar chose its value and what that value tells us. Then it builds on those parameters: sorting the mixed stream into radars, finding each one's rhythm, and matching a library to say what each radar is. Every step uses the same six radars.</p>
   <nav class="toc" aria-label="Sections">
@@ -988,3 +1008,4 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rere
 new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 })();
 </script>
+<div id="trnext"><div class="row"><a href="P4-listening.html"><span class="lbl">← Previous</span><span class="t">P4 · Listening: how a receiver watches the spectrum</span></a><a class="next" href="M15-transmission-lines.html"><span class="lbl">Next · guide 11 of 25</span><span class="t">M15 · Transmission lines, waveguide and rotary joints →</span></a></div></div><!--/trnext-->
