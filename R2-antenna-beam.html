@@ -1,0 +1,736 @@
+<title>The Radar Beam</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Radar Basics · R2 of 6 · RF Systems for Component Engineers</div>
+  <h1>The antenna and the beam</h1>
+  <p class="lede">In R1 the antenna was just a number, G, that appeared twice in the radar equation. Here we open it up: why a radar needs a narrow beam, what sets the beam's width and sidelobes, how a phased array steers a beam with no moving parts, how a radar sweeps that beam to search the sky, and what the sweeping beam looks like to someone outside listening.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#why">0 Why a beam</a><a href="#width">1 Beamwidth and gain</a><a href="#dish">1b How a dish is built</a><a href="#side">2 Sidelobes</a><a href="#angle">3 Angle from a beam</a><a href="#mech">4 Mechanical scan</a><a href="#esa">5 Phased arrays</a><a href="#scan">6 Scan patterns</a><a href="#search">7 Search budget</a><a href="#outside">8 Seen from outside</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <div class="secno">Step 0</div>
+  <h2>Why a radar needs a narrow beam</h2>
+  <div class="know"><h4>You already know</h4>An antenna datasheet: a radiation pattern plot, a −3 dB beamwidth, a gain in dBi, and a front-to-back or sidelobe figure. A radar antenna is described with exactly the same terms.</div>
+  <div class="col">
+    <p>A radar antenna does three jobs at once, and all three want a narrow beam:</p>
+    <ol>
+      <li><b>Range.</b> Gain appears twice in the radar equation (R1, step 3). A narrow beam means high gain, so a longer detection range for the same transmitter.</li>
+      <li><b>Direction.</b> The time delay of the echo gives range, but says nothing about direction. The simplest way to know <i>where</i> the target is: the echo only comes back when the beam points at it. So the antenna's pointing angle at that moment <i>is</i> the target's angle.</li>
+      <li><b>Rejection.</b> A narrow beam hears less ground, sea and rain (called <b>clutter</b>), and less interference and jamming from other directions.</li>
+    </ol>
+    <p>The cost: a narrow beam sees only a small piece of the sky at any moment. To search a large area it must be moved, and the time it spends on each piece is limited. That trade between beamwidth, gain and search time runs through this whole page.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="width">
+  <div class="secno">Step 1</div>
+  <h2>Beamwidth, aperture size and gain</h2>
+  <div class="know"><h4>You already know</h4>Diffraction: the larger an aperture is compared with the wavelength, the narrower its beam. A 1 m dish is a narrow-beam antenna at 10 GHz (33 wavelengths across) but a broad one at 300 MHz (one wavelength across).</div>
+  <div class="col">
+    <p>Each small piece of the aperture radiates. In the direction straight ahead (broadside) all pieces are the same distance away, so their fields add in phase. Move off-axis and pieces at one edge become closer than pieces at the other edge. When that path difference across the aperture reaches about one wavelength, the contributions cancel: that is the first <b>null</b>. The main beam lies between the two nulls.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Aperture</b>: the radiating face of the antenna (dish mouth, array face) with size L.<br><b>−3 dB beamwidth θ<sub>3</sub></b>: the angle between the two directions where the power has fallen to half of its peak.<br><b>Main lobe</b>: the central beam, between the first nulls.<br><b>Taper (aperture weighting)</b>: feeding the edge of the aperture with less power than the centre. It lowers the sidelobes but widens the beam and loses a little gain.</p></div>
+  <div class="eq">θ<sub>3</sub> ≈ 51·λ/L degrees (uniform) … 65–70·λ/L (typical taper) &nbsp;&nbsp; G = η·4πA/λ² &nbsp;&nbsp; G ≈ 26 000 / (θ<sub>az</sub>° · θ<sub>el</sub>°)<small>A = physical aperture area, η = aperture efficiency (0.5–0.7 for real antennas). The last form links gain directly to the two beamwidths.</small></div>
+  <h3>Worked example: a 1 m dish at 10 GHz (λ = 3 cm)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Aperture in wavelengths</td><td>1 m / 0.03 m</td><td class="n">33 λ</td></tr>
+    <tr><td>−3 dB beamwidth (tapered dish)</td><td>≈ 65 × 0.03 / 1</td><td class="n">≈ 2.0°</td></tr>
+    <tr><td>Gain</td><td>0.6 × (π × 1 / 0.03)²</td><td class="n">6 580 = 38.2 dBi</td></tr>
+    <tr><td>Check with beamwidth formula</td><td>26 000 / (2.0 × 2.0)</td><td class="n">6 500 = 38.1 dBi</td></tr>
+    <tr><td>Beam footprint at 20 km</td><td>20 000 × 2.0° in radians</td><td class="n">≈ 700 m wide</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cAp" width="640" height="320" aria-label="Antenna pattern of a line aperture"></canvas>
+    <div class="ctrl">
+      <label for="apL">Aperture size L <b id="apLv"></b></label><input id="apL" type="range" min="0.05" max="3" step="0.01" value="1">
+      <label for="apF">Frequency <b id="apFv"></b></label><input id="apF" type="range" min="0.5" max="40" step="0.1" value="10">
+      <label for="apW">Aperture taper</label>
+      <select id="apW"><option value="uni">Uniform (no taper)</option><option value="cos" selected>Cosine taper</option><option value="ham">Hamming taper (strong)</option></select>
+      <label for="apZ">Angle span shown <b id="apZv"></b></label><input id="apZ" type="range" min="5" max="90" step="1" value="30">
+      <div class="readout" id="apOut"></div>
+    </div>
+    <p class="cap">Power pattern in dB against angle, for an aperture of length L. The gain readout assumes a square aperture L × L with the chosen taper in both directions. Try 10 GHz and shrink L to 0.1 m: the beam becomes very wide and the gain small.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The same 1 m dish is used at 20 GHz. What happens to beamwidth and gain?</summary><p>λ halves, so the beamwidth halves to about 1° and the gain rises 4× (+6 dB) to about 44 dBi. Size in wavelengths is what counts.</p></details>
+    <details><summary>A radar has a fan beam: 1.5° in azimuth and 30° in elevation. What is its gain?</summary><p>26 000 / (1.5 × 30) ≈ 580 = 27.6 dBi. Fan beams trade gain for covering many heights at once (common on 2-D search radars).</p></details>
+  </div>
+</section>
+
+<!-- 1b -->
+<section id="dish">
+  <div class="secno">Step 1b</div>
+  <h2>How a dish is built, and why two 1 m dishes at 10 GHz can differ by more than 2 dB</h2>
+  <div class="know"><h4>You already know</h4>Horn antennas and their E- and H-plane patterns, return loss, and that a smooth metal surface reflects RF like a mirror. Step 1 said gain is G = η·4πA/λ². This step is about η: everything that stops a real dish reaching its ideal gain. Size and frequency fix the ideal; construction decides how much of it you get.</div>
+  <div class="col">
+    <p>A reflector antenna has two parts. The <b>feed</b> is a small antenna, usually a horn, placed at the focus. It sets the frequency band, the polarisation and how the dish is lit. The <b>reflector</b> is the large curved metal surface. It sets the aperture size. The reflector adds no power. It only reshapes the feed's spherical wave into a flat (plane) wave across the dish mouth.</p>
+    <p><b>Why the shape is a parabola.</b> A paraboloid has one special property: every ray that leaves the focus, bounces off the surface and travels on to the mouth of the dish covers exactly the same total distance. So every part of the mouth is lit <i>in phase</i>, which is what Step 1 assumed. Any departure from the ideal shape, or a feed not sitting exactly at the focus, becomes a phase error across the aperture.</p>
+    <p><b>The taper comes from the feed itself.</b> In an array, a power-divider network sets the taper (Step 2). In a dish there is no such network. The taper is simply the feed horn's own radiation pattern as seen by the reflector, plus one geometric effect, described below. Choose a different horn and you get a different taper, beamwidth, sidelobe level and gain, at the same frequency and with the same metal.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Focal length F</b>: distance from the dish centre (vertex) to the focus.<br><b>f/D</b>: focal length divided by diameter. Small f/D (0.25–0.35) is a deep dish with the feed close in; large f/D (0.6–1) is a shallow dish with the feed far out.<br><b>Rim half-angle ψ<sub>0</sub></b>: the angle from the feed's axis to the dish edge, seen from the focus. The feed must light ±ψ<sub>0</sub>.<br><b>Edge taper</b>: power density at the dish edge compared with the centre, in dB.<br><b>Spillover</b>: feed power that misses the reflector and goes past its edge.<br><b>Blockage</b>: the feed, its support struts and any subreflector sit in front of the dish and shadow part of the mouth.<br><b>Surface error ε</b>: rms deviation of the real surface from the ideal paraboloid.<br><b>Phase centre</b>: the point inside a horn that its radiation appears to come from. That point, not the horn mouth, must sit at the focus.</p></div>
+  <div class="eq">ψ<sub>0</sub> = 2·atan(1 / (4·f/D)) &nbsp;&nbsp; depth = D²/(16F) &nbsp;&nbsp; space taper = cos⁴(ψ<sub>0</sub>/2)<small>f/D = 0.4 gives ψ<sub>0</sub> = 64°. f/D = 0.25 gives 90°: the focus lies exactly in the plane of the rim. The space taper exists because the rim is further from the feed than the vertex is (ρ/F = 1/cos²(ψ/2)), so the same feed power is spread more thinly there. At f/D = 0.4 it is −2.9 dB. At f/D = 0.25 it is −6 dB.</small></div>
+
+  <h3>The central trade: spillover against illumination</h3>
+  <div class="col">
+    <p>Picture a horn with a wide beam. It lights the dish almost evenly, which uses the whole area well (high <b>illumination efficiency</b>). But a wide beam also sends a lot of power past the rim (low <b>spillover efficiency</b>). A narrow-beam horn wastes almost nothing past the rim, but it lights the edge of the dish weakly, so the outer ring of metal, which is most of the area, does little work.</p>
+    <p>Gain depends on the product of the two, and that product peaks when the edge is lit about <b>10–12 dB</b> below the centre. This is the most-quoted rule in reflector design. The table comes from the demo below: a 1 m dish with f/D = 0.4, ideal surface, no blockage, and the horn's −10 dB beamwidth varied.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Horn −10 dB beamwidth</th><th>Edge taper (horn + space)</th><th>Spillover η</th><th>Illumination η</th><th>Product</th><th>What it means</th></tr>
+    <tr><td>80°</td><td class="n">−33.7 dB</td><td class="n">100 %</td><td class="n">50 %</td><td class="n">50 %</td><td>Under-lit: half the metal wasted, very low sidelobes</td></tr>
+    <tr><td>100°</td><td class="n">−21.5 dB</td><td class="n">99 %</td><td class="n">69 %</td><td class="n">68 %</td><td>Low-sidelobe choice</td></tr>
+    <tr><td>128°</td><td class="n">−12.8 dB</td><td class="n">96 %</td><td class="n">85 %</td><td class="n">82 %</td><td>Near the gain optimum</td></tr>
+    <tr><td>140°</td><td class="n">−10.5 dB</td><td class="n">93 %</td><td class="n">89 %</td><td class="n">83 %</td><td>Gain optimum</td></tr>
+    <tr><td>160°</td><td class="n">−7.6 dB</td><td class="n">85 %</td><td class="n">94 %</td><td class="n">80 %</td><td>Over-lit: 15 % of the power goes past the rim</td></tr>
+    <tr><td>180°</td><td class="n">−3.1 dB</td><td class="n">58 %</td><td class="n">99 %</td><td class="n">58 %</td><td>Badly over-lit</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Spillover is worse than the lost gain suggests. Power that goes past the rim does not vanish: it forms wide-angle sidelobes and backlobes. On receive, the same path collects thermal noise from the warm ground behind and around the dish, which raises the system noise temperature (R1, step 5). Low-noise receive dishes therefore use a slightly heavier taper than the gain optimum.</p>
+  </div>
+
+  <h3>The efficiency budget</h3>
+  <div class="eq">η = η<sub>spill</sub> · η<sub>illum</sub> · η<sub>block</sub> · η<sub>surface</sub> · η<sub>other</sub> &nbsp;&nbsp; η<sub>surface</sub> = exp(−(4π·ε/λ)²)<small>η<sub>other</sub> collects cross-polarisation loss, feed phase error, ohmic loss and feed mismatch, typically 0.9 (−0.5 dB) in total. The surface term is the Ruze formula.</small></div>
+  <div class="col"><ul>
+    <li><b>Blockage.</b> The feed, its struts or a subreflector sit in front of the centre of the mouth, which is the brightest part of a tapered aperture. Removing a central disc removes a share of the field, and gain falls as (1 − blocked field share)². A feed 10 % of D across covers only 1 % of the area but costs about 4 % of the gain. Blockage also raises the near-in sidelobes, because subtracting a small disc subtracts a broad pattern from the main one. Struts add thin shadow lines that throw energy into specific planes.</li>
+    <li><b>Surface accuracy.</b> A bump of height h changes the path by about 2h (in and out again), so the phase error is 4πε/λ. Losses stay small until ε approaches λ/30. The lost energy does not vanish either: it forms a broad, raised floor of sidelobes around the main beam.</li>
+    <li><b>Feed placement.</b> A phase centre sitting in front of or behind the focus (axial defocus) gives a phase error that grows towards the rim: the gain drops and the nulls fill in. A phase centre offset sideways tilts the beam the other way by about 0.8–0.95 times the offset angle. Done on purpose, this is how conical scan and multi-beam feeds work.</li>
+    <li><b>Feed mismatch from the dish.</b> The vertex reflects part of the power straight back into the feed. This appears as ripple in the feed's return loss across frequency. A small vertex plate or cone breaks up that reflection.</li>
+  </ul></div>
+  <div class="tw"><table class="t">
+    <tr><th>Surface rms ε</th><th>Typical construction</th><th>Loss at 10 GHz (λ = 30 mm)</th><th>Loss at 35 GHz (λ = 8.6 mm)</th></tr>
+    <tr><td>0.1 mm</td><td>Machined aluminium, CFRP composite on a precision mould</td><td class="n">−0.01 dB</td><td class="n">−0.09 dB</td></tr>
+    <tr><td>0.5 mm</td><td>Spun or stamped aluminium, good panels</td><td class="n">−0.19 dB</td><td class="n">−2.3 dB</td></tr>
+    <tr><td>1.5 mm</td><td>Wire mesh on ribs, cheap panels, wind or thermal distortion</td><td class="n">−1.7 dB</td><td class="n">−21 dB (unusable)</td></tr>
+  </table></div>
+  <p class="col">The same dish can therefore be excellent at one frequency and useless at another. A mesh reflector also leaks through its holes unless the mesh pitch is well under λ/10, which is another reason mesh is a low-frequency construction.</p>
+
+  <div class="bench">
+    <canvas id="cDish" width="640" height="470" aria-label="Dish cross-section, aperture illumination and far-field pattern"></canvas>
+    <div class="ctrl">
+      <label for="dsP">Start from a build</label>
+      <select id="dsP"><option value="good" selected>Good prime-focus dish</option><option value="lowsl">Low-sidelobe (narrow horn)</option><option value="over">Over-lit (wide horn)</option><option value="mesh">Cheap mesh, rough surface</option><option value="cass">Cassegrain, large subreflector</option><option value="shallow">Same horn, shallow dish f/D 0.8</option><option value="deep">Same horn, deep dish f/D 0.25</option></select>
+      <label for="dsD">Diameter D <b id="dsDv"></b></label><input id="dsD" type="range" min="0.3" max="3" step="0.05" value="1">
+      <label for="dsF">Frequency <b id="dsFv"></b></label><input id="dsF" type="range" min="1" max="40" step="0.5" value="10">
+      <label for="dsR">f/D <b id="dsRv"></b></label><input id="dsR" type="range" min="0.25" max="1" step="0.01" value="0.4">
+      <label for="dsH">Horn −10 dB beamwidth <b id="dsHv"></b></label><input id="dsH" type="range" min="60" max="180" step="1" value="128">
+      <label for="dsS">Surface rms ε <b id="dsSv"></b></label><input id="dsS" type="range" min="0" max="3" step="0.05" value="0.3">
+      <label for="dsB">Blockage (feed or subreflector) <b id="dsBv"></b></label><input id="dsB" type="range" min="0" max="30" step="1" value="6">
+      <div class="readout" id="dsOut"></div>
+    </div>
+    <p class="cap">Top left: the dish in cross-section, the feed's pattern drawn at the focus, rays to the rim (solid) and spillover past it (dashed). The surface roughness is drawn exaggerated. Top right: power across the mouth, from centre (0) to rim (1). The solid line is the total and the dashed line is the horn's share without the space taper. Bottom: the resulting far-field pattern, including the broad floor scattered by surface error (scatter cells assumed D/10 across). Pick a build, then move one slider at a time.</p>
+  </div>
+
+  <h3>Same frequency, same size, different construction</h3>
+  <p class="col">Every row below is a 1 m dish at 10 GHz, so the ideal gain is the same 40.4 dBi each time. All of the differences come from construction. The numbers are the demo's starting builds.</p>
+  <div class="tw"><table class="t" id="dsTab">
+    <tr><th>Build</th><th>Edge taper</th><th>η</th><th>Gain</th><th>θ<sub>3</sub></th><th>Highest sidelobe</th></tr>
+  </table></div>
+
+  <h3>Feed arrangements</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Arrangement</th><th>How it works</th><th>Why it is chosen</th><th>Price paid</th></tr>
+    <tr><td>Prime focus</td><td>Horn at the focus, facing the dish</td><td>Simplest; good at low f/D</td><td>Feed, struts and cables block the centre; receiver sits out on the struts or uses long lines</td></tr>
+    <tr><td>Cassegrain</td><td>A convex (hyperbolic) subreflector folds the beam back to a horn at the vertex</td><td>Feed and electronics sit behind the dish; short, compact; easy monopulse feeds</td><td>Subreflector blockage, typically 10–20 % of D; two surfaces to make accurately</td></tr>
+    <tr><td>Gregorian</td><td>A concave (elliptical) subreflector beyond the focus</td><td>As Cassegrain; extra freedom to shape the illumination</td><td>Longer structure</td></tr>
+    <tr><td>Offset-fed</td><td>Uses one side of a larger paraboloid, so the feed sits outside the beam</td><td>No blockage: low sidelobes, low noise</td><td>Asymmetric; higher cross-polarisation; awkward to scan mechanically</td></tr>
+    <tr><td>Shaped / cut reflector</td><td>Surface deliberately not parabolic, or cut to a non-circular outline</td><td>Wide-and-short "orange peel" dish gives a fan beam; a cosecant² shape spreads elevation coverage evenly over height</td><td>Lower peak gain by design</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Flat alternatives at the same frequency.</b> A <b>slotted-waveguide array</b> (the flat plate on many marine and airborne radars) cuts radiating slots into the wall of a waveguide. The slot offsets set the taper precisely, so −30 to −40 dB sidelobes and η of 0.7–0.8 are possible with no blockage. The cost is bandwidth of only a few percent, and the beam moves with frequency. A <b>microstrip patch array</b> is thin and cheap, but at 10 GHz the long feed lines of a 1 m panel can lose 2–4 dB, which comes straight off η. A <b>horn</b> on its own is very wideband with η around 0.5, but it is only practical at modest gain.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Feed horn:</b> the E- and H-plane patterns should match (corrugated and dual-mode horns do this), or the dish is lit unevenly and cross-polarisation rises. The phase centre location must be known and stable across the band.</li>
+    <li><b>Mechanics:</b> surface rms, thermal distortion and sag under gravity and wind set the highest usable frequency.</li>
+    <li><b>Struts, subreflector and radome:</b> blockage and scattering raise sidelobes. Every 0.1 dB of radome loss counts twice in a radar (out and back).</li>
+    <li><b>Feed return loss</b> measured on the dish differs from the bench measurement, because of the vertex reflection.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A dish with 1 mm rms surface works well at 10 GHz. What happens at 35 GHz?</summary><p>At 10 GHz: 4π × 1/30 = 0.42 rad, so η<sub>surface</sub> = exp(−0.175) = 0.84, or −0.8 dB. At 35 GHz: 4π × 1/8.6 = 1.47 rad, so η<sub>surface</sub> = exp(−2.15) = 0.12, or −9.3 dB, and most of the lost energy lands in a raised sidelobe floor. The dish is still the same size in wavelengths, but now it is too rough for the job.</p></details>
+    <details><summary>You swap the horn for one with a narrower beam. List what changes.</summary><p>The edge taper gets heavier, spillover falls, illumination efficiency falls, the beam widens and the sidelobes drop. Past the optimum the gain falls slightly, while the noise picked up from the ground falls too. Same dish, same frequency, different antenna.</p></details>
+    <details><summary>The same horn is moved from an f/D 0.4 dish to an f/D 0.8 dish. Why does the gain drop?</summary><p>The rim half-angle shrinks from 64° to 35°. The horn's wide beam now goes mostly past the rim, so spillover efficiency falls to about 52 %. A shallow dish needs a narrower, larger horn. That is why f/D and the feed are always designed as a pair.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="side">
+  <div class="secno">Step 2</div>
+  <h2>Sidelobes: the energy that goes the wrong way</h2>
+  <div class="col">
+    <p>Outside the main lobe, the pattern does not drop to zero. It has a series of smaller lobes, called <b>sidelobes</b>, and a back lobe. A uniformly fed aperture has its first sidelobe at −13 dB: one twentieth of the peak power, in the wrong direction. In the demo above, switch between tapers and read the "first sidelobe" value.</p>
+    <p>Why sidelobes matter in a radar:</p>
+    <ul>
+      <li><b>Clutter.</b> Strong ground echoes enter through the sidelobes while the main beam looks at a weak target in the sky.</li>
+      <li><b>Jamming and interference</b> enter through sidelobes from directions the radar is not looking at. Sidelobe level directly sets how much a jammer off to the side can disturb the radar (Part 6).</li>
+      <li><b>False directions.</b> A very strong target in a sidelobe can be reported at the angle the main beam happens to point at.</li>
+      <li><b>Being heard.</b> An outside receiver hears the radar through its sidelobes even when the main beam is pointed elsewhere (step 8).</li>
+    </ul>
+    <p>Typical figures: simple antennas −13 to −20 dB, good search radars −25 to −30 dB, "low-sidelobe" military arrays −35 to −45 dB.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Feed network and power dividers</b> create the taper. Amplitude and phase errors between their outputs fill in the nulls and raise the sidelobes. A random phase error of a few degrees rms across many elements limits sidelobes to roughly −35 to −40 dB.</li>
+    <li><b>Radome:</b> uneven thickness and joints add phase errors and reflections, which raise sidelobes and bend the beam (boresight error).</li>
+  </ul></div>
+</section>
+
+<!-- 3 -->
+<section id="angle">
+  <div class="secno">Step 3</div>
+  <h2>Getting angle from a beam: resolution and accuracy</h2>
+  <div class="col">
+    <p>Two different questions, often confused:</p>
+    <ul>
+      <li><b>Angular resolution</b>: can two targets at the same range, close together in angle, be seen as two? Only if they are separated by more than about one beamwidth. At 20 km, our 2° beam cannot separate two aircraft flying 500 m apart side by side.</li>
+      <li><b>Angular accuracy</b>: for a single target, how precisely is its angle measured? Much better than a beamwidth, because the radar compares echo strengths at nearby beam positions or between two antenna halves (monopulse, R6). Accuracy improves with SNR.</li>
+    </ul>
+  </div>
+  <div class="eq">σ<sub>θ</sub> ≈ θ<sub>3</sub> / ( k · √(2·SNR) ) &nbsp;&nbsp; (k ≈ 1.6 for monopulse)<small>Worked: θ<sub>3</sub> = 2°, SNR = 20 dB (100): σ<sub>θ</sub> ≈ 2 / (1.6 × 14.1) ≈ 0.09°, more than 20 times finer than the beamwidth.</small></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does accuracy improve with SNR but resolution does not?</summary><p>Accuracy is about locating the centre of one known bump in the presence of noise, so less noise gives a better estimate. Resolution is about two bumps merging into one, which depends on the bump width (the beamwidth), not on noise.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="mech">
+  <div class="secno">Step 4</div>
+  <h2>Moving the beam mechanically</h2>
+  <div class="col">
+    <p>The classic radar antenna sits on a motorised pedestal and rotates continuously (360°), or nods up and down, or swings back and forth over a sector. The RF has to get from the fixed transmitter to the moving antenna through a <b>rotary joint</b>.</p>
+    <p>The beam sweeps past a target, and the target is lit only during the short time the main beam covers it. That time is the <b>dwell time</b> (or time on target), and the number of pulses sent during it is the <b>hits per scan</b>. These pulses are the ones available for integration (R1, step 7).</p>
+  </div>
+  <div class="eq">ω = 360° / T<sub>scan</sub> &nbsp;&nbsp; T<sub>dwell</sub> = θ<sub>3,az</sub> / ω &nbsp;&nbsp; n<sub>hits</sub> = T<sub>dwell</sub> · PRF</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Rotation 10 rpm</td><td>T<sub>scan</sub> = 60/10</td><td class="n">6 s per turn</td></tr>
+    <tr><td>Angular speed</td><td>360° / 6 s</td><td class="n">60 °/s</td></tr>
+    <tr><td>Dwell with a 2° beam</td><td>2 / 60</td><td class="n">33 ms</td></tr>
+    <tr><td>Hits at PRF 1 kHz</td><td>0.033 × 1000</td><td class="n">33 pulses</td></tr>
+    <tr class="sum"><td>Coherent gain available (R1)</td><td>10·log₁₀(33)</td><td class="n">+15 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Rotate faster and each target is updated more often, but with fewer hits and less SNR. Every scanning radar balances these two.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Rotary joint:</b> its VSWR, insertion loss and phase variation with rotation angle ("wow") add directly to the system losses and to phase errors between pulses.</li>
+    <li><b>Encoder:</b> the angle reported for each target is the shaft encoder reading at that instant, so encoder resolution and latency matter for angle accuracy.</li>
+  </ul></div>
+</section>
+
+<!-- 5 -->
+<section id="esa">
+  <div class="secno">Step 5</div>
+  <h2>Steering electronically: the phased array from scratch</h2>
+  <div class="know"><h4>You already know</h4>Two antennas fed with the same signal radiate in phase straight ahead. Put a length of extra cable in front of one, and the signals no longer arrive in phase straight ahead. They arrive in phase in a different direction, where the free-space path difference cancels the cable delay.</div>
+  <div class="col">
+    <p>Take a row of N small antennas (elements), spaced d apart. Feed them all in phase and they behave like one big aperture with its beam at broadside. Now give each element a slightly larger phase than its neighbour, a constant step Δφ. The direction where the free-space path difference d·sinθ exactly cancels that step is where all elements add in phase again: <b>the beam has moved to θ</b>, with no moving parts. A <b>phase shifter</b> behind each element sets the step, and it can be changed in microseconds.</p>
+  </div>
+  <div class="eq">Δφ = 360° · (d/λ) · sin θ<sub>0</sub> &nbsp;&nbsp; θ<sub>3</sub>(θ<sub>0</sub>) ≈ θ<sub>3</sub>(0) / cos θ<sub>0</sub> &nbsp;&nbsp; no grating lobe if d/λ &lt; 1 / (1 + |sin θ<sub>0</sub>|)<small>Worked: at 10 GHz with d = λ/2 = 1.5 cm, steering to 30° needs Δφ = 360 × 0.5 × 0.5 = 90° per element.</small></div>
+  <div class="col">
+    <p>Three things to look for in the demo:</p>
+    <ul>
+      <li><b>Scan loss and broadening.</b> Steered off broadside, the array looks shorter from the target's direction (its projected length is L·cosθ). The beam widens as 1/cosθ and the gain falls. Arrays rarely steer beyond ±60°.</li>
+      <li><b>Grating lobes.</b> If elements are spaced more than λ/2 apart, a second full-size main beam can appear in another direction, because the phase step also lines up there (shifted by a full 360°). Try d = 0.8 λ and steer to 30°.</li>
+      <li><b>Phase-shifter bits.</b> Real digital phase shifters have steps: a 3-bit device only gives multiples of 45°. The rounding errors raise sidelobes (quantisation lobes) and cost a little gain. Select the cosine taper first (its sidelobes start near −23 dB), steer to about 13°, then step from "Ideal" down to 2 bits and watch the "highest other lobe" readout climb.</li>
+    </ul>
+  </div>
+  <div class="bench">
+    <canvas id="cPa" width="640" height="420" aria-label="Phased array element phases and resulting pattern"></canvas>
+    <div class="ctrl">
+      <label for="paN">Number of elements N <b id="paNv"></b></label><input id="paN" type="range" min="2" max="64" step="1" value="16">
+      <label for="paD">Element spacing d <b id="paDv"></b></label><input id="paD" type="range" min="0.25" max="1.2" step="0.01" value="0.5">
+      <label for="paS">Steering angle θ₀ <b id="paSv"></b></label><input id="paS" type="range" min="-70" max="70" step="1" value="20">
+      <label for="paB">Phase shifter</label>
+      <select id="paB"><option value="0">Ideal (continuous)</option><option value="6">6-bit (5.6° steps)</option><option value="4">4-bit (22.5°)</option><option value="3">3-bit (45°)</option><option value="2">2-bit (90°)</option></select>
+      <label for="paT">Amplitude taper</label>
+      <select id="paT"><option value="uni">Uniform</option><option value="cos">Cosine</option></select>
+      <div class="readout" id="paOut"></div>
+    </div>
+    <p class="cap">Top: the phase each element is given (0–360°, wrapped). Bottom: the resulting array pattern in dB (an element pattern of cos θ is included). The orange marker is where you asked the beam to point.</p>
+  </div>
+  <div class="col">
+    <h3>Two kinds of electronically scanned array</h3>
+    <ul>
+      <li><b>PESA (passive):</b> one central transmitter and receiver, with a phase shifter at each element.</li>
+      <li><b>AESA (active):</b> every element has its own small <b>T/R module</b>: a PA, an LNA, a limiter, switches, a phase shifter and an attenuator. Losses are lower, it keeps working if a few modules fail, and it can form several beams at once.</li>
+    </ul>
+    <p>One limitation: a phase shifter gives a fixed <i>phase</i>, but the steering really needs a fixed <i>time delay</i>. At frequencies away from the design frequency the beam points slightly elsewhere (<b>beam squint</b>, Δθ ≈ (Δf/f)·tanθ₀). Wideband arrays use true-time-delay lines for this reason.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phase shifters and digital attenuators:</b> number of bits, rms phase and amplitude error across the band, phase change when the attenuator is switched (and vice versa), switching speed.</li>
+    <li><b>T/R module:</b> PA efficiency and heat (hundreds of modules in one array), LNA noise figure, limiter protection, channel-to-channel gain and phase matching, and calibration over temperature.</li>
+    <li><b>Element spacing ≤ λ/2</b> at the highest frequency, which squeezes the whole T/R channel into a cell about 1.5 cm wide at 10 GHz.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 16-element array with d = λ/2 has a 6.4° beam at broadside. What is its beamwidth steered to 60°?</summary><p>6.4 / cos 60° = 12.8°. The beam doubles in width and the gain drops about 3 dB (plus the element pattern loss).</p></details>
+    <details><summary>Why must d be no more than λ/2 if the array must steer to ±90°?</summary><p>The grating-lobe condition is d/λ &lt; 1/(1 + |sin θ₀|). At θ₀ = 90° that is 1/2.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="scan">
+  <div class="secno">Step 6</div>
+  <h2>Scan patterns and what each is for</h2>
+  <div class="col">
+    <p>The way a radar moves its beam depends on its job:</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Pattern</th><th>How the beam moves</th><th>Used for</th></tr>
+    <tr><td>Circular</td><td>Rotates 360° at constant speed</td><td>Air and sea surveillance, air traffic control, ship radars</td></tr>
+    <tr><td>Sector</td><td>Swings back and forth over a limited arc</td><td>Ground surveillance, airborne radars looking forward, coastal radars</td></tr>
+    <tr><td>Raster / helical</td><td>Several horizontal sweeps at different elevations</td><td>Airborne fire control, 3-D search</td></tr>
+    <tr><td>Conical (lobing)</td><td>Beam spins in a small circle around the target</td><td>Older tracking radars: the target's offset from the circle centre modulates the echo</td></tr>
+    <tr><td>Track (fixed on target)</td><td>Beam follows one target continuously</td><td>Fire control, single-target tracking with monopulse</td></tr>
+    <tr><td>Track-while-scan (TWS)</td><td>Normal search scan; tracks are built from successive detections</td><td>Many targets tracked without stopping the search</td></tr>
+    <tr><td>Electronic (agile)</td><td>Beam jumps to any position in microseconds, interleaving search and track</td><td>AESA radars: search, many tracks and other functions at once</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cBeam" width="640" height="460" aria-label="Plan view of a scanning beam and the power seen at the target"></canvas>
+    <div class="ctrl">
+      <label for="bType">Scan type</label>
+      <select id="bType"><option value="circ">Circular (rotating search)</option><option value="sect">Sector (back and forth)</option><option value="con">Conical (tracking)</option><option value="esa">Electronic (beam agile)</option></select>
+      <label for="bW">Azimuth beamwidth <b id="bWv"></b></label><input id="bW" type="range" min="0.5" max="20" step="0.1" value="2">
+      <label for="bP">Scan period <b id="bPv"></b></label><input id="bP" type="range" min="0.5" max="12" step="0.1" value="6">
+      <label for="bF">PRF <b id="bFv"></b></label><input id="bF" type="range" min="200" max="50000" step="100" value="1000">
+      <div class="row"><button id="bPlay" aria-pressed="false">Play scan</button></div>
+      <div class="readout" id="bOut"></div>
+    </div>
+    <p class="cap">Top: plan view seen from above, with the beam (orange) and a target (dot) due north. Bottom: the power arriving at the target over two scan periods, in dB relative to the main-lobe peak. This trace is what step 8 is about.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="search">
+  <div class="secno">Step 7</div>
+  <h2>The search budget: how long to cover the sky</h2>
+  <div class="know"><h4>You already know</h4>From R1: detection needs a certain energy on the target, SNR ∝ P<sub>avg</sub> × time on target. From steps 1 and 4: a narrow beam has high gain but covers only a small patch of sky at a time. This step puts the two together. A radar has a fixed amount of <i>time</i>, and it must share that time between every direction it is told to watch.</div>
+  <div class="col">
+    <p>A search radar must cover a <b>search volume</b> (an azimuth sector by an elevation sector) and come back to each part of it often enough not to lose fast targets. The volume is divided into beam positions, each about one beamwidth by one beamwidth. Each position needs a dwell long enough for the SNR from R1. So:</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Search volume Ω</b>: the solid angle to be watched (azimuth sector × elevation sector, in steradians when calculating).<br><b>Beam position</b>: one pointing direction; the beam spends its dwell there and moves on.<br><b>Dwell T<sub>d</sub></b>: time spent at one position (number of pulses × PRI, or one FMCW frame).<br><b>Frame time T<sub>f</sub></b> (also revisit time or scan time): time to visit every position once. For a rotating radar it is simply the rotation period.<br><b>Time budget (timeline)</b>: the share of every second given to search, tracking, confirmation and other jobs.</p></div>
+  <div class="eq">beam positions ≈ (Az sector / θ<sub>az</sub>) × (El sector / θ<sub>el</sub>) &nbsp;&nbsp; frame time = positions × dwell per position</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Sector 90° × 30°, beam 2° × 2°</td><td>(90/2) × (30/2)</td><td class="n">675 positions</td></tr>
+    <tr><td>Dwell per position</td><td>5 pulses at 1 kHz</td><td class="n">5 ms</td></tr>
+    <tr><td>Frame time</td><td>675 × 5 ms</td><td class="n">3.4 s</td></tr>
+    <tr class="sum"><td>A 300 m/s aircraft moves, per frame</td><td>300 × 3.4</td><td class="n">≈ 1 km</td></tr>
+  </table></div>
+  <h3>Why the frame time matters</h3>
+  <div class="col">
+    <p>Between two visits the radar is blind in that direction. In the example above, a 300 m/s aircraft moves 1 km between looks. That matters for two reasons:</p>
+    <ul>
+      <li><b>Warning time.</b> If a target is first detectable at 20 km and closes at 300 m/s, it arrives in 67 s. With a 3.4 s frame the radar gets about 20 looks. With a 20 s frame it gets only 3, and if each look detects with Pd = 0.5 there is a real chance of missing it for a long time.</li>
+      <li><b>Tracking.</b> To join detections from frame to frame into a track, the radar predicts where the target will be next. The longer the frame, the larger the region it must search for the next plot, and the more easily two targets get confused or a manoeuvring target is lost.</li>
+    </ul>
+    <p>Several looks also add up: the chance of detecting at least once in n looks is <b>P<sub>c</sub> = 1 − (1 − P<sub>d</sub>)<sup>n</sup></b>. Four looks at Pd = 0.5 give 1 − 0.5⁴ = 94 %. So a radar can accept a modest Pd per look if it looks often enough. That is one more trade between dwell and frame time.</p>
+  </div>
+
+  <h3>The trade, derived step by step: the search radar equation</h3>
+  <div class="col">
+    <p>Start from the energy form of the radar equation (R1, step 8), with the antenna written as G·A<sub>e</sub> instead of G²λ²/4π (the same thing, since A<sub>e</sub> = Gλ²/4π):</p>
+  </div>
+  <div class="eq">SNR = P<sub>avg</sub> · T<sub>d</sub> · G · A<sub>e</sub> · σ / ((4π)² · R⁴ · kT<sub>0</sub>·F·L)</div>
+  <div class="col"><ol>
+    <li><b>Dwell from the frame.</b> The frame time is shared equally by N positions: T<sub>d</sub> = T<sub>f</sub> / N.</li>
+    <li><b>Positions from the beam.</b> Each position covers θ<sub>az</sub>·θ<sub>el</sub> (radians), so N = Ω / (θ<sub>az</sub>·θ<sub>el</sub>).</li>
+    <li><b>Gain from the beam.</b> For an ideal antenna, G ≈ 4π / (θ<sub>az</sub>·θ<sub>el</sub>): the whole sphere (4π sr) divided by the patch the beam covers.</li>
+    <li><b>Multiply.</b> T<sub>d</sub>·G = (T<sub>f</sub>·θ<sub>az</sub>θ<sub>el</sub>/Ω) · (4π/θ<sub>az</sub>θ<sub>el</sub>) = 4π·T<sub>f</sub>/Ω. <b>The beamwidth cancels out.</b></li>
+  </ol></div>
+  <div class="eq">SNR = P<sub>avg</sub> · A<sub>e</sub> · T<sub>f</sub> · σ / (4π · Ω · R⁴ · kT<sub>0</sub>·F·L)<small>The search radar equation. Only average power × receive area (the power-aperture product), the frame time and the volume remain. The beam's gain and its narrowness do not appear.</small></div>
+  <div class="col"><p>In words: a narrow beam puts more energy per unit time onto a target, but it must visit more positions, so it spends less time on each one. The two effects cancel exactly. Halve the beamwidth in both planes and you get +6 dB of gain on transmit and +6 dB on receive, but four times as many positions. If you keep the frame time, the dwell per position is cut by four (−6 dB). The net is +6 dB, which is exactly the 4× larger area. For a search radar, what really matters is <b>average power × antenna area</b> (the "power-aperture product"), not the beamwidth itself. The beamwidth still matters for angle accuracy, resolution and clutter, but not for search range.</p></div>
+  <h3>Reading the equation: what each change buys</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Change</th><th>Effect on SNR</th><th>Effect on detection range (R ∝ SNR<sup>1/4</sup>)</th></tr>
+    <tr><td>Double average power</td><td class="n">+3 dB</td><td class="n">× 1.19</td></tr>
+    <tr><td>Double antenna area</td><td class="n">+3 dB</td><td class="n">× 1.19</td></tr>
+    <tr><td>Halve the search sector</td><td class="n">+3 dB</td><td class="n">× 1.19</td></tr>
+    <tr><td>Double the frame time</td><td class="n">+3 dB</td><td class="n">× 1.19 (but targets move twice as far between looks)</td></tr>
+    <tr><td>Halve the beamwidth, same frame time</td><td class="n">0 dB in search (gain and dwell cancel)</td><td class="n">unchanged</td></tr>
+    <tr class="sum"><td>Wanted: double the detection range</td><td class="n">+12 dB</td><td class="n">16 × power-aperture, or 16 × less volume, or a mix</td></tr>
+  </table></div>
+  <div class="col"><p>The fourth-root law from R1 is harsh here as well. A 16-fold improvement in hardware is needed to double the range, which is why radar designers look so hard for small losses (L) and for clever ways to spend time.</p></div>
+
+  <h3>Spending the time cleverly</h3>
+  <div class="col"><ul>
+    <li><b>Not every direction needs the same range.</b> Aircraft fly below some ceiling, say 15 km. At 5° elevation a target at that height can be 172 km away. At 30° it can be at most 15/sin 30° = 30 km away. Since the energy needed scales as R⁴, the 30° beams need only (30/172)⁴ ≈ 1/1000 of the dwell of the 5° beams. Search radars spend most of their time near the horizon. This is also why fan-beam radars shape their elevation pattern as cosecant² (step 1b).</li>
+    <li><b>Beam spacing loss.</b> Positions one beamwidth apart leave targets that sit halfway between two beams, where each beam is 3 dB down. Averaged over all target positions this costs roughly 2–3 dB for spacing in both planes. Closer spacing reduces the loss but adds positions, so the frame grows.</li>
+    <li><b>Confirmation dwells.</b> A phased array can respond to a single, weak detection with an immediate extra dwell in that direction to confirm it. That lets the routine search run with a lower threshold and a shorter dwell (more in R3).</li>
+    <li><b>Sharing time with tracking.</b> A multifunction phased array must also update its tracks. With 20 tracks, each updated once a second with a 10 ms dwell, tracking takes 0.2 s of every second. Search then gets 80 % of the time, and the 3.4 s frame stretches to 3.4/0.8 = 4.25 s. Each new track slows the search a little: the time budget is a real, finite resource.</li>
+    <li><b>Mechanical radars have no choice.</b> For a rotating antenna the frame time is the rotation period and the dwell is set by the rotation rate and beamwidth (step 4). It cannot spend extra time in one direction. That is the main operational advantage of electronic scanning.</li>
+  </ul></div>
+  <div class="bench">
+    <canvas id="cSr" width="640" height="300" aria-label="Beam positions across a search sector"></canvas>
+    <div class="ctrl">
+      <label for="sAz">Azimuth sector <b id="sAzv"></b></label><input id="sAz" type="range" min="10" max="360" step="5" value="90">
+      <label for="sEl">Elevation sector <b id="sElv"></b></label><input id="sEl" type="range" min="2" max="60" step="1" value="30">
+      <label for="sBa">Azimuth beamwidth <b id="sBav"></b></label><input id="sBa" type="range" min="0.5" max="10" step="0.1" value="2">
+      <label for="sBe">Elevation beamwidth <b id="sBev"></b></label><input id="sBe" type="range" min="0.5" max="40" step="0.5" value="2">
+      <label for="sDw">Dwell per position <b id="sDwv"></b></label><input id="sDw" type="range" min="0.5" max="50" step="0.5" value="5">
+      <label for="sV">Target speed <b id="sVv"></b></label><input id="sV" type="range" min="10" max="1000" step="10" value="300">
+      <div class="readout" id="sOut"></div>
+    </div>
+    <p class="cap">Each circle is one beam position. The orange one is being visited; the radar steps through them in a raster. (The animation is slowed down; the real frame time is in the readout.)</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 2-D surveillance radar uses a fan beam, 1.5° wide in azimuth and 40° tall in elevation, and rotates 360°. How many beam positions does it have, and what is the catch?</summary><p>360/1.5 = 240 positions, all elevations at once, so it can rotate fast. The catch: low gain (about 26 dBi) and no measurement of target height.</p></details>
+    <details><summary>A radar detects a 1 m² target at 50 km while searching 90° × 30° in 3.4 s. The customer now wants 120° × 30° with the same frame time. What happens to the range?</summary><p>The volume grows by 120/90 = 1.33×, so SNR falls by 1.25 dB and the range falls by 1.33<sup>−1/4</sup> = 0.93 to about 46.6 km. To restore 50 km, increase the power-aperture by 1.33× or accept a 4.5 s frame.</p></details>
+    <details><summary>An engineer proposes a narrower beam to "get more range out of search". Is that right?</summary><p>Not if the antenna area and frame time are unchanged: a narrower beam needs a bigger antenna anyway. The search radar equation contains only P<sub>avg</sub>·A<sub>e</sub>, T<sub>f</sub> and Ω. A narrower beam improves angle accuracy, resolution and clutter rejection, not search range.</p></details>
+    <details><summary>Per look, Pd = 0.3. How many looks give at least 90 % cumulative detection?</summary><p>1 − 0.7<sup>n</sup> ≥ 0.9 → 0.7<sup>n</sup> ≤ 0.1 → n ≥ 6.5, so 7 looks. With a 3.4 s frame that takes about 24 s.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="outside">
+  <div class="secno">Step 8</div>
+  <h2>What a scanning radar looks like from outside</h2>
+  <div class="col">
+    <p>Stand at the target with a receiver and look at the radar's signal level over time (the lower trace in the step 6 demo). You see:</p>
+    <ul>
+      <li>A <b>main-lobe burst</b> once per scan, lasting one dwell time. For our 2° beam at 10 rpm: a 33 ms burst every 6 s.</li>
+      <li><b>Sidelobe pulses</b> between the bursts, 20–40 dB weaker. Because of R1's one-way advantage, a sensitive receiver often still hears these.</li>
+      <li>Inside each burst, the individual <b>pulses</b> at the PRF (too fine to see on this time scale).</li>
+    </ul>
+    <p>That envelope is a fingerprint. A circular scan gives regular bursts. A sector scan gives bursts in pairs (there and back). A conical-scan tracker gives a steady signal with a slow ripple, which means "this radar is tracking me". An electronic radar gives irregular bursts. Parts 4 and 5 show how an intercept receiver measures these to recognise a radar type.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A listener measures main-lobe bursts 25 ms long, every 4 s, with pulses at 2 kHz inside. What can it work out?</summary><p>Scan period 4 s (15 rpm, a circular search radar). Beamwidth = 25 ms × 90 °/s ≈ 2.25°. Hits per scan = 0.025 × 2000 = 50. All without ever seeing the radar.</p></details>
+  </div>
+</section>
+
+<!-- GLOSSARY -->
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Aperture, L</dt><dd>The radiating face of an antenna and its size. Beamwidth ∝ λ/L.</dd>
+    <dt>−3 dB beamwidth θ₃</dt><dd>Angle between the half-power points of the main lobe.</dd>
+    <dt>Main lobe / null / sidelobe</dt><dd>The central beam / directions of zero radiation / the smaller lobes outside the main beam.</dd>
+    <dt>Taper</dt><dd>Feeding the aperture edges weaker than the centre, to lower sidelobes at the cost of a wider beam and some gain.</dd>
+    <dt>Aperture efficiency η</dt><dd>Real gain divided by the ideal gain 4πA/λ² of the physical area.</dd>
+    <dt>Feed / reflector</dt><dd>The small antenna (usually a horn) at the focus that lights the dish / the large curved surface that sets the aperture size.</dd>
+    <dt>f/D, rim half-angle ψ₀</dt><dd>Focal length over diameter / the angle the feed must cover to reach the dish edge.</dd>
+    <dt>Edge taper</dt><dd>Power at the dish edge relative to the centre. About −10 to −12 dB gives the most gain.</dd>
+    <dt>Spillover</dt><dd>Feed power that misses the reflector. It wastes gain, makes wide-angle sidelobes and picks up ground noise.</dd>
+    <dt>Blockage</dt><dd>The shadow of the feed, struts or subreflector across the centre of the mouth.</dd>
+    <dt>Ruze formula</dt><dd>Surface-error loss, η = exp(−(4πε/λ)²), with ε the rms surface error.</dd>
+    <dt>Phase centre</dt><dd>The point a horn's radiation appears to come from. It must sit at the focus.</dd>
+    <dt>Cassegrain / Gregorian / offset feed</dt><dd>A convex or a concave subreflector folds the feed to the back of the dish / the feed sits outside the beam, so nothing blocks it.</dd>
+    <dt>Clutter</dt><dd>Unwanted echoes from ground, sea, rain, birds and so on.</dd>
+    <dt>Angular resolution / accuracy</dt><dd>Separating two targets in angle (≈ one beamwidth) / locating one target's angle (much finer, improves with SNR).</dd>
+    <dt>Rotary joint</dt><dd>RF connection between the fixed and rotating parts of a mechanically scanned radar.</dd>
+    <dt>Dwell time, hits per scan</dt><dd>How long the main beam stays on a target / how many pulses hit it in that time.</dd>
+    <dt>Phased array (ESA)</dt><dd>An antenna made of many elements whose relative phases steer the beam electronically.</dd>
+    <dt>PESA / AESA</dt><dd>Passive array with a central transmitter / active array with a T/R module at each element.</dd>
+    <dt>T/R module</dt><dd>Per-element transmit/receive electronics: PA, LNA, limiter, switches, phase shifter, attenuator.</dd>
+    <dt>Grating lobe</dt><dd>An unwanted second main beam that appears when elements are spaced too far apart for the steering angle.</dd>
+    <dt>Scan loss</dt><dd>Gain loss and beam broadening when an array is steered away from broadside.</dd>
+    <dt>Beam squint</dt><dd>Beam direction changing with frequency in an array steered by phase shifters.</dd>
+    <dt>Fan beam / pencil beam</dt><dd>Narrow in one plane and wide in the other / narrow in both.</dd>
+    <dt>Search volume, frame time</dt><dd>The angular region a radar must search / the time to visit every beam position once.</dd>
+    <dt>Power-aperture product</dt><dd>Average power × antenna area: the figure of merit that sets a search radar's capability.</dd>
+    <dt>TWS</dt><dd>Track-while-scan: building tracks from detections made during normal search.</dd>
+    <dt>Conical scan / monopulse</dt><dd>Tracking methods that measure a target's offset from the beam axis (monopulse is covered in R6).</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, <a href="R3-detection-cfar.html">R3 · Detection</a>:</b> what noise looks like at the receiver output, how a threshold trades detection against false alarms, where the "13 dB" comes from, and how CFAR keeps a radar working in clutter and jamming.</p>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i>; Mailloux, <i>Phased Array Antenna Handbook</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+/* pattern helpers */
+function measure(angles,pdb){ // angles in deg ascending, pdb normalized dB with 0 at peak
+  let ip=0; for(let i=1;i<pdb.length;i++) if(pdb[i]>pdb[ip]) ip=i;
+  let l=ip, r=ip; while(l>0&&pdb[l]>-3) l--; while(r<pdb.length-1&&pdb[r]>-3) r++;
+  const bw=angles[r]-angles[l];
+  // first nulls: walk down until value starts rising
+  let nl=ip, nr=ip; while(nr<pdb.length-1&&pdb[nr+1]<=pdb[nr]) nr++; while(nl>0&&pdb[nl-1]<=pdb[nl]) nl--;
+  let sl=-99; for(let i=0;i<pdb.length;i++){ if(i<nl||i>nr) sl=Math.max(sl,pdb[i]); }
+  return {bw, sl, peak:angles[ip], edgeL:nl, edgeR:nr};
+}
+function plotPattern(g,x0,y0,w,h,angles,pdb,span,color,lo){
+  lo=lo||-50; const X=a=>x0+w*(a+span)/(2*span), Y=v=>y0+h*(-Math.max(v,lo))/(-lo);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted'); for(let v=0; v>=lo; v+=lo/5) g.fillText(v.toFixed(0),x0-30,Y(v)+4);
+  [-span,-span/2,0,span/2,span].forEach(a=>g.fillText(a.toFixed(0)+'°',X(a)-10,y0+h+16));
+  g.strokeStyle=color; g.lineWidth=1.6; g.beginPath(); let st=false;
+  for(let i=0;i<angles.length;i++){ const a=angles[i]; if(a<-span||a>span) continue; const Xv=X(a), Yv=Y(pdb[i]); st?g.lineTo(Xv,Yv):g.moveTo(Xv,Yv); st=true; } g.stroke(); g.lineWidth=1;
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(x0,Y(-3)); g.lineTo(x0+w,Y(-3)); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--muted'); g.fillText('−3 dB',x0+w-40,Y(-3)-4);
+  return {X,Y};
+}
+
+/* 1 APERTURE */
+bind(['apL','apF','apW','apZ'],function(){
+  const L=+$('apL').value, f=+$('apF').value*1e9, tp=$('apW').value, span=+$('apZ').value, lam=c0/f;
+  $('apLv').textContent=fmt(L,'m'); $('apFv').textContent=(f/1e9).toFixed(1)+' GHz'; $('apZv').textContent='±'+span+'°';
+  const M=160, xs=[], ws=[]; for(let m=0;m<M;m++){ const u=(m+.5)/M-.5; xs.push(u*L); ws.push(tp==='uni'?1:tp==='cos'?Math.cos(Math.PI*u):0.54+0.46*Math.cos(2*Math.PI*u)); }
+  const k=2*Math.PI/lam, NA=1801, angles=[], p=[];
+  for(let i=0;i<NA;i++){ const a=-90+180*i/(NA-1); angles.push(a); const s=Math.sin(a*deg); let re=0,im=0; for(let m=0;m<M;m++){ re+=ws[m]*Math.cos(k*xs[m]*s); im+=ws[m]*Math.sin(k*xs[m]*s);} p.push(re*re+im*im); }
+  const pk=Math.max(...p); const pdb=p.map(v=>db(v/pk+1e-12));
+  const m=measure(angles,pdb);
+  const sw=ws.reduce((a,b)=>a+b,0), sw2=ws.reduce((a,b)=>a+b*b,0), eta=sw*sw/(M*sw2);
+  const G=4*Math.PI*L*L/(lam*lam)*eta*eta;
+  const c=$('cAp'), g=ctx(c);
+  plotPattern(g,50,14,c.width-66,c.height-50,angles,pdb,span,css('--accent'));
+  ro($('apOut'),[['L in wavelengths',(L/lam).toFixed(1)+' λ'],['−3 dB beamwidth',m.bw<179?m.bw.toFixed(2)+'°':'very wide'],['First sidelobe',m.sl>-98?m.sl.toFixed(1)+' dB':'none visible'],['Taper efficiency',(eta*100).toFixed(0)+' %'],['Gain (L × L square)',db(Math.max(G,1)).toFixed(1)+' dBi']]);
+});
+
+/* 1b DISH */
+function J0(x){ const ax=Math.abs(x);
+  if(ax<8){ const y=x*x; return (57568490574.0+y*(-13362590354.0+y*(651619640.7+y*(-11214424.18+y*(77392.33017+y*(-184.9052456))))))/(57568490411.0+y*(1029532985.0+y*(9494680.718+y*(59272.64853+y*(267.8532712+y*1.0))))); }
+  const z=8/ax, y=z*z, xx=ax-0.785398164;
+  const p1=1.0+y*(-0.1098628627e-2+y*(0.2734510407e-4+y*(-0.2073370639e-5+y*0.2093887211e-6)));
+  const p2=-0.1562499995e-1+y*(0.1430488765e-3+y*(-0.6911147651e-5+y*(0.7621095161e-6-y*0.934935152e-7)));
+  return Math.sqrt(0.636619772/ax)*(Math.cos(xx)*p1-z*Math.sin(xx)*p2); }
+const dishSets={ good:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:6,name:'Good prime-focus dish'}, lowsl:{D:1,f:10,fD:0.4,bw:100,rms:0.3,blk:6,name:'Low-sidelobe: narrower horn'}, over:{D:1,f:10,fD:0.4,bw:160,rms:0.3,blk:6,name:'Over-lit: wider horn'}, mesh:{D:1,f:10,fD:0.4,bw:128,rms:1.5,blk:10,name:'Cheap mesh, 1.5 mm rms, bigger feed'}, cass:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:18,name:'Cassegrain, 18 % subreflector'}, shallow:{D:1,f:10,fD:0.8,bw:128,rms:0.3,blk:6,name:'Same horn on shallow dish, f/D 0.8'}, deep:{D:1,f:10,fD:0.25,bw:128,rms:0.3,blk:6,name:'Same horn on deep dish, f/D 0.25'} };
+function dishModel(o){
+  const lam=c0/(o.f*1e9), a=o.D/2, F=o.fD*o.D, psi0=2*Math.atan(1/(4*o.fD));
+  const q=-1/Math.log10(Math.cos(o.bw/2*deg)); const feedP=p=>Math.abs(p)<Math.PI/2?Math.pow(Math.cos(p),q):0;
+  let num=0,den=0; const NP=1500; for(let i=0;i<NP;i++){ const p=(i+.5)/NP*Math.PI/2, w=feedP(p)*Math.sin(p); den+=w; if(p<psi0) num+=w; }
+  const eSp=num/den, NR=240, R=[], A=[], Af=[];
+  for(let i=0;i<NR;i++){ const r=(i+.5)/NR*a, p=2*Math.atan(r/(2*F)); R.push(r); Af.push(Math.sqrt(feedP(p))); A.push(Math.sqrt(feedP(p))*Math.pow(Math.cos(p/2),2)); }
+  let s1=0,s2=0,sb=0; const b=o.blk/100*a; for(let i=0;i<NR;i++){ s1+=A[i]*R[i]; s2+=A[i]*A[i]*R[i]; if(R[i]<b) sb+=A[i]*R[i]; }
+  const eIl=2*s1*s1*(a/NR)/(a*a*s2), eBl=Math.pow(1-sb/s1,2);
+  const del=4*Math.PI*o.rms*1e-3/lam, eRz=Math.exp(-del*del), eOt=0.9, eta=eSp*eIl*eBl*eRz*eOt;
+  const G0=Math.pow(Math.PI*o.D/lam,2);
+  const span=Math.min(90,Math.max(5,600*lam/o.D)), NA=721, k=2*Math.PI/lam, cc=o.D/10, angles=[], P=[];
+  for(let j=0;j<NA;j++){ const t=-span+2*span*j/(NA-1), u=Math.sin(t*deg); let e=0; for(let i=0;i<NR;i++){ if(R[i]<b) continue; e+=A[i]*J0(k*R[i]*u)*R[i]; } angles.push(t); P.push(e*e); }
+  const pk=Math.max(...P);
+  const pdb=P.map((v,j)=>{ const u=Math.sin(angles[j]*deg); const fl=Math.pow(2*cc/o.D,2)*del*del*Math.exp(-Math.pow(Math.PI*cc*u/lam,2)); return db(v/pk+fl+1e-12); });
+  const p0=Math.max(...pdb); for(let j=0;j<NA;j++) pdb[j]-=p0;
+  return {lam,a,F,psi0,feedP,R,A,Af,eSp,eIl,eBl,eRz,eOt,eta,G:eta*G0,G0,span,angles,pdb,edge:db(A[NR-1]*A[NR-1]/(A[0]*A[0])),m:measure(angles,pdb)};
+}
+(function fillDishTable(){ const t=$('dsTab'); Object.keys(dishSets).forEach(k=>{ const s=dishSets[k], r=dishModel(s); const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${s.name}</td><td class="n">${r.edge<-40?'below −40':r.edge.toFixed(1)} dB</td><td class="n">${(r.eta*100).toFixed(0)} %</td><td class="n">${db(r.G).toFixed(1)} dBi</td><td class="n">${r.m.bw.toFixed(2)}°</td><td class="n">${r.m.sl.toFixed(1)} dB</td>`; t.appendChild(tr); }); })();
+function dishDraw(){
+  const o={D:+$('dsD').value,f:+$('dsF').value,fD:+$('dsR').value,bw:+$('dsH').value,rms:+$('dsS').value,blk:+$('dsB').value};
+  $('dsDv').textContent=o.D.toFixed(2)+' m'; $('dsFv').textContent=o.f.toFixed(1)+' GHz'; $('dsRv').textContent=o.fD.toFixed(2); $('dsHv').textContent=o.bw+'°'; $('dsSv').textContent=o.rms.toFixed(2)+' mm'; $('dsBv').textContent=o.blk+' % of D';
+  const r=dishModel(o), c=$('cDish'), g=ctx(c);
+  /* cross-section */
+  const s=180/o.D, vx=34, cy=128, fx=vx+r.F*s;
+  g.fillStyle=css('--muted'); g.fillText('Cross-section',14,16);
+  const rough=Math.min(7,o.rms*3);
+  g.strokeStyle=css('--ink'); g.lineWidth=2.2; g.beginPath();
+  for(let i=0;i<=120;i++){ const y=-r.a+2*r.a*i/120, x=y*y/(4*r.F); const px=vx+x*s+rough*Math.sin(i*1.7)*Math.cos(i*0.6), py=cy-y*s; i?g.lineTo(px,py):g.moveTo(px,py); } g.stroke(); g.lineWidth=1;
+  const rimX=vx+r.a*r.a/(4*r.F)*s;
+  // feed pattern lobe
+  g.strokeStyle=css('--trace2'); g.fillStyle=css('--trace2'); g.globalAlpha=.18; g.beginPath(); g.moveTo(fx,cy);
+  for(let i=-90;i<=90;i++){ const p=i*deg, v=10*Math.log10(r.feedP(p)+1e-9), rr=62*Math.max(0,(v+30)/30); g.lineTo(fx-rr*Math.cos(p),cy-rr*Math.sin(p)); } g.closePath(); g.fill(); g.globalAlpha=1; g.stroke();
+  // rays to rim and reflected
+  g.strokeStyle=css('--trace'); [-1,-.5,0,.5,1].forEach(t=>{ const y=t*r.a*.98, x=vx+y*y/(4*r.F)*s, py=cy-y*s; g.beginPath(); g.moveTo(fx,cy); g.lineTo(x,py); g.lineTo(312,py); g.stroke(); });
+  // spillover
+  g.setLineDash([4,4]); g.strokeStyle=css('--accent'); [1,-1].forEach(sg=>{ const p=r.psi0+12*deg; if(p<Math.PI){ g.beginPath(); g.moveTo(fx,cy); g.lineTo(fx-150*Math.cos(p),cy-sg*150*Math.sin(p)); g.stroke(); } }); g.setLineDash([]);
+  // blockage
+  const bh=o.blk/100*o.D*s; g.fillStyle=css('--muted'); g.fillRect(fx-3,cy-bh/2,7,Math.max(bh,3));
+  if(o.blk>0){ g.globalAlpha=.12; g.fillRect(fx+4,cy-bh/2,312-fx-4,bh); g.globalAlpha=1; }
+  g.fillStyle=css('--ink'); g.beginPath(); g.arc(fx,cy,3,0,7); g.fill();
+  g.fillStyle=css('--muted'); g.fillText('focus',fx-14,cy+bh/2+16); g.fillText('ψ₀ = '+(r.psi0/deg).toFixed(0)+'°',14,240); g.fillText('f/D = '+o.fD.toFixed(2)+', depth '+fmt(o.D*o.D/(16*r.F),'m'),120,240);
+  if(rough>0.5) g.fillText('surface roughness drawn ×'+Math.round(rough/(o.rms*1e-3*s)),14,256);
+  /* illumination */
+  const ix=360, iy=28, iw=262, ih=180, lo=-30, IX=u=>ix+iw*u, IY=v=>iy+ih*(-Math.max(v,lo))/(-lo);
+  g.fillStyle=css('--muted'); g.fillText('Power across the mouth (dB)',ix,16);
+  frame(g,ix,iy,iw,ih,3); [0,-10,-20,-30].forEach(v=>g.fillText(v,ix-26,IY(v)+4)); g.fillText('centre',ix,iy+ih+16); g.fillText('rim',ix+iw-20,iy+ih+16);
+  if(o.blk>0){ g.fillStyle=css('--muted'); g.globalAlpha=.15; g.fillRect(ix,iy,iw*o.blk/100,ih); g.globalAlpha=1; }
+  const n=r.R.length, A0=r.A[0], F0=r.Af[0];
+  g.strokeStyle=css('--trace2'); g.setLineDash([4,3]); g.beginPath(); for(let i=0;i<n;i++){ const X=IX(r.R[i]/r.a), Y=IY(db(r.Af[i]*r.Af[i]/(F0*F0)+1e-12)); i?g.lineTo(X,Y):g.moveTo(X,Y);} g.stroke(); g.setLineDash([]);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.8; g.beginPath(); for(let i=0;i<n;i++){ const X=IX(r.R[i]/r.a), Y=IY(db(r.A[i]*r.A[i]/(A0*A0)+1e-12)); i?g.lineTo(X,Y):g.moveTo(X,Y);} g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--ink'); g.fillText('edge '+(r.edge<-40?'< −40':r.edge.toFixed(1))+' dB',ix+iw-110,Math.min(IY(r.edge)-8,iy+ih-8));
+  /* far field */
+  g.fillStyle=css('--muted'); g.fillText('Far-field pattern (dB)',50,276);
+  plotPattern(g,50,284,c.width-66,152,r.angles,r.pdb,r.span,css('--accent'));
+  ro($('dsOut'),[['D in wavelengths',(o.D/r.lam).toFixed(1)+' λ'],['Rim half-angle ψ₀',(r.psi0/deg).toFixed(1)+'°'],['Edge taper',(r.edge<-40?'< −40':r.edge.toFixed(1))+' dB'],['Spillover η',(r.eSp*100).toFixed(1)+' %'],['Illumination η',(r.eIl*100).toFixed(1)+' %'],['Blockage η',(r.eBl*100).toFixed(1)+' %'],['Surface η (Ruze)',(r.eRz*100).toFixed(1)+' %'],['Other losses',(r.eOt*100).toFixed(0)+' %'],['Total η',(r.eta*100).toFixed(1)+' %'],['Ideal gain (η = 1)',db(r.G0).toFixed(1)+' dBi'],['Real gain',db(r.G).toFixed(1)+' dBi'],['−3 dB beamwidth',r.m.bw.toFixed(2)+'°'],['Highest sidelobe',r.m.sl>-98?r.m.sl.toFixed(1)+' dB':'none visible']]);
+}
+$('dsP').addEventListener('input',()=>{ const s=dishSets[$('dsP').value]; $('dsD').value=s.D; $('dsF').value=s.f; $('dsR').value=s.fD; $('dsH').value=s.bw; $('dsS').value=s.rms; $('dsB').value=s.blk; dishDraw(); });
+['dsD','dsF','dsR','dsH','dsS','dsB'].forEach(i=>$(i).addEventListener('input',dishDraw)); redraws.push(dishDraw); dishDraw();
+
+/* 5 PHASED ARRAY */
+bind(['paN','paD','paS','paB','paT'],function(){
+  const N=+$('paN').value, d=+$('paD').value, s0=+$('paS').value, bits=+$('paB').value, tp=$('paT').value;
+  $('paNv').textContent=N; $('paDv').textContent=d.toFixed(2)+' λ'; $('paSv').textContent=s0+'°';
+  const step=360*d*Math.sin(s0*deg); const ph=[], amp=[];
+  for(let n=0;n<N;n++){ let p=((n*step)%360+360)%360; if(bits>0){ const q=360/Math.pow(2,bits); p=(Math.round(p/q)*q)%360; } ph.push(p); const u=(n+.5)/N-.5; amp.push(tp==='uni'?1:Math.cos(Math.PI*u)); }
+  const NA=1801, angles=[], pw=[];
+  for(let i=0;i<NA;i++){ const a=-90+180*i/(NA-1); angles.push(a); const s=Math.sin(a*deg); let re=0,im=0; for(let n=0;n<N;n++){ const arg=2*Math.PI*d*n*s - ph[n]*deg; re+=amp[n]*Math.cos(arg); im+=amp[n]*Math.sin(arg);} const ef=Math.max(Math.cos(a*deg),0); pw.push((re*re+im*im)*ef*ef); }
+  // normalise to broadside ideal peak (so scan loss is visible)
+  const sumA=amp.reduce((x,y)=>x+y,0), ref=sumA*sumA;
+  const pdb=pw.map(v=>db(v/ref+1e-12));
+  const pkdb=Math.max(...pdb); const rel=pdb.map(v=>v-pkdb);
+  const m=measure(angles,rel);
+  // grating lobe check: any lobe within 3 dB of peak outside main lobe
+  let gl=-99; for(let i=0;i<NA;i++){ if(i<m.edgeL||i>m.edgeR) gl=Math.max(gl,rel[i]); }
+  const c=$('cPa'), g=ctx(c), W=c.width;
+  // phase bars
+  const x0=50, w=W-66, bh=90, by=20; frame(g,x0,by,w,bh,4); g.fillStyle=css('--muted'); g.fillText('360°',10,by+8); g.fillText('0°',22,by+bh); g.fillText('phase applied to each element (element 1 → N)',x0,by-6);
+  const bwid=w/N; for(let n=0;n<N;n++){ const hh=bh*ph[n]/360; g.fillStyle=css('--trace2'); g.fillRect(x0+bwid*n+bwid*.15,by+bh-hh,Math.max(1,bwid*.7),hh); }
+  const r=plotPattern(g,50,150,w,230,angles,pdb.map(v=>v),90,css('--trace'),-50);
+  g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(r.X(s0),150); g.lineTo(r.X(s0)-6,140); g.lineTo(r.X(s0)+6,140); g.closePath(); g.fill();
+  g.fillStyle=css('--muted'); g.fillText('dB relative to the broadside peak',x0,c.height-4);
+  const glOK=d<1/(1+Math.abs(Math.sin(s0*deg)));
+  ro($('paOut'),[['Phase step Δφ',(((step%360)+360)%360).toFixed(1)+'°'],['Array length',(N*d).toFixed(1)+' λ'],['Beam points to',m.peak.toFixed(1)+'°'],['−3 dB beamwidth',m.bw.toFixed(2)+'°'],['Scan loss',(-pkdb).toFixed(1)+' dB'],['Highest other lobe',gl.toFixed(1)+' dB'],['Grating lobe?',glOK?'no':'YES (d too large)']]);
+});
+
+/* 6 SCAN */
+let bt=0.3, bRun=false, esaSeq=[], bRaf=0;
+function beamCalc(){ const bw=+$('bW').value, P=+$('bP').value, prf=+$('bF').value, type=$('bType').value;
+  $('bWv').textContent=bw.toFixed(1)+'°'; $('bPv').textContent=P.toFixed(1)+' s'; $('bFv').textContent=fmt(prf,'Hz');
+  const span= type==='sect'?120:360; const omega=(type==='sect'?2*span:span)/P; const dwell=bw/omega;
+  let rows=[['Angular speed',type==='con'||type==='esa'?'—':omega.toFixed(1)+' °/s'],['Dwell on target',type==='con'?'continuous':type==='esa'?'set by scheduler':fmt(dwell,'s')],['Hits per look',type==='con'?'all pulses':type==='esa'?'set by scheduler':Math.floor(dwell*prf)]];
+  rows.push(['Revisit time',type==='sect'?'irregular (pairs)':type==='con'?'—':type==='esa'?'irregular':fmt(P,'s')]);
+  ro($('bOut'),rows); return {bw,P,type}; }
+function pattern(off,bw){ const u=2.78*off/bw; const s=Math.abs(u)<1e-6?1:Math.sin(u)/u; return Math.max(s*s,lin(-35)); }
+function beamAz(t,P,type){ const ph=(t/P)%1;
+  if(type==='circ') return ph*360;
+  if(type==='sect'){ const tri=ph<.5?ph*2:2-ph*2; return 30+tri*120; }
+  if(type==='con') return 90+1.5*Math.cos(2*Math.PI*t/(P/8));
+  if(!esaSeq.length){ for(let i=0;i<64;i++) esaSeq.push(Math.random()<.18?90:Math.random()*180); }
+  return esaSeq[Math.floor(t/(P/16))%64]; }
+function beamDraw(){ const {bw,P,type}=beamCalc(); const c=$('cBeam'), g=ctx(c), W=c.width;
+  const cx=W/2, cy=190, r=165, tgt=90;
+  g.strokeStyle=css('--grid'); [1,2,3].forEach(k=>{ g.beginPath(); g.arc(cx,cy,r*k/3,0,7); g.stroke(); });
+  const az=beamAz(bt,P,type); const a=(az-90-90)*deg; // 90° = north (up)
+  const wv=Math.max(bw,1)*deg/2;
+  g.fillStyle=css('--accent'); g.globalAlpha=.22; g.beginPath(); g.moveTo(cx,cy); g.arc(cx,cy,r,a-wv,a+wv); g.closePath(); g.fill(); g.globalAlpha=1;
+  g.strokeStyle=css('--accent'); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a)); g.stroke();
+  g.fillStyle=css('--ink'); g.beginPath(); g.arc(cx,cy-r*.75,5,0,7); g.fill();
+  g.fillStyle=css('--muted'); g.fillText('target',cx+8,cy-r*.75-6); g.fillText('radar',cx-18,cy+16);
+  if(type==='sect'){ g.setLineDash([3,3]); g.strokeStyle=css('--muted'); [30,150].forEach(b=>{ const aa=(b-180)*deg; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+r*Math.cos(aa),cy+r*Math.sin(aa)); g.stroke(); }); g.setLineDash([]); }
+  const x0=60, y0=375, w=W-80, h=70; frame(g,x0,y0,w,h,4);
+  g.fillStyle=css('--muted'); g.fillText('0 dB',20,y0+8); g.fillText('−35',24,y0+h); g.fillText('power at the target over 2 scan periods ('+fmt(2*P,'s')+')',x0,y0-8);
+  const T=2*P; g.beginPath(); g.strokeStyle=css('--accent'); g.lineWidth=1.5;
+  for(let i=0;i<=1200;i++){ const t=T*i/1200; const off=Math.abs(((beamAz(t,P,type)-tgt+540)%360)-180); const pdb=db(pattern(off,bw)); const X=x0+w*i/1200, Yv=y0+h*(-pdb/35); i?g.lineTo(X,Yv):g.moveTo(X,Yv);} g.stroke(); g.lineWidth=1;
+  const X=x0+w*((bt%T)/T); g.strokeStyle=css('--ink'); g.beginPath(); g.moveTo(X,y0); g.lineTo(X,y0+h); g.stroke();
+}
+['bType','bW','bP','bF'].forEach(i=>$(i).addEventListener('input',()=>{esaSeq=[];beamDraw();})); redraws.push(beamDraw); beamDraw();
+$('bPlay').addEventListener('click',function(){ bRun=!bRun; this.setAttribute('aria-pressed',bRun); this.textContent=bRun?'Pause':'Play scan';
+  if(bRun){ let last=performance.now(); const st=now=>{ if(!bRun) return; bt+=(now-last)/1000; last=now; beamDraw(); bRaf=requestAnimationFrame(st); }; bRaf=requestAnimationFrame(st);} else cancelAnimationFrame(bRaf); });
+if(!reduce) $('bPlay').click();
+
+/* 7 SEARCH */
+let sT=0;
+function srDraw(){
+  const Az=+$('sAz').value, El=+$('sEl').value, ba=+$('sBa').value, be=+$('sBe').value, dw=+$('sDw').value*1e-3, v=+$('sV').value;
+  $('sAzv').textContent=Az+'°'; $('sElv').textContent=El+'°'; $('sBav').textContent=ba.toFixed(1)+'°'; $('sBev').textContent=be.toFixed(1)+'°'; $('sDwv').textContent=fmt(dw,'s'); $('sVv').textContent=v+' m/s';
+  const na=Math.max(1,Math.ceil(Az/ba)), ne=Math.max(1,Math.ceil(El/be)), N=na*ne, Tf=N*dw, G=26000/(ba*be);
+  ro($('sOut'),[['Beam positions',na+' × '+ne+' = '+N],['Frame (revisit) time',fmt(Tf,'s')],['Target moves per frame',fmt(v*Tf,'m')],['Antenna gain',db(G).toFixed(1)+' dBi']]);
+  const c=$('cSr'), g=ctx(c), x0=40, y0=20, w=c.width-60, h=c.height-50;
+  const sx=w/Az, sy=h/El, sc=Math.min(sx,sy), W2=Az*sc, H2=El*sc, ox=x0+(w-W2)/2, oy=y0+(h-H2)/2;
+  g.strokeStyle=css('--line'); g.strokeRect(ox,oy,W2,H2);
+  g.fillStyle=css('--muted'); g.fillText(Az+'° azimuth',ox,oy+H2+16); g.save(); g.translate(ox-8,oy+H2); g.rotate(-Math.PI/2); g.fillText(El+'° elevation',0,0); g.restore();
+  const cur=Math.floor(sT/60)%N; // animation pace only: one position every 60 ms of screen time
+  const big=N>3000; const rx=ba*sc/2, ry=be*sc/2;
+  if(!big){ for(let j=0;j<ne;j++) for(let i=0;i<na;i++){ const idx=j*na+i; g.beginPath(); g.ellipse(ox+(i+.5)*ba*sc,oy+H2-(j+.5)*be*sc,Math.max(rx,1),Math.max(ry,1),0,0,7);
+      if(idx===cur){ g.fillStyle=css('--accent'); g.fill(); } else if(idx<cur){ g.fillStyle=css('--trace'); g.globalAlpha=.25; g.fill(); g.globalAlpha=1; } else { g.strokeStyle=css('--grid'); g.stroke(); } } }
+  else { g.fillStyle=css('--muted'); g.fillText(N+' positions: too many to draw individually',ox+10,oy+20); }
+}
+['sAz','sEl','sBa','sBe','sDw','sV'].forEach(i=>$(i).addEventListener('input',()=>{sT=0;srDraw();})); redraws.push(srDraw); srDraw();
+if(!reduce){ let last=performance.now(); (function lp(now){ sT+=(now-last); last=now; srDraw(); requestAnimationFrame(lp); })(last); }
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

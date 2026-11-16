@@ -1,0 +1,1278 @@
+<title>Antenna Fundamentals</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.grp{display:flex;flex-direction:column;gap:9px}
+.grp[hidden]{display:none}
+#tyOut{font-size:12px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.readout span.sep{grid-column:1/-1;text-align:left!important;color:var(--accent)!important;margin-top:4px;border-top:1px solid var(--line);padding-top:3px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Antenna Fundamentals · RF Systems for Component Engineers</div>
+  <h1>Antenna fundamentals, from the current to the system</h1>
+  <p class="lede">You design the LNA, the PA, the filter or the synthesiser that sits behind an antenna. This page opens the antenna itself, from first principles: how a current radiates, what each datasheet parameter means, how wavelength and aperture size set the beam, how phase across the aperture shapes and steers it, and how every one of these numbers ends up as radar range, sidelobe level, noise or ESM sensitivity. Every term is explained before it is used. Every step has worked numbers and a demo you can change.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#radiate">1 How it radiates</a><a href="#match">2 Impedance and matching</a><a href="#pattern">3 Radiation pattern</a><a href="#gain">4 Directivity and gain</a><a href="#aperture">5 Aperture and λ</a><a href="#phase">6 Phase across the aperture</a><a href="#pol">7 Polarisation and squint</a><a href="#noise">8 Noise temperature and G/T</a><a href="#types">9 Five antennas: construction to system</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 1 -->
+<section id="radiate">
+  <div class="secno">Step 1</div>
+  <h2>How an antenna radiates, and where its "far field" begins</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A current through an inductor stores energy in a magnetic field; a voltage across a capacitor stores it in an electric field. Each cycle that energy flows in and back out again: this is reactive power. A transmission line carries a wave along it with E and H in phase and power flowing in one direction: this is real power. An antenna is the device that turns the guided wave on a line into a wave that leaves into free space and never comes back.</p>
+  </div>
+  <div class="col">
+    <p><b>Radiation comes from changing current.</b> A steady (DC) current makes a steady magnetic field that stays attached to the wire. An alternating current means charges that accelerate back and forth. A changing field cannot update everywhere at once: the change travels outward at the speed of light, c. At a distance of about one wavelength λ = c/f, the field from the start of a cycle is still travelling outward while the source has already reversed. That part of the field has "come loose": it no longer returns to the source. That loose part is the radiated wave.</p>
+    <p><b>The current distribution is what radiates.</b> Every short piece of conductor carrying current contributes a small wave. The field at a distant point is the sum of all these small waves, each with its own amplitude (how much current) and phase (when that current peaks, plus how far its wave has to travel). On a half-wave dipole the current is a half sine: largest at the feed, zero at the tips. On a horn or dish we do not track the current on the metal; we track the field across the opening, the <b>aperture</b>. The rule is the same: the far pattern is the sum of contributions across the aperture, each weighted by its amplitude and phase. Steps 5 and 6 are built entirely on this one idea.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Aperture:</b> the opening through which the antenna radiates (horn mouth, dish face, face of an array). Its largest size is called D.</p>
+    <p><b>Aperture distribution (illumination):</b> how the field amplitude and phase vary across the aperture.</p>
+    <p><b>Field regions:</b> zones around the antenna where the field behaves differently. The boundaries are conventions, not sharp edges.</p>
+  </div>
+  <div class="col">
+    <p><b>Three field regions.</b> Close to a small dipole the field has three parts that fall off as 1/r³, 1/r² and 1/r (r = distance). The 1/r³ and 1/r² parts are stored energy, like the field of the inductor and capacitor: they explain the reactive part of the antenna impedance (step 2). The 1/r part is the radiated wave. For a dipole the 1/r part dominates beyond about λ/2π. For a large aperture we need two boundaries:</p>
+  </div>
+  <div class="eq">Reactive near field:  R &lt; 0.62 · √(D³/λ)<br>Radiating near field (Fresnel region):  0.62·√(D³/λ) &lt; R &lt; 2D²/λ<br>Far field (Fraunhofer region):  R &gt; 2D²/λ   (and R ≫ D, R ≫ λ)
+    <small>In the reactive near field stored energy dominates and anything placed there (a radome, a mast, your hand) changes the antenna impedance. In the Fresnel region the energy is radiating, but the shape of the pattern still changes with distance. In the far field the pattern shape no longer depends on distance; only its level falls as 1/R² in power.</small></div>
+  <div class="col">
+    <h3>Why phase sets the boundary: the π/8 rule</h3>
+    <p>Stand on boresight (straight ahead) at distance R from an aperture of size D. The path from the centre of the aperture is R. The path from the edge, D/2 off-centre, is √(R² + (D/2)²), which is longer by about Δ ≈ (D/2)²/(2R) = D²/(8R). Contributions from the edge therefore arrive late by a phase of 2πΔ/λ = πD²/(4λR). In the true far field (R → ∞) this phase is zero and all contributions add exactly in phase; that is what gives the full gain and the deep nulls of the pattern.</p>
+    <p>By convention, "far enough" is when the edge phase error has fallen to π/8 (22.5°). Setting πD²/(4λR) = π/8 gives R = 2D²/λ. At that distance the error costs about 0.06 dB of gain on a uniform aperture and very slightly fills the nulls. Halve the distance and the error doubles to 45°; the loss grows about four times and the first sidelobes start to merge into the main lobe.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Antenna</th><th>f</th><th>λ</th><th>0.62√(D³/λ)</th><th>2D²/λ</th></tr>
+    <tr><td>Horn, D = 10 cm</td><td class="n">10 GHz</td><td class="n">3.0 cm</td><td class="n">0.11 m</td><td class="n">0.67 m</td></tr>
+    <tr><td>Dish, D = 1 m</td><td class="n">10 GHz</td><td class="n">3.0 cm</td><td class="n">3.6 m</td><td class="n">67 m</td></tr>
+    <tr><td>Dish, D = 3 m</td><td class="n">35 GHz</td><td class="n">8.6 mm</td><td class="n">35 m</td><td class="n">2.1 km</td></tr>
+  </table></div>
+  <div class="col"><p>This is why large, high-frequency antennas are measured on long outdoor ranges, in a <b>compact range</b> (a large reflector that makes a plane wave in a short room) or by <b>near-field scanning</b> (measuring amplitude and phase on a surface close to the antenna and computing the far field mathematically).</p></div>
+  <div class="bench">
+    <canvas id="cFr" width="640" height="360" aria-label="Field regions and the pattern measured at a chosen distance"></canvas>
+    <div class="ctrl">
+      <label for="frD">Aperture size D <b id="frDv"></b></label><input id="frD" type="range" min="0.1" max="2" step="0.01" value="1">
+      <label for="frF">Frequency <b id="frFv"></b></label><input id="frF" type="range" min="1" max="20" step="0.1" value="10">
+      <label for="frR">Measuring distance R <b id="frRv"></b></label><input id="frR" type="range" min="-2.5" max="1" step="0.01" value="0">
+      <label for="frT">Aperture illumination</label>
+      <select id="frT"><option value="uni" selected>Uniform</option><option value="cos">Cosine taper</option></select>
+      <div class="readout" id="frOut"></div>
+    </div>
+    <p class="cap">Top: the three regions on a log distance scale, and where you are measuring. Bottom: the pattern of a line aperture of size D, measured on an arc at distance R (solid), against the true far-field pattern (dashed). Slide R below the far-field boundary: the main lobe loses gain, widens, and the nulls fill in, because the edge contributions arrive late. R is never allowed below D or λ.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Radome, mast, nearby structure:</b> anything inside the reactive near field couples to the stored energy and detunes the antenna. That is why the feed return loss on the bench differs from the return loss once installed.</li>
+    <li><b>Test engineers:</b> a gain or sidelobe figure measured at less than 2D²/λ is optimistic for sidelobe depth and pessimistic for gain. Ask at what distance (or with which near-field method) the datasheet pattern was measured.</li>
+    <li><b>EMC and co-site:</b> a nearby antenna in the near field of a large array sees a field that does not follow the far-field formula. Isolation between co-located systems must be measured, not computed from far-field gains.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 0.6 m array at 16 GHz is to be measured. What is the minimum far-field distance?</summary><p>λ = 1.875 cm. 2D²/λ = 2 × 0.36 / 0.01875 = 38 m. A 10 m indoor chamber is not enough: use a compact range or near-field scanner.</p></details>
+    <details><summary>Why does the far-field distance grow with frequency for the same dish?</summary><p>The edge path difference D²/8R is fixed by geometry, but it is measured in wavelengths. At a higher frequency the same path difference is more degrees of phase, so you must go further away before it falls to 22.5°.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="match">
+  <div class="secno">Step 2</div>
+  <h2>Impedance and matching: VSWR, return loss, Γ and bandwidth</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>You match an LNA input or a PA output to 50 Ω and quote S11. An antenna port is exactly the same: it is a one-port load. The only difference is that the "load resistor" is radiation into space, and the stored near-field energy from step 1 adds reactance that changes with frequency.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Input impedance Z<sub>A</sub> = R<sub>A</sub> + jX<sub>A</sub>:</b> what the antenna port looks like. R<sub>A</sub> = radiation resistance R<sub>r</sub> (power that leaves as radiation) + loss resistance R<sub>L</sub> (power turned into heat). X<sub>A</sub> is the stored near-field energy.</p>
+    <p><b>Reflection coefficient Γ:</b> the ratio of reflected to incident voltage wave at the port, Γ = (Z<sub>A</sub> − Z<sub>0</sub>)/(Z<sub>A</sub> + Z<sub>0</sub>), with Z<sub>0</sub> usually 50 Ω. Γ is complex; |Γ| is between 0 (perfect match) and 1 (total reflection). Γ is S11.</p>
+    <p><b>VSWR:</b> voltage standing wave ratio on the line, the ratio of maximum to minimum voltage along it. VSWR = (1 + |Γ|)/(1 − |Γ|). 1:1 is perfect.</p>
+    <p><b>Return loss (RL):</b> how far the reflected power is below the incident power, RL = −20·log₁₀|Γ| dB. A bigger number is better. (S11 in dB is the same number with a minus sign.)</p>
+    <p><b>Mismatch loss (ML):</b> the power that never enters the antenna because it is reflected, ML = −10·log₁₀(1 − |Γ|²) dB.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>VSWR</th><th>|Γ|</th><th>Return loss</th><th>Power reflected</th><th>Mismatch loss</th></tr>
+    <tr><td class="n">1.10</td><td class="n">0.048</td><td class="n">26.4 dB</td><td class="n">0.2 %</td><td class="n">0.01 dB</td></tr>
+    <tr><td class="n">1.50</td><td class="n">0.200</td><td class="n">14.0 dB</td><td class="n">4.0 %</td><td class="n">0.18 dB</td></tr>
+    <tr><td class="n">2.00</td><td class="n">0.333</td><td class="n">9.5 dB</td><td class="n">11.1 %</td><td class="n">0.51 dB</td></tr>
+    <tr><td class="n">3.00</td><td class="n">0.500</td><td class="n">6.0 dB</td><td class="n">25.0 %</td><td class="n">1.25 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Notice how forgiving the mismatch loss is: VSWR 2:1 costs only 0.5 dB of radiated power. The real problems of a bad match are elsewhere: the reflected power goes back into the PA (heat, instability, load-pull of its output), it forms ripple with other reflections in the chain (a gain ripple across the band, and group-delay ripple that distorts wideband signals), and a receive antenna with a poor match presents the wrong source impedance to the LNA, which raises its noise figure.</p></div>
+  <div class="bench">
+    <canvas id="cCv" width="640" height="300" aria-label="Return loss and mismatch loss against VSWR"></canvas>
+    <div class="ctrl">
+      <label for="cvU">I know the</label>
+      <select id="cvU"><option value="vswr" selected>VSWR</option><option value="rl">Return loss (dB)</option><option value="g">|Γ|</option><option value="ml">Mismatch loss (dB)</option></select>
+      <label for="cvV">Value</label><input id="cvV" type="number" min="0" step="0.05" value="1.5">
+      <div class="readout" id="cvOut"></div>
+    </div>
+    <p class="cap">Converter. Choose which quantity you have, type its value, read the others. The curves show return loss (top) and mismatch loss (bottom) against VSWR, with your point marked.</p>
+  </div>
+  <div class="col">
+    <h3>Why the match changes with frequency</h3>
+    <p>Near its resonance, most antennas behave like a series (or parallel) RLC circuit: the near-field stored energy gives inductance and capacitance, the radiation resistance is the R. At the resonance frequency f<sub>0</sub> the reactances cancel and Z<sub>A</sub> = R. Away from it X<sub>A</sub> grows, and how fast it grows is set by the <b>quality factor Q</b> = (energy stored)/(energy radiated per radian of the cycle). For a matched resonator the bandwidth over which VSWR stays below S is</p>
+  </div>
+  <div class="eq">BW (fraction of f₀) ≈ (S − 1) / (Q·√S)       e.g. Q = 10, S = 2:  BW ≈ 1/(10 × 1.414) = 7.1 %
+    <small>A small antenna (size ≪ λ) stores a lot of energy for the little it radiates, so it has high Q and is narrowband: this is a physical limit (the Chu limit), not a design shortfall. Wideband antennas (horns, spirals, Vivaldis, log-periodics) avoid a single resonance.</small></div>
+  <div class="term"><h4>Terms: what "bandwidth" means on an antenna datasheet</h4>
+    <p><b>Impedance bandwidth:</b> the band where VSWR ≤ 2 (RL ≥ 9.5 dB) or RL ≥ 10 dB, whichever the vendor states.</p>
+    <p><b>Pattern (gain) bandwidth:</b> the band where gain, beamwidth and sidelobes stay within limits. A dish is matched over the feed's band, but its beamwidth still changes with λ (step 5).</p>
+    <p><b>Axial-ratio bandwidth:</b> for circularly polarised antennas, the band where axial ratio ≤ 3 dB (step 7). Often the narrowest of the three.</p>
+    <p><b>Instantaneous vs tunable:</b> an antenna may cover a wide band only when retuned, or only with its beam moving (squint, step 7).</p>
+  </div>
+  <div class="bench">
+    <canvas id="cMt" width="640" height="300" aria-label="Return loss against frequency and Smith chart locus"></canvas>
+    <div class="ctrl">
+      <label for="mtR">Resistance at resonance R <b id="mtRv"></b></label><input id="mtR" type="range" min="10" max="200" step="1" value="50">
+      <label for="mtQ">Antenna Q <b id="mtQv"></b></label><input id="mtQ" type="range" min="1" max="40" step="0.5" value="10">
+      <label for="mtC">Cable + radome loss before the port <b id="mtCv"></b></label><input id="mtC" type="range" min="0" max="3" step="0.1" value="0">
+      <div class="readout" id="mtOut"></div>
+    </div>
+    <p class="cap">An antenna modelled as a series RLC resonator at f₀ = 10 GHz. Left: return loss against frequency, for the antenna itself (solid) and as measured through a lossy cable or radome (dashed). Right: the same Γ on a Smith chart (the plane of complex Γ; the outer circle is |Γ| = 1, the dashed circle is VSWR 2). Add cable loss: the measured return loss looks better by twice the cable loss, because the reflection passes through the loss twice. A bad antenna behind a lossy cable can look well matched.</p>
+  </div>
+  <div class="col"><h3>What the feed, the connector and the radome do</h3>
+    <p>The <b>feed</b> (the probe, slot or balun that couples the line to the radiating structure) does the impedance transformation, exactly as your matching network does. A <b>balun</b> is needed when a balanced antenna (a dipole) is fed from an unbalanced coaxial line; without it current flows on the outside of the coax shield, which then radiates too and distorts the pattern. The <b>connector</b> and its launch add a small step discontinuity that sets a floor on return loss, worse at higher frequency. The <b>radome</b> reflects a little power back into the antenna (a dielectric wall is matched only at thicknesses near multiples of half a wavelength in the material) and adds loss; both change with frequency and with scan angle.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> antenna VSWR is the PA's load. A 2:1 antenna means the PA sees any phase of a 2:1 load as frequency changes. In an array, the active (scan-dependent) impedance of each element can be much worse than its isolated VSWR.</li>
+    <li><b>LNA designers:</b> the antenna is the LNA's source impedance. The optimum noise match Γ<sub>opt</sub> is rarely 50 Ω, so a mismatch between antenna and LNA changes the noise figure, not just the gain.</li>
+    <li><b>Filters and isolators:</b> a filter between antenna and LNA sees the antenna mismatch at its port; its passband ripple is measured into 50 Ω but used into the antenna's impedance.</li>
+    <li><b>Test:</b> always ask where return loss was measured. Each dB of cable loss makes RL look 2 dB better.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An antenna is specified with RL ≥ 10 dB. What VSWR and mismatch loss is that?</summary><p>|Γ| = 10^(−10/20) = 0.316, VSWR = 1.316/0.684 = 1.92, mismatch loss = −10·log(1 − 0.1) = 0.46 dB.</p></details>
+    <details><summary>You measure 15 dB return loss through 2 dB of cable. What is the antenna's real return loss?</summary><p>15 − 2 × 2 = 11 dB. The reflected wave lost 2 dB going in and 2 dB coming back.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="pattern">
+  <div class="secno">Step 3</div>
+  <h2>The radiation pattern: how to read one</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A filter response is |S21| in dB against frequency: a passband, a skirt, nulls (transmission zeros), and a stopband floor. An antenna pattern is the same kind of plot, with angle instead of frequency: a main lobe (the passband), nulls, sidelobes (stopband ripple), and a back lobe.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Radiation pattern:</b> the radiated power density (or field strength) at a fixed large distance, plotted against direction. Almost always normalised so the peak is 0 dB.</p>
+    <p><b>Boresight:</b> the direction of the peak of the main lobe. <b>Main lobe:</b> the lobe containing the peak. <b>HPBW (half-power beamwidth, θ₃):</b> the angle between the two −3 dB points of the main lobe.</p>
+    <p><b>Nulls:</b> directions where the contributions from the aperture cancel. <b>Sidelobes:</b> the smaller lobes between nulls. The <b>first sidelobe level (SLL)</b> is the highest sidelobe next to the main lobe, in dB below the peak. <b>Back lobe:</b> radiation towards 180°.</p>
+    <p><b>Front-to-back ratio (F/B):</b> peak level divided by the level at 180°, in dB.</p>
+    <p><b>E-plane and H-plane:</b> the two principal cuts through the pattern. The E-plane contains the boresight direction and the electric field vector; the H-plane contains boresight and the magnetic field vector. For a vertically polarised antenna the E-plane is the vertical cut.</p>
+    <p><b>Co-polarisation (co-pol):</b> the polarisation the antenna is meant to radiate. <b>Cross-polarisation (cross-pol, X-pol):</b> the orthogonal polarisation (step 7), unwanted. Cross-pol is usually worst in the 45° plane, between the E- and H-planes, and often has a null on boresight.</p>
+  </div>
+  <div class="col">
+    <p><b>Polar and rectangular plots</b> show the same data. A polar plot shows direction intuitively (good for wide-beam antennas). A rectangular plot (level against angle) is better for narrow beams and for reading sidelobe levels precisely. <b>Linear power</b> scale shows that almost all the power is in the main lobe; <b>linear field</b> (√power) is what a voltage probe sees; a <b>dB scale</b> is what you need to see sidelobes at −30 dB, which are invisible on a linear plot (0.1 % of the peak power).</p>
+    <p><b>Why E- and H-plane patterns differ.</b> In a rectangular waveguide horn (TE₁₀ mode) the field across the mouth is uniform in the E-plane direction but falls to zero at the side walls in the H-plane direction (a cosine). A uniform distribution gives the narrowest beam but −13.3 dB sidelobes; a cosine gives a 35 % wider beam but −23 dB sidelobes. Step 5 shows why.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPt" width="640" height="400" aria-label="Radiation pattern of a horn in polar or rectangular form"></canvas>
+    <div class="ctrl">
+      <label for="ptA">Aperture size <b id="ptAv"></b></label><input id="ptA" type="range" min="1" max="20" step="0.5" value="4">
+      <label for="ptV">View</label>
+      <select id="ptV"><option value="polar" selected>Polar</option><option value="rect">Rectangular</option></select>
+      <label for="ptS">Scale</label>
+      <select id="ptS"><option value="db" selected>dB (power)</option><option value="pow">Linear power</option><option value="fld">Linear field</option></select>
+      <label for="ptB">Back-lobe level <b id="ptBv"></b></label><input id="ptB" type="range" min="-45" max="-10" step="1" value="-25">
+      <label for="ptX">Peak cross-pol (45° plane) <b id="ptXv"></b></label><input id="ptX" type="range" min="-40" max="-10" step="1" value="-25">
+      <div class="readout" id="ptOut"></div>
+    </div>
+    <p class="cap">A square horn mouth of the chosen size in wavelengths. <span class="legend"><i style="background:var(--trace)"></i>E-plane (uniform) <i style="background:var(--trace2)"></i>H-plane (cosine) <i style="background:var(--accent)"></i>cross-pol, 45° plane</span>. Switch to a linear scale: the sidelobes disappear from view, which is why patterns are plotted in dB. Cross-pol has a null on boresight and peaks near the −6 dB points of the co-pol beam.</p>
+  </div>
+  <div class="col"><p><b>Worked numbers.</b> A square horn with a 4λ mouth: E-plane HPBW ≈ 50.8°/4 = 12.7° with −13.3 dB first sidelobes; H-plane HPBW ≈ 68.8°/4 = 17.2° with −23 dB first sidelobes. The beam is not round. A dish fed by this horn would be lit unevenly in the two planes, which is why dish feeds use corrugated or dual-mode horns with equal E- and H-plane patterns.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Radar:</b> a target or a jammer in a sidelobe at −30 dB is received 30 dB weaker on receive, and also illuminated 30 dB weaker on transmit: 60 dB two-way. Sidelobe level sets how much clutter and jamming leak in.</li>
+    <li><b>ESM / ELINT:</b> an intercept receiver usually sees the radar's sidelobes, not its main beam. The radar's sidelobe level sets how far away it can be detected while not pointing at you.</li>
+    <li><b>Back lobe:</b> sets isolation between back-to-back antennas on a mast, and how much ground noise a dish picks up (step 8).</li>
+    <li><b>Cross-pol:</b> sets isolation in dual-polarised links (two channels on one frequency), and polarimetric radar accuracy.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A datasheet shows a sidelobe at −20 dB. What fraction of power density is that, relative to the peak?</summary><p>10^(−20/10) = 1 %. On a linear power plot it is a barely visible bump.</p></details>
+    <details><summary>An antenna has F/B = 25 dB and 30 dBi gain. What is the gain towards the back?</summary><p>30 − 25 = 5 dBi. Still more than an isotropic antenna.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="gain">
+  <div class="secno">Step 4</div>
+  <h2>Directivity, gain, realised gain, efficiency, effective aperture and EIRP</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An amplifier has gain because it adds energy from the supply. An antenna has no supply: its "gain" is only concentration. It sends the same power into a smaller solid angle, like a lens focusing a lamp. Any loss inside it (copper, dielectric, mismatch) reduces that concentration, exactly like loss in front of an LNA.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Isotropic radiator:</b> an imaginary antenna radiating equally in all directions. The reference for "dBi".</p>
+    <p><b>Solid angle and steradian (sr):</b> the 3-D version of an angle. A full sphere is 4π sr. A pencil beam of θ₃ × θ₃ radians covers about θ₃² sr.</p>
+    <p><b>Directivity D:</b> peak power density divided by the power density an isotropic antenna would give if it radiated the same total power. Pattern shape only; losses do not enter. D ≈ 4π / Ω<sub>A</sub>, where Ω<sub>A</sub> is the beam solid angle.</p>
+    <p><b>Gain G:</b> the same ratio, but referred to the power accepted at the antenna port. G = η<sub>rad</sub>·D, where <b>radiation efficiency</b> η<sub>rad</sub> = R<sub>r</sub>/(R<sub>r</sub> + R<sub>L</sub>) is the fraction of accepted power that is radiated (the rest heats conductors and dielectrics).</p>
+    <p><b>Realised gain G<sub>R</sub>:</b> referred to the power available from the source, so it also includes mismatch: G<sub>R</sub> = (1 − |Γ|²)·G. This is what a link or radar budget needs.</p>
+    <p><b>dBi, dBd:</b> gain over isotropic; gain over a half-wave dipole (dBd = dBi − 2.15).</p>
+  </div>
+  <div class="col">
+    <h3>The aperture: the most gain any aperture can have</h3>
+    <p>A uniformly lit, in-phase aperture of area A has the highest possible directivity, D<sub>max</sub> = 4πA/λ². For a circular aperture A = πD²/4, so D<sub>max</sub> = (πD/λ)². Every real antenna falls short of this, and the shortfall is the <b>aperture efficiency</b> η<sub>ap</sub>, the product of separate terms that each have a physical cause:</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Term</th><th>What causes it</th><th>Typical</th></tr>
+    <tr><td>η<sub>i</sub> illumination (taper)</td><td>The aperture is deliberately lit weaker at the edges to lower sidelobes. The edges then contribute less, as if the aperture were smaller.</td><td class="n">0.75–0.95</td></tr>
+    <tr><td>η<sub>s</sub> spillover</td><td>For a dish: feed power that misses the reflector edge. Radiated, but in useless directions (and it sees the hot ground, step 8).</td><td class="n">0.80–0.95</td></tr>
+    <tr><td>η<sub>p</sub> phase (surface)</td><td>The aperture field is not perfectly in phase: surface errors, feed defocus, phase-shifter errors (step 6).</td><td class="n">0.90–0.99</td></tr>
+    <tr><td>η<sub>b</sub> blockage</td><td>Feed, subreflector and struts shadow part of the aperture.</td><td class="n">0.90–0.99</td></tr>
+    <tr><td>η<sub>rad</sub> ohmic</td><td>Conductor, dielectric, feed-network and radome loss.</td><td class="n">0.5–0.98</td></tr>
+    <tr><td>(1 − |Γ|²) mismatch</td><td>Power reflected at the port (step 2). Enters realised gain.</td><td class="n">0.89–0.99</td></tr>
+  </table></div>
+  <div class="eq">Directivity D = D_max · η_i · η_s · η_p · η_b          Gain G = η_rad · D          Realised gain G_R = (1 − |Γ|²) · G
+    <small>Spillover and blockage reduce directivity because the power still radiates, only in the wrong directions. Ohmic loss reduces gain but not directivity, because that power is never radiated. Vendors differ in whether "aperture efficiency" includes ohmic and mismatch loss; ask.</small></div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Effective aperture A<sub>e</sub>:</b> the receiving area. A receive antenna in a wave of power density S (W/m²) delivers P = S·A<sub>e</sub> to a matched load. For every antenna, large or small: <b>A<sub>e</sub> = Gλ²/4π</b>. For an aperture antenna A<sub>e</sub> = η<sub>ap</sub>·A (physical area). Even a tiny dipole has an effective aperture, 0.13λ².</p>
+    <p><b>EIRP (effective isotropic radiated power):</b> transmit power times gain, EIRP = P<sub>t</sub>·G<sub>R</sub>, or in dB, EIRP (dBW) = P<sub>t</sub> (dBW) + G<sub>R</sub> (dBi). It is the power an isotropic antenna would need to give the same power density in the direction of the beam.</p>
+  </div>
+  <div class="col">
+    <p><b>Worked example.</b> A 1 m dish at 10 GHz (λ = 3 cm): D<sub>max</sub> = (π × 1/0.03)² = 10 966 = 40.4 dBi. With an 11 dB edge taper, η<sub>i</sub>·η<sub>s</sub> = 0.815 (−0.89 dB). Surface error 0.5 mm rms: η<sub>p</sub> = exp(−(4π × 0.5/30)²) = 0.957 (−0.19 dB). Blockage 10 % of diameter: η<sub>b</sub> = (1 − 0.1²)² = 0.98 (−0.09 dB). Ohmic loss 0.3 dB. VSWR 1.3 (|Γ| = 0.13): −0.07 dB. Realised gain = 40.4 − 0.89 − 0.19 − 0.09 − 0.30 − 0.07 ≈ 38.9 dBi (η<sub>ap</sub> ≈ 0.70). A<sub>e</sub> = 7690 × 0.03²/4π ≈ 0.55 m², against 0.785 m² physical. With 100 W (20 dBW) at the port, EIRP ≈ 58.9 dBW.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cGn" width="640" height="320" aria-label="Gain budget waterfall and taper efficiency"></canvas>
+    <div class="ctrl">
+      <label for="gnD">Dish diameter D <b id="gnDv"></b></label><input id="gnD" type="range" min="0.2" max="4" step="0.05" value="1">
+      <label for="gnF">Frequency <b id="gnFv"></b></label><input id="gnF" type="range" min="1" max="40" step="0.1" value="10">
+      <label for="gnT">Edge taper <b id="gnTv"></b></label><input id="gnT" type="range" min="1" max="25" step="0.5" value="11">
+      <label for="gnR">Surface error, rms <b id="gnRv"></b></label><input id="gnR" type="range" min="0" max="3" step="0.05" value="0.5">
+      <label for="gnB">Blockage, % of diameter <b id="gnBv"></b></label><input id="gnB" type="range" min="0" max="30" step="1" value="10">
+      <label for="gnO">Ohmic + feed loss <b id="gnOv"></b></label><input id="gnO" type="range" min="0" max="2" step="0.05" value="0.3">
+      <label for="gnV">Port VSWR <b id="gnVv"></b></label><input id="gnV" type="range" min="1" max="3" step="0.05" value="1.3">
+      <label for="gnP">Transmit power <b id="gnPv"></b></label><input id="gnP" type="range" min="0" max="3.5" step="0.05" value="2">
+      <div class="readout" id="gnOut"></div>
+    </div>
+    <p class="cap">Left: the gain budget as a waterfall from the ideal aperture down to realised gain. Right: illumination and spillover efficiency against edge taper (Gaussian-beam feed model). Their product peaks near 11 dB at 0.815: more taper wastes aperture, less taper spills more power past the rim. Raise the frequency with 1 mm surface error: the surface term grows fast.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA:</b> EIRP = P<sub>t</sub> + G<sub>R</sub>. Each 0.1 dB of loss between PA and antenna (filter, circulator, cable, radome) is 0.1 dB of PA power you paid for and lost. In a radar it is lost twice (out and back).</li>
+    <li><b>Feed network (arrays):</b> the corporate feed of a large microstrip array can lose several dB. That loss sits in η<sub>rad</sub> and cannot be recovered by any amplifier after it.</li>
+    <li><b>Receivers:</b> the power you collect is S·A<sub>e</sub>. The ESM sensitivity in dBm converts to a field strength in dBW/m² by subtracting 10·log(A<sub>e</sub>); a lower-gain antenna at the same frequency means a smaller A<sub>e</sub> and less signal.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A wideband ESM horn has 10 dBi gain at 2 GHz and at 18 GHz. What happens to its effective aperture?</summary><p>A<sub>e</sub> = Gλ²/4π. λ shrinks 9×, so A<sub>e</sub> shrinks 81× (−19 dB). Same gain, much less collected power at the top of the band. Constant-gain antennas are not constant-aperture antennas.</p></details>
+    <details><summary>Why can directivity be measured without knowing any losses, but gain cannot?</summary><p>Directivity is pure pattern shape: integrate the measured pattern over the sphere. Gain also needs the accepted power, so it must be measured against a reference antenna of known gain (the gain-comparison method).</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="aperture">
+  <div class="secno">Step 5</div>
+  <h2>How wavelength and aperture size set the pattern</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A rectangular pulse of length T has a sinc-shaped spectrum with its first zero at 1/T and sidelobes at −13 dB. Windowing the pulse (Hann, Hamming) lowers the spectral sidelobes and widens the main lobe. An antenna aperture is exactly this: the far-field pattern is the Fourier transform of the aperture distribution, with position across the aperture (in wavelengths) taking the place of time and sin θ taking the place of frequency.</p>
+  </div>
+  <div class="col">
+    <h3>The uniform line aperture: sinc</h3>
+    <p>Take an aperture of length L lit uniformly and in phase. In direction θ off boresight, a contribution from position x along the aperture travels a path shorter by x·sin θ than one from the centre (far field: the rays are parallel). Its phase leads by k·x·sin θ, with k = 2π/λ. Adding all contributions from −L/2 to +L/2:</p>
+  </div>
+  <div class="eq">E(θ) ∝ ∫ e^(j·k·x·sinθ) dx = L · sin(u)/u,     u = (πL/λ)·sin θ
+    <small>Nulls where u = ±π, ±2π…: sin θ = λ/L, 2λ/L… HPBW = 0.886 λ/L rad = 50.8°·λ/L. First sidelobe at u ≈ 1.43π, level −13.26 dB.</small></div>
+  <div class="col">
+    <p>The size in <b>wavelengths</b>, L/λ, is all that matters. Double the frequency and the same aperture gives half the beamwidth. At L = 1 λ the "beam" fills 50°; at 33 λ (1 m at 10 GHz) it is 1.5°.</p>
+    <h3>The uniform circular aperture: the Airy pattern and J₁</h3>
+    <p>A dish is round. Think of the circular aperture as many thin vertical strips side by side. Each strip is a line aperture, but the strips near the edge are short and those in the middle are long (length 2√(a² − x²) for radius a). So a circular aperture is a line aperture with a built-in taper: it has less "length" at the edges. Doing the sum over the disk gives not a sine but a new function, the <b>Bessel function of the first kind of order one, J₁</b>.</p>
+  </div>
+  <div class="term"><h4>What J₁ is, from scratch</h4>
+    <p>Sine and cosine are the functions that come out when you add up waves along a straight line. Bessel functions are the functions that come out when you add up waves around a circle. J₀(x) is the average of cos(x·sin τ) as τ goes once around the circle; J₁(x) is the average of cos(τ − x·sin τ). In symbols, J<sub>n</sub>(x) = (1/π)·∫₀^π cos(nτ − x·sin τ) dτ.</p>
+    <p>Equivalently, J₁ is the series J₁(x) = x/2 − (x/2)³/(1!·2!) + (x/2)⁵/(2!·3!) − … Like a sine it oscillates and passes through zero again and again, but its swings shrink as 1/√x and its zeros are not evenly spaced at first: 3.832, 7.016, 10.173, 13.324… (then about π apart).</p>
+    <p>Near x = 0, J₁(x) ≈ x/2, so 2J₁(x)/x starts at exactly 1, like sin(x)/x. 2J₁(x)/x is the "circular sinc". Every scientific library has J₁; this page computes it with the integral above.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cJ" width="640" height="280" aria-label="Bessel functions J0, J1 and 2J1(x)/x"></canvas>
+    <div class="ctrl">
+      <label for="jX">x <b id="jXv"></b></label><input id="jX" type="range" min="0" max="25" step="0.01" value="3.83">
+      <div class="readout" id="jOut"></div>
+    </div>
+    <p class="cap"><span class="legend"><i style="background:var(--muted)"></i>J₀(x) <i style="background:var(--trace)"></i>J₁(x) <i style="background:var(--accent)"></i>2J₁(x)/x, the circular-aperture field pattern</span>. The readout computes J₁ two ways (series and integral) to show they agree. Put x on the first zero (3.832): that is the first null of a dish. Put x near 5.136: that is its first sidelobe, 2J₁(x)/x = −0.132, which is −17.6 dB.</p>
+  </div>
+  <div class="eq">E(θ) ∝ 2·J₁(u)/u,    u = (πD/λ)·sin θ      (D = dish diameter)
+    <small>First null at u = 3.832, so sin θ = 3.832/π · λ/D = 1.22 λ/D. HPBW = 1.029 λ/D rad = 58.9°·λ/D. First sidelobe −17.6 dB. Compare the line aperture: first null at 1.00 λ/D, −13.3 dB. The disk's built-in edge taper widens the beam and lowers the sidelobes.</small></div>
+  <div class="col">
+    <h3>Tapered circular apertures</h3>
+    <p>To lower sidelobes further, the feed lights the dish edge weaker than the centre. A common model is the family a(r) = (1 − r²)<sup>n</sup>, with r from 0 (centre) to 1 (rim), sometimes on a "pedestal" (a constant floor at the edge, since a real feed never goes to zero there). Each step of n swaps one order of Bessel function: n = 1 gives 8J₂(u)/u², n = 2 gives 48J₃(u)/u³.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Circular aperture</th><th>HPBW</th><th>First null</th><th>First sidelobe</th><th>Taper eff. η<sub>i</sub></th></tr>
+    <tr><td>Uniform (n = 0)</td><td class="n">58.9° λ/D</td><td class="n">1.22 λ/D</td><td class="n">−17.6 dB</td><td class="n">1.00</td></tr>
+    <tr><td>(1 − r²)  (n = 1)</td><td class="n">72.7° λ/D</td><td class="n">1.63 λ/D</td><td class="n">−24.6 dB</td><td class="n">0.75</td></tr>
+    <tr><td>(1 − r²)²  (n = 2)</td><td class="n">84.3° λ/D</td><td class="n">2.03 λ/D</td><td class="n">−30.6 dB</td><td class="n">0.56</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cAi" width="640" height="340" aria-label="Circular aperture pattern against diameter and taper"></canvas>
+    <div class="ctrl">
+      <label for="aiD">Diameter in wavelengths D/λ <b id="aiDv"></b></label><input id="aiD" type="range" min="2" max="50" step="0.5" value="10">
+      <label for="aiT">Illumination taper</label>
+      <select id="aiT"><option value="0" selected>Uniform</option><option value="ped">Parabolic on −10 dB pedestal</option><option value="1">(1 − r²), n = 1</option><option value="2">(1 − r²)², n = 2</option></select>
+      <label for="aiC">Compare with</label>
+      <select id="aiC"><option value="none">Nothing</option><option value="line" selected>Uniform line aperture, same length</option></select>
+      <div class="readout" id="aiOut"></div>
+    </div>
+    <p class="cap">Left: the aperture, shaded by its illumination, and the amplitude profile across a diameter. Right: the far-field power pattern in dB (accent) with J₁, J₂, J₃ computed in the page, and the uniform line-aperture sinc for comparison (dashed). Increase the taper: sidelobes drop, the beam widens, and taper efficiency (gain) falls. Increase D/λ: everything shrinks in angle in proportion.</p>
+  </div>
+  <div class="col"><p><b>Worked numbers.</b> 1 m dish at 10 GHz, D/λ = 33.3: uniform HPBW = 58.9/33.3 = 1.77°, first null at 1.22 × 0.03 rad = 2.10°. With the n = 1 taper: HPBW = 2.18°, sidelobes −24.6 dB, but gain is 10·log(0.75) = 1.25 dB lower. A real dish feed with about −11 dB edge taper sits between these two, typically HPBW ≈ 65–70° λ/D and sidelobes −20 to −25 dB, limited in practice by blockage and spillover.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser / frequency plan:</b> beamwidth scales with λ. A radar that hops from 9 to 10 GHz changes beamwidth by 10 %; a wideband ESM antenna's beam changes by the full ratio of the band.</li>
+    <li><b>Feed horn and array amplitude weighting:</b> the taper is set by the feed pattern (dish) or by the amplitude of each element (array: attenuators or PA bias in T/R modules). An amplitude error in one T/R module is an error in the taper and raises sidelobes.</li>
+    <li><b>Radar:</b> HPBW sets angular resolution and how long the beam dwells on a target as it scans. Sidelobes set clutter and jamming rejection.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What dish diameter gives a 1° beam at 35 GHz (uniform-ish, use 65° λ/D)?</summary><p>λ = 8.57 mm. D = 65 × 0.00857/1 = 0.56 m.</p></details>
+    <details><summary>Why does a circular aperture have lower sidelobes than a square one of the same width?</summary><p>Seen along any cut, the disk has less area near its edges than a square does: a built-in amplitude taper. A taper lowers sidelobes and widens the beam, exactly like a window on a pulse.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="phase">
+  <div class="secno">Step 6</div>
+  <h2>How phase across the aperture shapes and steers the beam</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A linear phase across frequency is a pure delay: it shifts a pulse in time without changing its shape. A quadratic phase is dispersion: it smears the pulse. Random phase ripple across a band raises the floor of a compressed pulse. Exactly the same three things happen across an aperture, with angle in place of time.</p>
+  </div>
+  <div class="col">
+    <p>Step 5 assumed every point of the aperture is in phase. Now let the phase vary with position x across the aperture: φ(x). We split φ(x) into three kinds, because each has a distinct effect.</p>
+    <h3>Linear phase: steering</h3>
+    <p>If φ(x) = −k·x·sin θ₀, the contributions add in phase not at boresight but in the direction θ₀, where the path difference exactly cancels the applied phase. The beam steers to θ₀ unchanged in shape (apart from widening by 1/cos θ₀, because the aperture looks shorter from an angle). This is how a phased array steers: each element at position x<sub>n</sub> gets phase −k·x<sub>n</sub>·sin θ₀ from its phase shifter. With elements spaced d apart, the step between neighbours is Δφ = 360°·(d/λ)·sin θ₀. For d = λ/2 and θ₀ = 30°: Δφ = 90°.</p>
+    <p>A phase shifter can only make phase modulo 360°, but at a single frequency 360° is the same as 0°, so this works. It stops working when frequency changes: see beam squint in step 7.</p>
+    <h3>Quadratic phase: defocus</h3>
+    <p>If φ(x) = δ·(2x/L)², the edges lag the centre by δ. This is exactly the error from step 1 (finite distance), and also from a dish feed placed off the focal point along the axis, or a lens of the wrong focal length. The main lobe loses gain and broadens, and the nulls fill in because the contributions no longer cancel perfectly. At δ = 22.5° (π/8) the loss is about 0.06 dB; at 90° about 1 dB; at 180° the main lobe starts to split.</p>
+    <h3>Random phase: Ruze</h3>
+    <p>If φ(x) is random with rms σ (in radians), part of the power stays coherent and forms the beam; the rest is scattered into a wide pedestal of raised sidelobes. The fraction that stays coherent is</p>
+  </div>
+  <div class="eq">Gain loss factor = exp(−σ²)       (Ruze equation)       for a reflector: σ = 4π·ε/λ  (ε = rms surface error; the wave reflects, so path error = 2ε)
+    <small>σ = 20° (0.35 rad): exp(−0.122) = 0.885, −0.53 dB. The lost power does not disappear: it raises the average sidelobe level to roughly σ²/(η·N) relative to the peak, where N is the number of independent error patches. Low-sidelobe arrays therefore need tight phase errors, not just a good taper.</small></div>
+  <div class="bench">
+    <canvas id="cPh" width="640" height="320" aria-label="Pattern of a line aperture with linear, quadratic and random phase"></canvas>
+    <div class="ctrl">
+      <label for="phD">Aperture length L/λ <b id="phDv"></b></label><input id="phD" type="range" min="5" max="40" step="0.5" value="16">
+      <label for="phT">Amplitude taper</label>
+      <select id="phT"><option value="uni">Uniform</option><option value="cos" selected>Cosine</option></select>
+      <label for="phS">Linear phase: steer to θ₀ <b id="phSv"></b></label><input id="phS" type="range" min="-50" max="50" step="0.5" value="0">
+      <label for="phQ">Quadratic phase at edge δ <b id="phQv"></b></label><input id="phQ" type="range" min="0" max="360" step="5" value="0">
+      <label for="phR">Random phase, rms σ <b id="phRv"></b></label><input id="phR" type="range" min="0" max="60" step="1" value="0">
+      <button id="phN" type="button">New random draw</button>
+      <div class="readout" id="phOut"></div>
+    </div>
+    <p class="cap">A line aperture sampled every λ/2 (as an array would be). Dashed: the ideal pattern with the same steering and no errors. Solid: with your quadratic and random phase. Add δ = 180°: gain drops and the first nulls fill. Add σ = 30°: sidelobes rise everywhere and the peak drops close to the Ruze prediction. "New random draw" shows another error set with the same rms: the details change, the average loss does not.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phase shifters (firmware and RF):</b> a k-bit phase shifter has quantisation error with rms 360°/(2<sup>k</sup>·√12). 4 bits: 6.5° rms, a gain loss of only 0.06 dB, but the error is correlated across the array and can produce discrete "quantisation lobes" unless the firmware randomises it.</li>
+    <li><b>T/R modules:</b> phase tracking between modules over temperature is a random phase error. A 10° rms tracking error costs 0.13 dB of gain but sets a floor on achievable sidelobes.</li>
+    <li><b>Cables and LO distribution:</b> unequal cable lengths or LO phase drift across channels are phase errors across the aperture. In a digital array, the synthesiser phase noise and the clock distribution to each ADC appear the same way.</li>
+    <li><b>Mechanics:</b> surface error and feed position (defocus) on a dish.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What rms surface error keeps a 35 GHz dish within 0.5 dB of ideal?</summary><p>0.5 dB → exp(−σ²) = 0.891 → σ = 0.34 rad. ε = σλ/4π = 0.34 × 8.57/12.57 = 0.23 mm rms.</p></details>
+    <details><summary>Array elements are λ/2 apart. What phase step steers the beam to 45°?</summary><p>Δφ = 180° × sin 45° = 127°.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="pol">
+  <div class="secno">Step 7</div>
+  <h2>Polarisation, and bandwidth with beam squint</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An I/Q signal is two quadrature components: plot I against Q and a single tone traces a circle; unequal amplitudes trace an ellipse. Polarisation is the same picture made by the two transverse components of the electric field, E<sub>x</sub> and E<sub>y</sub>, at one point as the wave passes.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Polarisation:</b> the shape traced by the tip of the E-field vector in the plane across the direction of travel.</p>
+    <p><b>Linear:</b> E<sub>x</sub> and E<sub>y</sub> in phase: the tip moves on a line (vertical, horizontal or slant). <b>Circular:</b> equal amplitudes, 90° apart: a circle. <b>Elliptical:</b> the general case.</p>
+    <p><b>Sense (handedness):</b> the direction of rotation. IEEE definition: viewed from behind, looking along the direction of travel, clockwise is right-hand (RHCP), anticlockwise is left-hand (LHCP).</p>
+    <p><b>Axial ratio (AR):</b> major axis / minor axis of the ellipse, usually in dB (20·log). 0 dB = perfect circle, ∞ = linear. A "circular" antenna is usually specified as AR ≤ 3 dB.</p>
+    <p><b>Tilt angle τ:</b> the angle of the ellipse's major axis.</p>
+    <p><b>Polarisation loss factor (PLF):</b> the fraction of the wave's power the antenna accepts because of polarisation alone; 1 = 0 dB is a perfect match.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Wave</th><th>Antenna</th><th>PLF</th><th>Loss</th></tr>
+    <tr><td>Linear</td><td>Linear, same angle</td><td class="n">1</td><td class="n">0 dB</td></tr>
+    <tr><td>Linear</td><td>Linear, at angle Δ</td><td class="n">cos²Δ</td><td class="n">3 dB at 45°, ∞ at 90°</td></tr>
+    <tr><td>Linear</td><td>Circular (either sense)</td><td class="n">0.5</td><td class="n">3 dB</td></tr>
+    <tr><td>Circular RH</td><td>Circular RH</td><td class="n">1</td><td class="n">0 dB</td></tr>
+    <tr><td>Circular RH</td><td>Circular LH</td><td class="n">0</td><td class="n">∞ (in practice 15–30 dB)</td></tr>
+    <tr><td>AR 3 dB</td><td>AR 3 dB, same sense</td><td class="n">0.89–1</td><td class="n">0 to 0.5 dB</td></tr>
+  </table></div>
+  <div class="eq">PLF = ½ + [4·r_w·r_a + (1 − r_w²)(1 − r_a²)·cos 2Δ] / [2·(1 + r_w²)(1 + r_a²)]
+    <small>r_w, r_a: axial ratios (linear, ≥ 1) of wave and antenna, positive for RH, negative for LH; Δ: angle between major axes. Cross-polar discrimination of a near-circular antenna: XPD = 20·log((AR + 1)/(AR − 1)); AR 3 dB → 15.3 dB, AR 1 dB → 24.8 dB.</small></div>
+  <div class="bench">
+    <canvas id="cPo" width="640" height="300" aria-label="Polarisation ellipses of wave and antenna and loss against tilt"></canvas>
+    <div class="ctrl">
+      <label for="poWA">Wave axial ratio <b id="poWAv"></b></label><input id="poWA" type="range" min="0" max="40" step="0.5" value="40">
+      <label for="poWT">Wave tilt <b id="poWTv"></b></label><input id="poWT" type="range" min="0" max="180" step="1" value="0">
+      <label for="poWS">Wave sense</label>
+      <select id="poWS"><option value="1" selected>Right-hand</option><option value="-1">Left-hand</option></select>
+      <label for="poAA">Antenna axial ratio <b id="poAAv"></b></label><input id="poAA" type="range" min="0" max="40" step="0.5" value="0">
+      <label for="poAT">Antenna tilt <b id="poATv"></b></label><input id="poAT" type="range" min="0" max="180" step="1" value="0">
+      <label for="poAS">Antenna sense</label>
+      <select id="poAS"><option value="1" selected>Right-hand</option><option value="-1">Left-hand</option></select>
+      <div class="readout" id="poOut"></div>
+    </div>
+    <p class="cap">Left: polarisation ellipse of the incoming wave and of the antenna (40 dB axial ratio is treated as purely linear; arrows show the sense, viewed along the direction of travel). Right: polarisation loss against the angle between their major axes, with your setting marked. The default shows a linear wave on a circular antenna: 3 dB, at any tilt. This is why ESM systems use circular or dual-linear antennas: they do not know the emitter's polarisation.</p>
+  </div>
+  <div class="col">
+    <h3>Bandwidth and beam squint</h3>
+    <p>Step 6 steered a beam with phase shifters: each element gets phase −k·x<sub>n</sub>·sin θ₀, set at the design frequency f₀. At a different frequency f the same phase steers the beam to where k·x·sin θ = k₀·x·sin θ₀, that is</p>
+  </div>
+  <div class="eq">sin θ(f) = (f₀ / f) · sin θ₀           squint Δθ ≈ −(Δf/f₀) · tan θ₀  (radians)
+    <small>At broadside (θ₀ = 0) there is no squint. At 45° and ±5 % frequency offset the beam moves by ±2.9°. Replacing phase shifters with true time delay (TTD), a delay τ<sub>n</sub> = x<sub>n</sub>·sin θ₀ / c, makes the phase scale with frequency and removes the squint.</small></div>
+  <div class="bench">
+    <canvas id="cSq" width="640" height="300" aria-label="Beam squint of a phase-steered array across a band"></canvas>
+    <div class="ctrl">
+      <label for="sqN">Elements (λ/2 apart) <b id="sqNv"></b></label><input id="sqN" type="range" min="8" max="128" step="1" value="64">
+      <label for="sqS">Steer angle θ₀ <b id="sqSv"></b></label><input id="sqS" type="range" min="0" max="60" step="1" value="45">
+      <label for="sqB">Instantaneous bandwidth <b id="sqBv"></b></label><input id="sqB" type="range" min="0" max="30" step="0.5" value="10">
+      <label for="sqM">Steering by</label>
+      <select id="sqM"><option value="ps" selected>Phase shifters</option><option value="ttd">True time delay</option></select>
+      <div class="readout" id="sqOut"></div>
+    </div>
+    <p class="cap"><span class="legend"><i style="background:var(--trace)"></i>f₀ − B/2 <i style="background:var(--ink)"></i>f₀ <i style="background:var(--accent)"></i>f₀ + B/2</span>. The vertical dashed line is the intended direction θ₀. With phase shifters, the low and high ends of the band point either side of θ₀; when the squint is comparable to the beamwidth, the band edges miss the target. Switch to true time delay: the three beams line up.</p>
+  </div>
+  <div class="col"><p><b>Other frequency effects on the beam.</b> Even without steering, beamwidth scales with λ (step 5), so a fixed dish has a 2:1 beamwidth change over an octave. Series-fed arrays and slotted waveguides feed the elements one after another along a line; the line length between elements is a delay that scales with frequency, so their beam moves with frequency even at "broadside". This is used deliberately in frequency-scanned radars, and is a limit everywhere else.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>ESM receivers:</b> a single linear antenna can lose 20 dB or more on a cross-polarised emitter; a circular antenna loses 3 dB on any linear emitter but never more. Axial ratio over the band (often 4–6 dB at the band edges of a spiral) adds a further variable loss to the sensitivity budget.</li>
+    <li><b>Wideband waveforms:</b> a radar chirp or a wideband jammer on a phase-steered array has squint: the band edges point in slightly different directions. Instantaneous bandwidth of an array is limited to roughly θ₃/tan θ₀ (fraction) unless TTD is used.</li>
+    <li><b>Synthesiser:</b> when the array frequency changes, the phase-shifter settings must be recomputed for the new f, or the beam moves. Firmware owns this table.</li>
+    <li><b>Polariser and hybrid:</b> a circularly polarised antenna is often two linear ports combined by a 90° hybrid. Hybrid amplitude and phase imbalance sets the axial ratio directly.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 90° hybrid has 0.5 dB amplitude imbalance and 5° phase error. Roughly what axial ratio results?</summary><p>Write the two outputs as E<sub>x</sub> = 1 and E<sub>y</sub> = a·e^(jφ) with a = 10^(−0.5/20) = 0.944 and φ = 95°. The ellipticity angle ε (tan ε = minor/major axis) follows from sin 2ε = 2a·sin φ/(1 + a²) = 0.995, so ε = 42.0° and AR = 1/tan ε = 1.11, about 0.9 dB. Both errors must be held small: each 0.5 dB or 5° costs roughly half a dB of axial ratio.</p></details>
+    <details><summary>A 64-element array steered to 30° uses phase shifters. What is the squint at +5 % frequency?</summary><p>Δθ ≈ −0.05 × tan 30° = −0.029 rad = −1.65°. The beamwidth at 30° is about 102°/64/cos 30° ≈ 1.8°, so the beam moves by nearly a full beamwidth.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="noise">
+  <div class="secno">Step 8</div>
+  <h2>Antenna noise temperature and G/T</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A resistor at temperature T delivers available noise power kTB into a matched load (k = 1.38 × 10⁻²³ J/K, B = bandwidth). Noise figure F converts to an equivalent noise temperature T<sub>e</sub> = 290·(F − 1). A lossy line of loss L at 290 K adds (L − 1)·290 K referred to its input. All of this applies to the antenna too.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Brightness temperature:</b> everything warmer than absolute zero radiates noise. The ground at about 290 K glows; the clear sky at X band glows at only a few kelvin (oxygen and water vapour, plus 2.7 K from the cosmic background); the Sun glows at thousands of kelvin.</p>
+    <p><b>Antenna noise temperature T<sub>A</sub>:</b> the temperature a resistor would need to deliver the same noise power that the antenna delivers. It is the brightness of the scene, averaged with the antenna pattern as the weighting, plus the noise from the antenna's own ohmic loss.</p>
+    <p><b>System noise temperature T<sub>sys</sub>:</b> T<sub>A</sub> plus the receiver's contribution, all referred to the antenna port.</p>
+    <p><b>G/T ("G over T"):</b> antenna gain divided by system noise temperature, in dB/K. The single figure of merit for a receiving system: received SNR is proportional to G/T.</p>
+  </div>
+  <div class="eq">T_A = η_rad · [ (1 − s)·T_sky + s·T_ground ] + (1 − η_rad)·T_phys<br>T_sys = T_A + (L_line − 1)·290 + L_line · T_LNA,      T_LNA = 290·(10^(NF/10) − 1)<br>G/T (dB/K) = G (dBi) − 10·log₁₀(T_sys)
+    <small>s is the fraction of the pattern (spillover, sidelobes, back lobe) that sees the ground. Later receiver stages are neglected here (assume the LNA gain is high).</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (X band, the dish of step 4 at 30° elevation): T<sub>sky</sub> ≈ 10 K, 3 % of the pattern on 290 K ground → 8.7 K, 0.3 dB ohmic loss (η<sub>rad</sub> = 0.933) → 19.4 K. T<sub>A</sub> = 0.933 × (9.7 + 8.7) + 19.4 ≈ 37 K. Then 0.5 dB of cable before the LNA adds 35 K, and a 1 dB NF LNA (75 K) seen through that cable adds 84 K. T<sub>sys</sub> ≈ 156 K = 21.9 dBK, and G/T = 38.9 − 21.9 = 17.0 dB/K. Notice: 0.3 dB of antenna loss added more noise than the whole sky, and the half dB of cable more than doubled the effect of the LNA.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cNt" width="640" height="320" aria-label="System noise temperature contributions and sky temperature against elevation"></canvas>
+    <div class="ctrl">
+      <label for="ntG">Antenna gain <b id="ntGv"></b></label><input id="ntG" type="range" min="0" max="50" step="0.5" value="38.9">
+      <label for="ntF">Band (clear sky, illustrative)</label>
+      <select id="ntF"><option value="0.035">L, 1.5 GHz</option><option value="0.06" selected>X, 10 GHz</option><option value="0.8">K, 22 GHz (water line)</option><option value="0.45">Ka, 35 GHz</option></select>
+      <label for="ntE">Elevation <b id="ntEv"></b></label><input id="ntE" type="range" min="1" max="90" step="1" value="30">
+      <label for="ntS">Pattern fraction on ground <b id="ntSv"></b></label><input id="ntS" type="range" min="0" max="50" step="0.5" value="3">
+      <label for="ntO">Antenna ohmic loss <b id="ntOv"></b></label><input id="ntO" type="range" min="0" max="3" step="0.05" value="0.3">
+      <label for="ntL">Line loss before LNA <b id="ntLv"></b></label><input id="ntL" type="range" min="0" max="3" step="0.05" value="0.5">
+      <label for="ntN">LNA noise figure <b id="ntNv"></b></label><input id="ntN" type="range" min="0.3" max="6" step="0.05" value="1">
+      <div class="readout" id="ntOut"></div>
+    </div>
+    <p class="cap">Top: where T<sub>sys</sub> comes from, in kelvin. Bottom: clear-sky brightness against elevation for the chosen band (atmosphere at 275 K, cosmic 2.7 K; illustrative zenith attenuation). For an antenna pointing at the horizon or a ground-based ESM antenna, raise the ground fraction to 50 %: T<sub>A</sub> approaches 150 K and a 1 dB NF LNA no longer makes a difference you could measure.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA:</b> its NF only matters relative to T<sub>A</sub>. Looking at cold sky (satcom), 0.3 dB of NF is worth fighting for. Looking at the 290 K ground (most ESM, ground radar sidelobes), T<sub>A</sub> is already near 290 K and the LNA NF matters much less.</li>
+    <li><b>Filters, limiters, switches, cables before the LNA:</b> each dB of loss there adds both noise and signal loss, and is multiplied into the LNA's contribution. Put the LNA as close to the antenna as possible.</li>
+    <li><b>Antenna loss and radome:</b> ohmic loss is a noise source at physical temperature. A radome with 0.5 dB loss adds about 32 K.</li>
+    <li><b>ESM sensitivity:</b> sensitivity in dBm = −174 dBm/Hz + 10·log(T<sub>sys</sub>/290) + 10·log B + required SNR. G/T is how the antenna and front end together set it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why can T_A be lower than 290 K even though the antenna itself is at 290 K?</summary><p>A lossless antenna adds no noise of its own; it only delivers what it sees. Looking at a cold sky, it delivers cold-sky noise. Only the lossy part (1 − η<sub>rad</sub>) contributes noise at the physical temperature.</p></details>
+    <details><summary>Two systems: A has 40 dBi and T_sys = 400 K, B has 38 dBi and T_sys = 150 K. Which receives better?</summary><p>A: 40 − 26.0 = 14.0 dB/K. B: 38 − 21.8 = 16.2 dB/K. B is 2.2 dB better despite the smaller antenna.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="types">
+  <div class="secno">Step 9</div>
+  <h2>Five antennas you already know: how construction sets the specification, and the specification sets the system</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>You can design a quarter-wave monopole, a half-wave dipole, a Yagi, a log-periodic dipole array (LPDA) and a microstrip patch: you know the lengths, spacings and substrate equations. This step runs the other way. For each dimension, material and feed choice you make, it shows which datasheet number moves (steps 2 to 8), and then which system number moves with it.</p>
+  </div>
+  <div class="eq">Construction (length, thickness, spacing, substrate, ground, feed)<br>  → electrical behaviour (current distribution, stored energy = Q, aperture size in λ, phase)<br>  → specification (Z and VSWR, bandwidth, gain, HPBW, F/B, polarisation, phase centre)<br>  → system (range, ESM sensitivity, coverage, dispersion of wideband signals, production yield)
+    <small>Every row in the tables below follows this chain. The demo at the end of this step lets you move the construction and watch the specification and the system numbers move together.</small></div>
+
+  <h3>9.1 Quarter-wave monopole</h3>
+  <div class="col">
+    <p><b>Construction.</b> A vertical conductor of height h over a ground plane (a vehicle roof, a PCB ground, radials). The ground plane acts as a mirror: the monopole and its image together behave as a dipole of length 2h, but radiate only into the upper half-space. So the input impedance is half the dipole's and the directivity is double: about 36 Ω and 5.15 dBi for h = λ/4 over an infinite ground.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>You choose</th><th>It sets (spec)</th><th>It changes in the system</th></tr>
+    <tr><td>Height h</td><td>Resonance (X = 0 at h ≈ 0.23–0.24λ, slightly under λ/4 because of end capacitance). Below λ/4: R<sub>r</sub> falls as h², X becomes strongly capacitive.</td><td>Centre of the usable band. A short whip needs a loading coil or a matching network, whose loss sits directly in radiation efficiency, so ESM sensitivity and transmit EIRP drop.</td></tr>
+    <tr><td>Element thickness (h/a)</td><td>Q and therefore impedance bandwidth: a fat element stores less energy per watt radiated.</td><td>Instantaneous band without retuning; how much of a hopping or wideband signal gets through without ripple.</td></tr>
+    <tr><td>Ground-plane size</td><td>Elevation pattern: on a finite ground the field at the horizon is about half (−6 dB) and the peak tilts up to 30–50°. Also the impedance (a small ground plane detunes it).</td><td>Coverage of ground-level or low-angle emitters: a "5 dBi" datasheet value can be near 0 dBi on the horizon of a real vehicle.</td></tr>
+    <tr><td>Feed and connector</td><td>Return loss floor; the ground plane must be the coax outer conductor return.</td><td>PA load, LNA source impedance (step 2).</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Worked numbers (1 GHz, λ = 30 cm).</b> h = 0.24λ = 7.2 cm with h/a = 100 (a ≈ 0.7 mm): Z ≈ 32.5 + j6 Ω, so VSWR ≈ 1.6 into 50 Ω without matching, and VSWR ≤ 2 from about 0.95 to 1.06 f₀ (10 %). The same height with h/a = 10 (a 7 mm rod) stays below VSWR 2 from 0.91 to 1.10 f₀ (19 %): thickness almost doubles the band. Realised gain ≈ 4.9 dBi over a large ground plane, about −1 dBi on the horizon of a 1λ roof. A 0.1λ short monopole (3 cm, or a 30 cm whip at 100 MHz): R ≈ 4.2 Ω, X ≈ −j293 Ω. A coil with Q = 150 that tunes out −j293 Ω has 2 Ω of loss, so efficiency falls to about 4.2/(4.2 + 2) = 0.68 (−1.7 dB), and the tuned bandwidth shrinks to about 1.5 %.</p>
+  </div>
+
+  <h3>9.2 Half-wave dipole</h3>
+  <div class="col">
+    <p><b>Construction.</b> Two arms of total length l, fed in the centre. The current is a half sine: maximum at the feed, zero at the ends. At exactly l = λ/2 the input impedance is 73 + j42.5 Ω; it resonates (X = 0) at l ≈ 0.47–0.48λ, where R ≈ 62–65 Ω. Directivity 2.15 dBi (the "dBd" reference), HPBW 78° in the E-plane, omnidirectional in the H-plane (the plane at right angles to the wire).</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>You choose</th><th>It sets (spec)</th><th>It changes in the system</th></tr>
+    <tr><td>Length l</td><td>Resonance and R: short → capacitive, long → inductive. Above l ≈ 0.7λ the pattern starts to split into lobes, and at l = λ the centre feed sees a current null (very high Z).</td><td>Operating band; a dipole used well above its design frequency has a split pattern, nulls where you expected coverage.</td></tr>
+    <tr><td>Arm thickness (l/a)</td><td>Q and bandwidth (a "fat" or biconical dipole is broadband); also shortens the resonant length.</td><td>Instantaneous bandwidth, group-delay flatness for wideband signals.</td></tr>
+    <tr><td>Balun</td><td>Symmetry of the arm currents. Without one, current flows on the outside of the coax shield, which radiates as a third arm.</td><td>Beam squint and raised cross-pol; the pattern changes when the cable is moved or touched. In a DF array this is a bearing error that calibration cannot remove.</td></tr>
+    <tr><td>Height above ground, nearby metal</td><td>Impedance and elevation lobes (ground reflection adds an image).</td><td>Coverage nulls at certain elevations; multipath fading.</td></tr>
+  </table></div>
+  <div class="col"><p><b>Worked numbers.</b> l = 0.47λ with l/a = 200: Z ≈ 61 − j4 Ω, VSWR ≈ 1.24 into 50 Ω, realised gain ≈ 2.1 dBi. Its effective aperture at 1 GHz is A<sub>e</sub> = 1.64 × 0.3²/4π = 0.012 m², the reference for the other antennas in this step.</p></div>
+
+  <h3>9.3 Yagi–Uda</h3>
+  <div class="col">
+    <p><b>Construction.</b> One driven dipole, one reflector (about 5 % longer, behind it) and a row of directors (about 5–10 % shorter, in front), all on a boom. Only the driven element is fed; the others are parasitic: the driven element's field induces currents in them, and their lengths and spacings set the phase of those currents so that the fields add forward and cancel backward. This is step 6 again (phase across an aperture), done with element lengths instead of phase shifters. The boom length is the aperture length, so it sets the gain.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Boom length</th><th>Typical elements</th><th>Gain (optimised designs)</th><th>HPBW (approx.)</th></tr>
+    <tr><td class="n">0.4 λ</td><td class="n">3</td><td class="n">9.3 dBi</td><td class="n">61°</td></tr>
+    <tr><td class="n">1.2 λ</td><td class="n">6</td><td class="n">12.4 dBi</td><td class="n">43°</td></tr>
+    <tr><td class="n">2.2 λ</td><td class="n">12</td><td class="n">14.4 dBi</td><td class="n">34°</td></tr>
+    <tr><td class="n">4.2 λ</td><td class="n">15</td><td class="n">16.4 dBi</td><td class="n">27°</td></tr>
+  </table></div>
+  <div class="col"><p>Gain rises only about 2.5 dB for each doubling of the boom: much slower than an aperture antenna, because the parasitic currents get weaker along the boom. (Gains follow the classic NBS optimised designs; illustrative.)</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>You choose</th><th>It sets (spec)</th><th>It changes in the system</th></tr>
+    <tr><td>Boom length, number of directors</td><td>Gain and beamwidth (above).</td><td>Range ∝ √G; angular coverage per pointing; how much interference from other directions is rejected.</td></tr>
+    <tr><td>Reflector length and spacing</td><td>Front-to-back ratio (15–25 dB) and the driven element impedance.</td><td>Rejection of emitters behind; ground and co-site noise from the back (step 8).</td></tr>
+    <tr><td>Director lengths (tuning)</td><td>Trade between maximum gain, maximum F/B and bandwidth. A maximum-gain tuning has the narrowest band: gain collapses a few percent above f₀, where the directors become too long and start acting as reflectors.</td><td>A Yagi is a single-band antenna: fine for a fixed link, a single-band jammer or a band-specific ESM channel, not for wideband intercept.</td></tr>
+    <tr><td>Driven element and match (folded dipole, gamma match)</td><td>The parasitic elements pull the driven element's resistance down to 15–35 Ω; a folded dipole multiplies it by 4, a gamma match transforms it.</td><td>Return loss and its bandwidth; the match is often narrower than the gain bandwidth.</td></tr>
+    <tr><td>Element diameter, boom-to-element mounting, mast</td><td>Each shifts the effective element length (a metal boom shortens elements electrically); a metal mast in front of the antenna is in its near field.</td><td>Detuning in production and on installation: a design that peaks at f₀ on the simulator peaks elsewhere on the mast.</td></tr>
+  </table></div>
+
+  <h3>9.4 Log-periodic dipole array (LPDA)</h3>
+  <div class="col">
+    <p><b>Construction.</b> A row of dipoles whose lengths and spacings all shrink by the same scale factor τ from one element to the next, fed from a twin-boom transmission line that crosses over between elements. Only the 3–5 elements that are close to λ/2 at the present frequency radiate: this <b>active region</b> slides along the boom as frequency changes. The longest element sets the lowest frequency, the shortest the highest. Because every element is a scaled copy of its neighbour, the behaviour repeats every time frequency is multiplied by 1/τ: properties ripple periodically in log(f), hence the name.</p>
+  </div>
+  <div class="eq">τ = l<sub>n+1</sub>/l<sub>n</sub>,   σ = d<sub>n</sub>/(2·l<sub>n</sub>),   cot α = 4σ/(1 − τ),   σ<sub>opt</sub> ≈ 0.243τ − 0.051<br>N = 1 + ln(B·B<sub>ar</sub>)/ln(1/τ),   B<sub>ar</sub> = 1.1 + 7.7(1 − τ)²·cot α,   boom = (λ<sub>max</sub>/4)·(1 − 1/(B·B<sub>ar</sub>))·cot α
+    <small>B = f<sub>high</sub>/f<sub>low</sub> (the band ratio); B<sub>ar</sub> is the width of the active region; α is the half-angle of the triangle the element tips make (Carrel design equations, as given in Balanis).</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>You choose</th><th>It sets (spec)</th><th>It changes in the system</th></tr>
+    <tr><td>τ (closer to 1 = more elements)</td><td>Gain: about 6 dBi at τ = 0.8 to about 10 dBi at τ = 0.95; smaller VSWR and gain ripple.</td><td>ESM sensitivity; but each extra dB costs many more elements, a longer boom and weight.</td></tr>
+    <tr><td>σ (spacing)</td><td>Gain is best near σ<sub>opt</sub>; σ also sets the boom length.</td><td>Size and mounting; wind load on masts.</td></tr>
+    <tr><td>Longest / shortest element</td><td>The band: f<sub>low</sub> ≈ c/(2·l<sub>max</sub>); the top is set by the shortest element plus the active-region margin B<sub>ar</sub>.</td><td>Frequency coverage of an ESM or EMC test system; a 6:1 band in one antenna.</td></tr>
+    <tr><td>Feeder (boom) impedance</td><td>Input impedance, almost constant across the band (typically 50–100 Ω).</td><td>Constant PA load and LNA source over the band, unlike a single dipole.</td></tr>
+    <tr><td>(Unavoidable) moving active region</td><td>The phase centre moves along the boom with frequency; constant gain means A<sub>e</sub> falls as 1/f².</td><td>A wideband pulse or chirp is dispersed (low frequencies leave from the back, high from the front); a dish fed by an LPDA is defocused at most frequencies (step 6, quadratic phase); interferometer baselines change with frequency. Received power from a given field strength falls 6 dB per octave.</td></tr>
+  </table></div>
+  <div class="col"><p><b>Worked numbers.</b> 0.5–3 GHz (B = 6) with τ = 0.90, σ = 0.16 (σ<sub>opt</sub> = 0.168): cot α = 6.4 (α = 8.9°), B<sub>ar</sub> = 1.59, N = 1 + ln(9.56)/ln(1.111) ≈ 23 elements, longest element 30 cm, boom = 0.15 × 0.895 × 6.4 ≈ 0.86 m, gain about 8.5 dBi. The active region moves from about 0.96 m from the apex at 0.5 GHz to 0.16 m at 3 GHz: 0.8 m of phase-centre travel, or 2.7 ns of extra delay at the bottom of the band relative to the top. A<sub>e</sub> falls from 0.20 m² at 0.5 GHz to 0.0056 m² at 3 GHz (−15.6 dB).</p></div>
+
+  <h3>9.5 Microstrip patch</h3>
+  <div class="col">
+    <p><b>Construction.</b> A metal rectangle L × W on a substrate of thickness h and permittivity ε<sub>r</sub>, over a ground plane. It is a resonant cavity: half a wavelength long in the substrate, open at the two radiating edges (the "slots" of width W at each end of L). The fringing fields at those edges radiate. Almost every number on its datasheet comes from the substrate.</p>
+  </div>
+  <div class="eq">W = c/(2f₀)·√(2/(ε<sub>r</sub> + 1))     ε<sub>eff</sub> = (ε<sub>r</sub>+1)/2 + (ε<sub>r</sub>−1)/2·(1 + 12h/W)<sup>−½</sup>     L = c/(2f₀√ε<sub>eff</sub>) − 2ΔL<br>BW (VSWR ≤ 2) ≈ 3.77·(ε<sub>r</sub> − 1)/ε<sub>r</sub>²·(W/L)·(h/λ₀)          η<sub>rad</sub> ≈ (1/Q<sub>rad</sub>) / (1/Q<sub>rad</sub> + tan δ + 1/Q<sub>c</sub>)
+    <small>ΔL is the fringing extension (Hammerstad). The bandwidth formula is for thin substrates. Q<sub>rad</sub> comes from that bandwidth (Q = 1/(BW·√2)); Q<sub>c</sub> = h·√(πfμ₀σ) is the conductor Q; tan δ is the substrate loss tangent.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>You choose</th><th>It sets (spec)</th><th>It changes in the system</th></tr>
+    <tr><td>Substrate thickness h</td><td>Bandwidth, roughly ∝ h/λ₀ (a thin patch is a high-Q cavity). Thick substrates also launch surface waves (efficiency loss, edge radiation, raised back lobe).</td><td>Usable band; a 1–3 % patch cannot cover a wideband threat band without stacking or slots.</td></tr>
+    <tr><td>Permittivity ε<sub>r</sub></td><td>Size (L ∝ 1/√ε<sub>eff</sub>), bandwidth (falls as ε<sub>r</sub> rises), directivity (smaller patch → wider beam, lower gain).</td><td>Array element spacing and scan range (small patches fit λ/2 grids); gain per element.</td></tr>
+    <tr><td>ε<sub>r</sub> tolerance and its temperature coefficient</td><td>Resonant frequency: Δf/f ≈ −½·Δε<sub>eff</sub>/ε<sub>eff</sub>.</td><td>Production yield: if the shift is comparable to the bandwidth, units miss the band. Temperature drift moves the band in service.</td></tr>
+    <tr><td>Loss tangent tan δ, copper roughness</td><td>Radiation efficiency, and an apparently wider bandwidth (loss lowers Q; this is the cable-loss illusion of step 2 inside the antenna).</td><td>Gain, EIRP, and antenna noise temperature (step 8): FR-4 at 5 GHz can cost 2 dB of gain and add over 100 K of noise.</td></tr>
+    <tr><td>Feed: inset depth, probe position</td><td>Input resistance: about 150–300 Ω at the radiating edge, falling as cos²(πy₀/L) inside. A probe feed adds inductance and cross-pol from a higher-order mode.</td><td>Return loss; cross-pol isolation in dual-polarised arrays.</td></tr>
+    <tr><td>Ground-plane size</td><td>Back lobe and F/B (a 1λ ground gives about 15–20 dB).</td><td>Coupling to whatever is behind (other antennas, the platform).</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Worked numbers (5 GHz, λ₀ = 60 mm).</b> PTFE-type substrate, ε<sub>r</sub> = 2.2, h = 1.575 mm, tan δ = 0.0009: W = 23.7 mm, ε<sub>eff</sub> = 2.05, L = 19.3 mm, bandwidth ≈ 3.0 %, efficiency ≈ 0.96. A ±1 % ε<sub>r</sub> tolerance moves the resonance by only about ±0.5 %, a sixth of the band. FR-4, ε<sub>r</sub> = 4.4, h = 1.6 mm, tan δ = 0.02: W = 18.3 mm, L = 13.8 mm, radiation bandwidth ≈ 2.3 %, efficiency ≈ 0.6 (−2.1 dB). A ±4.5 % ε<sub>r</sub> tolerance (4.4 ± 0.2) moves the resonance by about ±2 %, nearly the whole band. The inset feed: if the edge resistance is 200 Ω, a 50 Ω point is where cos²(πy₀/L) = 0.25, that is y₀ = L/3 in from the edge.</p>
+  </div>
+
+  <h3>The five side by side</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Antenna</th><th>Gain</th><th>HPBW</th><th>Band</th><th>Pol.</th><th>Phase centre</th><th>Typical system role</th></tr>
+    <tr><td>λ/4 monopole</td><td class="n">≤ 5 dBi</td><td>omni az.</td><td class="n">10–20 %</td><td>vertical</td><td>fixed</td><td>Vehicle comms, omni ESM channel, GNSS-free whip</td></tr>
+    <tr><td>λ/2 dipole</td><td class="n">2.15 dBi</td><td>78° × omni</td><td class="n">8–15 %</td><td>linear</td><td>fixed</td><td>Reference antenna, DF array element, EMC</td></tr>
+    <tr><td>Yagi</td><td class="n">9–16 dBi</td><td>25–60°</td><td class="n">3–8 %</td><td>linear</td><td>fixed</td><td>Point-to-point link, single-band jammer, DF of one band</td></tr>
+    <tr><td>LPDA</td><td class="n">6–10 dBi</td><td>60–80°</td><td class="n">2:1 to 10:1</td><td>linear</td><td>moves with f</td><td>Wideband ESM, EMC test, wideband jammer</td></tr>
+    <tr><td>Patch</td><td class="n">5–8 dBi</td><td>65–100°</td><td class="n">1–5 %</td><td>linear or circular</td><td>fixed</td><td>Array element, GNSS, low-profile radios</td></tr>
+  </table></div>
+
+  <div class="bench">
+    <canvas id="cTy" width="640" height="430" aria-label="Construction sketch, VSWR and realised gain against frequency for the selected antenna"></canvas>
+    <div class="ctrl">
+      <label for="tyT">Antenna</label>
+      <select id="tyT"><option value="mono" selected>λ/4 monopole (1 GHz)</option><option value="dip">λ/2 dipole (1 GHz)</option><option value="yagi">Yagi–Uda (1 GHz)</option><option value="lpda">LPDA (from 0.5 GHz)</option><option value="patch">Microstrip patch (5 GHz)</option></select>
+      <div class="grp" data-t="mono">
+        <label for="moH">Height h <b id="moHv"></b></label><input id="moH" type="range" min="0.05" max="0.3" step="0.005" value="0.24">
+        <label for="moS">Slenderness h/a <b id="moSv"></b></label><input id="moS" type="range" min="1" max="3.5" step="0.05" value="2">
+        <label for="moG">Ground plane</label>
+        <select id="moG"><option value="inf" selected>Very large (ideal)</option><option value="fin">Finite, about 1 λ (vehicle roof)</option></select>
+      </div>
+      <div class="grp" data-t="dip" hidden>
+        <label for="dpL">Length l <b id="dpLv"></b></label><input id="dpL" type="range" min="0.1" max="0.6" step="0.005" value="0.47">
+        <label for="dpS">Slenderness l/a <b id="dpSv"></b></label><input id="dpS" type="range" min="1" max="3.5" step="0.05" value="2.3">
+        <label for="dpB">Feed</label>
+        <select id="dpB"><option value="bal" selected>With balun</option><option value="none">Coax straight to the arms (no balun)</option></select>
+      </div>
+      <div class="grp" data-t="yagi" hidden>
+        <label for="yaB">Boom length <b id="yaBv"></b></label><input id="yaB" type="range" min="0.15" max="4.2" step="0.05" value="2.2">
+        <label for="yaO">Directors tuned for</label>
+        <select id="yaO"><option value="gain" selected>Maximum gain</option><option value="fb">Maximum F/B, clean pattern</option><option value="bw">Wider bandwidth</option></select>
+      </div>
+      <div class="grp" data-t="lpda" hidden>
+        <label for="lpT">Scale factor τ <b id="lpTv"></b></label><input id="lpT" type="range" min="0.8" max="0.96" step="0.005" value="0.9">
+        <label for="lpS">Spacing factor σ <b id="lpSv"></b></label><input id="lpS" type="range" min="0.05" max="0.22" step="0.005" value="0.16">
+        <label for="lpR">Band ratio f_high/f_low <b id="lpRv"></b></label><input id="lpR" type="range" min="2" max="10" step="0.5" value="6">
+      </div>
+      <div class="grp" data-t="patch" hidden>
+        <label for="paE">Substrate ε_r <b id="paEv"></b></label><input id="paE" type="range" min="2.2" max="10.2" step="0.1" value="2.2">
+        <label for="paH">Thickness h <b id="paHv"></b></label><input id="paH" type="range" min="0.25" max="3.2" step="0.025" value="1.575">
+        <label for="paD">Loss tangent tan δ <b id="paDv"></b></label><input id="paD" type="range" min="0.0005" max="0.025" step="0.0005" value="0.001">
+        <label for="paT">ε_r tolerance ± <b id="paTv"></b></label><input id="paT" type="range" min="0" max="6" step="0.25" value="1">
+      </div>
+      <div class="readout" id="tyOut"></div>
+    </div>
+    <p class="cap">Top: the construction, drawn to scale from your settings. Bottom left: VSWR into 50 Ω against frequency (dashed line VSWR 2). Bottom right: realised gain against frequency. The readout lists the specification first, then what it does to the system, compared with a matched λ/2 dipole at the same frequency (received power and ESM sensitivity change by the gain difference in dB; radar or one-way link range changes by √G). Monopole and dipole use the induced-EMF formulas for thin wires; Yagi, LPDA and patch use the standard design equations and design-chart values: illustrative, not an EM simulation. For the patch, the dashed VSWR curve is a unit at the high ε<sub>r</sub> tolerance limit.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Matching networks and baluns:</b> a short monopole's efficiency is set by your coil's Q, not the antenna. A missing or poor balun turns the feed cable into part of the antenna.</li>
+    <li><b>PCB and materials:</b> the patch is a substrate component. ε<sub>r</sub> tolerance, tan δ and copper roughness are on the material datasheet you already read for filters; they set the patch's frequency yield and efficiency in the same way.</li>
+    <li><b>Wideband receivers and ESM:</b> an LPDA gives constant gain and impedance over a decade, but its moving phase centre adds frequency-dependent delay; time-of-arrival and interferometric systems must calibrate it out.</li>
+    <li><b>Narrowband transmitters and jammers:</b> a Yagi gives 8–14 dB more EIRP than a dipole for the same PA, but only inside a few percent of bandwidth; outside it the PA sees a poor match and the gain collapses.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A vehicle whip datasheet says 5 dBi. Why might your ESM link budget see only about 0 dBi from a target on the horizon?</summary><p>5.15 dBi is for an infinite ground plane. On a finite roof the horizon field is about half (−6 dB) and the peak tilts upwards. Use the elevation pattern measured on the platform, at the elevation of the emitters you care about.</p></details>
+    <details><summary>You replace a dipole with a 2.2λ-boom Yagi on a one-way link. How much does range change?</summary><p>Gain 14.4 vs 2.15 dBi: +12.2 dB. Range ∝ √G, so 10^(12.2/20) = 4.1× the range, but only within the Yagi's few-percent band and only in its 34° beam.</p></details>
+    <details><summary>Why does a lossy FR-4 patch show more bandwidth than the same patch on PTFE?</summary><p>Loss lowers the total Q, which widens the VSWR band. The extra "bandwidth" is power turned into heat: lower gain and higher noise temperature. Always check efficiency, not just return loss.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: each parameter, what sets it, and where it shows up</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (components)</th><th>System effect</th></tr>
+    <tr><td>Far-field distance 2D²/λ</td><td>Aperture size, frequency</td><td>Test range length; validity of measured gain and sidelobes; co-site coupling estimates</td></tr>
+    <tr><td>VSWR / return loss</td><td>Feed, balun, connector, radome, array mutual coupling</td><td>PA load and stability; LNA source match and NF; mismatch loss; gain and group-delay ripple</td></tr>
+    <tr><td>Impedance bandwidth</td><td>Antenna Q (size in λ), matching network</td><td>Usable band; tunable vs instantaneous coverage</td></tr>
+    <tr><td>Beamwidth θ₃</td><td>D/λ, amplitude taper (feed pattern, T/R amplitude), frequency (synthesiser)</td><td>Angular resolution, dwell time, search time, track accuracy</td></tr>
+    <tr><td>Sidelobe level</td><td>Taper; amplitude and phase errors (T/R tracking, phase-shifter bits, surface); blockage</td><td>Clutter and jamming leakage; detectability of the radar by ESM; multipath</td></tr>
+    <tr><td>Back lobe, F/B</td><td>Ground plane, rim diffraction, absorber</td><td>Isolation on masts; ground noise pickup</td></tr>
+    <tr><td>Directivity</td><td>Aperture area in λ², illumination, spillover, blockage</td><td>Maximum possible gain</td></tr>
+    <tr><td>Gain / realised gain</td><td>Directivity × ohmic loss (feed network, radome) × mismatch</td><td>Radar range (G² in the radar equation, R ∝ G<sup>½</sup>), link margin, ESM collected power</td></tr>
+    <tr><td>Effective aperture A<sub>e</sub></td><td>Gain and λ</td><td>Power collected from a given field strength (ESM sensitivity in dBW/m²)</td></tr>
+    <tr><td>EIRP</td><td>PA power, losses after PA, realised gain</td><td>Radar and jammer power on target; detectability by others</td></tr>
+    <tr><td>Beam pointing, steering</td><td>Phase shifters, TTD, calibration tables (firmware)</td><td>Angle accuracy; scan coverage</td></tr>
+    <tr><td>Beam squint</td><td>Phase shifters vs TTD, feed line delays, frequency agility</td><td>Instantaneous bandwidth of an array; wideband waveform loss at band edges</td></tr>
+    <tr><td>Polarisation, axial ratio</td><td>Radiator, polariser, 90° hybrid balance</td><td>Polarisation loss (up to 3 dB for circular-on-linear, more for crossed linear); ESM sensitivity variation</td></tr>
+    <tr><td>Cross-pol / XPD</td><td>Feed symmetry, hybrid balance, reflector curvature</td><td>Isolation of dual-pol channels; polarimetric accuracy</td></tr>
+    <tr><td>Antenna noise temperature T<sub>A</sub></td><td>Pointing (sky or ground), spillover and sidelobes, ohmic loss, radome</td><td>T<sub>sys</sub>; how much LNA NF matters</td></tr>
+    <tr><td>G/T</td><td>Gain, T<sub>A</sub>, losses before LNA, LNA NF</td><td>Received SNR, ESM and radar receive sensitivity</td></tr>
+    <tr><td>Antenna type and its construction</td><td>Element length and thickness, ground plane, boom and directors, τ and σ, substrate ε<sub>r</sub>, h, tan δ, balun and feed (step 9)</td><td>All of the above at once: band, gain, coverage, phase-centre stability, frequency yield in production</td></tr>
+  </table></div>
+</section>
+
+<section id="gloss">
+  <div class="secno">Reference</div>
+  <h2>Glossary</h2>
+  <dl class="gl">
+    <dt>Aperture</dt><dd>The opening (or face) through which an antenna radiates. Size D.</dd>
+    <dt>Aperture distribution</dt><dd>Amplitude and phase of the field across the aperture; its Fourier transform is the far-field pattern.</dd>
+    <dt>Aperture efficiency η<sub>ap</sub></dt><dd>Gain divided by the gain of an ideal uniform in-phase aperture of the same area; product of illumination, spillover, phase, blockage and ohmic terms.</dd>
+    <dt>Axial ratio (AR)</dt><dd>Major/minor axis of the polarisation ellipse; 0 dB is circular.</dd>
+    <dt>Back lobe</dt><dd>Radiation towards 180° from boresight.</dd>
+    <dt>Balun</dt><dd>Balanced-to-unbalanced transformer between a coaxial line and a balanced antenna such as a dipole.</dd>
+    <dt>Bessel function J<sub>n</sub></dt><dd>Function from adding waves around a circle; 2J₁(u)/u is the pattern of a uniform circular aperture.</dd>
+    <dt>Boresight</dt><dd>Direction of the main-lobe peak.</dd>
+    <dt>Brightness temperature</dt><dd>The temperature that describes how much noise a scene (sky, ground) radiates.</dd>
+    <dt>Co-pol / cross-pol</dt><dd>The intended polarisation / the orthogonal, unwanted one.</dd>
+    <dt>Directivity</dt><dd>Peak power density relative to isotropic, for the same radiated power. Pattern shape only.</dd>
+    <dt>E-plane / H-plane</dt><dd>Principal pattern cuts containing boresight and the E-field (or H-field) vector.</dd>
+    <dt>Edge taper</dt><dd>How much weaker (dB) the illumination is at the aperture edge than at the centre.</dd>
+    <dt>Effective aperture A<sub>e</sub></dt><dd>Receiving area: power delivered = power density × A<sub>e</sub>; A<sub>e</sub> = Gλ²/4π.</dd>
+    <dt>EIRP</dt><dd>Effective isotropic radiated power, P<sub>t</sub>·G.</dd>
+    <dt>Far field (Fraunhofer)</dt><dd>R &gt; 2D²/λ: the pattern shape no longer changes with distance.</dd>
+    <dt>F/B ratio</dt><dd>Front-to-back ratio: peak level over level at 180°.</dd>
+    <dt>Fresnel region</dt><dd>Radiating near field: energy radiates but the pattern still changes with distance.</dd>
+    <dt>G/T</dt><dd>Gain over system noise temperature, dB/K; receiving figure of merit.</dd>
+    <dt>Gain</dt><dd>Directivity × radiation efficiency, referred to accepted power.</dd>
+    <dt>HPBW (θ₃)</dt><dd>Half-power (−3 dB) beamwidth of the main lobe.</dd>
+    <dt>Isotropic</dt><dd>Imaginary antenna radiating equally in all directions; the 0 dBi reference.</dd>
+    <dt>Mismatch loss</dt><dd>−10·log(1 − |Γ|²): power reflected at the port.</dd>
+    <dt>Null</dt><dd>Direction where aperture contributions cancel.</dd>
+    <dt>Phase centre</dt><dd>The point from which the far-field wave appears to originate; where a dish feed must be placed.</dd>
+    <dt>PLF</dt><dd>Polarisation loss factor: fraction of power accepted because of polarisation match.</dd>
+    <dt>Q (antenna)</dt><dd>Stored energy over radiated energy per radian; high Q means narrow impedance bandwidth.</dd>
+    <dt>Radiation efficiency</dt><dd>R<sub>r</sub>/(R<sub>r</sub> + R<sub>L</sub>): fraction of accepted power that radiates.</dd>
+    <dt>Radiation resistance R<sub>r</sub></dt><dd>The part of the input resistance that represents power radiated.</dd>
+    <dt>Reactive near field</dt><dd>R &lt; 0.62√(D³/λ): stored energy dominates; objects here detune the antenna.</dd>
+    <dt>Realised gain</dt><dd>Gain including mismatch loss, referred to available power.</dd>
+    <dt>Return loss</dt><dd>−20·log|Γ| dB; larger is better.</dd>
+    <dt>Ruze equation</dt><dd>Gain loss exp(−σ²) for random aperture phase error σ (rad).</dd>
+    <dt>Sidelobe level (SLL)</dt><dd>Level of the highest (usually first) sidelobe relative to the peak.</dd>
+    <dt>Spillover</dt><dd>Feed power that misses the reflector.</dd>
+    <dt>Squint</dt><dd>Movement of a phase-steered beam with frequency.</dd>
+    <dt>Steradian</dt><dd>Unit of solid angle; a sphere is 4π sr.</dd>
+    <dt>T<sub>A</sub>, T<sub>sys</sub></dt><dd>Antenna noise temperature; system noise temperature referred to the antenna port.</dd>
+    <dt>True time delay (TTD)</dt><dd>Steering with delays instead of phase shifts; no squint.</dd>
+    <dt>VSWR</dt><dd>(1 + |Γ|)/(1 − |Γ|): ratio of maximum to minimum voltage of the standing wave.</dd>
+    <dt>XPD</dt><dd>Cross-polar discrimination: co-pol over cross-pol level, dB.</dd>
+    <dt>Active region (LPDA)</dt><dd>The few elements near λ/2 long that radiate at the present frequency; it moves along the boom with frequency.</dd>
+    <dt>Common-mode current</dt><dd>Current on the outside of a coax shield when a balanced antenna is fed without a balun; it makes the cable radiate.</dd>
+    <dt>Folded dipole, gamma match</dt><dd>Ways to raise or transform the low driven-element resistance of a Yagi to the feed-line impedance.</dd>
+    <dt>Ground plane</dt><dd>The conducting surface that mirrors a monopole or backs a patch; its size sets the elevation pattern and back lobe.</dd>
+    <dt>Inset feed</dt><dd>A notch that moves a patch's microstrip feed inside the edge, where the input resistance is lower (∝ cos²(πy₀/L)).</dd>
+    <dt>LPDA</dt><dd>Log-periodic dipole array: dipoles scaled by τ, spaced by σ, giving near-constant impedance and gain over a wide band.</dd>
+    <dt>Microstrip patch</dt><dd>A resonant metal rectangle on a substrate over ground; size, bandwidth and efficiency are set by ε<sub>r</sub>, h and tan δ.</dd>
+    <dt>Parasitic element</dt><dd>An unfed element driven by coupling (Yagi reflector and directors).</dd>
+    <dt>τ, σ (LPDA)</dt><dd>Scale factor between successive elements; spacing relative to element length.</dd>
+    <dt>Yagi–Uda</dt><dd>A driven dipole with a reflector and directors on a boom; gain set by boom length, narrow band.</dd>
+    <dt>Γ (reflection coefficient)</dt><dd>(Z<sub>A</sub> − Z<sub>0</sub>)/(Z<sub>A</sub> + Z<sub>0</sub>); equal to S11.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Balanis, <i>Antenna Theory: Analysis and Design</i>; Kraus &amp; Marhefka, <i>Antennas for All Applications</i>; Stutzman &amp; Thiele, <i>Antenna Theory and Design</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+
+/* pattern helpers */
+function measure(angles,pdb){ // pdb normalised so the peak is 0 dB
+  let ip=0; for(let i=1;i<pdb.length;i++) if(pdb[i]>pdb[ip]) ip=i;
+  const pk=pdb[ip];
+  let l=ip, r=ip; while(l>0&&pdb[l]>pk-3) l--; while(r<pdb.length-1&&pdb[r]>pk-3) r++;
+  // interpolate −3 dB crossings
+  const xi=(i,j)=>{ const a=pdb[i]-(pk-3), b=pdb[j]-(pk-3); return angles[i]+(angles[j]-angles[i])*(a/(a-b||1)); };
+  const bw=(r>ip?xi(r-1,r):angles[r])-(l<ip?xi(l+1,l):angles[l]);
+  let nl=ip, nr=ip; while(nr<pdb.length-1&&pdb[nr+1]<=pdb[nr]) nr++; while(nl>0&&pdb[nl-1]<=pdb[nl]) nl--;
+  let sl=-99; for(let i=0;i<pdb.length;i++){ if(i<nl||i>nr) sl=Math.max(sl,pdb[i]); }
+  return {bw, sl:sl-pk, peak:angles[ip], pk, ip, edgeL:nl, edgeR:nr};
+}
+// generic plot: x range [xa,xb], y range [ya,yb]; curves {x:[],y:[],color,dash,w}
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color){ g.fillStyle=color; g.beginPath(); g.arc(x,y,4,0,TAU); g.fill(); }
+const dB20=x=>20*Math.log10(Math.max(Math.abs(x),1e-12));
+
+/* Bessel functions: J_n(x) = (1/2π)∫₀^{2π} cos(nτ − x sin τ) dτ, trapezoid rule (exact to machine precision once N > |x| + n + ~20) */
+function besselJ(n,x){ const N=Math.max(48,Math.ceil(Math.abs(x)*1.2)+40); let s=0; for(let i=0;i<N;i++){ const t=TAU*i/N; s+=Math.cos(n*t-x*Math.sin(t)); } return s/N; }
+function j1series(x){ let s=0, term=x/2; for(let m=0;m<80;m++){ if(m>0) term*=-(x*x/4)/(m*(m+1)); s+=term; if(Math.abs(term)<1e-17*Math.max(1,Math.abs(s))&&m>4) break; } return s; }
+
+/* ---------- Step 1: field regions ---------- */
+function frDraw(){
+  const c=$('cFr'), g=ctx(c);
+  const D=+$('frD').value, f=+$('frF').value*1e9, lam=c0/f, Rff=2*D*D/lam, Rrn=0.62*Math.sqrt(D*D*D/lam);
+  let R=Rff*Math.pow(10,+$('frR').value); const Rmin=Math.max(D,lam); const cl=R<Rmin; if(cl) R=Rmin;
+  $('frDv').textContent=fmt(D,'m'); $('frFv').textContent=fmt(f,'Hz',1); $('frRv').textContent=fmt(R,'m')+(cl?' (min)':'');
+  const k=TAU/lam, N=Math.min(600,Math.max(41,Math.ceil(4*D/lam)+1));
+  const xs=[], a=[]; let asum=0; for(let i=0;i<N;i++){ const x=-D/2+D*i/(N-1); xs.push(x); const w=$('frT').value==='cos'?Math.cos(Math.PI*x/D):1; a.push(w); asum+=w; }
+  const span=Math.min(90,Math.max(3,7*lam/D/deg)), M=401, ang=[], far=[], near=[];
+  for(let j=0;j<M;j++){ const th=(-span+2*span*j/(M-1))*deg, s=Math.sin(th); ang.push(th/deg);
+    let fr=0, fi=0, nrr=0, ni=0;
+    for(let i=0;i<N;i++){ const x=xs[i];
+      const pf=k*x*s; fr+=a[i]*Math.cos(pf); fi+=a[i]*Math.sin(pf);
+      const r=Math.sqrt(R*R-2*R*x*s+x*x); const pn=-k*(r-R); nrr+=a[i]*Math.cos(pn); ni+=a[i]*Math.sin(pn); }
+    far.push(db((fr*fr+fi*fi)/(asum*asum))); near.push(db((nrr*nrr+ni*ni)/(asum*asum))); }
+  // region bar
+  const W=c.width, bx0=60, bw=W-80, by=28, bh=26;
+  const lo=Math.log10(Math.min(Rrn/10,Rmin)), hi=Math.log10(10*Rff), XL=r=>bx0+bw*(Math.log10(r)-lo)/(hi-lo);
+  const regs=[[Math.pow(10,lo),Rrn,'--trace2','reactive near'],[Rrn,Rff,'--trace','Fresnel (radiating near)'],[Rff,Math.pow(10,hi),'--accent','far field (Fraunhofer)']];
+  regs.forEach(rg=>{ const xa=XL(rg[0]), xb=XL(rg[1]); g.globalAlpha=.22; g.fillStyle=css(rg[2]); g.fillRect(xa,by,xb-xa,bh); g.globalAlpha=1; g.fillStyle=css('--ink'); const t=rg[3]; if(g.measureText(t).width<xb-xa-6) g.fillText(t,xa+4,by+17); });
+  g.strokeStyle=css('--line'); g.strokeRect(bx0,by,bw,bh);
+  g.fillStyle=css('--muted'); g.fillText('distance (log scale)',bx0,by-8);
+  [Rrn,Rff].forEach(r=>{ const s=fmt(r,'m'); g.fillText(s,XL(r)-g.measureText(s).width/2,by+bh+14); });
+  const xr=XL(R); g.strokeStyle=css('--ink'); g.lineWidth=2; g.beginPath(); g.moveTo(xr,by-4); g.lineTo(xr,by+bh+4); g.stroke(); g.lineWidth=1; dot(g,xr,by-4,css('--ink'));
+  // pattern
+  const p=plot(g,60,104,W-80,214,-span,span,-40,0,[{x:ang,y:far,color:css('--muted'),dash:[5,4],w:1.3},{x:ang,y:near,color:css('--accent')}],{fx:v=>v.toFixed(span<10?1:0)+'°',yl:'dB (relative to far-field peak)'});
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(60,p.Y(-3)); g.lineTo(W-20,p.Y(-3)); g.stroke(); g.setLineDash([]);
+  const mF=measure(ang,far), mN=measure(ang,near);
+  const reg=R<Rrn?'reactive near field':R<Rff?'radiating near (Fresnel)':'far field';
+  // null fill: level of measured pattern at the far-field first null
+  const nullF=near[mF.edgeR];
+  ro($('frOut'),[['λ',fmt(lam,'m')],['D/λ',(D/lam).toFixed(1)],['0.62√(D³/λ)',fmt(Rrn,'m')],['2D²/λ',fmt(Rff,'m')],['You are in',reg],['R / (2D²/λ)',(R/Rff).toFixed(3)],
+    ['Edge phase error',(180*D*D/(4*lam*R)).toFixed(1)+'°'],['Boresight loss',sdb(near[(M-1)/2])],['HPBW far / here',mF.bw.toFixed(2)+'° / '+mN.bw.toFixed(2)+'°'],['Level at 1st null',(nullF).toFixed(1)+' dB']]);
+}
+bind(['frD','frF','frR','frT'],frDraw);
+
+/* ---------- Step 2a: converter ---------- */
+function cvDraw(){
+  const c=$('cCv'), g=ctx(c), W=c.width;
+  const u=$('cvU').value; let v=parseFloat($('cvV').value); let G=NaN, msg='';
+  if(!isFinite(v)) msg='enter a number';
+  else if(u==='vswr'){ if(v<1) msg='VSWR must be ≥ 1'; else G=(v-1)/(v+1); }
+  else if(u==='rl'){ if(v<0) msg='RL must be ≥ 0 dB'; else G=Math.pow(10,-v/20); }
+  else if(u==='g'){ if(v<0||v>1) msg='|Γ| must be 0 to 1'; else G=v; }
+  else { if(v<0) msg='loss must be ≥ 0 dB'; else G=Math.sqrt(1-Math.pow(10,-v/10)); }
+  const S=(1+G)/(1-G), RL=-dB20(G), ML=-db(1-G*G);
+  const xs=[], rl=[], ml=[]; for(let i=0;i<=300;i++){ const s=1+4*i/300; const gg=(s-1)/(s+1); xs.push(s); rl.push(Math.min(40,-dB20(gg))); ml.push(-db(1-gg*gg)); }
+  const p1=plot(g,60,24,W-80,104,1,5,0,40,[{x:xs,y:rl,color:css('--trace')}],{ny:4,fx:v=>v.toFixed(0),yl:'Return loss (dB)'});
+  const p2=plot(g,60,164,W-80,104,1,5,0,2.5,[{x:xs,y:ml,color:css('--accent')}],{ny:5,fx:v=>v.toFixed(0)+':1',fy:v=>v.toFixed(1),yl:'Mismatch loss (dB)',xl:'VSWR'});
+  if(isFinite(S)&&S<=5){ vline(g,p1.X(S),24,104,css('--muted')); vline(g,p2.X(S),164,104,css('--muted')); dot(g,p1.X(S),p1.Y(Math.min(40,RL)),css('--ink')); dot(g,p2.X(S),p2.Y(ML),css('--ink')); }
+  else if(isFinite(S)){ g.fillStyle=css('--muted'); g.fillText('VSWR beyond 5:1, off the plot',W-250,40); }
+  if(msg){ ro($('cvOut'),[['Input',msg]]); return; }
+  ro($('cvOut'),[['|Γ|',G.toFixed(4)],['VSWR',isFinite(S)?S.toFixed(3)+' : 1':'∞'],['Return loss',isFinite(RL)?RL.toFixed(2)+' dB':'∞'],['Mismatch loss',isFinite(ML)?ML.toFixed(3)+' dB':'∞'],['Power reflected',(100*G*G).toFixed(2)+' %'],['Power delivered',(100*(1-G*G)).toFixed(2)+' %']]);
+}
+bind(['cvU','cvV'],cvDraw);
+
+/* ---------- Step 2b: resonant antenna match ---------- */
+function mtDraw(){
+  const c=$('cMt'), g=ctx(c), W=c.width;
+  const R=+$('mtR').value, Q=+$('mtQ').value, Lc=+$('mtC').value, f0=10e9, Z0=50, att=Math.pow(10,-2*Lc/20);
+  $('mtRv').textContent=R.toFixed(0)+' Ω'; $('mtQv').textContent=Q.toFixed(1); $('mtCv').textContent=Lc.toFixed(1)+' dB';
+  const fs=[], rlA=[], rlC=[], gr=[], gi=[]; let bw10=0, bw2=0; const nF=601, fa=0.7, fb=1.3;
+  for(let i=0;i<nF;i++){ const fr=fa+(fb-fa)*i/(nF-1); const X=R*Q*(fr-1/fr);
+    // Γ = (R + jX − Z0)/(R + jX + Z0)
+    const nr=R-Z0, dr=R+Z0, d2=dr*dr+X*X; const Gr=(nr*dr+X*X)/d2, Gi=(X*dr-nr*X)/d2; const m=Math.hypot(Gr,Gi);
+    fs.push(fr*10); rlA.push(-dB20(m)); rlC.push(-dB20(m*att)); gr.push(Gr); gi.push(Gi);
+    if(-dB20(m)>=10) bw10++; if((1+m)/(1-m)<=2) bw2++; }
+  const df=(fb-fa)/(nF-1)*100;
+  const pw=372; const p=plot(g,56,24,pw,236,7,13,0,40,[{x:fs,y:rlA,color:css('--trace')},{x:fs,y:rlC,color:css('--accent'),dash:[5,4]}],{ny:4,fx:v=>v.toFixed(1),yl:'Return loss (dB)',xl:'GHz'});
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(56,p.Y(9.54)); g.lineTo(56+pw,p.Y(9.54)); g.stroke(); g.setLineDash([]); g.fillStyle=css('--muted'); g.fillText('VSWR 2',56+pw-56,p.Y(9.54)-4);
+  // Smith chart
+  const cx=W-112, cy=142, rr=100;
+  g.strokeStyle=css('--line'); g.beginPath(); g.arc(cx,cy,rr,0,TAU); g.stroke();
+  g.save(); g.beginPath(); g.arc(cx,cy,rr,0,TAU); g.clip(); g.strokeStyle=css('--grid');
+  [0.33,1,3].forEach(r=>{ const ccx=r/(1+r), rad=1/(1+r); g.beginPath(); g.arc(cx+ccx*rr,cy,rad*rr,0,TAU); g.stroke(); });
+  [0.5,1,2].forEach(x=>{ [1,-1].forEach(sg=>{ g.beginPath(); g.arc(cx+rr,cy-sg*rr/x,rr/x,0,TAU); g.stroke(); }); });
+  g.beginPath(); g.moveTo(cx-rr,cy); g.lineTo(cx+rr,cy); g.stroke(); g.restore();
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.arc(cx,cy,rr/3,0,TAU); g.stroke(); g.setLineDash([]);
+  const loc=(sc,col,dash)=>{ g.strokeStyle=col; g.lineWidth=1.6; g.setLineDash(dash||[]); g.beginPath(); for(let i=0;i<nF;i++){ const px=cx+gr[i]*sc*rr, py=cy-gi[i]*sc*rr; i?g.lineTo(px,py):g.moveTo(px,py);} g.stroke(); g.setLineDash([]); g.lineWidth=1; };
+  loc(1,css('--trace')); if(Lc>0) loc(att,css('--accent'),[5,4]);
+  const i0=(nF-1)/2; dot(g,cx+gr[i0]*rr,cy-gi[i0]*rr,css('--ink'));
+  g.fillStyle=css('--muted'); g.fillText('Smith chart, 7–13 GHz',cx-74,cy+rr+18); g.fillText('dot = f₀',cx-28,cy-rr-8);
+  const G0=Math.abs((R-Z0)/(R+Z0)), S0=(1+G0)/(1-G0);
+  const pred=(R===Z0)?((2-1)/(Q*Math.SQRT2)*100).toFixed(1)+' %':'n/a (R ≠ 50 Ω)';
+  ro($('mtOut'),[['|Γ| at f₀',G0.toFixed(3)],['VSWR at f₀',S0.toFixed(2)],['RL at f₀',G0>0?(-dB20(G0)).toFixed(1)+' dB':'∞'],['Mismatch loss f₀',(-db(1-G0*G0)).toFixed(2)+' dB'],
+    ['BW, RL ≥ 10 dB',(bw10?(bw10-1)*df:0).toFixed(1)+' %'],['BW, VSWR ≤ 2',(bw2?(bw2-1)*df:0).toFixed(1)+' %'],['Formula (S−1)/(Q√S)',pred],['RL seen via cable',G0>0?(-dB20(G0*att)).toFixed(1)+' dB':'∞']]);
+}
+bind(['mtR','mtQ','mtC'],mtDraw);
+
+/* ---------- Step 3: pattern views ---------- */
+function ptDraw(){
+  const c=$('cPt'), g=ctx(c), W=c.width, H=c.height;
+  const A=+$('ptA').value, view=$('ptV').value, sc=$('ptS').value, bl=lin(+$('ptB').value), xp=lin(+$('ptX').value);
+  $('ptAv').textContent=A.toFixed(1)+' λ'; $('ptBv').textContent=$('ptB').value+' dB'; $('ptXv').textContent=$('ptX').value+' dB';
+  const ang=[], E=[], Hh=[], X=[];
+  for(let i=0;i<=720;i++){ const th=-180+i*0.5, t=th*deg, u=Math.PI*A*Math.sin(t), ob=(1+Math.cos(t))/2;
+    const fe=Math.abs(u)<1e-9?1:Math.sin(u)/u;
+    const q=Math.PI/2, fh=Math.abs(Math.abs(u)-q)<1e-6?Math.PI/4:(q*q)*Math.cos(u)/(q*q-u*u);
+    const back=Math.pow(Math.max(0,-Math.cos(t)),2)*bl;
+    ang.push(th); E.push(ob*ob*fe*fe+back); Hh.push(ob*ob*fh*fh+back);
+    const F=Math.min(1,ob*(Math.abs(fe)+Math.abs(fh))/2); X.push(xp*Math.pow(4*F*(1-F),2)); }
+  const conv=v=>sc==='db'?db(Math.max(v,1e-9)):sc==='pow'?v:Math.sqrt(v);
+  const lo=-40; const cE=E.map(conv), cH=Hh.map(conv), cX=X.map(conv);
+  const cols=[css('--trace'),css('--trace2'),css('--accent')];
+  if(view==='polar'){
+    const cx=W/2, cy=H/2+4, rr=H/2-28; const rad=v=>sc==='db'?rr*(clamp(v,lo,0)-lo)/(-lo):rr*clamp(v,0,1);
+    g.strokeStyle=css('--grid'); for(let k=1;k<=4;k++){ g.beginPath(); g.arc(cx,cy,rr*k/4,0,TAU); g.stroke(); }
+    for(let a=0;a<360;a+=30){ g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+rr*Math.sin(a*deg),cy-rr*Math.cos(a*deg)); g.stroke(); const s=(a>180?a-360:a)+'°'; g.fillStyle=css('--muted'); g.fillText(s,cx+(rr+14)*Math.sin(a*deg)-g.measureText(s).width/2,cy-(rr+12)*Math.cos(a*deg)+4); }
+    g.fillStyle=css('--muted'); for(let k=1;k<=4;k++){ const s=sc==='db'?(lo+(-lo)*k/4).toFixed(0)+' dB':(k/4).toFixed(2); g.fillText(s,cx+3,cy-rr*k/4+12); }
+    [cE,cH,cX].forEach((arr,ci)=>{ g.strokeStyle=cols[ci]; g.lineWidth=1.6; if(ci===2) g.setLineDash([4,3]); g.beginPath(); arr.forEach((v,i)=>{ const r=rad(v), t=ang[i]*deg; const px=cx+r*Math.sin(t), py=cy-r*Math.cos(t); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke(); g.setLineDash([]); g.lineWidth=1; });
+  } else {
+    const ya=sc==='db'?lo:0, yb=sc==='db'?0:1;
+    plot(g,60,24,W-80,H-64,-180,180,ya,yb,[{x:ang,y:cE,color:cols[0]},{x:ang,y:cH,color:cols[1]},{x:ang,y:cX,color:cols[2],dash:[4,3]}],{nx:8,ny:sc==='db'?8:4,fy:v=>sc==='db'?v.toFixed(0):v.toFixed(2),yl:sc==='db'?'dB':sc==='pow'?'relative power':'relative field',xl:'angle from boresight'});
+  }
+  const fa=[], fe=[], fh=[]; for(let i=180;i<=540;i++){ fa.push(ang[i]); fe.push(db(E[i])); fh.push(db(Hh[i])); }
+  const mE=measure(fa,fe), mH=measure(fa,fh); let xpk=0; X.forEach(v=>xpk=Math.max(xpk,v));
+  ro($('ptOut'),[['E-plane HPBW',mE.bw.toFixed(1)+'°'],['H-plane HPBW',mH.bw.toFixed(1)+'°'],['E-plane 1st SLL',mE.sl>-98?mE.sl.toFixed(1)+' dB':'none'],['H-plane 1st SLL',mH.sl>-98?mH.sl.toFixed(1)+' dB':'none'],['F/B',(-db(E[0])).toFixed(1)+' dB'],['Peak cross-pol',db(xpk).toFixed(1)+' dB'],['XPD on boresight','∞ (null)']]);
+}
+bind(['ptA','ptV','ptS','ptB','ptX'],ptDraw);
+
+/* ---------- Step 4: gain budget ---------- */
+function gnDraw(){
+  const c=$('cGn'), g=ctx(c), W=c.width;
+  const D=+$('gnD').value, f=+$('gnF').value*1e9, lam=c0/f, T=+$('gnT').value, eps=+$('gnR').value*1e-3, b=+$('gnB').value/100, ohm=+$('gnO').value, S=+$('gnV').value, Pt=Math.pow(10,+$('gnP').value);
+  $('gnDv').textContent=fmt(D,'m'); $('gnFv').textContent=fmt(f,'Hz',1); $('gnTv').textContent=T.toFixed(1)+' dB'; $('gnRv').textContent=(eps*1e3).toFixed(2)+' mm'; $('gnBv').textContent=(b*100).toFixed(0)+' %'; $('gnOv').textContent=ohm.toFixed(2)+' dB'; $('gnVv').textContent=S.toFixed(2)+' : 1'; $('gnPv').textContent=Pt>=1000?(Pt/1000).toFixed(2)+' kW':Pt.toFixed(Pt<10?1:0)+' W';
+  const effs=tt=>{ const tau=Math.pow(10,-tt/10), st=Math.sqrt(tau), L=-Math.log(tau); return {i:4*(1-st)*(1-st)/(L*(1-tau)), s:1-tau}; };
+  const e=effs(T), ep=Math.exp(-Math.pow(4*Math.PI*eps/lam,2)), eb=Math.pow(1-b*b,2), er=Math.pow(10,-ohm/10), Gm=(S-1)/(S+1), em=1-Gm*Gm;
+  const Dmax=Math.pow(Math.PI*D/lam,2);
+  const steps=[['ideal',1],['illum',e.i],['spill',e.s],['surf',ep],['block',eb],['ohmic',er],['match',em]];
+  let acc=Dmax; const lv=[db(Dmax)]; steps.slice(1).forEach(s=>{ acc*=s[1]; lv.push(db(acc)); });
+  const top=Math.ceil(lv[0]+1), bot=Math.floor(lv[6]-2);
+  const x0=56, y0=24, w=330, h=250; frame(g,x0,y0,w,h,5); const Y=v=>y0+h*(top-v)/(top-bot);
+  g.fillStyle=css('--muted'); for(let k=0;k<=5;k++){ const v=top-(top-bot)*k/5; const s=v.toFixed(1); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); } g.fillText('dBi',x0,y0-8);
+  const bwid=w/7;
+  for(let i=0;i<7;i++){ const xa=x0+i*bwid+5, yA=i?Y(lv[i-1]):Y(lv[0]), yB=Y(lv[i]);
+    if(i===0){ g.fillStyle=css('--trace'); g.fillRect(xa,yB,bwid-10,y0+h-yB); }
+    else { g.fillStyle=css('--accent'); g.fillRect(xa,yA,bwid-10,Math.max(1,yB-yA)); g.fillStyle=css('--chip'); g.fillRect(xa,yB,bwid-10,y0+h-yB); g.strokeStyle=css('--line'); g.strokeRect(xa,yB,bwid-10,y0+h-yB); }
+    g.fillStyle=css('--muted'); g.save(); g.translate(xa+bwid/2-5,y0+h+12); g.fillText(steps[i][0],-g.measureText(steps[i][0]).width/2,0); g.restore();
+    const s=i?(lv[i]-lv[i-1]).toFixed(2):lv[0].toFixed(1); g.fillStyle=css('--ink'); g.fillText(s,xa+(bwid-10)/2-g.measureText(s).width/2,Math.min(yB,yA)-4); }
+  g.fillStyle=css('--muted'); g.fillText('D',x0+4*bwid+bwid/2-4,y0+h+26); g.fillText('G',x0+5*bwid+bwid/2-4,y0+h+26); g.fillText('G_R',x0+6*bwid+bwid/2-10,y0+h+26);
+  // taper efficiency curve
+  const tx=[], ti=[], ts=[], tp=[]; for(let i=0;i<=240;i++){ const tt=1+24*i/240; const q=effs(tt); tx.push(tt); ti.push(q.i); ts.push(q.s); tp.push(q.i*q.s); }
+  const p=plot(g,430,24,W-450,250,1,25,0.4,1,[{x:tx,y:ti,color:css('--trace2'),w:1.3},{x:tx,y:ts,color:css('--muted'),w:1.3},{x:tx,y:tp,color:css('--accent')}],{nx:4,ny:6,fy:v=>v.toFixed(1),xl:'edge taper dB',yl:'η'});
+  dot(g,p.X(T),p.Y(e.i*e.s),css('--ink'));
+  g.fillStyle=css('--trace2'); g.fillText('η_i',p.X(20),p.Y(ti[200])+14); g.fillStyle=css('--muted'); g.fillText('η_s',p.X(3),p.Y(ts[20])+14); g.fillStyle=css('--accent'); g.fillText('η_i·η_s',p.X(14),p.Y(tp[130])-8);
+  const Dd=Dmax*e.i*e.s*ep*eb, Gg=Dd*er, Gr=Gg*em, Ae=Gr*lam*lam/(4*Math.PI);
+  g.fillStyle=css('--ink'); const et='EIRP '+(db(Pt)+db(Gr)).toFixed(1)+' dBW'; g.fillText(et,x0+w-g.measureText(et).width,y0-8);
+  ro($('gnOut'),[['λ · D/λ',fmt(lam,'m')+' · '+(D/lam).toFixed(1)],['D_max (πD/λ)²',db(Dmax).toFixed(2)+' dBi'],['η_i · η_s',(e.i).toFixed(3)+' · '+(e.s).toFixed(3)],['η surface (Ruze)',ep.toFixed(3)],['Directivity',db(Dd).toFixed(2)+' dBi'],['Gain',db(Gg).toFixed(2)+' dBi'],['Realised gain',db(Gr).toFixed(2)+' dBi'],['η_ap (realised)',(Gr/Dmax).toFixed(3)],['A_e',Ae.toFixed(3)+' m²'],['Physical area',(Math.PI*D*D/4).toFixed(3)+' m²'],['EIRP',(db(Pt)+db(Gr)).toFixed(1)+' dBW']]);
+}
+bind(['gnD','gnF','gnT','gnR','gnB','gnO','gnV','gnP'],gnDraw);
+
+/* ---------- Step 5a: Bessel functions ---------- */
+function jDraw(){
+  const c=$('cJ'), g=ctx(c), W=c.width; const x=+$('jX').value; $('jXv').textContent=x.toFixed(2);
+  const xs=[], y0=[], y1=[], ya=[]; for(let i=0;i<=500;i++){ const v=25*i/500; xs.push(v); y0.push(besselJ(0,v)); const j=besselJ(1,v); y1.push(j); ya.push(v<1e-9?1:2*j/v); }
+  const p=plot(g,56,24,W-76,210,0,25,-0.5,1,[{x:xs,y:y0,color:css('--muted'),w:1.2},{x:xs,y:y1,color:css('--trace')},{x:xs,y:ya,color:css('--accent')}],{nx:5,ny:6,fy:v=>v.toFixed(2),xl:'x'});
+  g.strokeStyle=css('--line'); g.beginPath(); g.moveTo(56,p.Y(0)); g.lineTo(W-20,p.Y(0)); g.stroke();
+  const js=j1series(x), ji=besselJ(1,x), ai=x<1e-9?1:2*ji/x;
+  vline(g,p.X(x),24,210,css('--muted')); dot(g,p.X(x),p.Y(ji),css('--trace')); dot(g,p.X(x),p.Y(ai),css('--accent'));
+  const zeros=[3.8317,7.0156,10.1735,13.3237,16.4706,19.6159,22.7601,25.9037]; const nz=zeros.find(z=>z>x+1e-3);
+  ro($('jOut'),[['J₁(x), series',js.toFixed(6)],['J₁(x), integral',ji.toFixed(6)],['J₀(x)',besselJ(0,x).toFixed(6)],['2J₁(x)/x',ai.toFixed(5)],['as power, dB',dB20(ai).toFixed(2)+' dB'],['next zero of J₁',nz?nz.toFixed(4):'> 25'],['in λ/D, sinθ =',(x/Math.PI).toFixed(3)+' λ/D']]);
+}
+bind(['jX'],jDraw);
+
+/* ---------- Step 5b: circular aperture ---------- */
+function aiDraw(){
+  const c=$('cAi'), g=ctx(c), W=c.width, H=c.height;
+  const Dl=+$('aiD').value, t=$('aiT').value, cmp=$('aiC').value; $('aiDv').textContent=Dl.toFixed(1);
+  const C=Math.pow(10,-10/20);
+  const amp=r=>t==='0'?1:t==='1'?(1-r*r):t==='2'?Math.pow(1-r*r,2):C+(1-C)*(1-r*r);
+  const L1=u=>Math.abs(u)<1e-6?1:2*besselJ(1,u)/u, L2=u=>Math.abs(u)<1e-6?1:8*besselJ(2,u)/(u*u), L3=u=>Math.abs(u)<1e-4?1:48*besselJ(3,u)/(u*u*u);
+  const F=u=>t==='0'?L1(u):t==='1'?L2(u):t==='2'?L3(u):(C*0.5*L1(u)+(1-C)*0.25*L2(u))/(C*0.5+(1-C)*0.25);
+  const span=Math.min(90,10*57.3/Dl), M=721, ang=[], pat=[], line=[];
+  for(let j=0;j<M;j++){ const th=-span+2*span*j/(M-1), u=Math.PI*Dl*Math.sin(th*deg); ang.push(th); pat.push(dB20(F(u))); line.push(dB20(Math.abs(u)<1e-9?1:Math.sin(u)/u)); }
+  // aperture picture
+  const ax=110, ay=110, ar=80;
+  for(let k=40;k>=1;k--){ const r=k/40; g.globalAlpha=clamp(amp(r),0.04,1); g.fillStyle=css('--accent'); g.beginPath(); g.arc(ax,ay,ar*r,0,TAU); g.fill(); }
+  g.globalAlpha=1; g.strokeStyle=css('--line'); g.beginPath(); g.arc(ax,ay,ar,0,TAU); g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('aperture, shaded by',ax-68,ay+ar+18); g.fillText('illumination',ax-40,ay+ar+32);
+  const px=30, py=240, pw=160, ph=70; frame(g,px,py,pw,ph,2); g.strokeStyle=css('--accent'); g.lineWidth=1.6; g.beginPath();
+  for(let i=0;i<=100;i++){ const r=-1+2*i/100, v=amp(Math.abs(r)); const xx=px+pw*i/100, yy=py+ph*(1-v); i?g.lineTo(xx,yy):g.moveTo(xx,yy); } g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText('amplitude across D',px,py+ph+14);
+  const curves=[{x:ang,y:pat,color:css('--accent')}]; if(cmp==='line') curves.unshift({x:ang,y:line,color:css('--muted'),dash:[5,4],w:1.2});
+  const p=plot(g,256,24,W-276,H-70,-span,span,-50,0,curves,{ny:5,fx:v=>v.toFixed(span<20?1:0)+'°',yl:'dB',xl:'angle from boresight'});
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(256,p.Y(-3)); g.lineTo(W-20,p.Y(-3)); g.stroke(); g.setLineDash([]);
+  const m=measure(ang,pat); const nullA=Math.abs(ang[m.edgeR]);
+  let s1=0,s2=0; const NR=400; for(let i=0;i<NR;i++){ const r=(i+0.5)/NR, a=amp(r); s1+=a*2*r/NR; s2+=a*a*2*r/NR; } const et=s1*s1/s2;
+  ro($('aiOut'),[['HPBW',m.bw.toFixed(2)+'°'],['HPBW × D/λ',(m.bw*Dl).toFixed(1)+'° (λ/D)'],['First null',nullA.toFixed(2)+'°'],['First null / (λ/D)',(Math.sin(nullA*deg)*Dl).toFixed(2)+' λ/D'],['First sidelobe',m.sl.toFixed(1)+' dB'],['Taper efficiency',et.toFixed(3)],['Directivity',db(et*Math.pow(Math.PI*Dl,2)).toFixed(1)+' dBi']]);
+}
+bind(['aiD','aiT','aiC'],aiDraw);
+
+/* ---------- Step 6: phase errors ---------- */
+let seed=12345;
+function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function phDraw(){
+  const c=$('cPh'), g=ctx(c), W=c.width;
+  const Ll=+$('phD').value, th0=+$('phS').value, dq=+$('phQ').value*deg, sg=+$('phR').value*deg, tp=$('phT').value;
+  $('phDv').textContent=Ll.toFixed(1)+' λ'; $('phSv').textContent=th0.toFixed(1)+'°'; $('phQv').textContent=(dq/deg).toFixed(0)+'°'; $('phRv').textContent=(sg/deg).toFixed(0)+'°';
+  const N=Math.max(2,Math.round(2*Ll)), R=rng(seed); const xs=[], a=[], er=[]; let asum=0;
+  for(let n=0;n<N;n++){ const x=(n-(N-1)/2)*0.5; xs.push(x); const w=tp==='cos'?Math.cos(Math.PI*x/(N*0.5)):1; a.push(w); asum+=w;
+    let u1=R(), u2=R(); const gn=Math.sqrt(-2*Math.log(u1+1e-12))*Math.cos(TAU*u2); er.push(dq*Math.pow(2*x/(N*0.5),2)+sg*gn); }
+  const s0=Math.sin(th0*deg), half=clamp(14*57.3/Ll,12,90), aa=clamp(th0-half,-90,90), ab=clamp(th0+half,-90,90);
+  const M=801, ang=[], id=[], pe=[];
+  for(let j=0;j<M;j++){ const th=aa+(ab-aa)*j/(M-1), s=Math.sin(th*deg); ang.push(th); let r1=0,i1=0,r2=0,i2=0;
+    for(let n=0;n<N;n++){ const ph=TAU*xs[n]*(s-s0); r1+=a[n]*Math.cos(ph); i1+=a[n]*Math.sin(ph); r2+=a[n]*Math.cos(ph+er[n]); i2+=a[n]*Math.sin(ph+er[n]); }
+    id.push(db((r1*r1+i1*i1)/(asum*asum))); pe.push(db((r2*r2+i2*i2)/(asum*asum))); }
+  const p=plot(g,56,24,W-76,250,aa,ab,-50,0,[{x:ang,y:id,color:css('--muted'),dash:[5,4],w:1.2},{x:ang,y:pe,color:css('--accent')}],{nx:4,fx:v=>v.toFixed(Math.abs(ab-aa)<30?1:0)+'°',yl:'dB relative to ideal peak',xl:'angle'});
+  vline(g,p.X(th0),24,250,css('--trace'),[2,3]);
+  const mi=measure(ang,id), mp=measure(ang,pe);
+  const fill=pe[mi.edgeR], ruze=-sg*sg*10/Math.LN10;
+  let rms=0, mean=0; er.forEach((v,n)=>{ mean+=v-dq*Math.pow(2*xs[n]/(N*0.5),2); }); mean/=N; er.forEach((v,n)=>{ const d=v-dq*Math.pow(2*xs[n]/(N*0.5),2)-mean; rms+=d*d; }); rms=Math.sqrt(rms/N);
+  ro($('phOut'),[['Elements (λ/2)',String(N)],['Phase step Δφ',(180*s0).toFixed(1)+'°'],['Beam peak at',mp.peak.toFixed(2)+'°'],['HPBW ideal / now',mi.bw.toFixed(2)+'° / '+mp.bw.toFixed(2)+'°'],['Peak loss',sdb(mp.pk)],['Ruze, this σ',sdb(ruze)],['Drawn rms σ',(rms/deg).toFixed(1)+'°'],['Highest sidelobe',(mp.sl+mp.pk).toFixed(1)+' dB'],['At ideal 1st null',fill.toFixed(1)+' dB']]);
+}
+bind(['phD','phS','phQ','phR','phT'],phDraw);
+$('phN').addEventListener('click',()=>{ seed=(seed*1103515245+12345)>>>0; phDraw(); });
+
+/* ---------- Step 7a: polarisation ---------- */
+function arLin(dB){ return dB>=40?1e6:Math.pow(10,dB/20); }
+function plf(rw,ra,dl){ return 0.5+(4*rw*ra+(1-rw*rw)*(1-ra*ra)*Math.cos(2*dl))/(2*(1+rw*rw)*(1+ra*ra)); }
+function ellipse(g,cx,cy,R,ar,tilt,sense,col,label){
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(cx-R-10,cy); g.lineTo(cx+R+10,cy); g.moveTo(cx,cy-R-10); g.lineTo(cx,cy+R+10); g.stroke();
+  const pt=t=>{ const x=Math.cos(t), y=-sense*Math.sin(t)/ar; const xr=x*Math.cos(tilt)-y*Math.sin(tilt), yr=x*Math.sin(tilt)+y*Math.cos(tilt); return [cx+R*xr, cy-R*yr]; };
+  g.strokeStyle=col; g.lineWidth=2; g.beginPath(); for(let i=0;i<=120;i++){ const q=pt(TAU*i/120); i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]); } g.stroke(); g.lineWidth=1;
+  if(ar<200){ const a1=pt(0.55), a2=pt(0.75); const ang=Math.atan2(a2[1]-a1[1],a2[0]-a1[0]); g.fillStyle=col; g.beginPath(); g.moveTo(a2[0],a2[1]); g.lineTo(a2[0]-10*Math.cos(ang-0.45),a2[1]-10*Math.sin(ang-0.45)); g.lineTo(a2[0]-10*Math.cos(ang+0.45),a2[1]-10*Math.sin(ang+0.45)); g.closePath(); g.fill(); }
+  g.fillStyle=css('--muted'); g.fillText(label,cx-g.measureText(label).width/2,cy+R+28);
+}
+function poDraw(){
+  const c=$('cPo'), g=ctx(c), W=c.width;
+  const wA=+$('poWA').value, wT=+$('poWT').value, wS=+$('poWS').value, aA=+$('poAA').value, aT=+$('poAT').value, aS=+$('poAS').value;
+  const nm=(d,s)=>d>=40?'linear':(d<=0.01?'circular ':'AR ')+(d>0.01?d.toFixed(1)+' dB ':'')+(s>0?'RH':'LH');
+  $('poWAv').textContent=wA>=40?'∞ (linear)':wA.toFixed(1)+' dB'; $('poWTv').textContent=wT+'°'; $('poAAv').textContent=aA>=40?'∞ (linear)':aA.toFixed(1)+' dB'; $('poATv').textContent=aT+'°';
+  const rw=wS*arLin(wA), ra=aS*arLin(aA), dl=(wT-aT)*deg;
+  ellipse(g,80,120,60,arLin(wA),wT*deg,wS,css('--trace'),'wave: '+nm(wA,wS));
+  ellipse(g,230,120,60,arLin(aA),aT*deg,aS,css('--trace2'),'antenna: '+nm(aA,aS));
+  const xs=[], ys=[]; for(let i=0;i<=360;i++){ const d=i*0.5; xs.push(d); ys.push(Math.max(-40,db(Math.max(plf(rw,ra,d*deg),1e-6)))); }
+  const P=plf(rw,ra,dl); let Pd=Math.max(-40,db(Math.max(P,1e-6)));
+  const p=plot(g,350,24,W-370,220,0,180,-40,0,[{x:xs,y:ys,color:css('--accent')}],{nx:4,ny:4,fx:v=>v.toFixed(0)+'°',yl:'polarisation loss (dB)',xl:'tilt difference Δ'});
+  let dd=((wT-aT)%180+180)%180; dd=Math.min(dd,180-dd); dot(g,p.X(dd),p.Y(Pd),css('--ink'));
+  const xpd=r=>{ const A=Math.abs(r); return A>=1e5?'— (linear)':A<=1.0001?'∞':(20*Math.log10((A+1)/(A-1))).toFixed(1)+' dB'; };
+  ro($('poOut'),[['PLF',P.toFixed(4)],['Polarisation loss',P>1e-6?(-db(P)).toFixed(2)+' dB':'> 60 dB'],['Δ tilt',dd.toFixed(0)+'°'],['Best over Δ',(-db(Math.max(...xs.map(d=>plf(rw,ra,d*deg))))).toFixed(2)+' dB'],['Worst over Δ',(()=>{ const mn=Math.min(...xs.map(d=>plf(rw,ra,d*deg))); return mn>1e-6?(-db(mn)).toFixed(2)+' dB':'> 60 dB'; })()],['Antenna XPD',xpd(ra)]]);
+}
+bind(['poWA','poWT','poWS','poAA','poAT','poAS'],poDraw);
+
+/* ---------- Step 7b: beam squint ---------- */
+function sqDraw(){
+  const c=$('cSq'), g=ctx(c), W=c.width;
+  const N=+$('sqN').value, th0=+$('sqS').value, B=+$('sqB').value/100, ttd=$('sqM').value==='ttd';
+  $('sqNv').textContent=N; $('sqSv').textContent=th0+'°'; $('sqBv').textContent=(B*100).toFixed(1)+' %';
+  const s0=Math.sin(th0*deg), hp0=50.8/(N*0.5)/Math.max(Math.cos(th0*deg),0.2);
+  const sqEst=(B/2)*Math.tan(th0*deg)/deg;
+  const half=Math.max(4*hp0+(ttd?0:sqEst),4), aa=clamp(th0-half,-90,90), ab=clamp(th0+half,-90,90);
+  const fr=[1-B/2,1,1+B/2], M=801, ang=[], pats=[[],[],[]];
+  for(let j=0;j<M;j++){ const th=aa+(ab-aa)*j/(M-1), s=Math.sin(th*deg); ang.push(th);
+    fr.forEach((q,k)=>{ let re=0, im=0; for(let n=0;n<N;n++){ const x=(n-(N-1)/2)*0.5; const ph=TAU*x*(q*s-(ttd?q:1)*s0); re+=Math.cos(ph); im+=Math.sin(ph); } pats[k].push(db((re*re+im*im)/(N*N))); }); }
+  const cols=[css('--trace'),css('--ink'),css('--accent')];
+  const p=plot(g,56,24,W-76,236,aa,ab,-30,0,[0,1,2].map(k=>({x:ang,y:pats[k],color:cols[k],w:k===1?1.2:1.6})),{nx:4,ny:6,fx:v=>v.toFixed(1)+'°',yl:'dB (relative to peak at f₀)',xl:'angle'});
+  vline(g,p.X(th0),24,236,css('--muted'));
+  const pk=pats.map(pp=>measure(ang,pp)); const at0=pats.map(pp=>{ let j=0,bd=1e9; ang.forEach((a,i)=>{ if(Math.abs(a-th0)<bd){bd=Math.abs(a-th0); j=i;} }); return pp[j]; });
+  const spread=pk[2].peak-pk[0].peak;
+  ro($('sqOut'),[['HPBW at f₀',pk[1].bw.toFixed(2)+'°'],['Beam at f₀ − B/2',pk[0].peak.toFixed(2)+'°'],['Beam at f₀ + B/2',pk[2].peak.toFixed(2)+'°'],['Total squint',Math.abs(spread).toFixed(2)+'°'],['Squint / HPBW',(Math.abs(spread)/pk[1].bw).toFixed(2)],['Formula B·tanθ₀',(ttd?0:2*sqEst).toFixed(2)+'°'],['Edge loss at θ₀',Math.min(at0[0],at0[2]).toFixed(2)+' dB']]);
+}
+bind(['sqN','sqS','sqB','sqM'],sqDraw);
+
+/* ---------- Step 8: noise temperature ---------- */
+function tsky(Az,el){ const l=Math.pow(10,-Az/(10*Math.sin(Math.max(el,1)*deg))); return 275*(1-l)+2.7*l; }
+function ntDraw(){
+  const c=$('cNt'), g=ctx(c), W=c.width;
+  const G=+$('ntG').value, Az=+$('ntF').value, el=+$('ntE').value, s=+$('ntS').value/100, ohm=+$('ntO').value, Ll=+$('ntL').value, NF=+$('ntN').value;
+  $('ntGv').textContent=G.toFixed(1)+' dBi'; $('ntEv').textContent=el+'°'; $('ntSv').textContent=(s*100).toFixed(1)+' %'; $('ntOv').textContent=ohm.toFixed(2)+' dB'; $('ntLv').textContent=Ll.toFixed(2)+' dB'; $('ntNv').textContent=NF.toFixed(2)+' dB';
+  const Ts=tsky(Az,el), er=Math.pow(10,-ohm/10), L=Math.pow(10,Ll/10), Tl=290*(Math.pow(10,NF/10)-1);
+  const parts=[['sky',er*(1-s)*Ts,'--trace'],['ground',er*s*290,'--good'],['antenna loss',(1-er)*290,'--trace2'],['line loss',(L-1)*290,'--muted'],['LNA',L*Tl,'--accent']];
+  const TA=parts[0][1]+parts[1][1]+parts[2][1], Tsys=parts.reduce((a,p)=>a+p[1],0);
+  const x0=56, w=W-76, y0=34, h=34, sc=w/Math.max(Tsys,1); let x=x0;
+  g.fillStyle=css('--muted'); g.fillText('T_sys = '+Tsys.toFixed(0)+' K, made of:',x0,y0-10);
+  parts.forEach(p=>{ const ww=p[1]*sc; g.fillStyle=css(p[2]); g.fillRect(x,y0,ww,h); x+=ww; });
+  g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h);
+  let lx=x0, ly=y0+h+10; parts.forEach(p=>{ const t=p[0]+' '+p[1].toFixed(1)+' K', tw=g.measureText(t).width; if(lx+tw+14>x0+w){ lx=x0; ly+=16; } g.fillStyle=css(p[2]); g.fillRect(lx,ly,10,10); g.fillStyle=css('--ink'); g.fillText(t,lx+14,ly+9); lx+=tw+28; });
+  const ex=[], ey=[]; for(let i=1;i<=90;i++){ ex.push(i); ey.push(tsky(Az,i)); }
+  const ymax=Math.max(20,Math.ceil(tsky(Az,1)/20)*20);
+  const p=plot(g,56,140,w,136,0,90,0,ymax,[{x:ex,y:ey,color:css('--trace')}],{nx:6,ny:4,fx:v=>v.toFixed(0)+'°',yl:'clear-sky brightness T_sky (K)',xl:'elevation'});
+  dot(g,p.X(el),p.Y(Ts),css('--ink'));
+  const GT=G-db(Tsys);
+  g.fillStyle=css('--ink'); const gt='G/T = '+G.toFixed(1)+' − '+db(Tsys).toFixed(1)+' = '+GT.toFixed(1)+' dB/K'; g.fillText(gt,x0+w-g.measureText(gt).width,y0-10);
+  ro($('ntOut'),[['T_sky',Ts.toFixed(1)+' K'],['T_A at antenna port',TA.toFixed(1)+' K'],['T_LNA',Tl.toFixed(1)+' K'],['T_sys',Tsys.toFixed(1)+' K ('+db(Tsys).toFixed(1)+' dBK)'],['G/T',GT.toFixed(1)+' dB/K'],['Noise in 1 MHz',(-174+db(Tsys/290)+60).toFixed(1)+' dBm'],['vs 290 K system',sdb(db(Tsys/290))]]);
+}
+bind(['ntG','ntF','ntE','ntS','ntO','ntL','ntN'],ntDraw);
+
+/* ---------- Step 9: five antennas, construction → spec → system ---------- */
+const EUL=0.5772156649, ETA0=376.73, MU0=4e-7*Math.PI, SIGCU=5.8e7;
+function simp(f,a,b,n){ n=n||300; const h=(b-a)/n; let s=f(a)+f(b); for(let i=1;i<n;i++) s+=(i%2?4:2)*f(a+i*h); return s*h/3; }
+const Si=x=>x<=0?0:simp(t=>t<1e-9?1:Math.sin(t)/t,0,x);
+const Ci=x=>EUL+Math.log(x)+simp(t=>t<1e-9?0:(Math.cos(t)-1)/t,0,x);
+// thin centre-fed dipole, induced-EMF method (Balanis ch. 8): lw = l/λ, slen = l/a
+function wire(lw,slen){
+  if(lw>0.95||lw<=0) return null;
+  const kl=TAU*lw, x3=2*kl/(slen*slen);
+  const Rr=ETA0/TAU*(EUL+Math.log(kl)-Ci(kl)+0.5*Math.sin(kl)*(Si(2*kl)-2*Si(kl))+0.5*Math.cos(kl)*(EUL+Math.log(kl/2)+Ci(2*kl)-2*Ci(kl)));
+  const Xm=ETA0/(4*Math.PI)*(2*Si(kl)+Math.cos(kl)*(2*Si(kl)-Si(2*kl))-Math.sin(kl)*(2*Ci(kl)-Ci(2*kl)-Ci(x3)));
+  const s2=Math.pow(Math.sin(kl/2),2); return {R:Rr/s2, X:Xm/s2, D:ETA0*Math.pow(1-Math.cos(kl/2),2)/(Math.PI*Rr)};
+}
+const gam=(R,X)=>Math.hypot(R-50,X)/Math.hypot(R+50,X), vsw=gm=>gm>=0.999?99:(1+gm)/(1-gm);
+const interp=(xs,ys,x)=>{ if(x<=xs[0]) return ys[0]; for(let i=1;i<xs.length;i++) if(x<=xs[i]) return ys[i-1]+(ys[i]-ys[i-1])*(x-xs[i-1])/(xs[i]-xs[i-1]); return ys[ys.length-1]; };
+function bandOf(fs,vs,f0){ let i0=0; fs.forEach((f,i)=>{ if(Math.abs(f-f0)<Math.abs(fs[i0]-f0)) i0=i; }); if(!(vs[i0]<=2)) return null; let a=i0,b=i0; while(a>0&&vs[a-1]<=2) a--; while(b<fs.length-1&&vs[b+1]<=2) b++; return [fs[a],fs[b]]; }
+const bandTxt=(bd,f0)=>bd?(bd[0].toFixed(3)+'–'+bd[1].toFixed(3)+' GHz ('+(100*(bd[1]-bd[0])/f0).toFixed(1)+' %)'):'VSWR > 2 at f₀';
+const sep=t=>[`<span class="sep">${t}</span><span hidden></span>`,null];
+function roS(el,pairs){ el.innerHTML=pairs.map(p=>p[1]===null?p[0]:`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function sysRows(Gr,f0,extra){ const lam=c0/(f0*1e9), d=Gr-2.15; return [sep('What it does to the system'),['vs matched λ/2 dipole',sdb(d)],['Received power / ESM',sdb(d)],['Range factor (∝ √G)',Math.pow(10,d/20).toFixed(2)+' ×'],['A_e at '+f0.toFixed(2)+' GHz',(lin(Gr)*lam*lam/(4*Math.PI)).toExponential(2)+' m²']].concat(extra||[]); }
+const MODELS={
+  mono(){ const h=+$('moH').value, sl=Math.pow(10,+$('moS').value), fin=$('moG').value==='fin', f0=1;
+    $('moHv').textContent=h.toFixed(3)+' λ ('+(h*30).toFixed(1)+' cm)'; $('moSv').textContent=sl.toFixed(0);
+    const fs=[], vs=[], gs=[], g2=[]; let at0=null;
+    for(let i=0;i<=200;i++){ const f=Math.pow(10,Math.log10(0.5)+i/200*Math.log10(4)); fs.push(f);
+      const w=wire(2*h*f,2*sl); if(!w){ vs.push(NaN); gs.push(NaN); g2.push(NaN); continue; }
+      const R=w.R/2, X=w.X/2, RL=(2*h/(TAU*2*h/(2*sl)))*Math.sqrt(Math.PI*f*1e9*MU0/SIGCU)/4; const gm=gam(R+RL,X), eta=R/(R+RL);
+      vs.push(vsw(gm)); const Gi=db(2*w.D*eta*(1-gm*gm)); gs.push(fin?Gi-6:Gi); g2.push(Gi);
+      if(Math.abs(f-1)<Math.abs((at0?at0.f:9)-1)) at0={f,R,X,RL,gm,Gi,D:w.D}; }
+    const bd=bandOf(fs,vs,f0); const Gr=fin?at0.Gi-6:at0.Gi;
+    const rows=[['Z at f₀',at0.R.toFixed(1)+(at0.X<0?' − j':' + j')+Math.abs(at0.X).toFixed(1)+' Ω'],['VSWR at f₀',vsw(at0.gm).toFixed(2)],['VSWR ≤ 2 band',bandTxt(bd,f0)],['Realised gain f₀',Gr.toFixed(2)+' dBi'+(fin?' (horizon)':'')],['HPBW','omni in azimuth'],['Elevation peak',fin?'tilted up 30–50°':'on the horizon']];
+    if(at0.X<-5){ const Rc=Math.abs(at0.X)/150, e=at0.R/(at0.R+at0.RL+Rc), Q=Math.abs(at0.X)/(at0.R+at0.RL+Rc); rows.push(['Tuned by Q=150 coil',sdb(db(e))+' eff.'],['Tuned bandwidth',(100/(Q*Math.SQRT2)).toFixed(1)+' %']); }
+    const extra=at0.X<-5?[['Short whip effect','coil loss and narrow band; EIRP and sensitivity fall']]:[];
+    return {fs,vs,gs,g2,f0,rows:rows.concat(sysRows(Gr,f0,extra)),xr:[0.5,2],
+      sketch(g,x0,y0,w,hh){ const s=hh*0.8/0.3, hp=h*s, ap=Math.max(1,2*hp/sl), cx=x0+w/2, gy=y0+hh-8, gw=fin?s*1.0:w*0.9;
+        g.strokeStyle=css('--muted'); g.lineWidth=3; g.beginPath(); g.moveTo(cx-gw/2,gy); g.lineTo(cx+gw/2,gy); g.stroke(); g.lineWidth=1;
+        g.fillStyle=css('--accent'); g.fillRect(cx-ap/2,gy-hp,ap,hp-3); dot(g,cx,gy-2,css('--ink'));
+        g.fillStyle=css('--muted'); g.fillText('h = '+(h*30).toFixed(1)+' cm, ⌀ '+(2*h*300/sl).toFixed(1)+' mm',cx+Math.max(ap,8)+8,gy-hp/2); g.fillText(fin?'ground plane ≈ 1 λ':'large ground plane',cx-gw/2,gy-8); } }; },
+  dip(){ const l=+$('dpL').value, sl=Math.pow(10,+$('dpS').value), nb=$('dpB').value==='none', f0=1;
+    $('dpLv').textContent=l.toFixed(3)+' λ ('+(l*30).toFixed(1)+' cm)'; $('dpSv').textContent=sl.toFixed(0);
+    const fs=[], vs=[], gs=[], g2=[]; let at0=null;
+    for(let i=0;i<=200;i++){ const f=Math.pow(10,Math.log10(0.5)+i/200*Math.log10(4)); fs.push(f);
+      const w=wire(l*f,sl); if(!w){ vs.push(NaN); gs.push(NaN); g2.push(NaN); continue; }
+      const RL=(sl/TAU)*Math.sqrt(Math.PI*f*1e9*MU0/SIGCU)/2, gm=gam(w.R+RL,w.X), eta=w.R/(w.R+RL); vs.push(vsw(gm)); const Gi=db(w.D*eta*(1-gm*gm)); g2.push(Gi); gs.push(nb?Gi-1.5:Gi);
+      if(Math.abs(f-1)<Math.abs((at0?at0.f:9)-1)) at0={f,R:w.R,X:w.X,gm,Gi,lw:l*f}; }
+    const bd=bandOf(fs,vs,f0), Gr=nb?at0.Gi-1.5:at0.Gi;
+    const rows=[['Z at f₀',at0.R.toFixed(1)+(at0.X<0?' − j':' + j')+Math.abs(at0.X).toFixed(1)+' Ω'],['VSWR at f₀',vsw(at0.gm).toFixed(2)],['VSWR ≤ 2 band',bandTxt(bd,f0)],['Realised gain f₀',Gr.toFixed(2)+' dBi'],['HPBW E / H',(l<=0.55?'≈ 78–90°':'≈ 50–65°')+' / omni'],['Cross-pol',nb?'≈ −10 to −15 dB':'< −25 dB']];
+    const extra=[['Pattern',nb?'squints, changes when cable moves':'symmetric, stable'],['DF / calibration',nb?'bearing error from cable currents':'repeatable']];
+    return {fs,vs,gs,g2,f0,rows:rows.concat(sysRows(Gr,f0,extra)),xr:[0.5,2],
+      sketch(g,x0,y0,w,hh){ const s=w*0.8/0.6, lp=l*s, ap=Math.max(1.2,2*lp/sl), cx=x0+w/2, cy=y0+hh*0.35;
+        g.fillStyle=css('--accent'); g.fillRect(cx-lp/2,cy-ap/2,lp/2-3,ap); g.fillRect(cx+3,cy-ap/2,lp/2-3,ap);
+        g.strokeStyle=css('--muted'); g.lineWidth=2; g.beginPath(); g.moveTo(cx,cy+4); g.lineTo(cx,y0+hh); g.stroke(); g.lineWidth=1;
+        if(!nb){ g.strokeStyle=css('--ink'); g.strokeRect(cx-10,cy+14,20,16); g.fillStyle=css('--muted'); g.fillText('balun',cx+14,cy+26); }
+        else { g.strokeStyle=css('--bad'); g.setLineDash([3,3]); for(let k=0;k<3;k++){ g.beginPath(); g.moveTo(cx+6,cy+14+k*20); g.lineTo(cx+6,cy+26+k*20); g.lineTo(cx+2,cy+21+k*20); g.stroke(); } g.setLineDash([]); g.fillStyle=css('--bad'); g.fillText('current on the outside of the coax',cx+14,cy+40); }
+        g.fillStyle=css('--muted'); g.fillText('l = '+(l*30).toFixed(1)+' cm, ⌀ '+(l*300/sl).toFixed(1)+' mm',cx-lp/2,cy-ap/2-8); } }; },
+  yagi(){ const b=+$('yaB').value, o=$('yaO').value, f0=1;
+    $('yaBv').textContent=b.toFixed(2)+' λ ('+(b*30).toFixed(0)+' cm)';
+    const P={gain:{dG:0,fb:15,bwG:0.035,R:20,bwZ:0.04},fb:{dG:-0.8,fb:25,bwG:0.05,R:25,bwZ:0.05},bw:{dG:-1.5,fb:18,bwG:0.09,R:35,bwZ:0.10}}[o];
+    const bx=[0.15,0.4,0.8,1.2,2.2,3.2,4.2], gx=[4.5,7.1,9.2,10.2,12.25,13.4,14.2], nx=[2,3,5,6,12,14,15];
+    const G0=interp(bx,gx,b)+2.15+P.dG, N=Math.round(interp(bx,nx,b)), bwG=P.bwG*Math.sqrt(1.4/(b+0.6)), fb=P.fb*Math.min(1,0.55+b), Q=1/(P.bwZ*Math.SQRT2);
+    const fs=[], vs=[], gs=[];
+    for(let i=0;i<=240;i++){ const f=0.8+0.4*i/240; fs.push(f); const xq=Q*(f-1/f), gm=Math.abs(xq)/Math.sqrt(4+xq*xq); vs.push(vsw(gm)); const x=f-1, drop=(x>0?2:1)*Math.pow(x/(bwG/2),2); gs.push(Math.max(0,G0-drop)+db(1-gm*gm)); }
+    const bd=bandOf(fs,vs,f0), th=Math.sqrt(32000/lin(G0));
+    const rows=[['Elements (typical)',String(N)],['Driven R before match',P.R+' Ω → folded dipole / gamma'],['VSWR ≤ 2 band',bandTxt(bd,f0)],['−1 dB gain band',(100*bwG*0.85).toFixed(1)+' %'],['Realised gain f₀',G0.toFixed(1)+' dBi'],['HPBW E / H',(0.92*th).toFixed(0)+'° / '+(1.08*th).toFixed(0)+'°'],['F/B',fb.toFixed(0)+' dB']];
+    const extra=[['Back-side rejection',fb.toFixed(0)+' dB less from behind'],['Out of band','gain collapses, PA sees mismatch']];
+    return {fs,vs,gs,f0,rows:rows.concat(sysRows(G0,f0,extra)),xr:[0.8,1.2],lin:true,
+      sketch(g,x0,y0,w,hh){ const s=Math.min(hh*0.85/0.5,(w-40)/b), cy=y0+hh/2, bx0=x0+20; g.strokeStyle=css('--muted'); g.lineWidth=3; g.beginPath(); g.moveTo(bx0,cy); g.lineTo(bx0+b*s,cy); g.stroke(); g.lineWidth=2;
+        const pos=[0]; const dpos=Math.min(0.2,b*0.6); pos.push(dpos); for(let k=1;k<=N-2;k++) pos.push(dpos+(b-dpos)*k/Math.max(1,N-2));
+        pos.forEach((p,k)=>{ const L=(k===0?0.5:k===1?0.47:0.44-0.01*Math.min(k,6))*s; g.strokeStyle=k===1?css('--accent'):k===0?css('--trace2'):css('--trace'); g.beginPath(); g.moveTo(bx0+p*s,cy-L/2); g.lineTo(bx0+p*s,cy+L/2); g.stroke(); });
+        g.lineWidth=1; g.fillStyle=css('--muted'); g.fillText('reflector · driven · '+(N-2)+' directors   boom '+(b*30).toFixed(0)+' cm → beam',x0+w-g.measureText('reflector · driven · '+(N-2)+' directors   boom '+(b*30).toFixed(0)+' cm → beam').width-4,y0+hh-4); } }; },
+  lpda(){ const tau=+$('lpT').value, sg=+$('lpS').value, B=+$('lpR').value, fl=0.5, fh=fl*B;
+    $('lpTv').textContent=tau.toFixed(3); $('lpSv').textContent=sg.toFixed(3); $('lpRv').textContent=B.toFixed(1)+' : 1';
+    const so=0.243*tau-0.051, cot=4*sg/(1-tau), Bar=1.1+7.7*(1-tau)*(1-tau)*cot, Bs=B*Bar, N=Math.ceil(1+Math.log(Bs)/Math.log(1/tau)), lmx=c0/(fl*1e9);
+    const boom=(lmx/4)*(1-1/Bs)*cot, Gopt=5.5+30*(tau-0.8), Gd=Math.max(2,Gopt-8*Math.pow((sg-so)/so,2)), amp=0.15+1.5*(0.95-tau), per=Math.log(1/tau);
+    const fs=[], vs=[], gs=[];
+    for(let i=0;i<=300;i++){ const f=Math.pow(10,Math.log10(fl*0.6)+i/300*Math.log10(B*1.4/0.6)); fs.push(f);
+      const lo=Math.log(fl/f), hi=Math.log(f/fh), out=(lo>0?lo*lo:0)+(hi>0?hi*hi:0), ph=Math.log(f/fl)/per;
+      const v=1.15+Math.max(0,amp)*Math.pow(Math.sin(Math.PI*ph),2)+40*out; const gm=(v-1)/(v+1); vs.push(v);
+      gs.push(Gd+0.4*Math.cos(TAU*ph)-60*out+db(1-gm*gm)); }
+    const bd=bandOf(fs,vs,Math.sqrt(fl*fh)), xa=f=>(c0/(f*1e9))/4*cot, travel=xa(fl)-xa(fh);
+    const rows=[['Elements N',String(N)],['Boom length',fmt(boom,'m')],['α (half-angle)',(Math.atan(1/cot)/deg).toFixed(1)+'°'],['σ_opt for this τ',so.toFixed(3)],['VSWR ≤ 2 band',bd?(bd[0].toFixed(2)+'–'+bd[1].toFixed(2)+' GHz'):'—'],['Gain (mid band)',Gd.toFixed(1)+' dBi'],['VSWR / gain ripple','period ×'+(1/tau).toFixed(3)+' in f'],['HPBW E / H','≈ 60–70° / 90–110°']];
+    const lam1=c0/(fl*1e9), lam2=c0/(fh*1e9), A1=lin(Gd)*lam1*lam1/(4*Math.PI), A2=lin(Gd)*lam2*lam2/(4*Math.PI);
+    const extra=[['Phase-centre travel',fmt(travel,'m')],['Delay spread across band',(travel/c0*1e9).toFixed(2)+' ns'],['A_e at f_low / f_high',A1.toExponential(2)+' / '+A2.toExponential(2)+' m²'],['A_e change over band',sdb(db(A2/A1))]];
+    const fm=Math.sqrt(fl*fh);
+    return {fs,vs,gs,f0:fm,rows:rows.concat(sysRows(Gd,fm,extra)),xr:[fl*0.6,fh*1.4],
+      sketch(g,x0,y0,w,hh){ const xmax=xa(fl)*1.02, s=(w-40)/xmax, cy=y0+hh/2, ax=x0+w-20; const sv=Math.min(s,hh*0.9/(lmx/2));
+        g.strokeStyle=css('--muted'); g.lineWidth=2; g.beginPath(); g.moveTo(ax,cy); g.lineTo(ax-xa(fl)*s,cy); g.stroke(); g.lineWidth=1;
+        for(let n=0;n<N;n++){ const ln=(lmx/2)*Math.pow(tau,n), xn=(ln/2)*cot, px=ax-xn*s, hl=ln/2*sv; const act=(c0/(fm*1e9))/2; g.strokeStyle=Math.abs(Math.log(ln/act))<0.25?css('--accent'):css('--trace'); g.lineWidth=1.5; g.beginPath(); g.moveTo(px,cy-(n%2?hl:0)); g.lineTo(px,cy+(n%2?0:hl)); g.moveTo(px,cy-(n%2?0:hl)*1); g.lineTo(px,cy+(n%2?hl:0)); g.stroke(); }
+        g.lineWidth=1; g.fillStyle=css('--muted'); g.fillText('longest element (f_low)',x0+20,y0+12); g.fillText('apex → beam',ax-80,y0+hh-2); g.fillStyle=css('--accent'); g.fillText('active at mid band',x0+w/2-60,y0+12); } }; },
+  patch(){ const er=+$('paE').value, h=+$('paH').value*1e-3, td=+$('paD').value, tol=+$('paT').value/100, f0=5, l0=c0/(f0*1e9);
+    $('paEv').textContent=er.toFixed(1); $('paHv').textContent=(h*1e3).toFixed(3)+' mm'; $('paDv').textContent=td.toFixed(4); $('paTv').textContent=(tol*100).toFixed(2)+' %';
+    const W=c0/(2*f0*1e9)*Math.sqrt(2/(er+1)), eeff=e=>(e+1)/2+(e-1)/2*Math.pow(1+12*h/W,-0.5), ee=eeff(er);
+    const dL=0.412*h*(ee+0.3)*(W/h+0.264)/((ee-0.258)*(W/h+0.8)), L=c0/(2*f0*1e9*Math.sqrt(ee))-2*dL;
+    const BWr=3.77*(er-1)/(er*er)*(W/L)*(h/l0), Qr=1/(BWr*Math.SQRT2), Qd=1/td, Qc=h*Math.sqrt(Math.PI*f0*1e9*MU0*SIGCU);
+    const eta=(1/Qr)/(1/Qr+1/Qd+1/Qc), Qt=1/(1/Qr+1/Qd+1/Qc), D=4.0+7*W/l0, fsh=f0*Math.sqrt(ee/eeff(er*(1+tol)));
+    const fs=[], vs=[], gs=[], v2=[], g2=[];
+    for(let i=0;i<=240;i++){ const f=4.5+1.0*i/240; fs.push(f); [[f0,vs,gs],[fsh,v2,g2]].forEach(([fc,va,ga])=>{ const r=f/fc, xq=Qt*(r-1/r), gm=Math.abs(xq)/Math.sqrt(4+xq*xq); va.push(vsw(gm)); ga.push(D+db(eta)+db(1-gm*gm)); }); }
+    const bd=bandOf(fs,vs,f0), half=bd?(bd[1]-bd[0])/2:0, sh=Math.abs(fsh-f0), th=Math.sqrt(32000/lin(D)), Gr=D+db(eta);
+    const rows=[['Patch L × W',(L*1e3).toFixed(2)+' × '+(W*1e3).toFixed(2)+' mm'],['ε_eff',ee.toFixed(3)],['Radiation-only BW',(100*BWr).toFixed(2)+' %'],['VSWR ≤ 2 band (with loss)',bandTxt(bd,f0)],['Radiation efficiency',eta.toFixed(3)+' ('+sdb(db(eta))+')'],['Realised gain f₀',Gr.toFixed(2)+' dBi'],['HPBW E / H',(th/0.9).toFixed(0)+'° / '+(0.9*th).toFixed(0)+'°']];
+    const extra=[['Noise added by loss',((1-eta)*290).toFixed(0)+' K'],['Shift at +tolerance',(1e3*sh).toFixed(0)+' MHz ('+(100*sh/f0).toFixed(2)+' %)'],['Shift / half-bandwidth',half?(sh/half).toFixed(2)+(sh>half?' → misses band':''):'—']];
+    return {fs,vs,gs,v2,g2,f0,rows:rows.concat(sysRows(Gr,f0,extra)),xr:[4.5,5.5],lin:true,
+      sketch(g,x0,y0,w,hh){ const s=Math.min((hh-30)/(W*1e3),(w*0.45)/(L*1e3)), px=x0+30, py=y0+16, pl=L*1e3*s, pw=W*1e3*s;
+        g.fillStyle=css('--chip'); g.fillRect(px-12,py-8,pl+24,pw+16); g.strokeStyle=css('--line'); g.strokeRect(px-12,py-8,pl+24,pw+16);
+        g.fillStyle=css('--accent'); g.fillRect(px,py,pl,pw); const y0i=pl/3, fw=Math.max(3,pw*0.12); g.fillStyle=css('--chip'); g.fillRect(px,py+pw/2-fw,y0i,2*fw); g.fillStyle=css('--accent'); g.fillRect(px-12,py+pw/2-fw/2,y0i+12,fw);
+        g.fillStyle=css('--muted'); g.fillText('L '+(L*1e3).toFixed(1)+' mm (resonant)',px,py+pw+22); g.save(); g.translate(px+pl+24,py+pw/2+40); g.rotate(-Math.PI/2); g.fillText('W '+(W*1e3).toFixed(1)+' mm',0,0); g.restore();
+        const sx=x0+w*0.55, sy=y0+hh/2, sw=w*0.4, th2=Math.max(2,h*1e3*12); g.fillStyle=css('--trace2'); g.globalAlpha=.35; g.fillRect(sx,sy-th2/2,sw,th2); g.globalAlpha=1; g.fillStyle=css('--muted'); g.fillRect(sx,sy+th2/2,sw,3); g.fillStyle=css('--accent'); g.fillRect(sx+sw*0.25,sy-th2/2-3,sw*0.5,3);
+        g.fillStyle=css('--muted'); g.fillText('side view (h × 12): ε_r '+er.toFixed(1)+', h '+(h*1e3).toFixed(2)+' mm',sx,sy-th2/2-12); g.fillText('inset feed at ≈ L/3',px,py-12); } }; }
+};
+function tyDraw(){
+  const t=$('tyT').value; document.querySelectorAll('#types .grp').forEach(d=>d.hidden=d.dataset.t!==t);
+  const m=MODELS[t](), c=$('cTy'), g=ctx(c), W=c.width;
+  g.strokeStyle=css('--line'); g.strokeRect(10,8,W-20,150); m.sketch(g,14,10,W-28,146);
+  const L=m.lin, X=f=>L?f:Math.log10(f), xa=X(m.xr[0]), xb=X(m.xr[1]), fx=v=>(L?v:Math.pow(10,v)).toFixed(L||Math.pow(10,v)<1?2:1);
+  const xs=m.fs.map(X);
+  const cv=[{x:xs,y:m.vs.map(v=>Math.min(v,6)),color:css('--trace')}]; if(m.v2) cv.push({x:xs,y:m.v2.map(v=>Math.min(v,6)),color:css('--accent'),dash:[5,4]});
+  const p1=plot(g,50,190,250,200,xa,xb,1,6,cv,{nx:3,ny:5,fx,yl:'VSWR',xl:'GHz'});
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(50,p1.Y(2)); g.lineTo(300,p1.Y(2)); g.stroke(); g.setLineDash([]); vline(g,p1.X(X(m.f0)),190,200,css('--grid'),[2,3]);
+  const all=m.gs.concat(m.g2||[]).filter(isFinite); const gmx=Math.ceil(Math.max(...all)/2)*2+2, gmn=gmx-20;
+  const cg=[{x:xs,y:m.gs,color:css('--accent')}]; if(m.g2) cg.unshift({x:xs,y:m.g2,color:css('--muted'),dash:[5,4],w:1.2});
+  const p2=plot(g,370,190,W-390,200,xa,xb,gmn,gmx,cg,{nx:3,ny:5,fx,yl:'realised gain (dBi)',xl:'GHz'});
+  vline(g,p2.X(X(m.f0)),190,200,css('--grid'),[2,3]);
+  roS($('tyOut'),[sep('Specification')].concat(m.rows));
+}
+bind(['tyT','moH','moS','moG','dpL','dpS','dpB','yaB','yaO','lpT','lpS','lpR','paE','paH','paD','paT'],tyDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

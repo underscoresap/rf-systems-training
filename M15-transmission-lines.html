@@ -1,0 +1,1239 @@
+<meta charset="utf-8">
+<title>Transmission Lines and Interconnect</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Transmission Lines and Interconnect · RF Systems for Component Engineers</div>
+  <h1>Transmission lines: waveguide, coax, connectors and the rotary joint</h1>
+  <p class="lede">Between every pair of components in a radar, an ESM receiver or a jammer there is a passive path: a cable, a waveguide run, a connector pair, a rotary joint. Nobody designs these as "the product", yet they decide a large part of the system's performance. Their loss sits in front of the LNA, where it becomes noise, and behind the PA, where it eats transmitted power; in a radar the same run is used twice, so its loss is counted twice. Their mismatches combine into ripple and false echoes, their phase drifts with temperature and flexing and becomes angle error, and their junctions can create intermodulation of their own. This page builds each of those effects from first principles, with worked numbers, and traces every datasheet line from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 Where the lines sit</a><a href="#coax">1 Coax loss vs frequency</a><a href="#wg">2 Waveguide: cut-off and modes</a><a href="#ripple">3 Cascaded VSWR and ripple</a><a href="#power">4 Peak and average power</a><a href="#phase">5 Phase stability</a><a href="#rj">6 Rotary joint</a><a href="#conn">7 Connectors and torque</a><a href="#pim">8 PIM and multipaction</a><a href="#sys">9 System effects</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>Where the transmission lines sit, and why a "piece of cable" matters</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>From the <a href="M01-lna-noise.html">LNA and receiver noise</a> module: a passive loss of L dB at room temperature has a noise figure of L dB, and in front of the LNA it adds to the system noise figure almost dB for dB. From <a href="A0-antenna-fundamentals.html#match">antenna Step 2</a>: Γ, VSWR, return loss and mismatch loss. From the <a href="M03-power-amplifier.html">power amplifier</a> module: every dB lost after the PA is a dB of EIRP that you paid for in DC power and heat.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Transmission line:</b> any structure that guides an RF wave from one place to another with a defined characteristic impedance Z<sub>0</sub>: coaxial cable (coax), waveguide, stripline, microstrip. On this page "line" means the runs between boxes: from a few centimetres to tens of metres.</p>
+    <p><b>Insertion loss (IL):</b> how much weaker the signal is at the output of the line than at its input, in dB. For a uniform line it grows linearly with length, so datasheets give it as <b>attenuation in dB per metre</b> (dB/m) at stated frequencies. Example: 0.945 dB/m × 20 m = 18.9 dB.</p>
+    <p><b>Connector pair (mated pair):</b> one plug and one jack screwed together. Each mated pair adds a little loss, a small reflection and a small, not quite repeatable, phase shift.</p>
+    <p><b>Rotary joint:</b> a component that passes RF from a rotating antenna to the fixed equipment below it, while it turns.</p>
+    <p><b>Loss counted twice:</b> a monostatic radar transmits and receives through the same antenna, so the run between the antenna and the duplexer is crossed by the transmitted pulse going up and by the echo coming down. 3 dB in that run costs 3 dB of transmitted power and another 3 dB (or more) of received signal-to-noise ratio.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Signal path from a rotating antenna through a rotary joint, a 20 metre run down a mast, connectors and a duplexer to the transmitter and receiver in a shelter">
+    <svg viewBox="0 0 860 250" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <rect x="10" y="20" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--trace)"/><text x="24" y="40">Antenna</text><text x="24" y="56" class="mut">rotates, G 33 dBi</text>
+      <rect x="150" y="20" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="160" y="40">Rotary joint</text><text x="160" y="56" class="mut">Step 6</text>
+      <rect x="290" y="20" width="200" height="46" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="300" y="40">20 m run down the mast</text><text x="300" y="56" class="mut">coax or waveguide, Steps 1–5</text>
+      <rect x="520" y="20" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="530" y="40">Connectors</text><text x="530" y="56" class="mut">Step 7, PIM Step 8</text>
+      <rect x="660" y="20" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="670" y="40">Duplexer</text><text x="670" y="56" class="mut">module 06</text>
+      <line x1="120" y1="43" x2="148" y2="43" stroke="var(--muted)" marker-end="url(#ar0)" marker-start="url(#ar0)"/>
+      <line x1="260" y1="43" x2="288" y2="43" stroke="var(--muted)" marker-end="url(#ar0)" marker-start="url(#ar0)"/>
+      <line x1="490" y1="43" x2="518" y2="43" stroke="var(--muted)" marker-end="url(#ar0)" marker-start="url(#ar0)"/>
+      <line x1="630" y1="43" x2="658" y2="43" stroke="var(--muted)" marker-end="url(#ar0)" marker-start="url(#ar0)"/>
+      <rect x="600" y="140" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="612" y="160">PA (transmit)</text><text x="612" y="176" class="mut">module 03</text>
+      <rect x="740" y="140" width="110" height="46" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="752" y="160">LNA (receive)</text><text x="752" y="176" class="mut">module 01</text>
+      <path d="M700,66 L655,138" stroke="var(--muted)" fill="none" marker-start="url(#ar0)"/>
+      <path d="M730,66 L790,138" stroke="var(--muted)" fill="none" marker-end="url(#ar0)"/>
+      <line x1="10" y1="100" x2="640" y2="100" stroke="var(--accent)" stroke-dasharray="5 4"/>
+      <text x="16" y="94" class="mut">this whole path is crossed twice in a radar: transmit going up, echo coming down</text>
+      <text x="16" y="222" class="mut">Shelter at the foot of the mast holds the transmitter and the receiver. Everything left of the duplexer is the subject of this page.</text>
+    </svg>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col">
+    <p>The naive design treats the run as "just a cable". Take an X-band (10 GHz) radar whose antenna is on a 20 m mast, with the transmitter and receiver in a shelter at its foot, and connect them with 20 m of the ordinary braided cable in the store: a 7.24 mm solid-polyethylene cable of the RG-213 class. At 10 GHz it loses 0.945 dB/m (Step 1 derives this), so the run alone loses <b>18.9 dB</b>. Only 1.3 % of the transmitter's power reaches the antenna. On receive, the same 18.9 dB sits in front of the LNA: by Friis the system noise figure rises by about 18.9 dB. Counting attenuation alone on both trips, 37.8 dB, the detection range falls to 10<sup>−37.8/40</sup> = <b>11 %</b> of the lossless value. The radar has effectively been switched off by a cable.</p>
+  </div>
+  <h3>Side by side on one example: 20 m at 10 GHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Run (all illustrative)</th><th>Loss per metre</th><th>20 m run</th><th>Power reaching the antenna</th><th>Usable at 10 GHz?</th></tr>
+    <tr><td>RG-58 class, 2.95 mm, solid PE, braid</td><td class="n">1.92 dB/m</td><td class="n">38.4 dB</td><td class="n">0.01 %</td><td>No: loss</td></tr>
+    <tr><td>Semi-rigid 0.141 in (3.6 mm), solid PTFE</td><td class="n">1.35 dB/m</td><td class="n">27.1 dB</td><td class="n">0.2 %</td><td>Only for short jumpers</td></tr>
+    <tr><td>RG-213 class, 7.24 mm, solid PE, braid</td><td class="n">0.945 dB/m</td><td class="n">18.9 dB</td><td class="n">1.3 %</td><td>No: loss</td></tr>
+    <tr><td>½-inch foam, corrugated, 12 mm</td><td class="n">0.363 dB/m</td><td class="n">7.3 dB</td><td class="n">19 %</td><td>Marginal: 10 GHz is at its first higher-mode cut-off (Step 1)</td></tr>
+    <tr><td>WR-90 waveguide, aluminium</td><td class="n">0.140 dB/m</td><td class="n">2.79 dB</td><td class="n">53 %</td><td>Yes</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Two lessons sit in this table. First, loss per metre varies by more than ten times between "a cable" and "a waveguide" at the same frequency, so the choice of line is a system decision, not a purchasing one. Second, the bigger, lower-loss coax stops being usable as the frequency rises, because a large coax starts to carry a second, unwanted mode of propagation. The rest of the page explains both, then the other ways a line affects the system: ripple from mismatches (Step 3), power limits (Step 4), phase drift (Step 5), the rotary joint (Step 6), connectors (Step 7), and intermodulation and discharge inside the line (Step 8). Step 9 puts them back into the radar range, G/T, EIRP and direction-finding numbers.</p>
+  </div>
+  <h3>How the choices are made, in one paragraph</h3>
+  <div class="col"><p>(1) Frequency and bandwidth decide which kinds of line can carry the signal in one clean mode. (2) Length and the noise and power budgets decide how much loss per metre you can afford. (3) Peak and average power decide the line size and whether it must be pressurised. (4) What the system measures with phase (arrays, interferometers, monopulse) decides how phase-stable the runs must be. (5) Rotation and maintenance decide the rotary joint and the connector family. A common outcome: waveguide for the long, high-power run; phase-stable coax for short, flexible jumpers; an LNA moved to the top of the mast when the receive noise budget cannot afford the run.</p></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why is the loss of the run between antenna and duplexer "counted twice" in a radar but only once in an ESM receiver?</summary><p>The radar's transmitted pulse goes up the run and its echo comes back down the same run, so both the transmitted power and the received signal-to-noise ratio pay. An ESM receiver only listens, so only the receive path pays (but there the loss also raises the noise temperature, Step 9).</p></details>
+    <details><summary>20 m of cable at 0.945 dB/m: what fraction of the power arrives?</summary><p>18.9 dB → 10<sup>−1.89</sup> = 0.013, so 1.3 %.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="coax">
+  <div class="secno">Step 1</div>
+  <h2>Coax loss per metre against frequency: conductor loss (√f) and dielectric loss (f)</h2>
+  <div class="know"><h4>You already know</h4><p>Skin effect from your own layouts: at RF the current flows in a thin layer at the conductor surface, so a conductor's RF resistance is higher than its DC resistance and rises with frequency. Loss tangent tan δ from substrate datasheets: the fraction of the stored electric energy that a dielectric turns into heat each radian of the cycle.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Coaxial line:</b> an inner conductor of radius a inside an outer conductor of inner radius b, separated by a dielectric of relative permittivity ε<sub>r</sub>. Its characteristic impedance is Z<sub>0</sub> = (η<sub>0</sub>/2π√ε<sub>r</sub>)·ln(b/a), with η<sub>0</sub> = 376.7 Ω. For 50 Ω in solid polyethylene (ε<sub>r</sub> 2.25) b/a = 3.49; in air b/a = 2.30.</p>
+    <p><b>Skin depth δ<sub>s</sub> and surface resistance R<sub>s</sub>:</b> δ<sub>s</sub> = 1/√(πfμ<sub>0</sub>σ) and R<sub>s</sub> = 1/(σδ<sub>s</sub>) = √(πfμ<sub>0</sub>/σ). For copper (σ = 5.8 × 10<sup>7</sup> S/m) at 1 GHz, δ<sub>s</sub> = 2.1 µm and R<sub>s</sub> = 8.25 mΩ; at 10 GHz, 0.66 µm and 26.1 mΩ. R<sub>s</sub> grows as √f.</p>
+    <p><b>Conductor loss α<sub>c</sub>:</b> the I²R heat in both conductors. <b>Dielectric loss α<sub>d</sub>:</b> the heat in the dielectric. The total attenuation is α = α<sub>c</sub> + α<sub>d</sub>.</p>
+    <p><b>Velocity factor v<sub>p</sub>:</b> the wave speed as a fraction of the speed of light, 1/√ε<sub>r</sub>: 0.67 in solid PE, 0.70 in solid PTFE, 0.88 in foam PE.</p>
+    <p><b>Higher-order mode (TE<sub>11</sub>):</b> above a certain frequency a coax can also carry a wave that is not the clean TEM wave it was designed for. The first one, TE<sub>11</sub>, starts at f<sub>c</sub> ≈ c/(π(a+b)√ε<sub>r</sub>). Above that frequency, every bend, connector or dent can convert power into the second mode, which travels at a different speed and returns as sharp dips and phase jumps. A coax is only usable below about 0.95 f<sub>c</sub>.</p>
+  </div>
+  <div class="eq">α<sub>c</sub> = 8.686 · K · R<sub>s</sub> · (1/a + 1/b) / (4π Z<sub>0</sub>) dB/m &nbsp;&nbsp; α<sub>d</sub> = 8.686 · π f √ε<sub>r</sub> tan δ / c dB/m<small>K is a roughness or construction factor on top of smooth copper: about 1.05 for a smooth solid outer conductor (semi-rigid), 1.2 for a corrugated one, 1.5 for a braid (the current has to follow the woven wires). α<sub>c</sub> grows as √f (through R<sub>s</sub>) and falls as the line gets bigger (1/a + 1/b). α<sub>d</sub> grows as f and does not depend on size at all.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (the RG-213-class cable of Step 0: b = 3.62 mm, solid PE, braid, so a = 1.036 mm, K = 1.5, tan δ = 2 × 10<sup>−4</sup>). At 1 GHz: α<sub>c</sub> = 8.686 × 1.5 × 0.00825 × (965 + 276)/(4π × 50) = 0.212 dB/m; α<sub>d</sub> = 8.686 × π × 10<sup>9</sup> × 1.5 × 2 × 10<sup>−4</sup>/(3 × 10<sup>8</sup>) = 0.027 dB/m; total 0.240 dB/m. At 10 GHz the conductor term grows by √10 = 3.16× to 0.672 dB/m and the dielectric term by 10× to 0.273 dB/m: total 0.945 dB/m. The conductor dominates at low frequency; the dielectric's share grows from 11 % to 29 %.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive fix for "too much loss" is "use a bigger cable": the conductor loss falls as 1/size. It works until the TE<sub>11</sub> cut-off comes down to the operating frequency. A 22 mm (7/8-inch class) foam cable loses only 0.245 dB/m at 10 GHz on paper, but its TE<sub>11</sub> cut-off is 5.49 GHz: at 10 GHz it is a multimode line and cannot be used. The 12 mm ½-inch foam cable has its cut-off at 10.06 GHz, right on top of the operating frequency. Size buys loss, and frequency limits size.</p></div>
+  <h3>Side by side on one example: 10 GHz, 20 m, different constructions</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Construction (outer-conductor ID)</th><th>α<sub>c</sub></th><th>α<sub>d</sub></th><th>Total</th><th>20 m</th><th>TE<sub>11</sub> cut-off</th></tr>
+    <tr><td>Solid PE, braid (2.95 mm)</td><td class="n">1.648</td><td class="n">0.273</td><td class="n">1.92 dB/m</td><td class="n">38.4 dB</td><td class="n">33.5 GHz</td></tr>
+    <tr><td>Solid PTFE, smooth semi-rigid (2.98 mm)</td><td class="n">1.093</td><td class="n">0.261</td><td class="n">1.35 dB/m</td><td class="n">27.1 dB</td><td class="n">34.3 GHz</td></tr>
+    <tr><td>Solid PE, braid (7.24 mm)</td><td class="n">0.672</td><td class="n">0.273</td><td class="n">0.945 dB/m</td><td class="n">18.9 dB</td><td class="n">13.7 GHz</td></tr>
+    <tr><td>Foam PE, braid (7.24 mm)</td><td class="n">0.536</td><td class="n">0.104</td><td class="n">0.640 dB/m</td><td class="n">12.8 dB</td><td class="n">16.7 GHz</td></tr>
+    <tr><td>Foam PE, corrugated (12 mm)</td><td class="n">0.259</td><td class="n">0.104</td><td class="n">0.363 dB/m</td><td class="n">7.3 dB</td><td class="n">10.1 GHz</td></tr>
+    <tr><td>Foam PE, corrugated (22 mm)</td><td class="n">0.141</td><td class="n">0.104</td><td class="n">0.245 dB/m</td><td class="n">4.9 dB</td><td class="n">5.5 GHz (moded)</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Read the rows in pairs. Same size, foam instead of solid PE (rows 3 and 4): the foam's lower ε<sub>r</sub> lets the inner conductor be thicker for the same 50 Ω (a = 1.40 mm instead of 1.04 mm), cutting α<sub>c</sub> by 20 %, and its lower ε<sub>r</sub> and tan δ cut α<sub>d</sub> by 62 %; it also raises the TE<sub>11</sub> cut-off. Same dielectric, bigger size (rows 4 to 6): α<sub>c</sub> falls as 1/size, but α<sub>d</sub> stays at 0.104 dB/m whatever the size, and the cut-off falls until the line is unusable. Rows 1 and 2 are nearly the same size: the smooth-walled PTFE line has 34 % less α<sub>c</sub>, about 30 % from the smooth wall (K 1.05 instead of 1.5) and the rest from the lower ε<sub>r</sub>.</p>
+    <p><b>Why 50 Ω?</b> For an air line of fixed outer size, conductor loss is lowest at 77 Ω (b/a = 3.6), and peak power before breakdown is highest at 30 Ω (b/a = 1.65). 50 Ω is the compromise between the two, which is why almost all RF hardware uses it. At 3 GHz in a 20 mm air line: 77 Ω loses 0.062 dB/m, 50 Ω 0.069 dB/m (11 % more), 30 Ω 0.092 dB/m.</p>
+  </div>
+  <h3>How to choose size, dielectric and conductor</h3>
+  <div class="col"><p>(1) The highest frequency sets the largest size: keep f<sub>max</sub> ≤ 0.95 f<sub>c</sub>, so (a + b)√ε<sub>r</sub> ≤ 0.95·c/(π f<sub>max</sub>). At 10 GHz in foam PE that is D ≲ 11.5 mm. (2) Within that size, the loss budget (length × dB/m) picks the dielectric: foam or air-spaced for long runs, solid PTFE where flexibility, temperature range or stability matters more than loss. (3) The conductor: smooth (semi-rigid or corrugated) for low loss and good screening, braid only where it must flex. (4) If the best coax that fits still costs too many dB, use waveguide (Step 2) or move the active parts closer to the antenna (Step 9). Every 1 dB/m saved on a 20 m run is 20 dB of system budget.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCx" width="640" height="330" aria-label="Coax attenuation against frequency, split into conductor and dielectric loss, with the TE11 cut-off marked"></canvas>
+    <div class="ctrl">
+      <label for="cxD"><span>Outer-conductor inner diameter D</span> <b id="cxDv"></b></label><input id="cxD" type="range" min="1.5" max="30" step="0.01" value="7.24">
+      <label for="cxE">Dielectric</label>
+      <select id="cxE"><option value="pe" selected>Solid PE (εr 2.25, tan δ 2e−4)</option><option value="foam">Foam PE (εr 1.30, tan δ 1e−4)</option><option value="ptfe">Solid PTFE (εr 2.05, tan δ 2e−4)</option><option value="ldp">Low-density PTFE (εr 1.60, tan δ 1.5e−4)</option></select>
+      <label for="cxC">Outer conductor</label>
+      <select id="cxC"><option value="smooth">Smooth solid (K 1.05)</option><option value="corr">Corrugated (K 1.2)</option><option value="braid" selected>Braid (K 1.5)</option></select>
+      <label for="cxF"><span>Frequency (log)</span> <b id="cxFv"></b></label><input id="cxF" type="range" min="-1" max="1.6" step="0.001" value="1">
+      <label for="cxL"><span>Run length</span> <b id="cxLv"></b></label><input id="cxL" type="range" min="0.5" max="50" step="0.5" value="20">
+      <div class="readout" id="cxOut"></div>
+    </div>
+    <p class="cap">Log–log axes: frequency 0.1 to 40 GHz, attenuation in dB/m. Teal: conductor loss α<sub>c</sub> (slope ½: √f). Purple: dielectric loss α<sub>d</sub> (slope 1: f). Orange: total. The red band starts at the TE<sub>11</sub> cut-off; the dashed line is 0.95 f<sub>c</sub>, the practical limit. The dot is your frequency.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (7.24 mm, solid PE, braid, 10 GHz, 20 m): α<sub>c</sub> 0.672, α<sub>d</sub> 0.273, total 0.945 dB/m and 18.9 dB, the worked example and Step 0.</li>
+    <li>Change the dielectric to foam PE: total 0.640 dB/m, 12.8 dB, and the cut-off moves up to 16.7 GHz (row 4 of the table).</li>
+    <li>With foam PE, corrugated, set D to 12 mm: 0.363 dB/m and a cut-off of 10.06 GHz, so the readout flags 10 GHz as above the 0.95 f<sub>c</sub> limit.</li>
+    <li>Set the frequency to 1 GHz with the default cable: 0.240 dB/m, with the dielectric only 11 % of the total.</li>
+    <li>Make D larger: the teal line falls, the purple line does not move, and the red band slides to the left.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Attenuation</td><td>Conductor size, smooth vs braid, plating; dielectric ε<sub>r</sub> and tan δ</td><td>dB/m at stated frequencies, e.g. 0.945 dB/m at 10 GHz</td><td>× length: 18.9 dB on a 20 m run; radar range × 0.11 from attenuation alone (Step 9)</td></tr>
+    <tr><td>Highest usable frequency</td><td>Size and ε<sub>r</sub> (TE<sub>11</sub> cut-off)</td><td>"Maximum frequency", e.g. 10 GHz for 12 mm foam</td><td>Above it: dips, phase jumps, unrepeatable ripple; the line cannot be used</td></tr>
+    <tr><td>Velocity factor</td><td>Dielectric ε<sub>r</sub></td><td>v<sub>p</sub>, e.g. 0.67 or 0.88</td><td>Electrical length and delay (Steps 3 and 5)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Cable and harness engineers:</b> your dB/m at the top of the band, times the length the installation forces, is the number the system engineer subtracts from range and sensitivity. Quote it at the highest frequency and the hottest temperature (copper resistance rises about 0.4 %/°C).</li>
+    <li><b>PCB and module designers:</b> the same two terms apply to microstrip and stripline: α<sub>c</sub> from copper roughness (the K factor), α<sub>d</sub> from the laminate's tan δ.</li>
+    <li><b>LNA designers:</b> every 0.1 dB of line in front of your input adds to the system noise figure as if your NF were 0.1 dB worse.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A cable loses 0.30 dB/m at 2.5 GHz, nearly all conductor loss. Roughly what at 10 GHz?</summary><p>Conductor loss scales as √f: √(10/2.5) = 2, so about 0.60 dB/m, plus a dielectric term that has grown 4× (small in this cable).</p></details>
+    <details><summary>Why does doubling the cable diameter not halve the loss at 10 GHz in the foam table rows?</summary><p>Only α<sub>c</sub> halves; α<sub>d</sub> (0.104 dB/m) does not depend on size. And the bigger cable's TE<sub>11</sub> cut-off falls below 10 GHz, so it cannot be used anyway.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="wg">
+  <div class="secno">Step 2</div>
+  <h2>Waveguide: cut-off, the dominant mode, bands, higher-order modes and loss</h2>
+  <div class="know"><h4>You already know</h4><p>A coax has a centre conductor and carries a TEM wave at any frequency up to its first higher mode (Step 1). A hollow metal pipe has no centre conductor, so it cannot carry TEM at all: it carries only waves that bounce between its walls, and each such wave has a lowest frequency.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Rectangular waveguide:</b> a hollow metal tube of inside width a and height b (usually b ≈ a/2). Named by EIA "WR" numbers: WR-90 has a = 0.900 inch = 22.86 mm, b = 10.16 mm.</p>
+    <p><b>Mode TE<sub>mn</sub>:</b> one field pattern the guide can carry, with m half-waves of field across the width and n across the height. TE means the electric field is entirely transverse (across the guide). TM modes have the magnetic field transverse.</p>
+    <p><b>Cut-off frequency:</b> each mode only propagates above f<sub>c,mn</sub> = (c/2)·√((m/a)² + (n/b)²). Below it the mode dies away exponentially within a fraction of a wavelength.</p>
+    <p><b>Dominant mode TE<sub>10</sub>:</b> the mode with the lowest cut-off, f<sub>c</sub> = c/(2a): half a wavelength just fits across the width. For WR-90, 6.557 GHz.</p>
+    <p><b>Recommended band:</b> the frequency range where only TE<sub>10</sub> propagates and the loss is reasonably flat, about 1.25 f<sub>c</sub> to 1.9 f<sub>c</sub>. For WR-90, 8.2 to 12.4 GHz. Below it the loss and dispersion rise steeply; above it the next modes (TE<sub>20</sub> at c/a = 13.11 GHz, TE<sub>01</sub> at c/(2b) = 14.75 GHz) can start.</p>
+    <p><b>Guide wavelength λ<sub>g</sub> and group velocity v<sub>g</sub>:</b> λ<sub>g</sub> = λ<sub>0</sub>/√(1 − (f<sub>c</sub>/f)²) and v<sub>g</sub> = c·√(1 − (f<sub>c</sub>/f)²). In WR-90 at 10 GHz, λ<sub>g</sub> = 39.7 mm (free-space λ<sub>0</sub> = 30.0 mm) and v<sub>g</sub> = 0.755 c. Because v<sub>g</sub> depends on frequency, a waveguide is <b>dispersive</b>: different frequencies take different times to travel through it.</p>
+  </div>
+  <div class="eq">α<sub>c</sub>(TE<sub>10</sub>) = 8.686 · R<sub>s</sub> / (η<sub>0</sub> b √(1 − (f<sub>c</sub>/f)²)) · (1 + (2b/a)(f<sub>c</sub>/f)²) dB/m &nbsp;&nbsp; group delay τ = L / v<sub>g</sub><small>There is no dielectric (air), so only conductor loss. Loss rises steeply towards cut-off, has a broad minimum in the band, then rises slowly as √f. It falls with the guide size like coax, but here "bigger" also means lower cut-off, so each band has its own guide.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (WR-90 at 10 GHz, aluminium, σ = 3.5 × 10<sup>7</sup> S/m, R<sub>s</sub> = 33.6 mΩ): (f<sub>c</sub>/f)² = 0.430, √(1 − 0.430) = 0.755, so α = 8.686 × 0.0336/(376.7 × 0.01016 × 0.755) × (1 + 2 × 0.444 × 0.430) = <b>0.140 dB/m</b>. In copper, 0.108 dB/m. Compare 0.945 dB/m for the RG-213-class coax: the waveguide is 6.8 times better, because its "conductors" are large walls and there is no dielectric. The delay is 1/(0.755 c) = 4.42 ns/m. Across 9.5 to 10.5 GHz it changes from 4.61 to 4.27 ns/m, so a 20 m run delays the bottom of a 1 GHz chirp 6.8 ns more than the top.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col">
+    <p><b>Naive 1: "use the bigger guide, it has lower loss".</b> WR-137 at 10 GHz loses only 0.063 dB/m, but its TE<sub>20</sub> cut-off is 8.60 GHz and TE<sub>01</sub> 9.49 GHz. At 10 GHz three modes can travel. Any bend, flange step or twist converts some power between them; they travel at different speeds and recombine with random phase, giving sharp transmission notches and phase jumps that move with temperature. The run becomes unrepeatable.</p>
+    <p><b>Naive 2: "use the guide below its band".</b> WR-90 at 7.0 GHz is still above cut-off (6.557 GHz), so it "works". But f/f<sub>c</sub> = 1.07: v<sub>g</sub> = 0.35 c, the delay is 9.53 ns/m and changes fast with frequency, and the loss is 0.324 dB/m, 2.3 times the 10 GHz value.</p>
+  </div>
+  <h3>Side by side on one example: standard guides at their band centre, aluminium</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Guide</th><th>Inside a × b</th><th>TE<sub>10</sub> f<sub>c</sub></th><th>Band</th><th>Next mode</th><th>Loss at mid-band</th><th>20 m</th></tr>
+    <tr><td>WR-284 (S)</td><td class="n">72.1 × 34.0 mm</td><td class="n">2.08 GHz</td><td class="n">2.60–3.95 GHz</td><td class="n">TE<sub>20</sub> 4.16 GHz</td><td class="n">0.023 dB/m</td><td class="n">0.46 dB</td></tr>
+    <tr><td>WR-137 (C)</td><td class="n">34.8 × 15.8 mm</td><td class="n">4.30 GHz</td><td class="n">5.85–8.20 GHz</td><td class="n">TE<sub>20</sub> 8.60 GHz</td><td class="n">0.070 dB/m</td><td class="n">1.39 dB</td></tr>
+    <tr><td>WR-90 (X)</td><td class="n">22.9 × 10.2 mm</td><td class="n">6.56 GHz</td><td class="n">8.2–12.4 GHz</td><td class="n">TE<sub>20</sub> 13.11 GHz</td><td class="n">0.136 dB/m</td><td class="n">2.73 dB</td></tr>
+    <tr><td>WR-62 (Ku)</td><td class="n">15.8 × 7.9 mm</td><td class="n">9.49 GHz</td><td class="n">12.4–18 GHz</td><td class="n">TE<sub>20</sub>/TE<sub>01</sub> 18.98 GHz</td><td class="n">0.215 dB/m</td><td class="n">4.30 dB</td></tr>
+    <tr><td>WR-28 (Ka)</td><td class="n">7.1 × 3.6 mm</td><td class="n">21.08 GHz</td><td class="n">26.5–40 GHz</td><td class="n">TE<sub>20</sub>/TE<sub>01</sub> 42.15 GHz</td><td class="n">0.720 dB/m</td><td class="n">14.4 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Loss per metre rises roughly as f<sup>1.5</sup> from band to band (each guide is scaled to its band, so the wall area per metre shrinks while R<sub>s</sub> grows). At Ka band even waveguide costs 0.7 dB/m, which is why millimetre-wave systems put the electronics right behind the antenna. Copper instead of aluminium saves 22 %, silver plating 25 %; brass walls lose 1.5 times as much as aluminium.</p></div>
+  <h3>How to choose the guide, the material and the run</h3>
+  <div class="col"><p>(1) The operating band picks the guide: the whole band must sit between 1.25 f<sub>c</sub> and the next mode's cut-off. (2) The loss budget sets the material: aluminium is light and cheap, copper or silver-plated aluminium for the lowest loss. (3) For wide instantaneous bandwidth (a chirp, an ESM band) check dispersion: the delay difference across the band × run length must be small against the compressed pulse width, or be equalised (module 09). (4) Choose components (bends, twists, flexible sections) for the same band; a flexible waveguide section loses several times more than rigid guide and is used only where needed. (5) Waveguide is bulky and needs flanges and pressurisation (Step 4), so short, flexible or wideband links stay in coax.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cWg" width="640" height="330" aria-label="Waveguide attenuation and group velocity against frequency, with mode cut-offs"></canvas>
+    <div class="ctrl">
+      <label for="wgT">Waveguide size</label>
+      <select id="wgT"><option value="wr284">WR-284 (S band)</option><option value="wr187">WR-187 (C band)</option><option value="wr137">WR-137 (C/X band)</option><option value="wr90" selected>WR-90 (X band)</option><option value="wr62">WR-62 (Ku band)</option><option value="wr42">WR-42 (K band)</option><option value="wr28">WR-28 (Ka band)</option></select>
+      <label for="wgM">Wall material</label>
+      <select id="wgM"><option value="ag">Silver plated (σ 6.17e7)</option><option value="cu">Copper (σ 5.8e7)</option><option value="al" selected>Aluminium (σ 3.5e7)</option><option value="br">Brass (σ 1.6e7)</option></select>
+      <label for="wgF"><span>Frequency as f / f<sub>c</sub></span> <b id="wgFv"></b></label><input id="wgF" type="range" min="1.03" max="2.6" step="0.001" value="1.525">
+      <label for="wgL"><span>Run length</span> <b id="wgLv"></b></label><input id="wgL" type="range" min="0.5" max="50" step="0.5" value="20">
+      <div class="readout" id="wgOut"></div>
+    </div>
+    <p class="cap">x-axis: frequency from 0.9 f<sub>c</sub> to 2.7 f<sub>c</sub> of the chosen guide. Orange: TE<sub>10</sub> loss in dB/m (left axis). Teal dashed: group velocity v<sub>g</sub>/c (right axis, 0 to 1). Shaded: the recommended band. Purple lines: cut-offs of the next modes; beyond the first one the guide is multimode. The dot is your frequency.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (WR-90, aluminium, f/f<sub>c</sub> 1.525 = 10.0 GHz, 20 m): 0.140 dB/m, 2.79 dB, v<sub>g</sub> 0.755 c, λ<sub>g</sub> 39.7 mm, as in the worked example.</li>
+    <li>Switch to copper: 0.108 dB/m (22 % lower).</li>
+    <li>Slide f/f<sub>c</sub> to 1.07 (7.02 GHz): loss 0.32 dB/m, v<sub>g</sub> 0.36 c and 9.4 ns/m, naive case 2.</li>
+    <li>Slide above 2.0: the readout reports TE<sub>20</sub> propagating; the guide is multimode, naive case 1.</li>
+    <li>Change to WR-28 at the default f/f<sub>c</sub> (32.1 GHz): 0.74 dB/m and 14.8 dB on 20 m, close to the last row of the table.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Band</td><td>Inside width a (and height b)</td><td>WR number, band 8.2–12.4 GHz</td><td>Single-mode, repeatable transmission across the radar or ESM band</td></tr>
+    <tr><td>Attenuation</td><td>Material, plating, surface finish, size</td><td>0.14 dB/m (Al) at 10 GHz</td><td>2.8 dB on a 20 m run instead of 18.9 dB in coax: radar range × 0.62 instead of × 0.09 (Step 9)</td></tr>
+    <tr><td>Dispersion</td><td>Operating f/f<sub>c</sub>, run length</td><td>Group delay vs frequency</td><td>6.8 ns delay spread over 1 GHz on 20 m: chirp distortion unless equalised</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mechanical engineers:</b> inside dimensions, flatness and the finish of the inner walls are the RF spec. Rough walls raise R<sub>s</sub> above the formula.</li>
+    <li><b>Waveguide component designers (bends, twists, couplers):</b> keep every discontinuity below the level that excites TE<sub>20</sub>, and spec your part over the whole band, not only its centre.</li>
+    <li><b>Digital receiver designers:</b> waveguide dispersion is a known, repeatable group-delay slope; it can be removed in the pulse-compression reference (<a href="M09-digital-receiver.html">module 09</a>).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What is the TE<sub>10</sub> cut-off of a guide 15.80 mm wide?</summary><p>f<sub>c</sub> = c/(2a) = 3 × 10<sup>8</sup>/(2 × 0.0158) = 9.49 GHz (WR-62).</p></details>
+    <details><summary>Why is waveguide loss highest near cut-off, even though R<sub>s</sub> is lowest there?</summary><p>Near cut-off the wave bounces almost straight across the guide and advances slowly (v<sub>g</sub> → 0), so it hits the walls many more times per metre travelled.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="ripple">
+  <div class="secno">Step 3</div>
+  <h2>Cascaded VSWR: gain ripple, group-delay ripple and false echoes from multiple mismatches</h2>
+  <div class="know"><h4>You already know</h4><p>From <a href="A0-antenna-fundamentals.html#match">antenna Step 2</a>: |Γ| = (VSWR − 1)/(VSWR + 1), and mismatch loss is small (VSWR 2:1 costs only 0.51 dB). From the <a href="M04-filters.html#delay">filters module</a>: group delay τ<sub>g</sub> = −dφ/dω, and ripple in a chain's response creates spurious echoes after pulse compression.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Re-reflection:</b> a wave reflected at the far end of a line (Γ<sub>B</sub>, say the LNA input) travels back, is reflected again at the near end (Γ<sub>A</sub>, say the antenna port), and arrives at the far end a second time, delayed by the round trip T = 2L/(v<sub>p</sub>c) and weakened by the round-trip line loss.</p>
+    <p><b>Echo ratio ρ:</b> the amplitude of that delayed copy relative to the direct wave: ρ = |Γ<sub>A</sub>| · |Γ<sub>B</sub>| · 10<sup>−2·IL/20</sup>, with IL the one-way line loss in dB. Example: VSWR 1.5 (|Γ| 0.200) and VSWR 2.0 (0.333) with 1 dB of line: ρ = 0.200 × 0.333 × 0.794 = 0.053, an echo at 20·log(0.053) = −25.5 dB.</p>
+    <p><b>Gain ripple:</b> as frequency changes, the echo slides in and out of phase with the direct wave, so the transmission goes up and down: peak to peak 20·log((1 + ρ)/(1 − ρ)) dB. Example: 0.92 dB. The ripple repeats every Δf = 1/T = v<sub>p</sub>c/(2L): 39.5 MHz for 3 m at v<sub>p</sub> 0.79.</p>
+    <p><b>Group-delay ripple:</b> the phase wobbles with the same period, so the delay does too: peak to peak about 2ρT. Example: T = 25.3 ns, so 2 × 0.053 × 25.3 = 2.7 ns.</p>
+    <p><b>Worst-case VSWR of a cascade:</b> if the reflections line up in phase, the input VSWR approaches the product of the individual VSWRs (1.5 × 2.0 = 3.0); if they oppose, the ratio (1.33). Which you get depends on the line length, so it changes with frequency and temperature.</p>
+  </div>
+  <div class="eq">S<sub>21</sub>(f) ∝ e<sup>−jβL</sup> / (1 − Γ<sub>A</sub>Γ<sub>B</sub>·A²·e<sup>−j2βL</sup>) &nbsp;&nbsp; ripple<sub>pp</sub> = 20·log((1+ρ)/(1−ρ)) dB &nbsp;&nbsp; Δf = v<sub>p</sub>c/(2L) &nbsp;&nbsp; τ<sub>pp</sub> ≈ 2ρT<small>A is the one-way voltage transmission of the line (10<sup>−IL/20</sup>). The bench below cascades every mismatch and line section exactly, so with connectors in the middle you see several echoes with different delays add up.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach specifies every part to "VSWR 2:1" because the mismatch loss is only 0.51 dB. Put a 2:1 antenna and a 2:1 LNA input at the two ends of 3 m of low-loss cable (1 dB, v<sub>p</sub> 0.79): ρ = 0.333 × 0.333 × 0.794 = 0.088. The gain ripples by <b>1.54 dB peak to peak</b> every 39.5 MHz, the group delay by 4.5 ns, and every signal arrives with a copy of itself 25.3 ns later at −21.1 dB. After pulse compression that copy is a false target 3.8 m behind every real one (c·T/2), 21 dB down: far above a typical −35 dB range-sidelobe requirement. An ESM receiver measuring amplitude across the band sees a 1.5 dB comb on top of the antenna pattern.</p></div>
+  <h3>Side by side on one example: 3 m, 1 dB of line, 9.5 GHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Ends and fixes</th><th>ρ</th><th>Ripple p-p</th><th>Delay ripple p-p</th><th>Echo</th><th>Price</th></tr>
+    <tr><td>2.0 : 1 and 2.0 : 1</td><td class="n">0.088</td><td class="n">1.54 dB</td><td class="n">4.5 ns</td><td class="n">−21.1 dB</td><td>none</td></tr>
+    <tr><td>Antenna 1.5, LNA 2.0</td><td class="n">0.053</td><td class="n">0.92 dB</td><td class="n">2.7 ns</td><td class="n">−25.5 dB</td><td>better antenna match</td></tr>
+    <tr><td>Antenna 1.5, LNA 2.0, plus 4 connector pairs at 1.15</td><td class="n">mixed</td><td class="n">1.35 dB</td><td class="n">3.3 ns</td><td class="n">several</td><td>(the real case)</td></tr>
+    <tr><td>Antenna 1.5, 3 dB pad at the LNA</td><td class="n">0.027</td><td class="n">0.46 dB</td><td class="n">1.3 ns</td><td class="n">−31.5 dB</td><td>+3 dB noise figure: unacceptable on receive</td></tr>
+    <tr><td>Antenna 1.5, isolator or balanced LNA (1.2)</td><td class="n">0.014</td><td class="n">0.25 dB</td><td class="n">0.73 ns</td><td class="n">−36.8 dB</td><td>0.3 dB isolator loss, or a balanced LNA design</td></tr>
+  </table></div>
+  <div class="col"><p>The ripple is set by the <i>product</i> of the two end reflections, so the cheapest fix is usually to make one end very good rather than both ends moderately good. An isolator (<a href="M06-limiter-duplexer.html">module 06</a>) or a balanced LNA gives VSWR 1.2 regardless of what the transistor wants. A pad works too, but in front of an LNA it costs its own value in noise figure; pads are fine on transmit drives and on test benches. Long lossy runs reduce ρ by themselves (20 m with 8 dB of loss: ρ = 0.011, ripple 0.18 dB) but the echo is then 169 ns late, so the group-delay ripple is still 3.6 ns, with a 5.9 MHz period.</p></div>
+  <h3>How to choose the match of each part and the line lengths</h3>
+  <div class="col"><p>(1) Start from the system limit: the allowed range sidelobe or amplitude flatness gives the largest ρ (−35 dB → ρ ≤ 0.018). (2) Split it between the two worst ends: |Γ<sub>A</sub>|·|Γ<sub>B</sub>| ≤ ρ / A². (3) Connectors and adapters in the middle make their own echoes with shorter delays; keep their count low and their VSWR ≤ 1.15. (4) The ripple period 1/T tells you what it does: a period much wider than the signal bandwidth looks like a slope (gain and delay tilt, correctable); a period narrower than the signal bandwidth produces distinct echoes (not correctable in general). (5) Do not trust the worst-case product VSWR to be rare: over a wide band and a temperature range, every phase alignment happens somewhere.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cRp" width="640" height="360" aria-label="Transmission ripple and group-delay ripple across frequency for a line with mismatched ends and connectors"></canvas>
+    <div class="ctrl">
+      <label for="rpA"><span>VSWR at the antenna end (Γ<sub>A</sub>)</span> <b id="rpAv"></b></label><input id="rpA" type="range" min="1" max="3" step="0.01" value="1.5">
+      <label for="rpB"><span>VSWR at the LNA end (Γ<sub>B</sub>)</span> <b id="rpBv"></b></label><input id="rpB" type="range" min="1" max="3" step="0.01" value="2">
+      <label for="rpL"><span>Line length L</span> <b id="rpLv"></b></label><input id="rpL" type="range" min="0.2" max="30" step="0.1" value="3">
+      <label for="rpI"><span>One-way line loss IL</span> <b id="rpIv"></b></label><input id="rpI" type="range" min="0" max="10" step="0.1" value="1">
+      <label for="rpN"><span>Connector pairs in the middle</span> <b id="rpNv"></b></label><input id="rpN" type="range" min="0" max="8" step="1" value="0">
+      <label for="rpC"><span>VSWR of each connector pair</span> <b id="rpCv"></b></label><input id="rpC" type="range" min="1.02" max="1.5" step="0.01" value="1.15">
+      <div class="readout" id="rpOut"></div>
+    </div>
+    <p class="cap">Top: |S<sub>21</sub>| relative to its mean, in dB, across a band centred on 9.5 GHz; the span adapts to show about ten ripple periods. Bottom: group delay relative to its mean, in ns. The line has v<sub>p</sub> 0.79. Dashed lines: the two-end prediction ±ripple/2. Connectors sit at uneven positions along the line, so with them the ripple stops being a clean sine.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (1.5, 2.0, 3 m, 1 dB, no connectors): ρ 0.053, ripple 0.92 dB, period 39.5 MHz, delay ripple 2.7 ns, echo −25.5 dB at 25.3 ns, row 2 of the table.</li>
+    <li>Set both ends to 2.0: ripple 1.54 dB and echo −21.1 dB, the naive case.</li>
+    <li>Set the LNA end to 1.2: ripple 0.25 dB and echo −36.8 dB, the isolator row.</li>
+    <li>Back to 2.0 and add 4 connector pairs at 1.15: the simulated ripple grows to about 1.35 dB and loses its regular shape.</li>
+    <li>Set L to 20 m and IL to 8 dB: ripple only 0.18 dB but delay ripple 3.6 ns with a 5.9 MHz period.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Port match of each part</td><td>Matching network, balanced design, isolator, connector launch</td><td>VSWR ≤ 1.5 or return loss ≥ 14 dB over the band</td><td>ρ = Γ<sub>A</sub>Γ<sub>B</sub>A²: 0.92 dB gain ripple and a −25.5 dB false echo with 1.5 and 2.0 ends</td></tr>
+    <tr><td>Line length between mismatches</td><td>Installation layout</td><td>(system decision)</td><td>Echo delay 2L/(v<sub>p</sub>c): 3 m → 25 ns → ghost 3.8 m behind each target; ripple period 39.5 MHz</td></tr>
+    <tr><td>Number of connectors</td><td>Harness design, adapters, bulkheads</td><td>VSWR per mated pair</td><td>Extra, irregular ripple: 0.92 → 1.35 dB with 4 pairs at 1.15</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA designers:</b> your input VSWR at the noise match is often 2:1 or worse; that number multiplies the antenna's. A balanced LNA or an input isolator is a system-level ripple fix.</li>
+    <li><b>Antenna and feed designers:</b> the antenna end is usually the hardest to match over a wide band; it sets how good the other end must be.</li>
+    <li><b>Digital receiver designers:</b> a ripple period much wider than the signal can be equalised; a short one cannot (<a href="M09-digital-receiver.html">module 09</a>).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two ends at VSWR 1.3 and 1.8, 2 dB of line between them. What is the echo level?</summary><p>|Γ| = 0.130 and 0.286; A² = 10<sup>−4/20</sup> = 0.631; ρ = 0.130 × 0.286 × 0.631 = 0.0235 → −32.6 dB, ripple 0.41 dB p-p.</p></details>
+    <details><summary>Why does the ripple period halve when the cable doubles in length?</summary><p>The echo's round-trip delay T doubles, and the ripple repeats each time the phase of the echo, 2πfT, changes by 2π: every 1/T in frequency.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="power">
+  <div class="secno">Step 4</div>
+  <h2>Peak and average power handling: breakdown, heating and pressurisation</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M03-power-amplifier.html">power amplifier</a> module: peak power (during the pulse) and average power (peak × duty cycle) are different limits; the PA's devices fail on one or the other. A transmission line has the same two limits, with different physics.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Duty cycle D:</b> pulse width × pulse repetition frequency. Average power = peak × D. Example: 250 kW peak at 0.2 % duty → 500 W average.</p>
+    <p><b>Voltage breakdown (arcing):</b> when the peak electric field in the gas inside a line exceeds the gas's breakdown strength, free electrons gain enough energy to ionise molecules and an arc forms, which reflects the power and pits the walls. Dry air at sea level breaks down at about <b>3 MV/m</b> (30 kV/cm) in a uniform field. This sets the <b>peak power</b> limit.</p>
+    <p><b>Peak power of TE<sub>10</sub>:</b> P<sub>max</sub> = E<sub>bd</sub>²·a·b/(4η<sub>0</sub>) · √(1 − (f<sub>c</sub>/f)²). WR-90 at 10 GHz: (3 × 10<sup>6</sup>)² × 0.02286 × 0.01016/(4 × 376.7) × 0.755 = <b>1.05 MW</b> (theory, matched, sea level).</p>
+    <p><b>Standing-wave derating:</b> with a mismatch the forward and reflected waves add to (1 + |Γ|) times the field at the standing-wave maxima, so the peak-power capability falls by (1 + |Γ|)². VSWR 1.5 (|Γ| 0.2): ÷ 1.44.</p>
+    <p><b>Heating:</b> the power lost in the line, P<sub>avg</sub> × (1 − 10<sup>−α/10</sup>) watts per metre, must leave through the outer surface. This sets the <b>average power</b> limit. Here: natural cooling of 10 W/m²K with a 50 °C rise allowed.</p>
+    <p><b>Pressurisation:</b> filling the line with dry air or nitrogen above atmospheric pressure. The breakdown field rises roughly in proportion to gas pressure, so peak capability rises as pressure²; it also keeps moisture out (water films lower breakdown and raise loss). At altitude the opposite happens: at 10 km the pressure is 0.26 bar, and an unpressurised line holds only (0.26/1.013)² = 6.8 % of its sea-level peak power.</p>
+  </div>
+  <div class="eq">P<sub>peak,practical</sub> = P<sub>max</sub> · (p / 1.013 bar)² / ((1 + |Γ|)² · 2) &nbsp;&nbsp; P<sub>avg,max</sub> = q<sub>max</sub> / ((1 − 10<sup>−α/10</sup>) · VSWR)<small>The factor 2 is a safety margin for surface finish, flange joints and humidity. q<sub>max</sub> is the heat a metre of line can shed (38 W/m for WR-90 with these cooling assumptions). Dividing average capability by VSWR is a simple derating for the hot spots at current maxima. The pressure law holds from about 0.05 bar to a few bar; at much lower pressure (high altitude, space) the breakdown changes character (Step 8, multipaction). All values illustrative.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (WR-90 aluminium at 10 GHz, 250 kW peak, 0.2 % duty, VSWR 1.5). Peak: 1.05 MW / 1.44 / 2 = <b>364 kW</b> at sea level: 1.6 dB of margin over 250 kW. Average: 38.1 W/m ÷ (1 − 10<sup>−0.0140</sup> = 0.0316) = 1.21 kW matched, ÷ 1.5 = <b>800 W</b>: 2.1 dB of margin over 500 W.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design reads "1.05 MW" from the formula and sees 6.2 dB of margin over a 250 kW transmitter. The VSWR derating and the safety factor take 4.6 dB of that. Then the same radar goes into an unpressurised aircraft bay at 10 km: (1.013/0.264)² costs another 11.7 dB, and the practical capability is <b>24.7 kW</b>, 10 dB below the transmitter. The guide arcs on the first pulse at altitude; the arc reflects the full power back into the transmitter (<a href="M06-limiter-duplexer.html">module 06</a>: circulator and load).</p></div>
+  <h3>Side by side on one example: practical limits at sea level, VSWR 1.5</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Line (frequency)</th><th>Peak, theory</th><th>Peak, practical</th><th>Loss</th><th>Average, practical</th></tr>
+    <tr><td>WR-284 (3.0 GHz)</td><td class="n">10.6 MW</td><td class="n">3.7 MW</td><td class="n">0.025 dB/m</td><td class="n">12.9 kW</td></tr>
+    <tr><td>WR-137 (7.0 GHz)</td><td class="n">2.59 MW</td><td class="n">0.90 MW</td><td class="n">0.070 dB/m</td><td class="n">2.3 kW</td></tr>
+    <tr><td>WR-90 (10 GHz)</td><td class="n">1.05 MW</td><td class="n">364 kW</td><td class="n">0.140 dB/m</td><td class="n">800 W</td></tr>
+    <tr><td>WR-62 (15 GHz)</td><td class="n">0.58 MW</td><td class="n">200 kW</td><td class="n">0.217 dB/m</td><td class="n">390 W</td></tr>
+    <tr><td>WR-28 (35 GHz)</td><td class="n">0.12 MW</td><td class="n">42 kW</td><td class="n">0.695 dB/m</td><td class="n">70 W</td></tr>
+    <tr><td>Air coax, 20 mm (3.0 GHz)</td><td class="n">1.18 MW</td><td class="n">410 kW</td><td class="n">0.069 dB/m</td><td class="n">1.5 kW</td></tr>
+  </table></div>
+  <div class="col"><p>Both limits fall fast with frequency: the guide gets smaller (less area for the field, less surface to shed heat) and lossier. Compared with waveguide of the same band, coax of a size that stays single-mode holds less peak power and much less average power; solid-dielectric cables are further limited by the softening temperature of the dielectric and by voids and connectors, and are usually rated in average power only. Pressurising WR-90 to 2 bar absolute raises its practical peak to 1.42 MW, a 7.5 dB margin over 250 kW.</p></div>
+  <h3>How to choose size, cooling and pressure</h3>
+  <div class="col"><p>(1) Take the transmitter's peak power, the worst VSWR (including a failed or iced antenna) and the highest operating altitude. (2) Size the line and the pressure so the practical peak exceeds the transmitter with margin: pressure buys peak power as p², at the cost of a dry-air or nitrogen supply, seals and pressure windows. (3) Check average power separately with the worst duty cycle and the hottest ambient; forced air or liquid cooling raises q<sub>max</sub> several times. (4) Keep the internal surfaces clean, dry and free of sharp edges: a burr concentrates the field and arcs far below the formula. (5) For airborne and space systems, check multipaction and low-pressure discharge separately (Step 8).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPw" width="640" height="330" aria-label="Peak and average power capability of a line against gas pressure, with the transmitter's peak and average power marked"></canvas>
+    <div class="ctrl">
+      <label for="pwT">Line (at its band centre)</label>
+      <select id="pwT"><option value="wr284">WR-284 at 3.0 GHz</option><option value="wr137">WR-137 at 7.0 GHz</option><option value="wr90" selected>WR-90 at 10 GHz</option><option value="wr62">WR-62 at 15 GHz</option><option value="wr28">WR-28 at 35 GHz</option><option value="ax20">Air coax 20 mm at 3.0 GHz</option><option value="ax39">Air coax 38.8 mm at 2.0 GHz</option></select>
+      <label for="pwP"><span>Transmitter peak power (log)</span> <b id="pwPv"></b></label><input id="pwP" type="range" min="0" max="4" step="0.001" value="2.398">
+      <label for="pwD"><span>Duty cycle</span> <b id="pwDv"></b></label><input id="pwD" type="range" min="0.01" max="20" step="0.01" value="0.2">
+      <label for="pwS"><span>Load VSWR</span> <b id="pwSv"></b></label><input id="pwS" type="range" min="1" max="3" step="0.01" value="1.5">
+      <label for="pwB"><span>Gas pressure, absolute</span> <b id="pwBv"></b></label><input id="pwB" type="range" min="0.05" max="3" step="0.001" value="1.013">
+      <div class="readout" id="pwOut"></div>
+    </div>
+    <p class="cap">x-axis: absolute pressure inside the line (0.05 to 3 bar; 1.013 bar is sea level, the readout shows the altitude at which the unpressurised line would have this pressure). y-axis: power, log scale. Orange: practical peak capability (rises as pressure²). Teal: practical average capability. Dashed horizontal lines: your transmitter's peak (orange) and average (teal) power. Where a solid curve falls below its dashed line, the line fails.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (WR-90, 250 kW, 0.2 %, VSWR 1.5, 1.013 bar): peak capability 364 kW (+1.6 dB), average 800 W (+2.1 dB), the worked example.</li>
+    <li>Pressure to 0.264 bar (10 km): peak capability 24.7 kW, margin −10.1 dB: the naive case.</li>
+    <li>Pressure to 2.0 bar: 1.42 MW, +7.5 dB.</li>
+    <li>VSWR to 1.0 at sea level: the peak capability goes back up to 1.05 MW/2 = 523 kW.</li>
+    <li>Change to WR-28: 42 kW peak and 70 W average; the 250 kW transmitter fails on both.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Peak power</td><td>Guide size, internal finish, pressurisation, VSWR of the load</td><td>e.g. 364 kW at VSWR 1.5, sea level, dry air</td><td>Maximum transmitter peak and so pulse energy and detection range; at 10 km unpressurised only 24.7 kW</td></tr>
+    <tr><td>Average power</td><td>Loss (material, size), cooling</td><td>e.g. 800 W at 10 GHz, 50 °C rise</td><td>Maximum duty cycle at a given peak: longer pulses, higher PRF, more energy on target</td></tr>
+    <tr><td>Pressurisation</td><td>Seals, windows, dry-air supply</td><td>Working pressure, leak rate</td><td>×(p/1.013)² peak capability; moisture-free line (stable loss and match)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA and transmitter designers:</b> the line's practical peak rating at the worst VSWR and altitude is your ceiling; arc detection and fast RF shutdown belong in the transmitter.</li>
+    <li><b>Mechanical engineers:</b> flange flatness, gasket choice and pressure windows decide whether the pressurisation works; a burr is a breakdown site.</li>
+    <li><b>Circulator, load and duplexer designers:</b> your parts see the same peak field and have the narrowest gaps; they often set the system's peak limit (<a href="M06-limiter-duplexer.html">module 06</a>).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A line holds 400 kW at 1 bar. Roughly what at 1.5 bar absolute?</summary><p>(1.5)² = 2.25 times: about 900 kW.</p></details>
+    <details><summary>Why can a transmitter be well inside the peak rating of a line and still overheat it?</summary><p>Peak and average limits are separate physics. A long pulse or high PRF raises the duty cycle and so the average power, which heats the walls; the peak field stays the same.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="phase">
+  <div class="secno">Step 5</div>
+  <h2>Phase stability against temperature and flexing, and why arrays, interferometers and monopulse care</h2>
+  <div class="know"><h4>You already know</h4><p>A line's insertion phase is its electrical length: φ = 360° × L·f·√ε<sub>r</sub>/c. Anything that changes L (thermal expansion, stretching) or ε<sub>r</sub> (temperature, density, bending) changes φ. From <a href="R2-antenna-beam.html">R2</a>: the beam of an array is made by the relative phases of its elements.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Electrical length:</b> the line's insertion phase in degrees. 3 m of solid PTFE cable (ε<sub>r</sub> 2.05) at 10 GHz: 360 × 3 × 10<sup>10</sup> × 1.432/(3 × 10<sup>8</sup>) = <b>51 580°</b>, about 143 wavelengths. A tiny fractional change of a large number is a large phase change.</p>
+    <p><b>Phase change in ppm:</b> the fractional change of electrical length, in parts per million. 100 ppm of 51 580° is 5.2°. Datasheets plot it against temperature relative to 25 °C.</p>
+    <p><b>The PTFE knee:</b> solid PTFE goes through a crystal transition near 19 °C. Its density, and so its ε<sub>r</sub>, changes by about 1 % over a few degrees, so the phase of a solid-PTFE cable jumps by several hundred ppm between about 15 and 25 °C. Phase-stable cables use low-density (expanded) PTFE, which has a much smaller knee, or silica (SiO<sub>2</sub>) dielectric, which has none.</p>
+    <p><b>Phase tracking:</b> in a multi-channel system the absolute phase change matters less than the difference between channels. Two identical cables at the same temperature track: they change together. "Tracking mismatch" here means the fraction of the phase change that is not common to both channels (different lengths, routes in sun and shade, different batches).</p>
+    <p><b>Phase change on flexing:</b> bending a cable squeezes its dielectric and moves its conductors; the phase does not quite come back when straightened. Specified as degrees at a stated frequency for a stated bend (for example ± 0.5° at 10 GHz for one 90° bend around a mandrel for a phase-stable cable, ± 3° for an ordinary one). It is random from flex to flex, so it does not track.</p>
+    <p><b>Interferometer direction finding:</b> two antennas a distance d apart receive a wave from angle θ with a phase difference Δψ = 360°·(d/λ)·sin θ. A channel phase error δφ therefore reads as an angle error δθ = δφ/(360°·(d/λ)·cos θ) radians. With d = λ/2 at boresight, 5° of phase error is 1.6° of angle error.</p>
+  </div>
+  <div class="eq">δφ<sub>T</sub> = φ<sub>elec</sub> · ppm(T) · 10<sup>−6</sup> &nbsp;&nbsp; δφ<sub>channel</sub> = √( (m · δφ<sub>T</sub>)² + δφ<sub>flex</sub>² ) &nbsp;&nbsp; δθ = δφ<sub>channel</sub> / (360° · d/λ) rad<small>m is the tracking mismatch (0 = perfect tracking, 1 = one cable changes and the other does not). The angle error is shown at boresight (cos θ = 1); off boresight it grows as 1/cos θ.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (two 3 m solid-PTFE cables at 10 GHz feeding a two-antenna interferometer, d/λ = 0.5, calibrated at 25 °C, now at 0 °C): the PTFE knee and the thermal slope together give +1 062 ppm, so each cable's phase moves by 51 580 × 0.001062 = <b>54.8°</b>. If the two cables track to within 10 %, the channel error is 5.5°, and the DF error is 5.5/(360 × 0.5) rad = <b>1.74°</b>. With phase-stable PTFE the same case moves 17.8° per cable, 1.78° between channels, 0.57° of DF error; with silica dielectric, 3.3°, 0.33° and 0.10°.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach calibrates the channels once, on the bench at room temperature, with ordinary solid-PTFE cables, and assumes "the cables are the same, so they track". Room temperature is about 22 °C, right on the PTFE knee: a few degrees either way moves each 3 m cable by tens of degrees. On a mast one cable runs in the sun and one in shade; the tracking mismatch is easily 30 %, so at 0 °C the channel error is 16°, and a λ/2 interferometer reads <b>5.2°</b> off. For an ESM system that hands a bearing to a jammer or to another sensor, that is a miss.</p></div>
+  <h3>Side by side on one example: 3 m at 10 GHz, 25 → 0 °C, 10 % tracking mismatch, d/λ 0.5</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Dielectric</th><th>Electrical length</th><th>ppm at 0 °C</th><th>Phase change per cable</th><th>Channel error</th><th>DF error</th></tr>
+    <tr><td>Solid PTFE</td><td class="n">51 580°</td><td class="n">+1 062</td><td class="n">54.8°</td><td class="n">5.5°</td><td class="n">1.74°</td></tr>
+    <tr><td>Foam PE</td><td class="n">41 075°</td><td class="n">+500</td><td class="n">20.5°</td><td class="n">2.1°</td><td class="n">0.65°</td></tr>
+    <tr><td>Phase-stable (low-density) PTFE</td><td class="n">45 570°</td><td class="n">+390</td><td class="n">17.8°</td><td class="n">1.8°</td><td class="n">0.57°</td></tr>
+    <tr><td>Silica (SiO<sub>2</sub>) semi-rigid</td><td class="n">43 380°</td><td class="n">−75</td><td class="n">−3.3°</td><td class="n">0.33°</td><td class="n">0.10°</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The same phase errors hit the other phase-measuring systems. <b>Arrays:</b> random element phase errors of rms σ (radians) leave an average sidelobe floor of about σ²/N relative to the beam peak; for N = 100 elements, σ = 5° gives −41 dB and σ = 10° gives −35 dB, enough to spoil a low-sidelobe design (<a href="M10-tr-module.html">module 10</a> calibrates exactly this). <b>Monopulse:</b> the angle is read from the ratio of the difference (Δ) to the sum (Σ) channel; a phase error δ between them scales the measured angle by cos δ and leaks signal into the quadrature channel: 20° of Σ–Δ phase error makes every angle read 6 % small. <b>Long baselines</b> are more forgiving per degree (d/λ = 16.7 turns 5° into 0.05°) but need ambiguity resolution, which itself depends on short-baseline phase.</p>
+  </div>
+  <h3>How to choose the cable and the routing</h3>
+  <div class="col"><p>(1) From the angle accuracy you need, work back to the allowed channel phase error: δφ ≤ δθ · 360° · d/λ. (2) Divide it between temperature, flexing and connector repeatability (Step 7) as a root-sum-square. (3) Temperature: choose phase-stable or silica dielectric if the system crosses 15–25 °C, keep runs short (the error is proportional to electrical length) and route channel cables together so they see the same temperature. (4) Flexing: put the flexing part (gimbal, cable wrap) in phase-stable cable and keep it as short as possible. (5) Calibrate in operation (injected calibration tone), and note that calibration only removes what is common and slow; flex errors are random.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPh" width="640" height="330" aria-label="Phase change of four cable dielectrics against temperature, with the selected cable and temperature marked"></canvas>
+    <div class="ctrl">
+      <label for="phK">Cable dielectric</label>
+      <select id="phK"><option value="ptfe" selected>Solid PTFE</option><option value="foam">Foam PE</option><option value="ldp">Phase-stable PTFE</option><option value="sio2">Silica (SiO₂) semi-rigid</option></select>
+      <label for="phL"><span>Cable length</span> <b id="phLv"></b></label><input id="phL" type="range" min="0.5" max="20" step="0.1" value="3">
+      <label for="phF"><span>Frequency</span> <b id="phFv"></b></label><input id="phF" type="range" min="1" max="40" step="0.1" value="10">
+      <label for="phT"><span>Temperature (calibrated at 25 °C)</span> <b id="phTv"></b></label><input id="phT" type="range" min="-55" max="85" step="1" value="0">
+      <label for="phM"><span>Tracking mismatch m</span> <b id="phMv"></b></label><input id="phM" type="range" min="0" max="100" step="1" value="10">
+      <label for="phX">Flexing</label>
+      <select id="phX"><option value="0" selected>Fixed run (no flexing)</option><option value="1">One 90° bend after calibration</option><option value="2.5">Gimbal cable wrap (repeated flexing)</option></select>
+      <label for="phB"><span>Interferometer baseline d/λ</span> <b id="phBv"></b></label><input id="phB" type="range" min="0.5" max="20" step="0.1" value="0.5">
+      <div class="readout" id="phOut"></div>
+    </div>
+    <p class="cap">x-axis: cable temperature, −55 to +85 °C. y-axis: phase change of one cable in degrees at your length and frequency, relative to 25 °C. Faint lines: the other three dielectrics; bold: yours, with the dot at your temperature. The shaded strip is the PTFE knee region (15–25 °C). The readout carries the change through tracking and flexing to the channel phase error and the interferometer angle error.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (solid PTFE, 3 m, 10 GHz, 0 °C, 10 %, fixed, d/λ 0.5): electrical length 51 580°, change 54.8°, channel error 5.5°, DF error 1.74°, row 1 of the table.</li>
+    <li>Set the mismatch to 30 %: DF error 5.2°, the naive case.</li>
+    <li>Switch to silica: change −3.3°, DF error 0.10°.</li>
+    <li>Sweep the temperature from 15 to 25 °C with solid PTFE: about 40° of the change happens across those ten degrees (the knee).</li>
+    <li>With phase-stable PTFE, select the gimbal cable wrap: 1.25° of random flex error adds to the tracking error; at 40 GHz it is 5°.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Phase vs temperature</td><td>Dielectric (solid PTFE, low-density PTFE, silica), construction</td><td>ppm vs temperature curve, e.g. +1 062 ppm at 0 °C</td><td>54.8° per 3 m at 10 GHz; with 10 % mismatch, 1.74° DF error at d/λ 0.5</td></tr>
+    <tr><td>Phase on flexing</td><td>Dielectric, armour, bend radius</td><td>± degrees per bend at a stated frequency</td><td>Random channel error that calibration cannot remove: gimbal-mounted DF and monopulse</td></tr>
+    <tr><td>Electrical length</td><td>Run length, ε<sub>r</sub></td><td>Delay or phase-matched sets</td><td>Every ppm error scales with it: shorter runs, closer electronics</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Cable assembly suppliers:</b> phase-matched sets are matched at one temperature; the customer also needs the tracking over temperature and the flex spec at the highest frequency.</li>
+    <li><b>Receiver and DF designers:</b> your channel-to-channel phase budget includes the cables; ask for their ppm curve across the knee (<a href="M11-esm-receivers.html">module 11</a>).</li>
+    <li><b>Mechanical designers:</b> routing two channel cables together, in the same thermal environment, is worth more than a better cable in the wrong place.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 1 m cable at 18 GHz has ε<sub>r</sub> 1.6. What is 100 ppm in degrees?</summary><p>φ = 360 × 1 × 18 × 10<sup>9</sup> × 1.265/(3 × 10<sup>8</sup>) = 27 320°; 100 ppm is 2.7°.</p></details>
+    <details><summary>Why does a long-baseline interferometer tolerate more cable phase error per degree of angle?</summary><p>The phase difference per degree of arrival angle grows with d/λ, so a fixed phase error is a smaller angle; δθ = δφ/(360° · d/λ).</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="rj">
+  <div class="secno">Step 6</div>
+  <h2>The rotary joint: wow, loss that changes with angle, and multi-channel joints</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 2: a waveguide carries a mode only above its cut-off, and two modes travelling together recombine with a phase that depends on how they were excited. From Step 5: monopulse reads angle from the ratio of a difference channel Δ to a sum channel Σ, so the two channels must stay matched in gain and phase.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Rotary joint:</b> a two-port (or multi-port) that lets one half rotate continuously relative to the other while passing RF. It needs a mode whose field pattern looks the same from every rotation angle: TEM in coax, or TM<sub>01</sub> in circular waveguide. Rectangular TE<sub>10</sub> is converted to that mode on each side ("door-knob" or E-plane transitions), passes through the rotating gap, and is converted back.</p>
+    <p><b>Contacting and non-contacting joints:</b> the rotating gap either has sliding contacts or, more often at microwave, a <b>choke</b>: a quarter-wave groove that presents an RF short across the gap without touching, so there is no wear and no contact noise.</p>
+    <p><b>Spurious path level s:</b> the unwanted part of the signal that does not have rotational symmetry, in dB below the wanted signal. In a TM<sub>01</sub> joint it is the residual TE<sub>11</sub> mode that the transitions also excite and that the mode filter does not fully remove; in a coax joint it is mainly the eccentricity of the rotating contact or choke. Its amplitude ratio is r = 10<sup>−s/20</sup>: 30 dB gives r = 0.032.</p>
+    <p><b>Wow:</b> the variation of insertion loss (amplitude wow) and of insertion phase (phase wow) as the joint rotates through 360°. The spurious path adds to the wanted one with a phase that turns with the rotation angle, so the transmission is 1 + r·e<sup>j(nθ + φ)</sup>: amplitude wow p-p = 20·log((1 + r)/(1 − r)) and phase wow p-p = 2·asin(r). n is 1 for the TE<sub>11</sub> residual (once per revolution) and 2 for an eccentric contact (twice per revolution).</p>
+    <p><b>Multi-channel joint:</b> several independent RF paths through one joint: for example a coax channel on the axis inside a waveguide channel around it (two channels), or Σ, ΔAz and ΔEl of a monopulse antenna plus IFF. Each channel has its own wow, and channels leak into each other: <b>channel isolation</b>, typically 40–60 dB.</p>
+  </div>
+  <div class="eq">H(θ) = 1 + r · e<sup>j(nθ + φ)</sup> &nbsp;&nbsp; wow<sub>IL,pp</sub> = 20·log((1+r)/(1−r)) &nbsp;&nbsp; wow<sub>φ,pp</sub> = 2·asin(r) &nbsp;&nbsp; r = 10<sup>−s/20</sup><small>Worked numbers: s = 20 dB → r = 0.100 → 1.74 dB and 11.5° p-p. s = 30 dB → 0.55 dB and 3.6°. s = 40 dB → 0.17 dB and 1.15°. In a radar the Σ channel's wow is crossed twice (transmit and receive), so the echo is modulated by twice the dB.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (single-channel waveguide joint at X band, mean IL 0.15 dB, TE<sub>11</sub> suppressed by 30 dB): amplitude wow 0.55 dB p-p, phase wow 3.6° p-p. The radar's echo varies by 2 × 0.55 = 1.1 dB with antenna bearing, so the detection range at the worst bearings is 10<sup>−1.1/40</sup> = 0.939 of that at the best: a 6 % range ripple around the horizon that has nothing to do with the targets.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach specifies only the mean insertion loss ("IL ≤ 0.3 dB") and the VSWR. A joint with a weak mode filter (s = 20 dB) meets both, yet its loss swings by 1.74 dB p-p as it turns: 3.5 dB of two-way echo modulation, a range ripple of 18 % with bearing. In a tracking radar with a monopulse joint, the Σ and Δ channels have different spurious paths, so their gain ratio and differential phase change with angle. With s = 20 dB in each channel, the Σ–ΔAz differential phase swings by 18.7° p-p and the ΔAz/Σ gain ratio by about ±1.4 dB, so a target 1° off boresight reads anywhere between about 0.84° and 1.16° depending on the antenna's bearing. The gain ratio does most of the damage (the phase alone would only scale the angle by cos 9.5° = 0.986). The track wobbles once per revolution.</p></div>
+  <h3>Side by side on one example: X-band joints, spurious level 30 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Joint type</th><th>Mean IL</th><th>Wow (Σ)</th><th>Pattern</th><th>Isolation</th><th>Typical use</th></tr>
+    <tr><td>Single-channel coax (TEM)</td><td class="n">0.20 dB</td><td class="n">0.55 dB, 3.6°</td><td>twice per rev</td><td>n/a</td><td>Lower frequency, wideband, low power</td></tr>
+    <tr><td>Single-channel waveguide (TM<sub>01</sub>)</td><td class="n">0.15 dB</td><td class="n">0.55 dB, 3.6°</td><td>once per rev</td><td>n/a</td><td>Surveillance radar, high power</td></tr>
+    <tr><td>Two-channel (coax on axis, waveguide around)</td><td class="n">0.25 / 0.30 dB</td><td class="n">0.55 dB, 3.6°</td><td>once / twice per rev</td><td class="n">50 dB</td><td>Radar plus IFF or a second band</td></tr>
+    <tr><td>Monopulse three-channel (Σ, ΔAz, ΔEl)</td><td class="n">0.40 dB each</td><td class="n">0.55 dB, 3.6°</td><td>different per channel</td><td class="n">45 dB</td><td>Tracking radar, missile seeker test sets</td></tr>
+  </table></div>
+  <div class="col"><p>With the same spurious level each type has the same Σ wow; what differs is the number of channels whose wow must match each other. In the monopulse joint, the differential Σ–Δ gain and phase, not the absolute values, set the angle error (measured angle = true angle × gain ratio × cos δ), and channel leakage shifts the boresight: a Σ signal leaking into Δ at −45 dB (amplitude 0.0056) moves the null by about 0.0056 × θ<sub>3</sub>/k<sub>m</sub>, with k<sub>m</sub> ≈ 1.6 the normalised monopulse slope; for a 2° beam that is 0.007°.</p></div>
+  <h3>How to choose the joint and its specification</h3>
+  <div class="col"><p>(1) Specify wow, not only mean loss: amplitude wow p-p and phase wow p-p over 360°, at every frequency in the band. (2) Work back from the system: allowed two-way echo modulation (say 0.5 dB) → Σ wow ≤ 0.25 dB → r ≤ 0.0144 → s ≥ 37 dB. (3) For monopulse, specify differential gain and phase between channels against angle, and channel isolation. (4) Choose contacting joints only where non-contacting chokes will not fit; contacts wear and add noise. (5) Peak and average power and pressurisation apply to the joint like any other waveguide part (Step 4); its gaps are often the narrowest in the run. (6) Data and DC go through slip rings or optical joints; keep them away from the RF channels.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cRj" width="640" height="360" aria-label="Insertion-loss and phase variation of a rotary joint's channels against rotation angle"></canvas>
+    <div class="ctrl">
+      <label for="rjT">Joint type</label>
+      <select id="rjT"><option value="coax">Single-channel coax (TEM)</option><option value="wg" selected>Single-channel waveguide (TM01)</option><option value="two">Two-channel (coax + waveguide)</option><option value="mono">Monopulse three-channel (Σ, ΔAz, ΔEl)</option></select>
+      <label for="rjS"><span>Spurious path level s</span> <b id="rjSv"></b></label><input id="rjS" type="range" min="15" max="45" step="0.5" value="30">
+      <label for="rjA"><span>Rotation angle θ</span> <b id="rjAv"></b></label><input id="rjA" type="range" min="0" max="360" step="1" value="60">
+      <div class="readout" id="rjOut"></div>
+    </div>
+    <p class="cap">x-axis: rotation angle, 0 to 360°. Top: insertion-loss deviation of each channel from its mean (dB; down is more loss). Bottom: insertion-phase deviation (degrees); for the monopulse joint the bold purple line is the Σ–ΔAz differential phase. The vertical line is your angle; the readout gives the values there and the peak-to-peak wow. Monopulse angle error is for a target 1° off boresight in a 2° beam.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (waveguide, s = 30 dB): wow 0.55 dB and 3.6° p-p, once per revolution; two-way echo modulation 1.1 dB, range at the worst bearing × 0.939, the worked example.</li>
+    <li>Set s to 20 dB: 1.74 dB and 11.5° p-p, the naive case; range × 0.818 at the worst bearing.</li>
+    <li>Set s to 40 dB: 0.17 dB and 1.15° p-p.</li>
+    <li>Choose the coax joint: the same wow, but twice per revolution.</li>
+    <li>Choose the monopulse joint at s = 20 dB and move the angle: Σ–ΔAz phase 18.7° p-p, gain ratio between about −1.4 and +1.3 dB, and the angle error for a 1° target between −0.15° and +0.16°, the naive case.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Amplitude wow</td><td>Mode filter, transition symmetry, choke concentricity</td><td>e.g. ≤ 0.55 dB p-p over 360°</td><td>Two-way echo modulation 1.1 dB: −6 % range at the worst bearings</td></tr>
+    <tr><td>Phase wow</td><td>Same as above</td><td>e.g. ≤ 3.6° p-p</td><td>Doppler and MTI: a phase that changes with bearing during a dwell; monopulse angle wobble</td></tr>
+    <tr><td>Channel match and isolation</td><td>Multi-channel layout, coupling between coaxial channels</td><td>Differential gain and phase vs angle; isolation 45 dB</td><td>Monopulse angle scale error from differential gain and phase (±16 % at s = 20 dB) and boresight shift (0.007° at −45 dB, 2° beam)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Rotary joint designers:</b> the mode filter and the symmetry of the transitions are the wow spec; quote it at the band edges, where the TE<sub>11</sub> filter is weakest.</li>
+    <li><b>Monopulse comparator and receiver designers:</b> your channel-matching budget includes the joint; ask for differential wow, not each channel's wow on its own.</li>
+    <li><b>Signal processing:</b> a once-per-revolution amplitude ripple shows up as bearing-dependent detection probability; it can be mapped but not removed from noise-limited detections.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A joint is specified for 0.3 dB p-p amplitude wow. What spurious level does that require?</summary><p>(1 + r)/(1 − r) = 10<sup>0.3/20</sup> = 1.035 → r = 0.0173 → s = 35.2 dB.</p></details>
+    <details><summary>Why is a joint's wow counted twice in a radar but its mean loss only "once per trip"?</summary><p>Both are crossed twice: the mean loss costs dB on transmit and on receive, and the wow modulates both trips at the same bearing, so the echo sees twice the dB of wow.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="conn">
+  <div class="secno">Step 7</div>
+  <h2>Connector families: frequency limits, repeatability and torque</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1: a coax supports only TEM below its TE<sub>11</sub> cut-off, f<sub>c</sub> ≈ 2c/(π(D + d)√ε<sub>r</sub>) with D and d the outer and inner diameters. A connector is a short piece of coax with a joint in the middle, so the same limit applies, set by its own diameters.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Connector family:</b> a standardised interface (Type N, TNC, SMA, 3.5 mm, 2.92 mm, 2.4 mm, 1.85 mm, 7-16 DIN, 4.3-10 and others). The "mm" families are named after the inside diameter of the outer conductor. Smaller connectors reach higher frequencies but handle less power and are more delicate.</p>
+    <p><b>Rated frequency:</b> the highest frequency at which the family is specified, set below its TE<sub>11</sub> cut-off. 3.5 mm (air, D 3.5 mm, d 1.52 mm): f<sub>c</sub> = 2 × 3 × 10<sup>8</sup>/(π × 5.02 mm) = 38 GHz, rated to 26.5 GHz. SMA (PTFE-filled): f<sub>c</sub> ≈ 24.4 GHz, rated to 18 GHz.</p>
+    <p><b>Mated-pair VSWR:</b> the reflection of one plug–jack pair, mostly from the small changes of diameter at the interface and the support bead. Rises with frequency.</p>
+    <p><b>Repeatability:</b> how much the insertion loss and phase change when the same pair is disconnected and reconnected. Example: SMA about 0.05 dB and 1.5° at 18 GHz; 3.5 mm about 0.01 dB and 0.3° at 26.5 GHz.</p>
+    <p><b>Coupling torque:</b> the specified tightening torque of the coupling nut, applied with a calibrated torque spanner: SMA 0.56 N·m (5 in-lb) brass, 0.9 N·m stainless; 3.5/2.92/2.4/1.85 mm 0.9 N·m (8 in-lb); N 1.36 N·m (12 in-lb); 7-16 DIN 25–30 N·m. Under-torque leaves a gap at the reference plane (higher VSWR, poor repeatability, PIM in Step 8); over-torque deforms the interface and damages every later mate.</p>
+    <p><b>Intermateability:</b> SMA, 3.5 mm and 2.92 mm mate with each other mechanically (with some loss of performance); 2.4 mm and 1.85 mm mate with each other but deliberately not with SMA. A 75 Ω N and a 50 Ω N look alike but have different pin sizes and damage each other.</p>
+  </div>
+  <div class="eq">f<sub>c,TE11</sub> ≈ 2c / (π (D + d) √ε<sub>r</sub>) &nbsp;&nbsp; worst case |Γ<sub>N</sub>| ≈ N·|Γ<sub>1</sub>| &nbsp;&nbsp; typical |Γ<sub>N</sub>| ≈ √N·|Γ<sub>1</sub>| &nbsp;&nbsp; repeatability<sub>N</sub> ≈ √N · repeatability<sub>1</sub><small>The worst case assumes every reflection lines up in phase (it happens at some frequency); the typical value is the root-sum-square of reflections with random phases. Insertion loss per pair is modelled as k·√(f/1 GHz) dB.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (a receiver harness with 6 SMA mated pairs at 18 GHz, torqued correctly): each pair VSWR 1.19 (|Γ| 0.085, return loss 21.4 dB). Typical total |Γ| = 0.085 × √6 = 0.21, VSWR 1.53; worst case 0.51, VSWR 3.1. Loss 6 × 0.03 × √18 = 0.76 dB. Reconnecting all six moves the phase by about 1.5° × √6 = 3.7° and the loss by 0.12 dB.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p><b>Naive 1: "SMA is the standard, use it everywhere."</b> A K-band ESM receiver covering 18–26.5 GHz built with SMA: above about 24 GHz the SMA's PTFE section can carry TE<sub>11</sub>, and the harness shows sharp, temperature-sensitive notches (in the model the pair's VSWR jumps above 4 at 26 GHz). <b>Naive 2: finger-tight.</b> The same 6 SMA pairs at 18 GHz finger-tight: each pair's reflection about 2.5 times larger and repeatability about 4 times worse, so the phase moves 15° between installations. A calibrated DF array or a phase-matched set is no longer matched.</p></div>
+  <h3>Side by side on one example: the families at their rated frequency</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Family</th><th>Rated</th><th>TE<sub>11</sub> cut-off</th><th>VSWR per pair at rated f</th><th>Repeatability</th><th>Torque</th><th>Where it is used</th></tr>
+    <tr><td>Type N</td><td class="n">18 GHz</td><td class="n">19.0 GHz</td><td class="n">1.15</td><td class="n">0.05 dB, 1.5°</td><td>1.36 N·m</td><td>Rugged, medium power, outdoor</td></tr>
+    <tr><td>TNC</td><td class="n">11 GHz</td><td class="n">20.6 GHz</td><td class="n">1.17</td><td class="n">0.05 dB, 1.5°</td><td>0.56–0.68 N·m</td><td>Vibration (threaded BNC), avionics</td></tr>
+    <tr><td>SMA</td><td class="n">18 GHz</td><td class="n">24.4 GHz</td><td class="n">1.19</td><td class="n">0.05 dB, 1.5°</td><td>0.56 N·m</td><td>Modules, harnesses, cheap and compact</td></tr>
+    <tr><td>3.5 mm</td><td class="n">26.5 GHz</td><td class="n">38.0 GHz</td><td class="n">1.09</td><td class="n">0.01 dB, 0.3°</td><td>0.9 N·m</td><td>Test ports, precision</td></tr>
+    <tr><td>2.92 mm (K)</td><td class="n">40 GHz</td><td class="n">45.5 GHz</td><td class="n">1.11</td><td class="n">0.01 dB, 0.4°</td><td>0.9 N·m</td><td>Ka-band hardware</td></tr>
+    <tr><td>2.4 mm</td><td class="n">50 GHz</td><td class="n">55.4 GHz</td><td class="n">1.11</td><td class="n">0.01 dB, 0.4°</td><td>0.9 N·m</td><td>Millimetre-wave test</td></tr>
+    <tr><td>1.85 mm (V)</td><td class="n">67 GHz</td><td class="n">71.9 GHz</td><td class="n">1.12</td><td class="n">0.015 dB, 0.5°</td><td>0.9 N·m</td><td>V-band</td></tr>
+    <tr><td>7-16 DIN</td><td class="n">7.5 GHz</td><td class="n">8.3 GHz</td><td class="n">1.09</td><td class="n">0.03 dB, 0.8°</td><td>25–30 N·m</td><td>High power, low PIM (Step 8)</td></tr>
+  </table></div>
+  <div class="col"><p>Values are illustrative of good-quality parts. Precision air-dielectric families (3.5, 2.92, 2.4, 1.85 mm) are much more repeatable than SMA because their interface is a precise air line with a defined reference plane; SMA's PTFE interface deforms slightly at each mating. For panels and modules where many connections must mate at once, blind-mate families (SMP, SMPM) accept some misalignment at the cost of repeatability.</p></div>
+  <h3>How to choose the family, the count and the procedure</h3>
+  <div class="col"><p>(1) The highest frequency picks the family: rated frequency above the top of the band, with the TE<sub>11</sub> cut-off well clear. (2) Power and PIM may override it (7-16 DIN or 4.3-10 for high-power, low-PIM paths). (3) Count the mated pairs in each path and budget their loss, reflection (√N typical, N worst) and repeatability; remove adapters and bulkheads where you can. (4) Phase-critical paths get precision families and are never disconnected after calibration, or are recalibrated each time. (5) Write the torque and the gauging (pin depth) checks into the assembly and maintenance procedures; a torque spanner costs less than one failed calibration.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCn" width="640" height="330" aria-label="Connector mated-pair VSWR against frequency for the selected family, with rated frequency and TE11 cut-off"></canvas>
+    <div class="ctrl">
+      <label for="cnK">Connector family</label>
+      <select id="cnK"><option value="n">Type N</option><option value="tnc">TNC</option><option value="sma" selected>SMA</option><option value="m35">3.5 mm</option><option value="m292">2.92 mm (K)</option><option value="m24">2.4 mm</option><option value="m185">1.85 mm (V)</option><option value="d716">7-16 DIN</option></select>
+      <label for="cnF"><span>Frequency (log)</span> <b id="cnFv"></b></label><input id="cnF" type="range" min="-0.3" max="1.9" step="0.001" value="1.255">
+      <label for="cnN"><span>Mated pairs in the path N</span> <b id="cnNv"></b></label><input id="cnN" type="range" min="1" max="12" step="1" value="6">
+      <label for="cnT">Coupling torque</label>
+      <select id="cnT"><option value="loose">Finger-tight (under-torqued)</option><option value="ok" selected>Specified torque</option><option value="over">Repeatedly over-torqued (damaged)</option></select>
+      <div class="readout" id="cnOut"></div>
+    </div>
+    <p class="cap">Log axes: frequency 0.5 to 80 GHz; VSWR of one mated pair (orange) and the typical total of N pairs (teal, √N rule). Shaded: above the rated frequency (amber) and above the TE<sub>11</sub> cut-off (red), where the connector is moded. The dot is your frequency.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (SMA, 18 GHz, 6 pairs, specified torque): per pair VSWR 1.19; typical total 1.53, worst case 3.1; loss 0.76 dB; re-mating moves the phase 3.7°, the worked example.</li>
+    <li>Set torque to finger-tight: per-pair reflection 2.5 times higher, repeatability 4 times worse: about 15° of phase on re-mating, naive case 2.</li>
+    <li>Move the frequency to 26 GHz with SMA: above the TE<sub>11</sub> cut-off, VSWR above 4, naive case 1. Switch to 3.5 mm at 26 GHz: about 1.09.</li>
+    <li>Choose 7-16 DIN and go above 8.3 GHz: moded; it is a low-frequency, high-power family.</li>
+    <li>Set N to 1 and then 12: the typical total VSWR grows as √N.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Frequency limit</td><td>Family (interface diameters, dielectric)</td><td>Rated frequency, e.g. SMA 18 GHz</td><td>Above it: notches and phase jumps across the band (ESM amplitude and DF errors)</td></tr>
+    <tr><td>Mated-pair VSWR × count</td><td>Number of interfaces, adapters</td><td>VSWR per pair, e.g. 1.19 at 18 GHz</td><td>6 pairs: typical VSWR 1.53, adds to the ripple of Step 3</td></tr>
+    <tr><td>Repeatability and torque</td><td>Precision family, torque procedure</td><td>0.05 dB, 1.5° per mate (SMA, 18 GHz)</td><td>3.7° on re-mating 6 pairs, 15° finger-tight: calibration lost in phase-critical channels</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Module designers:</b> the connector launch onto your board is part of the connector's VSWR; a poor launch can double it.</li>
+    <li><b>Test engineers:</b> your test-port connector's repeatability is part of every measurement; precision families and torque spanners are cheaper than re-tests.</li>
+    <li><b>Integration and maintenance:</b> every disconnection of a phase-matched path needs a recalibration or a phase check.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What is the TE<sub>11</sub> cut-off of an air connector with D = 2.4 mm and d = 1.042 mm?</summary><p>2 × 3 × 10<sup>8</sup>/(π × 3.442 mm) = 55.5 GHz; the family is rated to 50 GHz.</p></details>
+    <details><summary>Why can a 2.4 mm plug not be mated with an SMA jack?</summary><p>By design: the outer-conductor diameters and threads differ, so the precision mm-wave interface cannot be damaged by the coarser SMA.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="pim">
+  <div class="secno">Step 8</div>
+  <h2>Passive intermodulation (PIM) and multipaction: nonlinearity and discharge in "linear" parts</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M01-lna-noise.html">LNA</a> and <a href="M05-mixers-conversion.html">mixer</a> modules: two tones f<sub>1</sub>, f<sub>2</sub> through a nonlinearity make third-order products at 2f<sub>1</sub> − f<sub>2</sub> and 2f<sub>2</sub> − f<sub>1</sub>, rising 3 dB for each 1 dB of input. Passive parts are supposed to be linear; this step is about when they are not.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Passive intermodulation (PIM):</b> intermodulation produced by passive parts: connectors, cables, joints, antennas. Sources are metal-to-metal contacts with thin oxide layers (tunnelling junctions), ferromagnetic materials (nickel plating, steel, some stainless steels), loose or under-torqued joints, corrosion and metal particles. It is extremely weak, but it is generated after all the filters, at full transmit power, in a path shared with the receiver.</p>
+    <p><b>PIM specification:</b> the third-order product level with two carriers of +43 dBm (20 W) each, in dBc below one carrier. −150 dBc means the product is at 43 − 150 = <b>−107 dBm</b>.</p>
+    <p><b>Order and slope:</b> products of order 2k+1 fall at f<sub>1</sub> − k(f<sub>2</sub> − f<sub>1</sub>) and f<sub>2</sub> + k(f<sub>2</sub> − f<sub>1</sub>). The third order rises 3 dB per dB of carrier power in theory; measured PIM often rises 2 to 3 dB/dB. Higher orders are weaker, here about 10 dB per step of order.</p>
+    <p><b>Receiver noise floor in a bandwidth B:</b> −174 dBm/Hz + NF + 10·log B. With NF 3 dB and B = 1 MHz: <b>−111 dBm</b>.</p>
+    <p><b>Multipaction:</b> a resonant electron avalanche in <b>vacuum</b> (space, or very high altitude). A free electron in an RF gap is accelerated across it; if it arrives at the far wall after an odd number of half RF periods, with enough energy that each impact releases more than one secondary electron, the number of electrons doubles every crossing. The discharge detunes filters, raises noise and loss, and can damage surfaces. Inside a gas at low pressure the related failure is <b>corona or ionisation breakdown</b>, worst at pressures of the order of 100 Pa (roughly 40–50 km altitude for centimetre gaps, a range crossed during launch).</p>
+  </div>
+  <div class="eq">P<sub>IM(2k+1)</sub> = 43 + PIM<sub>spec</sub> + slope · (P<sub>carrier</sub> − 43) − 10·(k − 1) dBm &nbsp;&nbsp; f<sub>IM</sub> = f<sub>1</sub> − k·Δ, f<sub>2</sub> + k·Δ<small>Δ = f<sub>2</sub> − f<sub>1</sub>. Multipaction: the first-order resonance needs a crossing in half a period, so the electron's impact velocity is about 2·f·d and its energy grows as (f·d)². At f·d = 10 GHz·mm it is of the order of 1 keV; at f·d = 1 GHz·mm only about 10 eV, below the 20–50 eV needed for a metal surface to emit more than one secondary electron, so very small f·d gaps cannot multipact in first order. (Illustrative; space practice uses measured secondary-emission data and margins of about 6 dB.)</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (a shared antenna feed carrying two transmit carriers at 1 800 and 1 840 MHz, +43 dBm each, with a receive band at 1 700–1 780 MHz; NF 3 dB, 1 MHz channels): IM3 at 2 × 1 800 − 1 840 = <b>1 760 MHz</b>, inside the receive band. A good silver-plated connector chain at −150 dBc puts it at −107 dBm, 4 dB above the −111 dBm noise floor: if the carriers are modulated, the product is spread like noise and desensitises that channel by 10·log(1 + 10<sup>0.4</sup>) = 5.5 dB. IM5 at 1 720 MHz is at −117 dBm, 6 dB below the floor.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design assumes passive parts are linear and filters the transmitter's own intermodulation at the PA output. Then a nickel-plated adapter, a steel bracket in the near field or one under-torqued connector in the shared path gives −110 dBc: IM3 at <b>−67 dBm</b>, 44 dB above the noise floor, and IM5 at −77 dBm. An ESM receiver reports strong false emitters at 1 760 and 1 720 MHz whenever the co-sited transmitter keys; a radar sees a raised noise floor in those channels. No filter can help, because the products are created after the last filter, inside the receive band.</p></div>
+  <h3>Side by side on one example: 2 × 43 dBm, Δ = 40 MHz, IM3 at 1 760 MHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Junction class (illustrative)</th><th>PIM spec</th><th>IM3</th><th>IM5</th><th>IM3 vs noise floor</th></tr>
+    <tr><td>Ferromagnetic plating or loose, corroded joint</td><td class="n">−110 dBc</td><td class="n">−67 dBm</td><td class="n">−77 dBm</td><td class="n">+44 dB</td></tr>
+    <tr><td>Aged or under-torqued standard connector</td><td class="n">−130 dBc</td><td class="n">−87 dBm</td><td class="n">−97 dBm</td><td class="n">+24 dB</td></tr>
+    <tr><td>Clean silver-plated N or SMA, correct torque</td><td class="n">−150 dBc</td><td class="n">−107 dBm</td><td class="n">−117 dBm</td><td class="n">+4 dB</td></tr>
+    <tr><td>Low-PIM 7-16 DIN or 4.3-10, clean, torqued</td><td class="n">−160 dBc</td><td class="n">−117 dBm</td><td class="n">−127 dBm</td><td class="n">−6 dB</td></tr>
+  </table></div>
+  <div class="col"><p>A 50 dB spread between a good and a bad junction, from parts that all pass a VSWR and loss test. Lowering the carriers to +37 dBm (4 W) lowers IM3 by 18 dB at a 3 dB/dB slope but only 15 dB at 2.5 dB/dB, so measure the slope; do not assume it. Changing the carrier spacing moves the products: with Δ = 5 MHz, IM3 falls at 1 795 MHz, outside the receive band, and only very high orders land in it.</p></div>
+  <h3>How to choose materials, connectors and the frequency plan</h3>
+  <div class="col"><p>(1) Frequency plan first: compute where the products of every transmit carrier pair fall and keep the low orders out of the receive bands (module 05 does the same for mixer spurs). (2) Materials: no ferromagnetic metals in the RF path or the antenna near field (avoid nickel underplate and steel hardware); silver or white-bronze plating. (3) Junctions: fewer interfaces, large contact pressure (low-PIM families need 25–30 N·m for a reason), clean and dry mating faces, no metal swarf. (4) Specify PIM with the test level and slope, and test the assembled path, not only the parts. (5) For space hardware, design gaps and power levels with multipaction margin (about 6 dB), vent or fill cavities, and avoid the critical pressure range for gas discharge during launch.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPm" width="640" height="330" aria-label="Spectrum of two transmit carriers and their passive intermodulation products against a receive band and noise floor"></canvas>
+    <div class="ctrl">
+      <label for="pmP"><span>Power per carrier</span> <b id="pmPv"></b></label><input id="pmP" type="range" min="20" max="50" step="0.5" value="43">
+      <label for="pmC">Junction class (PIM at 2 × 43 dBm)</label>
+      <select id="pmC"><option value="-110">−110 dBc: nickel, steel, loose</option><option value="-130">−130 dBc: aged, under-torqued</option><option value="-150" selected>−150 dBc: clean, torqued</option><option value="-160">−160 dBc: low-PIM family</option></select>
+      <label for="pmS"><span>PIM slope</span> <b id="pmSv"></b></label><input id="pmS" type="range" min="2" max="3" step="0.05" value="3">
+      <label for="pmD"><span>Carrier spacing Δ</span> <b id="pmDv"></b></label><input id="pmD" type="range" min="5" max="100" step="1" value="40">
+      <div class="readout" id="pmOut"></div>
+    </div>
+    <p class="cap">x-axis: 1 600 to 2 000 MHz. Orange bars: the two carriers (f<sub>1</sub> = 1 800 MHz, f<sub>2</sub> = f<sub>1</sub> + Δ). Purple bars: PIM products of orders 3 to 9 on both sides. Shaded: the receive band 1 700–1 780 MHz. Dashed teal line: the receiver noise floor in 1 MHz (−111 dBm). Products above the line inside the shaded band are false signals or desensitisation.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (+43 dBm, −150 dBc, slope 3, Δ 40 MHz): IM3 −107 dBm at 1 760 MHz, 4 dB above the floor, desensitisation 5.5 dB; IM5 −117 dBm at 1 720 MHz, the worked example.</li>
+    <li>Junction class −110 dBc: IM3 −67 dBm, 44 dB above the floor: the naive case.</li>
+    <li>Power to +37 dBm: IM3 18 dB lower at slope 3; then set the slope to 2.5: only 15 dB lower.</li>
+    <li>Spacing to 5 MHz: IM3 moves to 1 795 MHz, out of band; the worst in-band product is now a high order, far below the floor.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>PIM</td><td>Plating (no nickel), contact pressure, torque, cleanliness, connector family</td><td>e.g. ≤ −150 dBc at 2 × 43 dBm</td><td>IM3 −107 dBm in the receive band: 5.5 dB desensitisation; at −110 dBc a false emitter at −67 dBm</td></tr>
+    <tr><td>Frequency plan</td><td>Carrier spacing, band allocation</td><td>(system decision)</td><td>Decides which orders land in receive bands</td></tr>
+    <tr><td>Multipaction margin</td><td>Gap sizes, surface treatment, venting</td><td>Threshold power vs operating power (space: about 6 dB margin)</td><td>Discharge: noise, detuning, damage in space or very high altitude hardware</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Connector, cable and antenna designers:</b> PIM is set by materials and contact physics, not by RF design; a part can pass VSWR and loss and fail PIM by 40 dB.</li>
+    <li><b>ESM and receiver designers:</b> a PIM product created in a shared feed looks exactly like a real signal; know where co-sited transmitters' products fall (<a href="M11-esm-receivers.html">module 11</a>).</li>
+    <li><b>Filter and multiplexer designers for space:</b> narrow resonator gaps with high stored field are where multipaction starts; analyse every gap's f·d and voltage.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Carriers at 2 100 and 2 130 MHz. Where are the low-side IM3 and IM5?</summary><p>Δ = 30 MHz: IM3 at 2 070 MHz, IM5 at 2 040 MHz (and 2 160, 2 190 MHz on the high side).</p></details>
+    <details><summary>Why can a PIM product not be removed with a filter?</summary><p>It is generated in the passive path after the transmit filter, at a frequency inside the receive band, and it enters the receiver along with the wanted signals.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="sys">
+  <div class="secno">Step 9</div>
+  <h2>System effects: radar range (loss counted twice), G/T and noise, EIRP, and DF error</h2>
+  <div class="know"><h4>You already know</h4><p>From <a href="A0-antenna-fundamentals.html#noise">antenna Step 8</a>: T<sub>sys</sub> = T<sub>A</sub> + (L − 1)·290 + L·T<sub>LNA</sub> for a loss L before the LNA, referred to the antenna port, and G/T = G − 10·log T<sub>sys</sub>. From <a href="R1-radar-echo.html">R1</a>: the radar equation, R<sup>4</sup> ∝ P<sub>t</sub>G²λ²σ/(kT<sub>sys</sub>B·L).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Transmit loss L<sub>t</sub>:</b> all the loss between the PA and the antenna port: line, rotary joint, connectors. EIRP = P<sub>t</sub> − L<sub>t</sub> + G (in dB units). Example: 1 kW (60 dBm), 33 dBi, L<sub>t</sub> 3.39 dB → 89.6 dBm.</p>
+    <p><b>Receive loss and noise:</b> the same run, crossed by the echo, both attenuates it and adds noise (Step 0). Referred to the antenna port, T<sub>sys</sub> = T<sub>A</sub> + (L<sub>r</sub> − 1)·290 + L<sub>r</sub>·(T<sub>LNA</sub> + T<sub>2</sub>/G<sub>LNA</sub>). Here T<sub>A</sub> = 100 K, LNA NF 1.5 dB (T<sub>LNA</sub> = 120 K), gain 30 dB, the stage after it NF 6 dB (865 K): lossless T<sub>sys</sub> = 220.5 K.</p>
+    <p><b>Range factor:</b> the detection range relative to a lossless installation, (T<sub>sys,0</sub>/(L<sub>t</sub>·T<sub>sys</sub>))<sup>1/4</sup>. The transmit loss and the receive noise each enter once: that is "counted twice".</p>
+    <p><b>Mast-top LNA:</b> an LNA placed at the antenna (above the rotary joint), behind only about 0.3 dB of connectors and protection. The long run then comes after 30 dB of LNA gain and hardly adds noise. Transmit power still has to go up the run, unless the PA moves too (an active array, <a href="M10-tr-module.html">module 10</a>).</p>
+    <p><b>ESM sensitivity change:</b> a receive-only system pays only the T<sub>sys</sub> increase: 10·log(T<sub>sys</sub>/T<sub>sys,0</sub>) dB.</p>
+  </div>
+  <div class="eq">L<sub>t</sub> = α·length + IL<sub>RJ</sub> + IL<sub>conn</sub> &nbsp;&nbsp; T<sub>sys</sub> = T<sub>A</sub> + (L<sub>r</sub> − 1)·290 + L<sub>r</sub>·(T<sub>LNA</sub> + T<sub>2</sub>/G) &nbsp;&nbsp; R/R<sub>0</sub> = (T<sub>sys,0</sub> / (L<sub>t</sub>·T<sub>sys</sub>))<sup>1/4</sup><small>Connectors here: 0.3 dB in total. With a mast-top LNA: T<sub>sys</sub> = T<sub>A</sub> + (L<sub>p</sub> − 1)·290 + L<sub>p</sub>·(T<sub>LNA</sub> + ((L<sub>q</sub> − 1)·290 + L<sub>q</sub>·T<sub>2</sub>)/G), with L<sub>p</sub> = 0.3 dB before the LNA and L<sub>q</sub> the rest of the run after it.</small></div>
+  <div class="col">
+    <p><b>Worked example</b> (X band, 20 m of WR-90 aluminium, rotary joint 0.3 dB, LNA in the shelter): L<sub>t</sub> = 2.79 + 0.3 + 0.3 = 3.39 dB. On receive the same 3.39 dB (factor 2.18) gives T<sub>sys</sub> = 100 + 1.18 × 290 + 2.18 × (120 + 0.87) = 706 K, 5.05 dB worse than lossless. Range factor = (220.5/(2.18 × 706))<sup>1/4</sup> = <b>0.615</b>. EIRP down 3.39 dB, G/T down 5.05 dB, ESM sensitivity 5.05 dB worse.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive budget counts the run's loss once, as "3.4 dB, so 18 % of range" (10<sup>−3.39/40</sup> = 0.82), and forgets both that the echo crosses it again and that loss before the LNA adds noise at 290 K. The real range factor is 0.615: a 38 % loss, not 18 %. With the RG-213-class cable of Step 0 the same arithmetic gives 0.091, and the noise temperature 36 000 K.</p></div>
+  <h3>Side by side on one example: X band (10 GHz), 20 m, rotary joint 0.3 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Run</th><th>Run loss</th><th>LNA in shelter: T<sub>sys</sub>, range</th><th>Mast-top LNA: T<sub>sys</sub>, range</th></tr>
+    <tr><td>RG-213 class coax</td><td class="n">18.9 dB</td><td class="n">36 300 K, × 0.091</td><td class="n">359 K, × 0.288</td></tr>
+    <tr><td>½-inch foam (at its mode limit)</td><td class="n">7.3 dB</td><td class="n">2 310 K, × 0.354</td><td class="n">256 K, × 0.613</td></tr>
+    <tr><td>WR-90 aluminium</td><td class="n">2.79 dB</td><td class="n">706 K, × 0.615</td><td class="n">251 K, × 0.796</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The mast-top LNA fixes the receive half: T<sub>sys</sub> falls to within 0.6 dB of lossless for every run. The transmit half remains, which is why the RG-213 case only reaches × 0.288 even with the LNA at the top. At S band (3 GHz) the same runs lose much less (WR-284 0.50 dB, ½-inch foam 3.46 dB, RG-213 class 8.99 dB), and waveguide with a shelter LNA already gives × 0.843.</p>
+    <p><b>DF and angle errors</b> (Steps 5 and 6) come from the same lines: 54.8° of phase change in a 3 m solid-PTFE run at 0 °C, with 10 % mismatch between channels, is 1.74° of interferometer error at d/λ 0.5; rotary-joint differential gain and phase scale monopulse angles with bearing (±16 % at s = 20 dB). <b>Ripple</b> (Step 3) and <b>PIM</b> (Step 8) add false echoes and false signals that no amount of transmitter power removes.</p>
+  </div>
+  <h3>How to choose the architecture</h3>
+  <div class="col"><p>(1) Write the budget both ways: transmit loss to EIRP, receive loss to T<sub>sys</sub>, and their product to range. (2) If the receive budget fails, move the LNA towards the antenna first: it is cheap and fixes T<sub>sys</sub> almost completely. (3) If the transmit budget fails, use lower-loss line (waveguide, larger size, pressurised) or move the PA too (solid-state transmitters at the antenna, active arrays). (4) Budget the phase stability, ripple, connector repeatability and PIM of the runs in the same document as their loss; they are the same parts. (5) Repeat at the top of the band and the hottest temperature, where every loss is largest.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSy" width="640" height="330" aria-label="Radar range factor against run length for several line types, with the selected configuration marked"></canvas>
+    <div class="ctrl">
+      <label for="syF">Band</label>
+      <select id="syF"><option value="3">S band, 3 GHz</option><option value="10" selected>X band, 10 GHz</option></select>
+      <label for="syT">Run between shelter and antenna</label>
+      <select id="syT"><option value="rg213" selected>RG-213 class coax (7.24 mm)</option><option value="half">½-inch foam coax (12 mm)</option><option value="seven">7/8-inch foam coax (22 mm)</option><option value="wg">Waveguide (WR-284 at S, WR-90 at X)</option></select>
+      <label for="syL"><span>Run length</span> <b id="syLv"></b></label><input id="syL" type="range" min="1" max="60" step="0.5" value="20">
+      <label for="syR"><span>Rotary joint IL</span> <b id="syRv"></b></label><input id="syR" type="range" min="0" max="1" step="0.01" value="0.3">
+      <label for="syP">LNA position</label>
+      <select id="syP"><option value="shelter" selected>In the shelter (after the run)</option><option value="mast">Mast-top (before the run)</option></select>
+      <div class="readout" id="syOut"></div>
+    </div>
+    <p class="cap">x-axis: run length, 0 to 60 m. y-axis: radar detection range relative to a lossless installation (%). One curve per run type at the chosen band and LNA position; bold is yours, grey dashed are runs that are moded (above 0.95 of their TE<sub>11</sub> cut-off) at this band. The dot is your length. Connectors 0.3 dB in total; T<sub>A</sub> 100 K, LNA NF 1.5 dB and 30 dB gain, next stage NF 6 dB, P<sub>t</sub> 1 kW and G 33 dBi for EIRP and G/T.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (X band, RG-213 class, 20 m, 0.3 dB, shelter): run loss 18.9 dB, T<sub>sys</sub> about 36 300 K, range × 0.091, Step 0's naive case done properly.</li>
+    <li>Choose waveguide: L<sub>t</sub> 3.39 dB, T<sub>sys</sub> 706 K, range × 0.615, EIRP 89.6 dBm, the worked example.</li>
+    <li>With waveguide, move the LNA to the mast top: T<sub>sys</sub> 251 K, range × 0.796.</li>
+    <li>Back to RG-213 with a mast-top LNA: × 0.288; the transmit loss still dominates.</li>
+    <li>Switch to S band: the 7/8-inch and ½-inch curves become usable (solid), and waveguide in the shelter gives × 0.843.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Run loss</td><td>Line type, size, material, length</td><td>dB/m × length, e.g. 2.79 dB</td><td>EIRP −3.39 dB and T<sub>sys</sub> 706 K: range × 0.615</td></tr>
+    <tr><td>Loss before the LNA</td><td>LNA location, protection and connector count at the antenna</td><td>NF of the receive path from the antenna port</td><td>Mast-top LNA: T<sub>sys</sub> 251 K, G/T within 0.6 dB of lossless, range × 0.796</td></tr>
+    <tr><td>Rotary joint loss</td><td>Joint type and mode purity</td><td>Mean IL and wow</td><td>Counted twice like the run; its wow modulates range with bearing (Step 6)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every passive-path supplier:</b> your loss is multiplied by the length the installation forces and counted twice in a radar; quote it at the top of the band.</li>
+    <li><b>LNA designers:</b> a mast-top LNA must survive the environment (temperature, lightning, the transmitter's leakage through the duplexer; <a href="M06-limiter-duplexer.html">module 06</a>) in exchange for the 4–20 dB of noise it saves.</li>
+    <li><b>System engineers:</b> one table with loss, ripple, phase, power, PIM and repeatability for each run keeps the passive path from being an afterthought.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A receive-only ESM system has 3 dB of cable before its LNA (T<sub>A</sub> 100 K, T<sub>LNA</sub> 120 K, later stages negligible). How much sensitivity does the cable cost?</summary><p>T<sub>sys</sub> = 100 + 1 × 290 + 2 × 120 = 630 K against 220 K lossless: 4.6 dB, more than the 3 dB of loss, because the cable also adds 290 K of its own noise.</p></details>
+    <details><summary>Why does a mast-top LNA not help the transmitter?</summary><p>It only changes the receive path. The transmitted pulse still crosses the whole run before reaching the antenna; only moving the PA or lowering the run's loss helps EIRP.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: every transmission-line parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Coax conductor loss</td><td>Size, smooth vs braid (K), plating; grows as √f</td><td>0.672 of 0.945 dB/m at 10 GHz (RG-213 class); × 20 m and counted twice</td></tr>
+    <tr><td>Coax dielectric loss</td><td>ε<sub>r</sub> and tan δ; grows as f; independent of size</td><td>0.273 dB/m solid PE vs 0.104 dB/m foam at 10 GHz</td></tr>
+    <tr><td>Coax TE<sub>11</sub> cut-off</td><td>(D + d)·√ε<sub>r</sub></td><td>Largest usable size at a frequency: 12 mm foam marginal at 10 GHz, 22 mm moded</td></tr>
+    <tr><td>Waveguide band and loss</td><td>Inside width a, height b, wall material</td><td>WR-90: 8.2–12.4 GHz, 0.14 dB/m (Al): 2.79 dB on 20 m vs 18.9 dB in coax</td></tr>
+    <tr><td>Waveguide dispersion</td><td>f/f<sub>c</sub>, length</td><td>6.8 ns delay spread over 1 GHz on 20 m; chirp distortion unless equalised</td></tr>
+    <tr><td>Port match of each part</td><td>Matching, balanced design, isolators, launches</td><td>ρ = Γ<sub>A</sub>Γ<sub>B</sub>A²: 0.92 dB ripple, −25.5 dB false echo 3.8 m behind each target</td></tr>
+    <tr><td>Peak power</td><td>Size, finish, VSWR, pressurisation</td><td>WR-90 364 kW practical at sea level, 24.7 kW at 10 km, 1.42 MW at 2 bar</td></tr>
+    <tr><td>Average power</td><td>Loss, cooling</td><td>WR-90 about 800 W natural cooling: limits duty cycle</td></tr>
+    <tr><td>Phase vs temperature</td><td>Dielectric (PTFE knee at 19 °C), run length</td><td>54.8° per 3 m at 10 GHz (25 → 0 °C): 1.74° DF error with 10 % mismatch; silica 0.10°</td></tr>
+    <tr><td>Phase on flexing</td><td>Dielectric, construction, bend radius</td><td>Random channel error; gimbal wrap 1.25° at 10 GHz in phase-stable cable</td></tr>
+    <tr><td>Rotary joint wow</td><td>Mode filter, symmetry, choke concentricity</td><td>s = 30 dB: 0.55 dB, 3.6° p-p; echo modulation 1.1 dB, −6 % range at worst bearings</td></tr>
+    <tr><td>Rotary joint channel match</td><td>Multi-channel layout, isolation</td><td>Monopulse angle scale error ±16 % at s = 20 dB; boresight shift 0.007° at −45 dB isolation</td></tr>
+    <tr><td>Connector family</td><td>Interface diameters, dielectric</td><td>Rated frequency (SMA 18 GHz, 3.5 mm 26.5 GHz); above TE<sub>11</sub> the path is moded</td></tr>
+    <tr><td>Connector count and torque</td><td>Harness design, procedures</td><td>6 SMA pairs at 18 GHz: VSWR 1.53 typical, 0.76 dB, 3.7° per re-mate (15° finger-tight)</td></tr>
+    <tr><td>PIM</td><td>Materials (no nickel or steel), contact pressure, cleanliness, frequency plan</td><td>−150 dBc: IM3 −107 dBm in band, 5.5 dB desense; −110 dBc: a false signal at −67 dBm</td></tr>
+    <tr><td>Multipaction and corona</td><td>Gaps (f·d), surfaces, venting, pressure</td><td>Discharge in space and at high altitude: noise, detuning, damage; about 6 dB margin</td></tr>
+    <tr><td>Run architecture</td><td>LNA and PA location</td><td>X band, 20 m WR-90: range × 0.615 (shelter LNA) → × 0.796 (mast-top LNA)</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="A0-antenna-fundamentals.html">Antenna fundamentals</a> (matching and G/T), <a href="M01-lna-noise.html">LNA and receiver noise</a> (Friis), <a href="M03-power-amplifier.html">power amplifier</a> (EIRP, peak and average power), <a href="M04-filters.html">filters</a> (loss before the LNA, group delay), <a href="M06-limiter-duplexer.html">limiter, circulator and duplexer</a> (isolators, reflected power), <a href="M10-tr-module.html">T/R module</a> (array phase calibration), <a href="M11-esm-receivers.html">ESM receivers</a> (DF and false signals), <a href="R2-antenna-beam.html">R2 The antenna and the beam</a> and <a href="R4-pulse-radar.html">R4 Pulse radar end to end</a>.</p>
+</section>
+
+<section id="gloss">
+  <div class="secno">Reference</div>
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Attenuation (dB/m)</dt><dd>Loss per unit length of a uniform line; the sum of conductor and dielectric loss.</dd>
+    <dt>Choke joint</dt><dd>A non-contacting joint (rotary joint or flange) that uses a quarter-wave groove to present an RF short across a mechanical gap.</dd>
+    <dt>Conductor loss α<sub>c</sub></dt><dd>Loss from current in the conductors' surface resistance; grows as √f, falls with size.</dd>
+    <dt>Corona / gas discharge</dt><dd>Ionisation breakdown of the gas in a line at reduced pressure; worst at pressures of the order of 100 Pa.</dd>
+    <dt>Cut-off frequency</dt><dd>The lowest frequency at which a waveguide mode propagates; for TE<sub>10</sub>, c/(2a).</dd>
+    <dt>Dielectric loss α<sub>d</sub></dt><dd>Loss in the insulating material, proportional to f·√ε<sub>r</sub>·tan δ; independent of line size.</dd>
+    <dt>Dispersion</dt><dd>Frequency-dependent group delay; in waveguide from v<sub>g</sub> = c√(1 − (f<sub>c</sub>/f)²).</dd>
+    <dt>Dominant mode</dt><dd>The mode with the lowest cut-off; TE<sub>10</sub> in rectangular waveguide.</dd>
+    <dt>Duty cycle</dt><dd>Pulse width × PRF; average power = peak power × duty cycle.</dd>
+    <dt>Echo ratio ρ</dt><dd>Amplitude of the re-reflected copy relative to the direct wave: |Γ<sub>A</sub>||Γ<sub>B</sub>| × round-trip line transmission.</dd>
+    <dt>Electrical length</dt><dd>A line's insertion phase, 360° × L·f·√ε<sub>r</sub>/c.</dd>
+    <dt>Group velocity v<sub>g</sub></dt><dd>The speed at which energy and modulation travel along a line.</dd>
+    <dt>Guide wavelength λ<sub>g</sub></dt><dd>Wavelength along a waveguide; longer than in free space.</dd>
+    <dt>Higher-order mode</dt><dd>Any mode other than the intended one; in coax the first is TE<sub>11</sub>, in rectangular waveguide TE<sub>20</sub> or TE<sub>01</sub>.</dd>
+    <dt>Insertion loss</dt><dd>The reduction in power from a part's input to its output, in dB.</dd>
+    <dt>Intermateability</dt><dd>Which connector families can be mated with each other without damage.</dd>
+    <dt>Mast-top LNA</dt><dd>An LNA placed at the antenna, before the long run, so the run's loss no longer adds to the noise figure.</dd>
+    <dt>Mated pair</dt><dd>One plug and one jack connected together.</dd>
+    <dt>Monopulse</dt><dd>Angle measurement from the ratio of difference (Δ) and sum (Σ) channels formed in one pulse.</dd>
+    <dt>Multipaction</dt><dd>Resonant secondary-electron avalanche in an RF gap in vacuum.</dd>
+    <dt>Multi-channel rotary joint</dt><dd>A rotary joint with several independent RF channels (for example Σ, ΔAz, ΔEl).</dd>
+    <dt>Phase tracking</dt><dd>How closely the phase changes of two or more cables follow each other.</dd>
+    <dt>PIM (passive intermodulation)</dt><dd>Intermodulation generated in passive parts by contacts, oxides and ferromagnetic materials.</dd>
+    <dt>Pressurisation</dt><dd>Filling a line with dry gas above atmospheric pressure to raise breakdown and exclude moisture.</dd>
+    <dt>PTFE knee</dt><dd>The crystal transition of PTFE near 19 °C that changes its permittivity and so the cable's phase.</dd>
+    <dt>Rated frequency</dt><dd>The highest frequency a connector family is specified for, below its TE<sub>11</sub> cut-off.</dd>
+    <dt>Repeatability</dt><dd>Change of loss and phase when a connection is broken and remade.</dd>
+    <dt>Rotary joint</dt><dd>A component that passes RF between a rotating and a fixed part.</dd>
+    <dt>Skin depth δ<sub>s</sub></dt><dd>Depth at which RF current density falls to 1/e; 0.66 µm in copper at 10 GHz.</dd>
+    <dt>Spurious path level s</dt><dd>In a rotary joint, the level of the non-symmetric signal component (residual TE<sub>11</sub>, eccentricity) below the wanted one.</dd>
+    <dt>Surface resistance R<sub>s</sub></dt><dd>√(πfμ<sub>0</sub>/σ): the RF resistance per square of a conductor surface.</dd>
+    <dt>TE / TM / TEM</dt><dd>Mode types: electric field transverse, magnetic field transverse, or both transverse (coax).</dd>
+    <dt>Torque (coupling)</dt><dd>The specified tightening torque of a connector's coupling nut.</dd>
+    <dt>Velocity factor v<sub>p</sub></dt><dd>Wave speed in a line as a fraction of c; 1/√ε<sub>r</sub> for TEM.</dd>
+    <dt>Wow</dt><dd>Variation of a rotary joint's loss (amplitude wow) or phase (phase wow) with rotation angle.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Pozar, <i>Microwave Engineering</i>; Collin, <i>Foundations for Microwave Engineering</i>; Marcuvitz, <i>Waveguide Handbook</i>; Ramo, Whinnery and Van Duzer, <i>Fields and Waves in Communication Electronics</i>; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Sherman, <i>Monopulse Principles and Techniques</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+/* TLMATH_START */
+const TL=(function(){
+const c0=299792458, mu0=4e-7*Math.PI, eta0=376.730313, TAU=2*Math.PI;
+const NP=8.685889638;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+const Rs=(f,sig)=>Math.sqrt(Math.PI*f*mu0/sig);
+const SIG={cu:5.8e7, ag:6.17e7, al:3.5e7, br:1.6e7};
+/* dielectrics: er, tand */
+const DIEL={pe:{er:2.25,td:2e-4,n:'solid PE'}, foam:{er:1.30,td:1e-4,n:'foam PE'}, ptfe:{er:2.05,td:2e-4,n:'solid PTFE'}, ldp:{er:1.60,td:1.5e-4,n:'low-density PTFE'}, air:{er:1.0006,td:0,n:'air'}};
+/* conductor factor on top of smooth copper */
+const COND={smooth:{k:1.05,n:'smooth solid copper'}, corr:{k:1.20,n:'corrugated copper'}, braid:{k:1.50,n:'braided copper'}};
+/* coax with outer-conductor inner diameter D (m), 50 ohm */
+function coax(D,dl,cf,Z0){ Z0=Z0||50; const d=DIEL[dl], k=COND[cf].k, se=Math.sqrt(d.er);
+  const b=D/2, a=b/Math.exp(Z0*TAU*se/eta0);
+  const fcTE11=c0/(Math.PI*(a+b)*se);
+  const ac=f=>NP*k*Rs(f,SIG.cu)*(1/a+1/b)/(2*TAU*Z0);
+  const ad=f=>NP*Math.PI*f*se*d.td/c0;
+  return {a,b,er:d.er,vp:1/se,fc:fcTE11,ac,ad,al:f=>ac(f)+ad(f)}; }
+/* rectangular waveguide TE10 */
+const WG={wr284:{a:72.136e-3,b:34.036e-3,lo:2.60e9,hi:3.95e9,n:'WR-284 (S)'}, wr187:{a:47.549e-3,b:22.149e-3,lo:3.95e9,hi:5.85e9,n:'WR-187 (C)'}, wr137:{a:34.849e-3,b:15.799e-3,lo:5.85e9,hi:8.20e9,n:'WR-137 (C/X)'},
+  wr90:{a:22.86e-3,b:10.16e-3,lo:8.2e9,hi:12.4e9,n:'WR-90 (X)'}, wr62:{a:15.799e-3,b:7.899e-3,lo:12.4e9,hi:18e9,n:'WR-62 (Ku)'}, wr42:{a:10.668e-3,b:4.318e-3,lo:18e9,hi:26.5e9,n:'WR-42 (K)'}, wr28:{a:7.112e-3,b:3.556e-3,lo:26.5e9,hi:40e9,n:'WR-28 (Ka)'}};
+function wg(key,mat){ const w=WG[key], sig=SIG[mat];
+  const fc=(m,n)=>c0/2*Math.sqrt((m/w.a)**2+(n/w.b)**2);
+  const f10=fc(1,0);
+  const al=f=>{ if(f<=f10) return Infinity; const r=(f10/f)**2; return NP*Rs(f,sig)/(eta0*w.b*Math.sqrt(1-r))*(1+2*w.b/w.a*r); };
+  const vg=f=>f<=f10?0:Math.sqrt(1-(f10/f)**2);
+  const lg=f=>f<=f10?Infinity:c0/f/Math.sqrt(1-(f10/f)**2);
+  /* list modes */
+  const modes=[]; for(let m=0;m<=4;m++) for(let n=0;n<=3;n++){ if(m===0&&n===0) continue; const f=fc(m,n); modes.push({m,n,f,te:true}); if(m>0&&n>0) modes.push({m,n,f,te:false}); }
+  modes.sort((x,y)=>x.f-y.f);
+  return {w,f10,fc,al,vg,lg,modes}; }
+/* peak power, TE10, uniform-field air breakdown E (V/m) */
+function wgPeak(key,f,E){ const w=WG[key]; const f10=c0/(2*w.a); if(f<=f10) return 0; return E*E*w.a*w.b/(4*eta0)*Math.sqrt(1-(f10/f)**2); }
+function coaxPeakAir(D,E){ const b=D/2, a=b/Math.exp(50*TAU/eta0); const V=E*a*Math.log(b/a); return V*V/(2*50); }
+/* pressure from altitude, bar */
+function pAlt(h){ if(h<=11000) return 1.01325*Math.pow(1-2.25577e-5*h,5.25588); return 0.22632*Math.exp(-(h-11000)/6341.6); }
+function altP(p){ /* inverse */ if(p>=1.01325) return 0; let lo=0,hi=40000; for(let i=0;i<60;i++){ const m=(lo+hi)/2; if(pAlt(m)>p) lo=m; else hi=m; } return (lo+hi)/2; }
+/* reflection helpers */
+const gam=s=>(s-1)/(s+1), vswr=g=>(1+g)/(1-g);
+/* cascade of symmetric discontinuities and lines: returns S21 complex over f */
+function cascade(f,els){ /* els: [{t:'g',G:mag,ph:rad},{t:'l',L:m,vp:frac,adB:dB/m at f}] */
+  /* T-matrix (wave cascading) */
+  let T=[[1,0],[0,1]].map(r=>r.map(v=>({r:v,i:0})));
+  const C=(r,i)=>({r,i}), mul=(a,b)=>C(a.r*b.r-a.i*b.i,a.r*b.i+a.i*b.r), add=(a,b)=>C(a.r+b.r,a.i+b.i), sub=(a,b)=>C(a.r-b.r,a.i-b.i);
+  const div=(a,b)=>{const d=b.r*b.r+b.i*b.i; return C((a.r*b.r+a.i*b.i)/d,(a.i*b.r-a.r*b.i)/d);};
+  const mm=(A,B)=>[[add(mul(A[0][0],B[0][0]),mul(A[0][1],B[1][0])),add(mul(A[0][0],B[0][1]),mul(A[0][1],B[1][1]))],[add(mul(A[1][0],B[0][0]),mul(A[1][1],B[1][0])),add(mul(A[1][0],B[0][1]),mul(A[1][1],B[1][1]))]];
+  for(const e of els){ let S11,S12,S21,S22;
+    if(e.t==='g'){ const g=C(e.G*Math.cos(e.ph),e.G*Math.sin(e.ph)); const t=Math.sqrt(1-e.G*e.G); /* lossless reciprocal symmetric: S21 = j*t*... choose S21 = t, S11=S22=g with phase so unitary: S11*conj(S21)+S12*conj(S22)=0 -> S21 = j t e^{j ph} */
+      S11=g; S22=g; S21=C(-t*Math.sin(e.ph),t*Math.cos(e.ph)); S12=S21; }
+    else { const bl=TAU*f*e.L/(c0*e.vp); const A=Math.pow(10,-e.adB*e.L/20); S11=C(0,0); S22=C(0,0); S21=C(A*Math.cos(-bl),A*Math.sin(-bl)); S12=S21; }
+    /* S -> T: T11 = -det/S21, T12 = S11/S21, T21 = -S22/S21, T22 = 1/S21 (b1,a1 = T [a2,b2]) */
+    const det=sub(mul(S11,S22),mul(S12,S21));
+    const Tm=[[div(C(-det.r,-det.i),S21),div(S11,S21)],[div(C(-S22.r,-S22.i),S21),div(C(1,0),S21)]];
+    T=mm(T,Tm); }
+  return div(C(1,0),T[1][1]); }
+/* phase vs temperature, ppm relative to 25 C */
+const sigm=x=>1/(1+Math.exp(-x));
+const PHT={ptfe:{a:-12,K:800,er:2.05,flex:3,n:'solid PTFE'}, ldp:{a:-8,K:200,er:1.60,flex:0.5,n:'phase-stable PTFE'}, sio2:{a:3,K:0,er:1.45,flex:0.3,n:'silica (SiO₂) semi-rigid'}, foam:{a:-20,K:0,er:1.30,flex:4,n:'foam PE'}};
+function ppmT(k,T){ const p=PHT[k]; return p.a*(T-25)+p.K*(sigm((19-T)/2.0)-sigm((19-25)/2.0)); }
+/* rotary joint */
+function rjWow(sup){ const r=Math.pow(10,-sup/20); return {r, il:20*Math.log10((1+r)/(1-r)), ph:2*Math.asin(r)*180/Math.PI}; }
+/* connectors */
+const CONN={
+  n:{n:'Type N',D:7.0e-3,d:3.04e-3,er:1,fr:18e9,g0:0.015,g1:0.055,rep:0.05,rph:1.5,il:0.03,tq:'1.36 N·m (12 in-lb)'},
+  tnc:{n:'TNC',D:4.95e-3,d:1.52e-3,er:2.05,fr:11e9,g0:0.02,g1:0.06,rep:0.05,rph:1.5,il:0.04,tq:'0.56–0.68 N·m (5–6 in-lb)'},
+  sma:{n:'SMA',D:4.2e-3,d:1.27e-3,er:2.05,fr:18e9,g0:0.02,g1:0.065,rep:0.05,rph:1.5,il:0.03,tq:'0.56 N·m (5 in-lb) brass; 0.9 N·m stainless to stainless'},
+  m35:{n:'3.5 mm',D:3.5e-3,d:1.52e-3,er:1,fr:26.5e9,g0:0.008,g1:0.035,rep:0.01,rph:0.3,il:0.02,tq:'0.9 N·m (8 in-lb)'},
+  m292:{n:'2.92 mm (K)',D:2.92e-3,d:1.27e-3,er:1,fr:40e9,g0:0.01,g1:0.04,rep:0.01,rph:0.4,il:0.02,tq:'0.9 N·m (8 in-lb)'},
+  m24:{n:'2.4 mm',D:2.4e-3,d:1.042e-3,er:1,fr:50e9,g0:0.01,g1:0.04,rep:0.01,rph:0.4,il:0.02,tq:'0.9 N·m (8 in-lb)'},
+  m185:{n:'1.85 mm (V)',D:1.85e-3,d:0.803e-3,er:1,fr:67e9,g0:0.012,g1:0.045,rep:0.015,rph:0.5,il:0.025,tq:'0.9 N·m (8 in-lb)'},
+  d716:{n:'7-16 DIN',D:16e-3,d:7e-3,er:1,fr:7.5e9,g0:0.01,g1:0.035,rep:0.03,rph:0.8,il:0.015,tq:'25–30 N·m'}
+};
+function connFc(k){ const c=CONN[k]; return 2*c0/(Math.PI*(c.D+c.d)*Math.sqrt(c.er)); }
+function connG(k,f,tq){ const c=CONN[k]; const fc=connFc(k); let g=c.g0+c.g1*Math.pow(f/c.fr,1.5);
+  if(f>c.fr){ const x=(f-c.fr)/(fc-c.fr); g+=0.25*Math.pow(Math.max(0,x),3); }
+  if(f>=fc) g=Math.max(g,0.6);
+  const m=tq==='loose'?2.5:1; return Math.min(0.9,g*m); }
+/* PIM */
+function pimLevel(spec,slope,P,n){ /* spec dBc at 2x43 dBm for IM3; returns dBm of IMn */ return 43+spec+slope*(P-43)-(n-3)/2*10; }
+return {c0,eta0,NP,db,lin,Rs,SIG,DIEL,COND,coax,WG,wg,wgPeak,coaxPeakAir,pAlt,altP,gam,vswr,cascade,PHT,ppmT,rjWow,CONN,connFc,connG,pimLevel};
+})();
+
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; return (x/1e3).toFixed(d??2)+' kHz'; }
+  if(u==='W'){ if(a>=1e6) return (x/1e6).toFixed(d??2)+' MW'; if(a>=1e3) return (x/1e3).toFixed(d??1)+' kW'; return x.toFixed(d??0)+' W'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h){ g.strokeStyle=css('--line'); g.lineWidth=1; g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); ids.forEach(i=>$(i).addEventListener('change',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(1)+' dB';
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+function area(c,pr){ return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+/* axes with explicit ticks */
+function axes(g,A,xa,xb,ya,yb,o){ o=o||{};
+  const X=x=>A.x0+A.w*(x-xa)/(xb-xa), Y=v=>A.y0+A.h*(yb-clamp(v,ya,yb))/(yb-ya);
+  g.strokeStyle=css('--grid'); g.lineWidth=1;
+  (o.yt||[]).forEach(v=>{ if(v<=ya||v>=yb) return; g.beginPath(); g.moveTo(A.x0,Y(v)); g.lineTo(A.x0+A.w,Y(v)); g.stroke(); });
+  (o.xt||[]).forEach(v=>{ if(v<=xa||v>=xb) return; g.beginPath(); g.moveTo(X(v),A.y0); g.lineTo(X(v),A.y0+A.h); g.stroke(); });
+  frame(g,A.x0,A.y0,A.w,A.h); g.fillStyle=css('--muted');
+  (o.yt||[]).forEach(v=>{ if(v<ya-1e-9||v>yb+1e-9) return; const s=o.fy?o.fy(v):String(v); g.fillText(s,A.x0-6-g.measureText(s).width,Y(v)+4); });
+  (o.xt||[]).forEach(v=>{ if(v<xa-1e-9||v>xb+1e-9) return; const s=o.fx?o.fx(v):String(v); const tw=g.measureText(s).width; g.fillText(s,clamp(X(v)-tw/2,A.x0-12,A.x0+A.w-tw+12),A.y0+A.h+15); });
+  if(o.xl){ g.fillText(o.xl,A.x0+A.w-g.measureText(o.xl).width,A.y0+A.h+30); }
+  if(o.yl){ g.fillText(o.yl,A.x0,A.y0-7); }
+  return {X,Y,xa,xb,ya,yb}; }
+function curve(g,P,xs,ys,color,w,dash){ g.strokeStyle=color; g.lineWidth=w||1.6; g.setLineDash(dash||[]); g.beginPath(); let st=false;
+  for(let i=0;i<xs.length;i++){ const x=xs[i], y=ys[i]; if(!isFinite(y)||!isFinite(x)||x<P.xa||x>P.xb){ st=false; continue; } const px=P.X(x), py=P.Y(y); st?g.lineTo(px,py):g.moveTo(px,py); st=true; }
+  g.stroke(); g.setLineDash([]); g.lineWidth=1; }
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+function shade(g,x1,x2,A,color,alpha){ const a=Math.max(A.x0,Math.min(x1,x2)), b=Math.min(A.x0+A.w,Math.max(x1,x2)); if(b<=a) return; g.globalAlpha=alpha; g.fillStyle=color; g.fillRect(a,A.y0,b-a,A.h); g.globalAlpha=1; }
+const L10=Math.log10;
+const decLbl=v=>{ const x=Math.pow(10,v); return x>=1?(+x.toPrecision(3)).toString():(+x.toPrecision(2)).toString(); };
+function logTicks(a,b){ const t=[]; for(let e=Math.floor(a);e<=Math.ceil(b);e++) [1,2,5].forEach(m=>{ const v=e+L10(m); if(v>=a-1e-9&&v<=b+1e-9) t.push(v); }); return t; }
+function nice(x){ if(!(x>0)) return 1; const e=Math.pow(10,Math.floor(L10(x))), m=x/e; return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*e; }
+function linTicks(a,b,n){ const st=nice((b-a)/(n||5)); const t=[]; for(let v=Math.ceil(a/st-1e-9)*st; v<=b+1e-9; v+=st) t.push(+v.toPrecision(10)); return t; }
+
+/* ---------------- Step 1: coax ---------------- */
+function cxDraw(){
+  const c=$('cCx'), g=ctx(c), A=area(c,{l:58,t:24,r:16,b:40});
+  const D=sl('cxD'), dl=$('cxE').value, cf=$('cxC').value, lf=sl('cxF'), f=Math.pow(10,lf)*1e9, L=sl('cxL');
+  setv('cxD',D.toFixed(2)+' mm'); setv('cxF',fmt(f,'Hz',f<1e9?0:2).replace('.00 ',' ')); setv('cxL',L.toFixed(1)+' m');
+  const cx=TL.coax(D/1000,dl,cf);
+  const ya=-3, yb=1.3;
+  const P=axes(g,A,-1,1.6,ya,yb,{xt:logTicks(-1,1.6),yt:logTicks(ya,yb).filter(v=>Math.abs(v-Math.round(v))<1e-9),fx:decLbl,fy:decLbl,xl:'frequency, GHz',yl:'dB/m (log)'});
+  const lfc=L10(cx.fc/1e9);
+  shade(g,P.X(lfc),A.x0+A.w,A,css('--bad'),0.13);
+  vline(g,P.X(L10(0.95*cx.fc/1e9)),A.y0,A.h,css('--bad'),[5,4]);
+  const xs=[],yc=[],yd=[],yt=[]; for(let i=0;i<=260;i++){ const lv=-1+2.6*i/260, ff=Math.pow(10,lv)*1e9; xs.push(lv); yc.push(L10(cx.ac(ff))); yd.push(L10(cx.ad(ff))); yt.push(L10(cx.al(ff))); }
+  curve(g,P,xs,yc,css('--trace'),1.8); curve(g,P,xs,yd,css('--trace2'),1.8); curve(g,P,xs,yt,css('--accent'),2.4);
+  const al=cx.al(f), ac=cx.ac(f), ad=cx.ad(f);
+  dot(g,P.X(lf),P.Y(L10(al)),css('--accent'),5);
+  txt(g,'total',A.x0+8,A.y0+14,css('--accent')); txt(g,'conductor αc ∝ √f',A.x0+8,A.y0+30,css('--trace')); txt(g,'dielectric αd ∝ f',A.x0+8,A.y0+46,css('--trace2'));
+  if(P.X(lfc)<A.x0+A.w-60) txt(g,'TE11 moded',Math.max(A.x0+4,P.X(lfc)+4),A.y0+A.h-8,css('--bad'));
+  const moded=f>0.95*cx.fc, run=al*L;
+  { const lb=L.toFixed(1)+' m → '+run.toFixed(1)+' dB', px=P.X(lf), tw=g.measureText(lb).width; txt(g,lb,clamp(px+8,A.x0+4,A.x0+A.w-tw-4),clamp(P.Y(L10(al))-10,A.y0+60,A.y0+A.h-6),css('--ink')); }
+  ro($('cxOut'),[['inner diameter d',(2*cx.a*1000).toFixed(2)+' mm'],['velocity factor',cx.vp.toFixed(3)],['TE11 cut-off',fmt(cx.fc,'Hz')],['conductor αc',ac.toFixed(3)+' dB/m'],['dielectric αd',ad.toFixed(3)+' dB/m'],['total α',al.toFixed(3)+' dB/m'],['dielectric share',(100*ad/al).toFixed(0)+' %'],['loss over run',run.toFixed(1)+' dB'],['power delivered',(100*Math.pow(10,-run/10)).toPrecision(2)+' %'],['status',moded?'above 0.95 fc: not usable':'single mode (TEM)']]);
+}
+bind(['cxD','cxE','cxC','cxF','cxL'],cxDraw);
+
+/* ---------------- Step 2: waveguide ---------------- */
+const modeName=m=>(m.te?'TE':'TM')+m.m+m.n;
+function wgDraw(){
+  const c=$('cWg'), g=ctx(c), A=area(c,{l:56,t:24,r:46,b:40});
+  const key=$('wgT').value, mat=$('wgM').value, r=sl('wgF'), L=sl('wgL');
+  const w=TL.wg(key,mat), fc=w.f10, f=r*fc;
+  setv('wgF',r.toFixed(3)+' = '+fmt(f,'Hz')); setv('wgL',L.toFixed(1)+' m');
+  const xa=0.9*fc/1e9, xb=2.7*fc/1e9;
+  const ref=w.al(1.5*fc); const yb=nice(3.2*ref);
+  const P=axes(g,A,xa,xb,0,yb,{xt:linTicks(xa,xb,6),yt:linTicks(0,yb,5),fx:v=>v.toFixed(xb<10?1:0),fy:v=>v.toFixed(yb<0.1?3:yb<1?2:1),xl:'frequency, GHz',yl:'dB/m'});
+  shade(g,P.X(w.w.lo/1e9),P.X(w.w.hi/1e9),A,css('--trace'),0.10);
+  const higher=w.modes.slice(1).filter(m=>m.f<xb*1e9);
+  const seen={}; higher.forEach(m=>{ const k=m.f.toFixed(0); vline(g,P.X(m.f/1e9),A.y0,A.h,css('--trace2'),[3,3]); if(!seen[k]){ seen[k]=1; } });
+  const lbls={}; higher.forEach(m=>{ const k=m.f.toFixed(0); lbls[k]=(lbls[k]?lbls[k]+'/':'')+modeName(m); });
+  let row=0; Object.keys(lbls).forEach(k=>{ const x=P.X(+k/1e9); if(x<A.x0+A.w-10){ g.save(); g.fillStyle=css('--trace2'); g.translate(x-4,A.y0+A.h-6); g.rotate(-Math.PI/2); g.fillText(lbls[k],0,0); g.restore(); row++; } });
+  vline(g,P.X(fc/1e9),A.y0,A.h,css('--bad'),[2,3]);
+  const xs=[],ys=[],vs=[]; for(let i=0;i<=400;i++){ const ff=(xa+(xb-xa)*i/400)*1e9; xs.push(ff/1e9); ys.push(ff>fc?w.al(ff):NaN); vs.push(w.vg(ff)*yb); }
+  curve(g,P,xs,ys,css('--accent'),2.2); curve(g,P,xs,vs,css('--trace'),1.6,[6,4]);
+  g.fillStyle=css('--muted'); [0,0.5,1].forEach(v=>{ g.fillText(v.toFixed(1),A.x0+A.w+6,P.Y(v*yb)+4); }); g.fillText('vg/c',A.x0+A.w-22,A.y0-7);
+  const al=w.al(f); dot(g,P.X(f/1e9),P.Y(al),css('--accent'),5); dot(g,P.X(f/1e9),P.Y(w.vg(f)*yb),css('--trace'),4);
+  txt(g,'TE10 loss',A.x0+8,A.y0+14,css('--accent')); txt(g,'vg/c (right axis)',A.x0+8,A.y0+30,css('--trace')); txt(g,'shaded: recommended band',A.x0+8,A.y0+46,css('--muted'));
+  const prop=higher.filter(m=>m.f<f), tg=1/(TL.c0*w.vg(f));
+  { const lb=L.toFixed(1)+' m → '+(al*L).toFixed(2)+' dB, '+(tg*L*1e9).toFixed(0)+' ns', px=P.X(f/1e9), tw=g.measureText(lb).width; txt(g,lb,clamp(px+8,A.x0+4,A.x0+A.w-tw-4),clamp(P.Y(al)-10,A.y0+62,A.y0+A.h-6),css('--ink')); }
+  const st=prop.length?('multimode: '+[...new Set(prop.map(modeName))].slice(0,3).join(', ')+' propagate'):(f<w.w.lo?'single mode, below recommended band':f>w.w.hi?'single mode, above recommended band':'single mode, in band');
+  ro($('wgOut'),[['inside a × b',(w.w.a*1000).toFixed(2)+' × '+(w.w.b*1000).toFixed(2)+' mm'],['TE10 cut-off',fmt(fc,'Hz',3)],['next mode',modeName(w.modes[1])+' '+fmt(w.modes[1].f,'Hz')],['band',(w.w.lo/1e9).toFixed(2)+'–'+(w.w.hi/1e9).toFixed(2)+' GHz'],['α',al.toFixed(3)+' dB/m'],['loss over run',(al*L).toFixed(2)+' dB'],['λg (λ0)',(w.lg(f)*1000).toFixed(1)+' ('+(TL.c0/f*1000).toFixed(1)+') mm'],['vg / c',w.vg(f).toFixed(3)],['delay',(tg*1e9).toFixed(2)+' ns/m'],['status',st]]);
+}
+bind(['wgT','wgM','wgF','wgL'],wgDraw);
+
+/* ---------------- Step 3: ripple ---------------- */
+function rpDraw(){
+  const c=$('cRp'), g=ctx(c);
+  const sA=sl('rpA'), sB=sl('rpB'), L=sl('rpL'), IL=sl('rpI'), nc=Math.round(sl('rpN')), sc=sl('rpC');
+  setv('rpA',sA.toFixed(2)); setv('rpB',sB.toFixed(2)); setv('rpL',L.toFixed(1)+' m'); setv('rpI',IL.toFixed(1)+' dB'); setv('rpN',String(nc)); setv('rpC',sc.toFixed(2));
+  const vp=0.79, gA=TL.gam(sA), gB=TL.gam(sB), adB=IL/L;
+  const els=[{t:'g',G:gA,ph:0.3}]; const pos=[]; for(let i=1;i<=nc;i++) pos.push(i/(nc+1)+0.13*Math.sin(i*2.7)/(nc+1));
+  let last=0; pos.concat([1]).forEach((p,i)=>{ els.push({t:'l',L:(p-last)*L,vp,adB}); last=p; if(i<nc) els.push({t:'g',G:TL.gam(sc),ph:1.1+2.3*i}); });
+  els.push({t:'g',G:gB,ph:-0.7});
+  const f0=9.5e9, df=vp*TL.c0/(2*L), span=Math.min(1e9,Math.max(50e6,10*df)), N=1601;
+  const fs=[],mag=[],ph=[]; for(let k=0;k<N;k++){ const f=f0-span/2+span*k/(N-1); fs.push(f); const s=TL.cascade(f,els); mag.push(20*L10(Math.hypot(s.r,s.i))); ph.push(Math.atan2(s.i,s.r)); }
+  for(let k=1;k<N;k++){ while(ph[k]-ph[k-1]>Math.PI) ph[k]-=TAU; while(ph[k]-ph[k-1]<-Math.PI) ph[k]+=TAU; }
+  const gd=[NaN]; for(let k=1;k<N-1;k++) gd.push(-(ph[k+1]-ph[k-1])/(TAU*(fs[k+1]-fs[k-1]))*1e9); gd.push(NaN);
+  const mm=mag.reduce((a,b)=>a+b,0)/N; const gv=gd.filter(isFinite), gm=gv.reduce((a,b)=>a+b,0)/gv.length;
+  const mr=mag.map(v=>v-mm), gr=gd.map(v=>v-gm);
+  const mpp=Math.max(...mag)-Math.min(...mag), gpp=Math.max(...gv)-Math.min(...gv);
+  const rho=gA*gB*Math.pow(10,-2*IL/20), pred=20*L10((1+rho)/(1-rho));
+  const H=c.height, A1={x0:60,y0:22,w:c.width-76,h:(H-22-44-26)/2}, A2={x0:60,y0:22+A1.h+26,w:c.width-76,h:A1.h};
+  const xa=(f0-span/2)/1e9, xb=(f0+span/2)/1e9, xs=fs.map(f=>f/1e9);
+  const ym=Math.max(0.05,nice(1.15*Math.max(mpp/2,pred/2))), gmx=Math.max(0.05,nice(1.15*gpp/2));
+  const P1=axes(g,A1,xa,xb,-ym,ym,{xt:linTicks(xa,xb,5),yt:[-ym,-ym/2,0,ym/2,ym],fx:()=>'',fy:v=>(v>0?'+':'')+v.toFixed(ym<0.2?3:2),yl:'|S21| − mean, dB'});
+  hline(g,A1.x0,A1.w,P1.Y(pred/2),css('--muted')); hline(g,A1.x0,A1.w,P1.Y(-pred/2),css('--muted'));
+  curve(g,P1,xs,mr,css('--accent'),1.6);
+  const P2=axes(g,A2,xa,xb,-gmx,gmx,{xt:linTicks(xa,xb,5),yt:[-gmx,-gmx/2,0,gmx/2,gmx],fx:v=>v.toFixed(span<2e8?3:2),fy:v=>(v>0?'+':'')+v.toFixed(gmx<0.2?3:2),xl:'frequency, GHz',yl:'group delay − mean, ns'});
+  curve(g,P2,xs,gr,css('--trace'),1.6);
+  const T=2*L/(vp*TL.c0);
+  ro($('rpOut'),[['|ΓA| , |ΓB|',gA.toFixed(3)+' , '+gB.toFixed(3)],['ρ = ΓAΓB·A²',rho.toFixed(4)],['ripple, two ends',pred.toFixed(2)+' dB p-p'],['ripple, simulated',mpp.toFixed(2)+' dB p-p'],['ripple period',fmt(df,'Hz',1)],['delay ripple',gpp.toFixed(2)+' ns p-p'],['echo delay T',(T*1e9).toFixed(1)+' ns'],['echo level',rho>0?(20*L10(rho)).toFixed(1)+' dB':'none'],['ghost behind target',(TL.c0*T/2).toFixed(1)+' m'],['worst-case VSWR',(sA*sB*Math.pow(nc>0?sc:1,nc)).toFixed(2)],['mean loss',(-mm).toFixed(2)+' dB']]);
+}
+bind(['rpA','rpB','rpL','rpI','rpN','rpC'],rpDraw);
+
+/* ---------------- Step 4: power ---------------- */
+const PWL={wr284:{wg:'wr284',f:3e9},wr137:{wg:'wr137',f:7e9},wr90:{wg:'wr90',f:10e9},wr62:{wg:'wr62',f:15e9},wr28:{wg:'wr28',f:35e9},ax20:{cx:20e-3,f:3e9},ax39:{cx:38.8e-3,f:2e9}};
+function pwLine(k){ const l=PWL[k]; let Pm,al,q;
+  if(l.wg){ const W=TL.WG[l.wg]; Pm=TL.wgPeak(l.wg,l.f,3e6); al=TL.wg(l.wg,'al').al(l.f); q=10*(2*(W.a+W.b)+8*1.27e-3)*50; }
+  else { Pm=TL.coaxPeakAir(l.cx,3e6); al=TL.coax(l.cx,'air','smooth').al(l.f); q=10*Math.PI*(l.cx+3e-3)*50; }
+  return {Pm,al,q,f:l.f}; }
+function pwDraw(){
+  const c=$('cPw'), g=ctx(c), A=area(c,{l:62,t:24,r:16,b:40});
+  const k=$('pwT').value, Pt=Math.pow(10,sl('pwP'))*1e3, D=sl('pwD')/100, S=sl('pwS'), p=sl('pwB');
+  setv('pwP',fmt(Pt,'W')); setv('pwD',(D*100).toFixed(2)+' %'); setv('pwS',S.toFixed(2)); setv('pwB',p.toFixed(3)+' bar');
+  const l=pwLine(k), gm=TL.gam(S), fr=1-Math.pow(10,-l.al/10);
+  const pk=pp=>l.Pm*Math.pow(pp/1.01325,2)/(Math.pow(1+gm,2)*2), avc=l.q/fr/S, Pa=Pt*D;
+  const ya=1, yb=8;
+  const P=axes(g,A,0,3,ya,yb,{xt:[0,0.5,1,1.5,2,2.5,3],yt:[1,2,3,4,5,6,7,8],fx:v=>v.toFixed(1),fy:v=>({1:'10 W',2:'100 W',3:'1 kW',4:'10 kW',5:'100 kW',6:'1 MW',7:'10 MW',8:'100 MW'})[v],xl:'absolute pressure, bar',yl:'power (log)'});
+  vline(g,P.X(1.01325),A.y0,A.h,css('--muted'),[2,3]); txt(g,'sea level',P.X(1.01325)+4,A.y0+A.h-8,css('--muted'));
+  const xs=[],yp=[],ya2=[]; for(let i=0;i<=200;i++){ const pp=0.05+2.95*i/200; xs.push(pp); yp.push(L10(pk(pp))); ya2.push(L10(avc)); }
+  curve(g,P,xs,yp,css('--accent'),2.4); curve(g,P,xs,ya2,css('--trace'),2.2);
+  hline(g,A.x0,A.w,P.Y(L10(Pt)),css('--accent'),[6,4]); hline(g,A.x0,A.w,P.Y(L10(Pa)),css('--trace'),[6,4]);
+  dot(g,P.X(p),P.Y(L10(pk(p))),css('--accent'),5); dot(g,P.X(p),P.Y(L10(avc)),css('--trace'),5);
+  txt(g,'peak capability (solid), your peak (dashed)',A.x0+8,A.y0+14,css('--accent')); txt(g,'average capability (solid), your average (dashed)',A.x0+8,A.y0+30,css('--trace'));
+  const mP=10*L10(pk(p)/Pt), mA=10*L10(avc/Pa), h=TL.altP(p);
+  ro($('pwOut'),[['frequency',fmt(l.f,'Hz',1)],['peak, theory',fmt(l.Pm,'W')],['peak, practical',fmt(pk(p),'W')],['peak margin',sdb(mP)],['avg power',fmt(Pa,'W')],['avg capability',fmt(avc,'W')],['avg margin',sdb(mA)],['heat at input',(Pa*fr*S).toFixed(1)+' W/m'],['loss',l.al.toFixed(3)+' dB/m'],['same as altitude',p>=1.0?'sea level':(h/1000).toFixed(1)+' km'],['status',mP<0?'breakdown (arcing)':mA<0?'overheats':'OK']]);
+}
+bind(['pwT','pwP','pwD','pwS','pwB'],pwDraw);
+
+/* ---------------- Step 5: phase ---------------- */
+function phDraw(){
+  const c=$('cPh'), g=ctx(c), A=area(c,{l:56,t:24,r:16,b:40});
+  const k=$('phK').value, L=sl('phL'), fG=sl('phF'), T=sl('phT'), m=sl('phM')/100, fx=+$('phX').value, dl=sl('phB');
+  setv('phL',L.toFixed(1)+' m'); setv('phF',fG.toFixed(1)+' GHz'); setv('phT',T.toFixed(0)+' °C'); setv('phM',(m*100).toFixed(0)+' %'); setv('phB',dl.toFixed(1));
+  const el=kk=>360*L*fG*1e9*Math.sqrt(TL.PHT[kk].er)/TL.c0;
+  const keys=['ptfe','foam','ldp','sio2']; const col={ptfe:css('--accent'),foam:css('--trace2'),ldp:css('--trace'),sio2:css('--good')};
+  let mx=0; const data={}; keys.forEach(kk=>{ const xs=[],ys=[]; for(let t=-55;t<=85;t+=0.5){ xs.push(t); const v=el(kk)*TL.ppmT(kk,t)*1e-6; ys.push(v); mx=Math.max(mx,Math.abs(v)); } data[kk]={xs,ys}; });
+  const yb=nice(1.1*mx);
+  const P=axes(g,A,-55,85,-yb,yb,{xt:[-40,-20,0,20,40,60,80],yt:linTicks(-yb,yb,6),fx:v=>v+'',fy:v=>(v>0?'+':'')+(yb<10?v.toFixed(1):v.toFixed(0)),xl:'temperature, °C',yl:'phase change of one cable, degrees'});
+  shade(g,P.X(15),P.X(25),A,css('--accent'),0.08);
+  keys.forEach(kk=>{ if(kk!==k){ g.globalAlpha=0.4; curve(g,P,data[kk].xs,data[kk].ys,col[kk],1.2); g.globalAlpha=1; } });
+  curve(g,P,data[k].xs,data[k].ys,col[k],2.6);
+  const dT=el(k)*TL.ppmT(k,T)*1e-6; dot(g,P.X(T),P.Y(dT),col[k],5);
+  let yy=A.y0+14; keys.forEach(kk=>{ txt(g,TL.PHT[kk].n,A.x0+A.w-180,yy,col[kk]); yy+=15; });
+  const flex=TL.PHT[k].flex*(fG/10)*fx, tr=m*dT, ch=Math.hypot(tr,flex), aoa=ch/(360*dl)*180/Math.PI, sig=ch*Math.PI/180;
+  curve(g,P,data[k].xs,data[k].ys.map(v=>Math.hypot(m*v,flex)),css('--ink'),1.6,[5,4]); dot(g,P.X(T),P.Y(ch),css('--ink'),4);
+  txt(g,'dashed: channel error (m × change ⊕ flex)',A.x0+8,A.y0+A.h-24,css('--ink'));
+  txt(g,'at '+T.toFixed(0)+' °C: '+ch.toFixed(2)+'°, DF error '+aoa.toFixed(2)+'°',A.x0+8,A.y0+A.h-8,css('--muted'));
+  ro($('phOut'),[['electrical length',el(k).toFixed(0)+'°'],['change vs 25 °C',(TL.ppmT(k,T)).toFixed(0)+' ppm'],['one cable',(dT>=0?'+':'')+dT.toFixed(2)+'°'],['untracked part',Math.abs(tr).toFixed(2)+'°'],['flex (random)',flex.toFixed(2)+'°'],['channel error',ch.toFixed(2)+'°'],['DF, boresight',aoa.toFixed(3)+'°'],['DF, 45° off',(aoa/Math.cos(Math.PI/4)).toFixed(3)+'°'],['array floor N=100',ch>0?(10*L10(sig*sig/100)).toFixed(1)+' dB':'none']]);
+}
+bind(['phK','phL','phF','phT','phM','phX','phB'],phDraw);
+
+/* ---------------- Step 6: rotary joint ---------------- */
+const RJ={coax:{iso:0,ch:[{n:'Σ',nn:2,ph:0.4,il:0.20}]},wg:{iso:0,ch:[{n:'Σ',nn:1,ph:0.9,il:0.15}]},
+  two:{iso:50,ch:[{n:'ch 1 (coax)',nn:2,ph:0.4,il:0.25},{n:'ch 2 (waveguide)',nn:1,ph:2.1,il:0.30}]},
+  mono:{iso:45,ch:[{n:'Σ',nn:1,ph:0.9,il:0.40},{n:'ΔAz',nn:1,ph:2.8,il:0.40},{n:'ΔEl',nn:2,ph:4.4,il:0.40}]}};
+function rjDraw(){
+  const c=$('cRj'), g=ctx(c);
+  const t=$('rjT').value, s=sl('rjS'), th=sl('rjA');
+  setv('rjS',s.toFixed(1)+' dB'); setv('rjA',th.toFixed(0)+'°');
+  const J=RJ[t], r=Math.pow(10,-s/20);
+  const H=(ch,a)=>{ const x=ch.nn*a*Math.PI/180+ch.ph; return {re:1+r*Math.cos(x),im:r*Math.sin(x)}; };
+  const amp=(ch,a)=>{ const h=H(ch,a); return 20*L10(Math.hypot(h.re,h.im)); }, pha=(ch,a)=>{ const h=H(ch,a); return Math.atan2(h.im,h.re)*180/Math.PI; };
+  const Hh=c.height, A1={x0:58,y0:22,w:c.width-74,h:(Hh-22-44-26)/2}, A2={x0:58,y0:22+A1.h+26,w:c.width-74,h:A1.h};
+  const w=TL.rjWow(s); const ym=nice(1.15*w.il/2*(t==='mono'?1:1)); const pm=nice(1.15*(t==='mono'?2.1:1)*w.ph/2);
+  const P1=axes(g,A1,0,360,-ym,ym,{xt:[0,60,120,180,240,300,360],yt:[-ym,-ym/2,0,ym/2,ym],fx:()=>'',fy:v=>(v>0?'+':'')+v.toFixed(ym<0.2?3:2),yl:'loss deviation, dB (down = more loss)'});
+  const P2=axes(g,A2,0,360,-pm,pm,{xt:[0,60,120,180,240,300,360],yt:[-pm,-pm/2,0,pm/2,pm],fx:v=>v+'°',fy:v=>(v>0?'+':'')+v.toFixed(pm<5?2:1),xl:'rotation angle',yl:'phase deviation, degrees'});
+  const cols=[css('--accent'),css('--trace'),css('--trace2')];
+  const xs=[]; for(let a=0;a<=360;a+=1) xs.push(a);
+  J.ch.forEach((ch,i)=>{ curve(g,P1,xs,xs.map(a=>amp(ch,a)),cols[i],2); curve(g,P2,xs,xs.map(a=>pha(ch,a)),cols[i],t==='mono'?1.2:2); });
+  let dph=null; if(t==='mono'){ dph=xs.map(a=>{ let d=pha(J.ch[0],a)-pha(J.ch[1],a); return d; }); curve(g,P2,xs,dph,css('--trace2'),2.6,[]); }
+  vline(g,P1.X(th),A1.y0,A1.h,css('--muted')); vline(g,P2.X(th),A2.y0,A2.h,css('--muted'));
+  J.ch.forEach((ch,i)=>{ dot(g,P1.X(th),P1.Y(amp(ch,th)),cols[i],4); txt(g,ch.n,A1.x0+8+i*120,A1.y0+14,cols[i]); });
+  if(t==='mono') txt(g,'bold: Σ − ΔAz',A2.x0+8,A2.y0+14,css('--trace2'));
+  const S=J.ch[0], eSig=amp(S,th), echo=2*w.il, rr=Math.pow(10,-echo/40);
+  const rows=[['mean IL',S.il.toFixed(2)+' dB'],['wow, amplitude',w.il.toFixed(3)+' dB p-p'],['wow, phase',w.ph.toFixed(2)+'° p-p'],['pattern',S.nn===1?'once per rev':'twice per rev'],['at θ',sdb(eSig).replace(' dB','')+' dB, '+(pha(S,th)>=0?'+':'')+pha(S,th).toFixed(2)+'°'],['echo mod. (2-way)',echo.toFixed(2)+' dB p-p'],['range, worst bearing',' × '+rr.toFixed(3)]];
+  if(t==='two') rows.push(['ch 2 at θ',sdb(amp(J.ch[1],th)).replace(' dB','')+' dB'],['isolation',J.iso+' dB']);
+  if(t==='mono'){ const d=dph[Math.round(th)], gr=Math.pow(10,(amp(J.ch[1],th)-amp(S,th))/20), err=1*(gr*Math.cos(d*Math.PI/180)-1), dpp=Math.max(...dph)-Math.min(...dph), bs=Math.pow(10,-J.iso/20)*2/1.6;
+    rows.push(['Σ−ΔAz phase at θ',(d>=0?'+':'')+d.toFixed(2)+'°'],['Σ−ΔAz phase p-p',dpp.toFixed(2)+'°'],['ΔAz/Σ gain at θ',sdb(20*L10(gr)).replace(' dB','')+' dB'],['angle error, 1° target',(err>=0?'+':'')+err.toFixed(3)+'°'],['boresight shift',bs.toFixed(4)+'°']); }
+  ro($('rjOut'),rows);
+}
+bind(['rjT','rjS','rjA'],rjDraw);
+
+/* ---------------- Step 7: connectors ---------------- */
+const vs=gg=>{ const v=TL.vswr(gg); return v>10?'> 10':v.toFixed(2); };
+const TQ={loose:{g:2.5,r:4,i:1.5,n:'finger-tight'},ok:{g:1,r:1,i:1,n:'specified'},over:{g:1.5,r:2,i:1.2,n:'over-torqued'}};
+function cnDraw(){
+  const c=$('cCn'), g=ctx(c), A=area(c,{l:52,t:24,r:16,b:40});
+  const k=$('cnK').value, lf=sl('cnF'), f=Math.pow(10,lf)*1e9, N=Math.round(sl('cnN')), tq=$('cnT').value;
+  setv('cnF',fmt(f,'Hz',f<10e9?2:1)); setv('cnN',String(N));
+  const C=TL.CONN[k], fc=TL.connFc(k), q=TQ[tq];
+  const G1=ff=>Math.min(0.9,TL.connG(k,ff,'ok')*q.g);
+  const xa=-0.3, xb=1.9, yb=3;
+  const P=axes(g,A,xa,xb,1,yb,{xt:logTicks(xa,xb),yt:[1,1.25,1.5,1.75,2,2.5,3],fx:decLbl,fy:v=>v.toFixed(2),xl:'frequency, GHz',yl:'VSWR (clipped at 3)'});
+  shade(g,P.X(L10(C.fr/1e9)),P.X(L10(fc/1e9)),A,css('--accent'),0.12); shade(g,P.X(L10(fc/1e9)),A.x0+A.w,A,css('--bad'),0.15);
+  const xs=[],y1=[],yN=[]; for(let i=0;i<=300;i++){ const lv=xa+(xb-xa)*i/300, ff=Math.pow(10,lv)*1e9; xs.push(lv); const gg=G1(ff); y1.push(TL.vswr(gg)); yN.push(TL.vswr(Math.min(0.95,gg*Math.sqrt(N)))); }
+  curve(g,P,xs,yN,css('--trace'),2); curve(g,P,xs,y1,css('--accent'),2.4);
+  const g1=G1(f), gN=Math.min(0.95,g1*Math.sqrt(N)), gW=Math.min(0.95,g1*N);
+  dot(g,P.X(lf),P.Y(TL.vswr(g1)),css('--accent'),5); dot(g,P.X(lf),P.Y(TL.vswr(gN)),css('--trace'),4);
+  txt(g,'one mated pair',A.x0+8,A.y0+14,css('--accent')); txt(g,N+' pairs, typical (√N)',A.x0+8,A.y0+30,css('--trace')); txt(g,'amber: above rated  red: above TE11',A.x0+8,A.y0+46,css('--muted'));
+  const sc=f/C.fr, rph=C.rph*sc*q.r*Math.sqrt(N), rep=C.rep*sc*q.r*Math.sqrt(N), il=N*C.il*Math.sqrt(f/1e9)*q.i;
+  const st=f>=fc?'moded (above TE11 cut-off)':f>C.fr?'above rated frequency':'within rating';
+  ro($('cnOut'),[['family',C.n],['rated',fmt(C.fr,'Hz',1)],['TE11 cut-off',fmt(fc,'Hz',1)],['VSWR per pair',(TL.vswr(g1)>10?'> 10':TL.vswr(g1).toFixed(3))],['RL per pair',(-20*L10(g1)).toFixed(1)+' dB'],['typical, '+N+' pairs',vs(gN)],['worst, '+N+' pairs',vs(gW)],['IL, '+N+' pairs',il.toFixed(2)+' dB'],['re-mate: phase',rph.toFixed(2)+'°'],['re-mate: loss',rep.toFixed(3)+' dB'],['torque spec',C.tq.split(';')[0]],['torque used',q.n],['status',st],['interface',tq==='over'?'damaged':tq==='loose'?'gap at reference plane':'good']]);
+}
+bind(['cnK','cnF','cnN','cnT'],cnDraw);
+
+/* ---------------- Step 8: PIM ---------------- */
+function pmDraw(){
+  const c=$('cPm'), g=ctx(c), A=area(c,{l:58,t:24,r:16,b:40});
+  const P0=sl('pmP'), spec=+$('pmC').value, slope=sl('pmS'), D=sl('pmD');
+  setv('pmP',P0.toFixed(1)+' dBm ('+fmt(Math.pow(10,P0/10)/1000,'W',1)+')'); setv('pmS',slope.toFixed(2)+' dB/dB'); setv('pmD',D.toFixed(0)+' MHz');
+  const f1=1800, f2=1800+D, NF=-111, rb=[1700,1780];
+  const P=axes(g,A,1600,2000,-150,60,{xt:[1600,1700,1800,1900,2000],yt:[-150,-120,-90,-60,-30,0,30,60],fx:v=>v+'',fy:v=>v+'',xl:'frequency, MHz',yl:'dBm'});
+  shade(g,P.X(rb[0]),P.X(rb[1]),A,css('--trace'),0.12); txt(g,'receive band',P.X(rb[0])+4,A.y0+14,css('--trace'));
+  hline(g,A.x0,A.w,P.Y(NF),css('--trace'),[6,4]); txt(g,'noise floor, 1 MHz',A.x0+A.w-130,P.Y(NF)-5,css('--trace'));
+  const bar=(f,l,col,w)=>{ if(f<1600||f>2000) return; g.fillStyle=col; const y=P.Y(l); g.fillRect(P.X(f)-w/2,y,w,A.y0+A.h-y); };
+  bar(f1,P0,css('--accent'),5); bar(f2,P0,css('--accent'),5);
+  const prods=[]; for(let kk=1;kk<=4;kk++){ const n=2*kk+1, l=TL.pimLevel(spec,slope,P0,n); prods.push({n,f:f1-kk*D,l}); prods.push({n,f:f2+kk*D,l}); }
+  prods.forEach(p=>bar(p.f,p.l,css('--trace2'),4));
+  const inb=prods.filter(p=>p.f>=rb[0]&&p.f<=rb[1]);
+  const worst=inb.length?inb.reduce((a,b)=>a.l>b.l?a:b):null;
+  inb.forEach(p=>{ dot(g,P.X(p.f),P.Y(p.l),p.l>NF?css('--bad'):css('--trace2'),4); });
+  txt(g,'carriers',P.X(f1)-64,P.Y(P0)+12,css('--accent'));
+  const im3=prods[0], im5=prods[2];
+  const des=worst?10*L10(1+Math.pow(10,(worst.l-NF)/10)):0;
+  ro($('pmOut'),[['carriers, MHz',f1+' / '+f2],['IM3 at '+im3.f+' MHz',im3.l.toFixed(1)+' dBm'],['IM5 at '+im5.f+' MHz',im5.l.toFixed(1)+' dBm'],['in receive band',inb.length?inb.map(p=>'IM'+p.n).join(', '):'none'],['worst in band',worst?('IM'+worst.n+' '+worst.l.toFixed(1)+' dBm'):'none'],['vs noise floor',worst?sdb(worst.l-NF):'n/a (none in band)'],['desensitisation',des.toFixed(2)+' dB']]);
+}
+bind(['pmP','pmC','pmS','pmD'],pmDraw);
+
+/* ---------------- Step 9: system ---------------- */
+const SYL={rg213:{n:'RG-213 class',cx:[7.24e-3,'pe','braid']},half:{n:'½-inch foam',cx:[12e-3,'foam','corr']},seven:{n:'7/8-inch foam',cx:[22e-3,'foam','corr']},wg:{n:'waveguide'}};
+function syLine(t,f){ if(t==='wg'){ const k=f<5e9?'wr284':'wr90'; return {a:TL.wg(k,'al').al(f),moded:false,name:TL.WG[k].n}; } const c=TL.coax(...SYL[t].cx); return {a:c.al(f),moded:f>0.95*c.fc,name:SYL[t].n}; }
+function syCalc(f,t,L,rj,pos){ const TA=100, Tl=290*(lin(1.5)-1), G=lin(30), T2=290*(lin(6)-1), Lc=0.3;
+  const la=syLine(t,f), Lline=la.a*L, Lt=Lline+rj+Lc, T0=TA+Tl+T2/G; let Ts;
+  if(pos==='shelter'){ const Lr=lin(Lt); Ts=TA+(Lr-1)*290+Lr*(Tl+T2/G); }
+  else { const Lp=lin(0.3), Lq=lin(Lline+rj+Lc); Ts=TA+(Lp-1)*290+Lp*(Tl+((Lq-1)*290+Lq*T2)/G); }
+  return {la,Lline,Lt,Ts,T0,rf:Math.pow(1/lin(Lt)*T0/Ts,0.25)}; }
+function syDraw(){
+  const c=$('cSy'), g=ctx(c), A=area(c,{l:52,t:24,r:16,b:40});
+  const f=sl('syF')*1e9, t=$('syT').value, L=sl('syL'), rj=sl('syR'), pos=$('syP').value;
+  setv('syL',L.toFixed(1)+' m'); setv('syR',rj.toFixed(2)+' dB');
+  const P=axes(g,A,0,60,0,100,{xt:[0,10,20,30,40,50,60],yt:[0,20,40,60,80,100],fx:v=>v+'',fy:v=>v+' %',xl:'run length, m',yl:'detection range vs lossless'});
+  const cols={rg213:css('--bad'),half:css('--trace2'),seven:css('--trace'),wg:css('--accent')};
+  ['rg213','half','seven','wg'].forEach((k,i)=>{ const xs=[],ys=[]; for(let x=0;x<=60;x+=0.5){ xs.push(x); ys.push(100*syCalc(f,k,x,rj,pos).rf); } const md=syLine(k,f).moded;
+    curve(g,P,xs,ys,md?css('--muted'):cols[k],k===t?2.8:1.4,md?[5,4]:[]); txt(g,SYL[k].n+(md?' (moded)':''),A.x0+A.w-190,A.y0+14+15*i,md?css('--muted'):cols[k]); });
+  const r=syCalc(f,t,L,rj,pos); dot(g,P.X(L),P.Y(100*r.rf),r.la.moded?css('--muted'):cols[t],5);
+  const eirp=60-r.Lt+33;
+  ro($('syOut'),[['line',r.la.name],['line loss',r.la.a.toFixed(3)+' dB/m'],['run loss',r.Lline.toFixed(2)+' dB'],['transmit loss Lt',r.Lt.toFixed(2)+' dB'],['EIRP',eirp.toFixed(1)+' dBm'],['Tsys',r.Ts.toFixed(0)+' K'],['Tsys, lossless',r.T0.toFixed(1)+' K'],['G/T',(33-10*L10(r.Ts)).toFixed(2)+' dB/K'],['ESM sensitivity change',sdb(10*L10(r.Ts/r.T0))],['radar range factor','× '+r.rf.toFixed(3)],['status',r.la.moded?'moded at this band: not usable':'OK']]);
+}
+bind(['syF','syT','syL','syR','syP'],syDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

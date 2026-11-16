@@ -1,0 +1,990 @@
+<title>Recognising Emitters</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:14px 0 6px}
+.fcard{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--chip);font-size:13px}
+.fcard dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 8px}
+.fcard dt{color:var(--muted);font-size:12px}
+.fcard dd{margin:0;font-family:var(--f-mono);font-size:12px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Part 5 of 6 · Recognise · RF Systems for Component Engineers</div>
+  <h1>Recognising: from a stream of pulses to a list of radars</h1>
+  <p class="lede">Part 4's listener measured every pulse and wrote one record per pulse, the pulse descriptor word (PDW). On a real hilltop, pulses from many radars arrive mixed together, about 10 000 of them every second. This page is about processing, not hardware. It first takes the measurable parameters one at a time (frequency, direction, pulse width, amplitude, timing, the inside of the pulse and the scan) and, for six example radars, shows why each radar chose its value and what that value tells us. Then it builds on those parameters: sorting the mixed stream into radars, finding each one's rhythm, and matching a library to say what each radar is. Every step uses the same six radars.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#s0">0 What arrives</a><a href="#p1">1 The pulse record</a><a href="#p2">2 RF</a><a href="#p3">3 AOA</a><a href="#p4">4 PW</a><a href="#p5">5 Amplitude</a><a href="#p6">6 TOA and PRI</a><a href="#p7">7 Inside the pulse</a><a href="#p8">8 Scan</a><a href="#p9">9 Scorecard</a><a href="#s1">10 Why arrival order fails</a><a href="#s2">11 Sorting</a><a href="#s3">12 Finding the rhythm</a><a href="#s7">13 Library</a><a href="#s8">14 Your components</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="s0">
+  <div class="secno">Step 0</div>
+  <h2>What arrives: one mixed stream of pulse records</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Imagine six drummers in a dark hall, each beating their own rhythm, and you hear every beat but cannot see who played it. For each beat you can write down when it came, how high it sounded, how long it lasted and which direction it came from. Recognition is the job of sorting those notes back into six drummers, finding each one's rhythm, and then saying which kind of drummer each one is.</div>
+  <div class="know"><h4>You already know</h4>From Part 4 Step 5: for every pulse the receiver writes a PDW with time of arrival (TOA), frequency (RF), pulse width (PW), amplitude and angle of arrival (AOA). From Part 4 Steps 5–6: TOA is good to tens of ns, AOA to about 3° with an interferometer. From R4 Step 5: the pulse repetition interval (PRI) is the time from one pulse to the next of the same radar.</div>
+  <div class="term"><h4>The six radars around the hill (generic, for teaching)</h4><p>Each one is described by the numbers the listener can measure. The names are only roles.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>Role</th><th>RF</th><th>PW</th><th>PRI pattern</th><th>AOA</th><th>Pulses per second</th></tr>
+    <tr><td>A</td><td>Surveillance (Part 4's radar)</td><td class="n">10.00 GHz</td><td class="n">1.0 µs</td><td>constant 1 000 µs</td><td class="n">40°</td><td class="n">1 000</td></tr>
+    <tr><td>B1</td><td>Ship navigation, ship 1</td><td class="n">9.41 GHz</td><td class="n">0.25 µs</td><td>constant 1 250 µs</td><td class="n">118°</td><td class="n">800</td></tr>
+    <tr><td>B2</td><td>Ship navigation, ship 2 (same model)</td><td class="n">9.41 GHz</td><td class="n">0.25 µs</td><td>constant 1 100 µs</td><td class="n">123°</td><td class="n">909</td></tr>
+    <tr><td>C</td><td>Air traffic</td><td class="n">2.80 GHz</td><td class="n">2.0 µs</td><td>3-step stagger 900 / 1 000 / 1 100 µs</td><td class="n">200°</td><td class="n">1 000</td></tr>
+    <tr><td>D</td><td>Tracking, pulse-compressed</td><td class="n">9.60 GHz</td><td class="n">10 µs, chirped 5 MHz</td><td>jittered 400 µs ± 10 %</td><td class="n">45°</td><td class="n">2 500</td></tr>
+    <tr><td>E</td><td>Frequency-agile</td><td class="n">9.00–9.80 GHz, hops every pulse</td><td class="n">0.5 µs, phase-coded</td><td>constant 250 µs</td><td class="n">300°</td><td class="n">4 000</td></tr>
+    <tr class="sum"><td colspan="6">Total arriving at the listener</td><td class="n">10 209</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>What the listener actually gets.</b> Not the table above, but a list of PDWs in time order, with no label saying which radar sent each pulse. On average a new pulse arrives every 1 / 10 209 s = 98 µs. Each PDW holds about 16 bytes, so this hill produces about 160 kB of PDWs per second. A busy coastal or battlefield environment can reach a million pulses per second.</p>
+    <p>(To keep the numbers clear, this page assumes that for the 100 ms looked at, all six radars are heard all the time, as with Part 4's −80 dBm receiver that hears sidelobes. Step 8 brings the scan back.)</p>
+  </div>
+  <div class="bench">
+    <canvas id="cMix" width="640" height="400" aria-label="Pulses from six radars arriving mixed, and the PDW list the receiver writes"></canvas>
+    <div class="ctrl">
+      <label for="mxT">Window starts at <b id="mxTv"></b></label><input id="mxT" type="range" min="0" max="95" step="0.5" value="0">
+      <label for="mxW">Window length</label><select id="mxW"><option value="1000">1 ms</option><option value="2000">2 ms</option><option value="5000" selected>5 ms</option><option value="20000">20 ms</option></select>
+      <label for="mxC">Colour</label><select id="mxC"><option value="0" selected>None: as the receiver sees it</option><option value="1">By true radar (the answer)</option></select>
+      <div class="readout" id="mxOut"></div>
+    </div>
+    <p class="cap">Try it: top, every pulse in the window as a tick (height = amplitude). Below, the first 10 PDWs in the window, as the receiver writes them, with measurement noise (TOA 50 ns, RF 1 MHz, PW 50 ns, AOA 3°, amplitude 1 dB rms). Things to check: (1) with no colour, the stream gives no hint of which pulse is whose; (2) colour by radar: E (4 000 pulses/s) dominates, and its RF is different on every pulse; (3) B1 and B2 have the same RF and PW and nearly the same AOA; (4) the readout's average gap is about 98 µs, which matches none of the six PRIs.</p>
+  </div>
+</section>
+
+<!-- P1 -->
+<section id="p1">
+  <div class="secno">Step 1</div>
+  <h2>The pulse record: eight things we can learn about every radar</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Everything the listener will ever know about a radar comes from a handful of measurable quantities. Some belong to each single pulse (its frequency, length, strength, arrival time and direction). Some only appear across many pulses (the rhythm, the scan), and one needs a look inside the pulse (the modulation). Steps 2–8 take them one at a time. For each one we ask two questions with the same six radars: <b>why does the radar choose this value?</b> and <b>what does it tell us, and how well can we measure it?</b></div>
+  <div class="diag"><svg viewBox="0 0 760 330" role="img" aria-label="Anatomy of a radar pulse train with each measurable parameter labelled">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <text x="20" y="18" fill="var(--ink)">Seen over microseconds: one pulse and the next</text>
+      <line x1="40" y1="130" x2="720" y2="130" stroke="var(--muted)"/>
+      <rect x="90" y="60" width="90" height="70" fill="var(--trace)" fill-opacity=".25" stroke="var(--trace)"/>
+      <path d="M90 95 q5 -30 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0" fill="none" stroke="var(--trace)"/>
+      <rect x="520" y="60" width="90" height="70" fill="var(--trace)" fill-opacity=".25" stroke="var(--trace)"/>
+      <line x1="90" y1="140" x2="90" y2="155" stroke="var(--accent)"/><text x="60" y="170" fill="var(--accent)">TOA (time of arrival)</text>
+      <line x1="90" y1="50" x2="180" y2="50" stroke="var(--ink)"/><text x="100" y="44" fill="var(--ink)">PW (width)</text>
+      <line x1="190" y1="60" x2="190" y2="130" stroke="var(--ink)"/><text x="196" y="100" fill="var(--ink)">amplitude</text>
+      <line x1="90" y1="185" x2="520" y2="185" stroke="var(--trace2)"/><line x1="90" y1="180" x2="90" y2="190" stroke="var(--trace2)"/><line x1="520" y1="180" x2="520" y2="190" stroke="var(--trace2)"/><text x="230" y="200" fill="var(--trace2)">PRI (repetition interval) = TOA₂ − TOA₁</text>
+      <text x="300" y="80" fill="var(--muted)">inside: RF (carrier frequency)</text><text x="300" y="98" fill="var(--muted)">and any modulation (chirp, phase code)</text>
+      <path d="M680 40 l30 20" stroke="var(--accent)" stroke-width="2"/><path d="M710 60 l-10 -1 l4 -8 z" fill="var(--accent)"/><text x="620" y="34" fill="var(--accent)">AOA (direction)</text>
+      <text x="20" y="235" fill="var(--ink)">Seen over seconds: the amplitude of many pulses as the beam sweeps past</text>
+      <line x1="40" y1="310" x2="720" y2="310" stroke="var(--muted)"/>
+      <path d="M40 300 L150 300 L160 296 L170 255 L180 296 L190 300 L380 300 L390 296 L400 255 L410 296 L420 300 L610 300 L620 296 L630 255 L640 296 L650 300 L720 300" fill="none" stroke="var(--accent)"/>
+      <line x1="170" y1="248" x2="400" y2="248" stroke="var(--ink)"/><text x="230" y="243" fill="var(--ink)">scan period</text>
+      <text x="440" y="285" fill="var(--muted)">sidelobes between bursts</text>
+    </g></svg></div>
+  <div class="tw"><table class="t">
+    <tr><th>Parameter</th><th>Measured from</th><th>Step</th></tr>
+    <tr><td>RF: the carrier frequency</td><td>each pulse (IFM or digital receiver)</td><td>2</td></tr>
+    <tr><td>AOA: the direction it came from</td><td>each pulse (DF antennas, Part 4 Step 6)</td><td>3</td></tr>
+    <tr><td>PW: how long the pulse lasts</td><td>each pulse (video edges, Part 4 Step 5)</td><td>4</td></tr>
+    <tr><td>Amplitude: how strong it arrives</td><td>each pulse (detector, log amplifier)</td><td>5</td></tr>
+    <tr><td>TOA and PRI: when, and the rhythm</td><td>each pulse's time stamp; the rhythm from many pulses</td><td>6</td></tr>
+    <tr><td>Intrapulse modulation</td><td>samples inside one pulse</td><td>7</td></tr>
+    <tr><td>Scan</td><td>amplitude of many pulses over seconds</td><td>8</td></tr>
+  </table></div>
+</section>
+
+<!-- P2 RF -->
+<section id="p2">
+  <div class="secno">Step 2</div>
+  <h2>RF: the carrier frequency</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>RF is the "pitch" of the radar. It is fixed by the radar's hardware and by which band it is allowed to use. To us it is the first and quickest clue: the band says roughly what kind of radar it is. But radars of the same kind share a band, and some radars change frequency on every pulse precisely so that RF tells us less.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>RF</th><th>Why the radar uses it (its side)</th><th>What it means to us (our side)</th></tr>
+    <tr><td>A surveillance</td><td class="n">10.00 GHz</td><td>X band: a 1.5 m antenna gives a 2° beam (λ/D, R2)</td><td>X band → short-to-medium-range radar; one fixed value, easy to sort</td></tr>
+    <tr><td>B1, B2 ship navigation</td><td class="n">9.41 GHz both</td><td>9.3–9.5 GHz is the band set aside for ship radars worldwide; every ship uses it</td><td>tells us "ship radar", but cannot tell one ship from another</td></tr>
+    <tr><td>C air traffic</td><td class="n">2.80 GHz</td><td>S band: rain loss is about 1/10 of X band, so it sees aircraft 100+ km away in any weather</td><td>S band → long-range surveillance; alone in its band, sorted by RF in one step</td></tr>
+    <tr><td>D tracking</td><td class="n">9.60 GHz</td><td>X band: narrow beam for precise angle tracking</td><td>close to A in RF and in direction; RF alone separates them (400 MHz apart)</td></tr>
+    <tr class="sum"><td>E frequency-agile</td><td class="n">9.00–9.80 GHz, a new 20 MHz channel every pulse</td><td>hopping avoids interference and makes it hard to listen to or jam on one frequency</td><td>RF useless for sorting (every pulse differs) but the hopping itself is a strong clue</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How we measure it, and how well.</b> An IFM (instantaneous frequency measurement) receiver compares the pulse with a delayed copy of itself. The phase difference across a delay τ is 2π·f·τ, so a 1 ns delay turns 360° per GHz. A digital receiver takes the FFT of the samples. Either way, about 1 MHz rms is typical for a single pulse. That is far finer than the gaps between most radars, but zero for B1 and B2, which share 9.41 GHz.</p>
+    <p><b>Worked: which radars can RF separate?</b> A (10 000), D (9 600) and C (2 800) are hundreds of MHz from everyone. B1 and B2 are 0 MHz apart. E's 41 channels cover 9 000–9 800 MHz, the same span that contains B and D: one of its channels is exactly D's 9 600 MHz, and two (9 400 and 9 420 MHz) sit 10 MHz either side of B's 9 410 MHz.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cRF" width="640" height="360" aria-label="The six radars on a frequency axis, with measured spread"></canvas>
+    <div class="ctrl">
+      <label for="rfZ">Frequency range shown</label><select id="rfZ"><option value="0" selected>2–11 GHz (everything)</option><option value="1">X band, 8.9–10.1 GHz</option><option value="2">9.40–9.42 GHz (around B1 and B2)</option></select>
+      <label for="rfE">RF measurement error (rms) <b id="rfEv"></b></label><input id="rfE" type="range" min="0.1" max="20" step="0.1" value="1">
+      <label for="rfH">Highlight</label><select id="rfH"><option value="-1" selected>All radars</option><option value="0">A</option><option value="1">B1</option><option value="2">B2</option><option value="3">C</option><option value="4">D</option><option value="5">E</option></select>
+      <div class="readout" id="rfOut"></div>
+    </div>
+    <p class="cap">Try it: 200 measured pulses from each radar, stacked as a histogram on a frequency axis, one colour per radar. Things to check: (1) the whole range: C sits alone in S band, and the other five crowd into X band; (2) X band: E is a comb of 41 channels spread over 800 MHz, through B's and D's frequencies; (3) zoom on 9.41 GHz: B1 and B2 are one single peak, whatever the error; (4) raise the error to 20 MHz: E's comb melts into one smear.</p>
+  </div>
+  <div class="check"><h4>RF, in one line</h4><p><b>To the radar:</b> set by band rules, range and weather needs; can be made to hop. <b>To us:</b> measured to ≈ 1 MHz; the first clue to the radar's class; good for sorting fixed-frequency radars, useless for sorting agile ones, and blind to two radars of the same model.</p></div>
+</section>
+
+<!-- P3 AOA -->
+<section id="p3">
+  <div class="secno">Step 3</div>
+  <h2>AOA: the direction the pulse came from</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>A radar can change its frequency, its pulse length and its rhythm, but it cannot change where it is. So the direction its pulses come from is the parameter we trust most. It is also the only one that leads to <i>where</i> the radar is: two listeners some distance apart each draw a line, and the radar is where the lines cross.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>Where it is (from our hill)</th><th>AOA</th><th>Why there (its side)</th><th>Width of our ±3° uncertainty at that distance (our side)</th></tr>
+    <tr><td>A</td><td>20 km north-east</td><td class="n">40°</td><td>on a hill for coverage</td><td class="n">± 1.0 km</td></tr>
+    <tr><td>B1</td><td>8 km, on the river</td><td class="n">118°</td><td>wherever the ship is; moves slowly</td><td class="n">± 0.4 km</td></tr>
+    <tr><td>B2</td><td>9 km, on the river</td><td class="n">123°</td><td>another ship, 5° further along</td><td class="n">± 0.5 km</td></tr>
+    <tr><td>C</td><td>45 km, at the airport</td><td class="n">200°</td><td>at the airport it serves</td><td class="n">± 2.4 km</td></tr>
+    <tr><td>D</td><td>15 km north-east</td><td class="n">45°</td><td>near what it protects or tracks</td><td class="n">± 0.8 km</td></tr>
+    <tr class="sum"><td>E</td><td>30 km west</td><td class="n">300°</td><td>wherever its operator puts it</td><td class="n">± 1.6 km</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How we measure it.</b> By amplitude comparison between antennas pointing different ways (5–10° accuracy) or by the phase difference across an interferometer baseline (0.5–3°), as in Part 4 Step 6. The error grows as the signal gets weaker.</p>
+    <p><b>Worked: what 3° means.</b> A sideways error of R·σ: at 20 km, 20 000 × 3 × π/180 = 1.05 km. So one listener knows A's <i>direction</i> well but not its <i>distance</i> at all. A second listener 10 km away sees A from a different angle. The two bearing lines cross at A, and the overlap of their error wedges is a patch about ±2 km across: a location. (The bearings cross at only 29°; a longer baseline between the listeners would make them cross more squarely and shrink the patch.)</p>
+    <p><b>Worked: which radars can AOA separate?</b> With a 3° error, the sorting gate (Step 11) is ±9°. B1 and B2 are 5° apart, A and D are 5° apart: AOA alone merges both pairs. With a 0.5° error the gate is ±1.5°, and all six separate by direction alone.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cAO" width="640" height="460" aria-label="Map of the six radars around the listener with bearing lines and error wedges"></canvas>
+    <div class="ctrl">
+      <label for="aoS">AOA error (rms) <b id="aoSv"></b></label><input id="aoS" type="range" min="0.5" max="15" step="0.5" value="3">
+      <label for="aoW">Wedge drawn</label><select id="aoW"><option value="1">±1σ</option><option value="3" selected>±3σ (the sorting gate)</option></select>
+      <label for="aoX">Second listener 10 km east</label><select id="aoX"><option value="0" selected>Off</option><option value="1">On: cross-fix</option></select>
+      <div class="readout" id="aoOut"></div>
+    </div>
+    <p class="cap">Try it: a map, about 140 km across, with our listener at the centre and rings at 10, 25 and 50 km. Each radar gets the error wedge our DF gives it. Things to check: (1) default ±3σ at 3°: the A and D wedges overlap, and so do B1 and B2; (2) error 0.5°: every wedge is separate; (3) error 10°: wedges become wide fans, and the error at C's 45 km is ±23 km; (4) turn on the second listener: each pair of wedges crosses over the true radar: that is how direction becomes location.</p>
+  </div>
+  <div class="check"><h4>AOA, in one line</h4><p><b>To the radar:</b> not a choice; it is wherever it is. <b>To us:</b> the most trusted sorting parameter, the only route to location, limited by our DF accuracy (0.5–10°). It cannot separate two radars in the same direction.</p></div>
+</section>
+
+<!-- P4 PW -->
+<section id="p4">
+  <div class="secno">Step 4</div>
+  <h2>PW: how long each pulse lasts</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>A longer pulse carries more energy, so it reaches further, but it blurs range: two targets closer than c·PW/2 return overlapping echoes. A shorter pulse sees fine detail at short range. So the pulse width tells us what distance and what detail the radar was designed for. Pulse compression (Step 7) breaks this rule, and a long pulse with a chirp inside is itself a clue.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>PW</th><th>Range resolution c·PW/2</th><th>Duty cycle PW/PRI</th><th>Why (its side)</th><th>To us</th></tr>
+    <tr><td>A</td><td class="n">1.0 µs</td><td class="n">150 m</td><td class="n">0.1 %</td><td>general surveillance: aircraft-sized detail</td><td>ordinary</td></tr>
+    <tr><td>B1, B2</td><td class="n">0.25 µs</td><td class="n">37 m</td><td class="n">0.02 %</td><td>sees buoys and banks close by; minimum range c·PW/2 = 37 m</td><td>short pulse: short-range, fine-detail radar</td></tr>
+    <tr><td>C</td><td class="n">2.0 µs</td><td class="n">300 m</td><td class="n">0.2 %</td><td>more energy for long range; aircraft are far apart</td><td>long pulse, plain: long-range surveillance</td></tr>
+    <tr><td>D</td><td class="n">10 µs (chirped)</td><td class="n">1 500 m plain → 30 m after compression</td><td class="n">2.5 %</td><td>energy of a long pulse, detail of a 5 MHz chirp</td><td>long pulse + high duty → pulse compression, a modern radar</td></tr>
+    <tr class="sum"><td>E</td><td class="n">0.5 µs (phase-coded)</td><td class="n">75 m → 5.8 m after compression</td><td class="n">0.2 %</td><td>13 chips of 38 ns give fine detail</td><td>short, coded: check inside the pulse (Step 7)</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How we measure it.</b> From the two edges of the detected pulse: where it crosses half its peak on the way up and on the way down (Part 4 Step 5). The rise time of our video path is about 0.35 / video bandwidth. With 50 MHz of video bandwidth, the rise time is 7 ns and every PW here is measured to about 50 ns.</p>
+    <p><b>Where it goes wrong.</b> If our video bandwidth is too low, a short pulse never reaches its full height before it ends, and its measured width is wrong. 0.35 / 5 MHz = 70 ns of rise is already a quarter of B's 0.25 µs. Overlapping pulses from two radars, and echoes off hills (multipath), stretch the measured width too.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPW" width="640" height="400" aria-label="The six radars' pulses drawn to the same time scale, as our video path sees them"></canvas>
+    <div class="ctrl">
+      <label for="pwV">Our video bandwidth <b id="pwVv"></b></label><input id="pwV" type="range" min="1" max="100" step="1" value="50">
+      <label for="pwS">Time scale</label><select id="pwS"><option value="12" selected>0–12 µs (all pulses)</option><option value="1.2">0–1.2 µs (short pulses)</option></select>
+      <div class="readout" id="pwOut"></div>
+    </div>
+    <p class="cap">Try it: each radar's pulse as our detector outputs it, all on one time scale, with the half-height crossings marked and the measured PW written beside it. Things to check: (1) default, 50 MHz: every measured PW is within a few ns of the true value; (2) switch to 0–1.2 µs: B's 0.25 µs and E's 0.5 µs side by side; (3) drop the video bandwidth to 1 MHz (350 ns rise time): B's pulse reaches only 79 % of its height (−2 dB) and reads 0.28 µs, while D's 10 µs is unaffected. Measuring at half the peak hides most of the error in width; it shows up in amplitude instead.</p>
+  </div>
+  <div class="check"><h4>PW, in one line</h4><p><b>To the radar:</b> a trade between energy (range) and detail, unless it uses pulse compression. <b>To us:</b> measured to ≈ 50 ns given enough video bandwidth; a good second sorting parameter after AOA, and a clue to range and to pulse compression. Distorted by low video bandwidth, overlaps and multipath.</p></div>
+</section>
+
+<!-- P5 AMP -->
+<section id="p5">
+  <div class="secno">Step 5</div>
+  <h2>Amplitude: how strong each pulse arrives</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>How strong a pulse is when it reaches us depends on three things: how powerful the radar is (its ERP), how far away it is, and where its beam is pointing at that moment. The radar chooses its power for its own job, not for us. To us amplitude is a poor sorting parameter, because it rises and falls by 30 dB or more as the beam sweeps past. But it says whether we are in the main beam, it roughly shows how far away the radar is, and over seconds it gives the scan (Step 8).</div>
+  <div class="eq">received power (dBm) = ERP (dBm) − free-space loss 20·log₁₀(4πR/λ) + our antenna gain (0 dBi here)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>Peak power</th><th>Antenna gain</th><th>ERP</th><th>Distance</th><th>Path loss</th><th>Main beam at us</th><th>Sidelobes (−30 dB)</th></tr>
+    <tr><td>A</td><td class="n">1 kW (60 dBm)</td><td class="n">30 dBi</td><td class="n">90 dBm</td><td class="n">20 km</td><td class="n">138.5 dB</td><td class="n">−48.5 dBm</td><td class="n">−78.5 dBm</td></tr>
+    <tr><td>B1</td><td class="n">25 kW (74 dBm)</td><td class="n">28 dBi</td><td class="n">102 dBm</td><td class="n">8 km</td><td class="n">130.0 dB</td><td class="n">−28.0 dBm</td><td class="n">−58.0 dBm</td></tr>
+    <tr><td>B2</td><td class="n">10 kW (70 dBm)</td><td class="n">28 dBi</td><td class="n">98 dBm</td><td class="n">9 km</td><td class="n">131.0 dB</td><td class="n">−33.0 dBm</td><td class="n">−63.0 dBm</td></tr>
+    <tr><td>C</td><td class="n">100 kW (80 dBm)</td><td class="n">34 dBi</td><td class="n">114 dBm</td><td class="n">45 km</td><td class="n">134.5 dB</td><td class="n">−20.5 dBm</td><td class="n">−50.5 dBm</td></tr>
+    <tr><td>D</td><td class="n">5 kW (67 dBm)</td><td class="n">38 dBi</td><td class="n">105 dBm</td><td class="n">15 km</td><td class="n">135.6 dB</td><td class="n">−30.6 dBm (if it looked at us)</td><td class="n">−60.6 dBm (what we get)</td></tr>
+    <tr class="sum"><td>E</td><td class="n">2 kW (63 dBm)</td><td class="n">32 dBi</td><td class="n">95 dBm</td><td class="n">30 km</td><td class="n">141.5 dB</td><td class="n">−46.5 dBm</td><td class="n">−76.5 dBm</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>What the numbers say.</b> The strongest signal at our hill, C at −20.5 dBm, comes from the radar furthest away, because it is the most powerful. So amplitude alone does not give distance. If the library (Step 13) tells us a radar's ERP, then the measured main-beam amplitude gives the distance: R = λ/(4π) · 10<sup>(ERP − P<sub>r</sub>)/20</sup>. A 3 dB error in amplitude makes that distance wrong by a factor of 1.4.</p>
+    <p><b>Strong and weak together.</b> C's main beam (−20.5 dBm) and A's sidelobes (−78.5 dBm) are 58 dB apart, almost exactly the 59 dB SFDR of Part 4 Step 7. A weaker receiver would lose A's sidelobe pulses whenever C's beam passes.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cAm" width="640" height="380" aria-label="Main-beam and sidelobe levels of the six radars against our sensitivity, and the link budget of one"></canvas>
+    <div class="ctrl">
+      <label for="amS">Our sensitivity <b id="amSv"></b></label><input id="amS" type="range" min="-90" max="-40" step="1" value="-80">
+      <label for="amR">Link budget for</label><select id="amR"><option value="0">A</option><option value="1">B1</option><option value="2">B2</option><option value="3" selected>C</option><option value="4">D</option><option value="5">E</option></select>
+      <label for="amD">Its distance <b id="amDv"></b></label><input id="amD" type="range" min="1" max="200" step="1" value="45">
+      <div class="readout" id="amOut"></div>
+    </div>
+    <p class="cap">Try it: top, each radar's main-beam level (tall bar) and sidelobe level (short bar) at our hill, against our sensitivity (dashed). Bottom, the link budget of the chosen radar: power, plus antenna gain, minus path loss. Things to check: (1) at −80 dBm sensitivity we hear every radar's sidelobes, so we hear all six all the time; (2) at −54 dBm (Part 4's wideband receiver) only C's sidelobes are still heard; the others are heard only while their main beams pass, and D, which never points at us, not at all; (3) move C out to 200 km: still −33.5 dBm in the main beam; (4) the readout's "distance estimated from amplitude" is right when the ERP is known.</p>
+  </div>
+  <div class="check"><h4>Amplitude, in one line</h4><p><b>To the radar:</b> power is chosen for its own detection range; we only see it through distance and beam pointing. <b>To us:</b> poor for sorting (it swings 30 dB with the scan), useful for main-beam warning, rough range if ERP is known, and the raw material of scan analysis.</p></div>
+</section>
+
+<!-- P6 TOA/PRI -->
+<section id="p6">
+  <div class="secno">Step 6</div>
+  <h2>TOA and PRI: when pulses arrive, and the rhythm</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Each pulse gets a time stamp (TOA). On its own a time stamp means nothing. The gaps between one radar's pulses, though, are its PRI: its rhythm. The radar chooses that rhythm to suit how far it needs to see and how it deals with moving targets, so the PRI and its pattern are among the strongest clues to what the radar is. They are also the key to separating two radars that agree in every other parameter, like B1 and B2.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>PRI</th><th>Unambiguous range c·PRI/2</th><th>Why (its side)</th><th>To us</th></tr>
+    <tr><td>A</td><td class="n">constant 1 000 µs</td><td class="n">150 km</td><td>sees to 150 km before the next pulse goes out (R4 Step 5)</td><td>simple, stable: a clean histogram peak</td></tr>
+    <tr><td>B1</td><td class="n">constant 1 250 µs</td><td class="n">187 km</td><td>its own setting</td><td>the only thing (with AOA) that tells B1 from B2</td></tr>
+    <tr><td>B2</td><td class="n">constant 1 100 µs</td><td class="n">165 km</td><td>a different range setting on the same model</td><td>as above</td></tr>
+    <tr><td>C</td><td class="n">stagger 900 / 1 000 / 1 100 µs</td><td class="n">135 km (shortest PRI)</td><td>stagger removes MTI blind speeds (R4 Step 5)</td><td>the pattern itself identifies MTI surveillance</td></tr>
+    <tr><td>D</td><td class="n">jitter 400 µs ± 10 %</td><td class="n">54 km (shortest PRI)</td><td>unpredictable timing is hard to imitate (Part 6)</td><td>hard to measure; the jitter is the clue</td></tr>
+    <tr class="sum"><td>E</td><td class="n">constant 250 µs</td><td class="n">37 km</td><td>many pulses per look for a short-range radar</td><td>4 000 pulses/s: 40 % of all the pulses we receive</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How we measure it.</b> The TOA is taken at the leading edge, from a clock that runs continuously (Part 4 Step 5): about 50 ns rms here. The PRI is the difference of two TOAs from the <i>same</i> radar, so its error is √2 × 50 = 71 ns. That is tiny compared with any PRI. The hard part is not accuracy but knowing which pulses belong together: Steps 10–12.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cTr" width="640" height="400" aria-label="Pulse trains of the six radars on one time axis, and the mixed stream we receive"></canvas>
+    <div class="ctrl">
+      <label for="trT">Window starts at <b id="trTv"></b></label><input id="trT" type="range" min="0" max="90" step="0.5" value="0">
+      <label for="trW">Window length</label><select id="trW"><option value="2000">2 ms</option><option value="5000" selected>5 ms</option><option value="10000">10 ms</option></select>
+      <label for="trC">Bottom row coloured</label><select id="trC"><option value="0" selected>No: as we receive it</option><option value="1">Yes</option></select>
+      <div class="readout" id="trOut"></div>
+    </div>
+    <p class="cap">Try it: one row per radar, each pulse a tick at its TOA, and the gaps between neighbours written in µs; the bottom row is everything together, as we receive it. Things to check: (1) A, B1, B2 and E tick like clocks; (2) C's gaps go 900, 1 000, 1 100, then repeat; (3) D's gaps differ every time, between 360 and 440 µs; (4) the bottom row has no visible rhythm at all: that is the problem Steps 10–12 solve.</p>
+  </div>
+</section>
+<!-- 4 -->
+<section id="s4">
+  <div class="secno">Step 6b</div>
+  <h2>PRI patterns: what the rhythm says about the radar, in detail</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Radars do not always beat a steady rhythm. Some alternate between a few intervals, some wobble randomly, some switch between rhythms. The pattern is a strong clue to what the radar is for, because each pattern solves a particular problem from R4 and R6.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Pattern</th><th>What it looks like</th><th>Why a radar uses it</th><th>Our scene</th></tr>
+    <tr><td>Constant</td><td>one PRI</td><td>simplest; MTI cancellers (R6 Step 2) want equal spacing</td><td>A, B1, B2, E</td></tr>
+    <tr><td>Stagger</td><td>a few PRIs in a repeating order</td><td>removes MTI blind speeds (R4 Step 5)</td><td>C: 900, 1 000, 1 100 µs, frame 3 000 µs</td></tr>
+    <tr><td>Jitter</td><td>random spread around a mean</td><td>makes the next pulse time unpredictable, so it is hard to imitate or synchronise to</td><td>D: 400 µs ± 10 %</td></tr>
+    <tr><td>Dwell and switch</td><td>one PRI for a few ms, then another</td><td>resolves range and Doppler ambiguity with several PRFs (R6 Step 3, Chinese remainder)</td><td>—</td></tr>
+    <tr><td>Sliding</td><td>PRI changing smoothly</td><td>keeps the unambiguous range matched to the beam's elevation</td><td>—</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How each pattern is recognised.</b> Plot each extracted pulse's PRI against pulse number (the "PRI sequence"), and make a histogram of those PRIs.</p>
+    <p>• <b>Constant</b>: one value; the histogram is one bin wide (only the TOA error, about 0.07 µs rms for the difference of two TOAs).</p>
+    <p>• <b>Stagger</b>: N levels, repeating in a fixed order. The sum of one cycle, the <b>frame</b>, is constant: 900 + 1 000 + 1 100 = 3 000 µs. In the difference histogram of Step 12, the frame is the strongest peak. A stagger radar is described by its levels <i>and</i> their order.</p>
+    <p>• <b>Jitter</b>: a flat spread. For D, 400 µs ± 10 % is a uniform spread from 360 to 440 µs: a standard deviation of 80/√12 = 23 µs. That is far wider than a 10 µs bin, which is why jitter spreads the Step 12 peak over 8 bins and makes it weak.</p>
+    <p>• <b>Dwell and switch</b>: steps between levels that each last many pulses.</p>
+    <p>• <b>Sliding</b>: a ramp.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cTy" width="640" height="380" aria-label="PRI sequence and PRI histogram for different PRI patterns"></canvas>
+    <div class="ctrl">
+      <label for="tyT">Pattern</label><select id="tyT"><option value="0">Constant</option><option value="1" selected>Stagger</option><option value="2">Jitter</option><option value="3">Dwell and switch</option><option value="4">Sliding</option></select>
+      <label for="tyP">Main PRI <b id="tyPv"></b></label><input id="tyP" type="range" min="200" max="2000" step="50" value="1000">
+      <label for="tyS">Stagger levels / jitter % / switch levels <b id="tySv"></b></label><input id="tyS" type="range" min="2" max="8" step="1" value="3">
+      <label for="tyM">Missed pulses <b id="tyMv"></b></label><input id="tyM" type="range" min="0" max="30" step="5" value="0">
+      <div class="readout" id="tyOut"></div>
+    </div>
+    <p class="cap">Try it: top, the PRI of each of 120 pulses in order. Bottom, the histogram of those PRIs. The readout is what a pattern classifier would measure. Things to check: (1) default, stagger with 3 levels at 1 000 µs: levels 900 / 1 000 / 1 100 µs, frame 3 000 µs, as for radar C; (2) jitter at 10 %: a flat block from 900 to 1 100 µs, standard deviation ≈ 58 µs; (3) add missed pulses: occasional PRIs at twice the value, which a classifier must recognise as gaps, not as a new level; (4) dwell and switch: long flat steps.</p>
+  </div>
+</section>
+
+<!-- P7 INTRA -->
+<section id="p7">
+  <div class="secno">Step 7</div>
+  <h2>Inside the pulse: intrapulse modulation</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Looked at from outside, a pulse is just a burst of a certain length. Looked at from inside, sample by sample, it may sweep in frequency (a chirp) or flip its phase in a code. The radar does this to get the detail of a short pulse with the energy of a long one (R6 Step 1). To us it is a fingerprint, and even radars with no intended modulation leave small accidental ones that can tell two units of the same model apart.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>Inside the pulse</th><th>Bandwidth</th><th>Why (its side)</th><th>To us</th></tr>
+    <tr><td>A</td><td>plain</td><td class="n">≈ 1 MHz (1/PW)</td><td>simple transmitter</td><td>nothing inside: a conventional radar</td></tr>
+    <tr><td>B1, B2</td><td>plain in intent, but the frequency drifts during the pulse as the magnetron's current changes: ≈ 6 MHz (B1), ≈ 9 MHz (B2)</td><td class="n">≈ 10 MHz</td><td>a magnetron is cheap and powerful, but not clean</td><td>the drift differs slightly between units: a possible way to tell B1 from B2 ("specific emitter identification")</td></tr>
+    <tr><td>C</td><td>plain</td><td class="n">≈ 0.5 MHz</td><td>long pulse, range detail not critical</td><td>conventional</td></tr>
+    <tr><td>D</td><td>linear FM chirp, 5 MHz in 10 µs</td><td class="n">5 MHz</td><td>energy of 10 µs, detail of 30 m</td><td>a modern pulse-compression radar; slope 0.5 MHz/µs is a measurable signature</td></tr>
+    <tr class="sum"><td>E</td><td>Barker-13 phase code, 13 chips of 38 ns</td><td class="n">≈ 26 MHz</td><td>detail of 5.8 m from a 0.5 µs pulse</td><td>needs a wideband digital receiver to see at all</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cIn" width="640" height="380" aria-label="Instantaneous frequency and phase inside one pulse of each of the six radars"></canvas>
+    <div class="ctrl">
+      <label for="inS">SNR of the pulse <b id="inSv"></b></label><input id="inS" type="range" min="0" max="30" step="1" value="25">
+      <label for="inV">Show</label><select id="inV"><option value="0" selected>Frequency inside the pulse</option><option value="1">Phase inside the pulse (frequency removed)</option></select>
+      <div class="readout" id="inOut"></div>
+    </div>
+    <p class="cap">Try it: one panel per radar, each pulse stretched to the same width so their insides can be compared (true lengths in the panel titles). Things to check: (1) frequency view: A and C flat, B1 and B2 drifting slightly upward (by different amounts), D a straight ramp of 5 MHz, E flat; (2) phase view: E shows its 180° steps; the others are smooth; (3) lower the SNR to 5 dB: D's ramp is still clear, but E's 38 ns chips and B's small drift disappear into noise.</p>
+  </div>
+  <div class="check"><h4>Intrapulse modulation, in one line</h4><p><b>To the radar:</b> pulse compression, detail without giving up energy. <b>To us:</b> a strong identifier and, at its finest (accidental drift), a way to tell individual transmitters apart; needs wide bandwidth, flat phase and good SNR.</p></div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <div class="secno">Step 7b</div>
+  <h2>Measuring the modulation inside one pulse</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Most radars send a plain burst of one frequency. Pulse-compression radars (R6 Step 1) change the frequency or phase during the pulse, so that a long pulse can give the range detail of a short one. If the listener samples fast enough to see inside each pulse, that modulation is a fingerprint: radar D's 10 µs pulse sweeps 5 MHz.</div>
+  <div class="know"><h4>You already know</h4>From R6 Step 1: a chirp of bandwidth B compressed by a matched filter gives range resolution c/2B, whatever the pulse length. From Part 4 Step 4: an IFM or digital receiver measures frequency.</div>
+  <div class="term"><h4>Instantaneous frequency</h4><p>The rate at which the phase of the signal turns, at each moment: f(t) = (1/2π)·dφ/dt. A digital receiver gets φ(t) from its I and Q samples (as in the SAR raw data of Part 3 Step 6) and differentiates it. A plain pulse gives a flat line, a chirp a sloped line, a phase code a flat line with sudden phase jumps.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Modulation</th><th>What is measured inside the pulse</th><th>Worked</th><th>Range resolution after compression, c/2B</th></tr>
+    <tr><td>None (plain pulse)</td><td>flat frequency; spectrum width ≈ 1/PW</td><td>1 µs pulse → 1 MHz wide</td><td class="n">150 m</td></tr>
+    <tr><td>Linear FM (chirp)</td><td>frequency sweeps linearly; slope = B / PW</td><td>radar D: 5 MHz in 10 µs → 0.5 MHz/µs, time-bandwidth 50</td><td class="n">30 m</td></tr>
+    <tr class="sum"><td>Phase code (Barker 13)</td><td>13 chips; phase flips 0°/180° at the chip boundaries</td><td>1 µs pulse, 77 ns chips → ≈ 13 MHz wide</td><td class="n">11.5 m</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Why noise matters.</b> The phase of a noisy sample is uncertain by about 1/√(2·SNR) radians, and differentiating it makes the frequency estimate noisy. Averaging over many samples helps, which is why a long pulse is easy to analyse and a short one is hard. At 20 dB SNR, a 10 µs chirp is obvious. At 0 dB it is buried sample by sample, but a straight-line fit across the whole pulse still recovers the slope.</p>
+    <p><b>What this needs from the hardware.</b> The sample rate must cover the pulse's bandwidth (at least 13 MHz of complex bandwidth for the Barker code), the receiver's phase must be flat across that band, and the ADC must have enough bits to keep the SNR.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cIp" width="640" height="400" aria-label="Pulse waveform, measured instantaneous frequency and phase"></canvas>
+    <div class="ctrl">
+      <label for="ipT">Modulation</label><select id="ipT"><option value="0">None (plain 10 µs pulse)</option><option value="1" selected>Linear FM chirp (radar D)</option><option value="2">Barker 13 phase code</option></select>
+      <label for="ipB">Chirp bandwidth <b id="ipBv"></b></label><input id="ipB" type="range" min="1" max="20" step="1" value="5">
+      <label for="ipS">SNR <b id="ipSv"></b></label><input id="ipS" type="range" min="-5" max="30" step="1" value="20">
+      <div class="readout" id="ipOut"></div>
+    </div>
+    <p class="cap">Try it: the pulse after mixing down to a low frequency (top), its instantaneous frequency measured sample by sample at 100 Msamples/s (middle, dots, with a straight-line fit) and its unwrapped phase (bottom). Things to check: (1) chirp at 20 dB: the fit finds about 5 MHz over 10 µs; (2) no modulation: a flat line, slope near 0; (3) Barker 13: flat frequency, but the phase plot shows steps of 180° at the chip edges; (4) lower the SNR to 0 dB: the dots scatter widely, but the fitted bandwidth stays within about 10 % of the true value.</p>
+  </div>
+</section>
+
+<!-- P8 SCAN -->
+<section id="p8">
+  <div class="secno">Step 8</div>
+  <h2>The scan: how each radar moves its beam</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Over several seconds, the amplitude of a radar's pulses rises and falls as its beam passes over us. The radar chooses how it moves its beam to suit its job: sweep all round, look at one target, or jump around electronically. To us, the timing of those bursts is a clue to the radar's job, and a beam that stops moving and stays on us is the most important observation of all.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Radar</th><th>Scan</th><th>Main-beam burst at us</th><th>Why (its side)</th><th>To us</th></tr>
+    <tr><td>A</td><td>circular, 6 s</td><td class="n">33 ms every 6 s</td><td>all-round search, each direction every 6 s</td><td>surveillance; 33 pulses per burst</td></tr>
+    <tr><td>B1</td><td>circular, 2.4 s</td><td class="n">≈ 16 ms every 2.4 s (2.4° beam)</td><td>ships need a fast update close by</td><td>2.4 s against B2's 2.5 s: another way to tell the two ships apart</td></tr>
+    <tr><td>B2</td><td>circular, 2.5 s</td><td class="n">≈ 17 ms every 2.5 s</td><td>same model, slightly different motor</td><td>as above</td></tr>
+    <tr><td>C</td><td>circular, 4 s</td><td class="n">≈ 17 ms every 4 s (1.5° beam)</td><td>air-traffic update rate</td><td>long-range surveillance</td></tr>
+    <tr><td>D</td><td>none: beam held on its target</td><td class="n">never (sidelobes only, steady)</td><td>tracking one target continuously</td><td>a steady signal: the beam is fixed on something. If it rose to main-beam level it would be fixed on <i>us</i></td></tr>
+    <tr class="sum"><td>E</td><td>electronic: beam jumps between directions</td><td class="n">short, irregular visits</td><td>a phased array revisits where it is needed</td><td>no fixed period: the irregularity is the clue</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSx" width="640" height="420" aria-label="Amplitude of each radar's pulses over 20 seconds"></canvas>
+    <div class="ctrl">
+      <label for="sxL">Listening time <b id="sxLv"></b></label><input id="sxL" type="range" min="2" max="30" step="1" value="20">
+      <label for="sxS">Our sensitivity <b id="sxSv"></b></label><input id="sxS" type="range" min="-90" max="-40" step="1" value="-80">
+      <div class="readout" id="sxOut"></div>
+    </div>
+    <p class="cap">Try it: one strip per radar, amplitude (dBm) over the listening time; grey parts are below our sensitivity and not heard. The readout lists the period found by autocorrelation (Step 8b). Things to check: (1) A, B1, B2 and C show regular bursts at 6, 2.4, 2.5 and 4 s; (2) D is flat at −60.6 dBm: no scan seen; (3) E's bursts come at irregular times: no period; (4) shorten the listening time to 5 s: A's 6 s and C's 4 s periods can no longer be found, B1's and B2's still can, and E's few irregular visits now produce a false period: too short a recording misleads; (5) raise the sensitivity to −54 dBm: only main-beam bursts remain, and D disappears completely.</p>
+  </div>
+  <div class="check"><h4>Scan, in one line</h4><p><b>To the radar:</b> how often it revisits each direction, or whether it stays on one target. <b>To us:</b> scan type and period identify the job; a steady, strong signal is a warning; needs seconds of listening, far longer than any other parameter.</p></div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <div class="secno">Step 8b</div>
+  <h2>Measuring the scan period</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Over several seconds, the amplitude of a radar's pulses rises and falls as its beam sweeps past the listener (Part 4 Step 0). The shape and timing of that rise and fall show how the radar moves its beam, and that says a lot about its job. A beam that stops moving and stays on the listener is the most important case of all: the radar is probably tracking something near the listener.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Scan type</th><th>Amplitude seen over time</th><th>Typical period</th><th>Typical job</th></tr>
+    <tr><td>Circular</td><td>one main-beam burst per period, sidelobes between</td><td class="n">2–12 s</td><td>surveillance (A: 6 s)</td></tr>
+    <tr><td>Sector (back and forth)</td><td>bursts in pairs, uneven spacing</td><td class="n">1–5 s</td><td>sector search, height finding</td></tr>
+    <tr><td>Conical</td><td>steady amplitude with a small, fast ripple</td><td class="n">15–50 Hz</td><td>older tracking radars</td></tr>
+    <tr class="sum"><td>Steady (no scan seen)</td><td>constant, high</td><td class="n">—</td><td>tracking, or an electronically steered beam dwelling on the listener</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How the period is measured.</b> Take the amplitude of the group's pulses over time and find where it repeats, by autocorrelation: shift the record against itself and see at which shift it matches best. For radar A, the bursts are 6 s apart and each lasts BW / (360°/period) = 2° / 60°/s = 33 ms. Measuring a 6 s period needs at least two bursts, so at least 6–12 s of listening: much longer than the 100 ms used for PRI analysis.</p>
+    <p><b>Watch out.</b> A listener that is itself scanning or sweeping in frequency (Part 4 Step 3) only samples the radar now and then. Its own revisit time must be shorter than the burst length, or the bursts are missed, and the period it measures is wrong.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cSc" width="640" height="300" aria-label="Pulse amplitude against time for different scan types, and the autocorrelation"></canvas>
+    <div class="ctrl">
+      <label for="scT">Scan type</label><select id="scT"><option value="0" selected>Circular</option><option value="1">Sector (back and forth)</option><option value="2">Conical</option><option value="3">Steady (tracking)</option></select>
+      <label for="scP">Scan period <b id="scPv"></b></label><input id="scP" type="range" min="1" max="12" step="0.5" value="6">
+      <label for="scL">Listening time <b id="scLv"></b></label><input id="scL" type="range" min="2" max="30" step="1" value="20">
+      <div class="readout" id="scOut"></div>
+    </div>
+    <p class="cap">Try it: top, the amplitude of each pulse heard (dBm) over the listening time; bottom, its autocorrelation, with the period found marked. Conical scan is drawn at 25 Hz, so only its first 0.5 s is shown. Things to check: (1) circular, 6 s: bursts every 6 s, period found 6.0 s; (2) shorten the listening time to 5 s: one burst only, and no period can be found; (3) sector: bursts in pairs, and the period found is the full back-and-forth cycle; (4) steady: a flat line near the main-beam level and no period.</p>
+  </div>
+</section>
+
+<!-- P9 SCORE -->
+<section id="p9">
+  <div class="secno">Step 9</div>
+  <h2>All parameters side by side: the scorecard</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>No single parameter does everything. Direction is the most trusted for sorting but says nothing about what the radar is. RF says roughly what it is but cannot split two identical radars. The rhythm splits them but needs the pulses grouped first. Recognition works because each parameter covers another's weak spot.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Parameter</th><th>Can the radar change it?</th><th>Our accuracy</th><th>For sorting</th><th>For identifying</th><th>For locating</th><th>Our hardware that sets it</th></tr>
+    <tr><td>AOA</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">no</td><td>0.5–10°</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">best</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">none</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">the only one</td><td>DF antennas, channel phase match</td></tr>
+    <tr><td>RF</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">yes (agile)</td><td>≈ 1 MHz</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">good unless agile</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">band → class</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">none</td><td>IFM / digital receiver</td></tr>
+    <tr><td>PW</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">by mode</td><td>≈ 50 ns</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">good</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">some</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">none</td><td>video bandwidth, detector</td></tr>
+    <tr><td>Amplitude</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">not on purpose</td><td>≈ 1–3 dB</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">poor (scan)</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">main-beam warning</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">rough range if ERP known</td><td>log amplifier, dynamic range</td></tr>
+    <tr><td>TOA / PRI</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">yes (stagger, jitter)</td><td>≈ 70 ns per PRI</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">the final splitter</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">strong</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">with several sites (time difference)</td><td>clock, FPGA timestamping</td></tr>
+    <tr><td>Intrapulse</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">by design</td><td>needs high SNR</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">some</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">strong, even per unit</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">none</td><td>ADC rate and bits, phase flatness</td></tr>
+    <tr class="sum"><td>Scan</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">by mode</td><td>≈ 1 % of period</td><td style="background:color-mix(in srgb,var(--accent) 18%,transparent)">some</td><td style="background:color-mix(in srgb,var(--good) 22%,transparent)">strong (job, threat)</td><td style="background:color-mix(in srgb,var(--bad) 18%,transparent)">none</td><td>sensitivity, listening time</td></tr>
+  </table></div>
+  <div class="col"><p><b>The six radars as fingerprints.</b> Each card collects what Steps 2–8 measured. Read across a row of cards to see which parameter tells which radars apart: B1 and B2 differ only in PRI, scan period, a few degrees of AOA and their magnetron drift.</p></div>
+  <div class="cards" id="fpCards"></div>
+</section>
+
+<!-- 1 -->
+<section id="s1">
+  <div class="secno">Step 10</div>
+  <h2>The naive approach: take the gap to the next pulse</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>The obvious idea is to measure the gap between each pulse and the next one, and look for gaps that repeat. With one radar that works perfectly. With six, the next pulse almost always belongs to a different radar, so the gaps are a meaningless jumble.</div>
+  <div class="col">
+    <p><b>With one radar.</b> Radar A alone: every gap is 1 000 µs, and a histogram of gaps has one sharp peak at 1 000 µs.</p>
+    <p><b>With all six.</b> The chance that the next pulse after one of A's pulses is also A's is tiny: in 1 000 µs about 9 other pulses arrive. The gaps measured are spread from 0 to a few hundred µs, with an average of 98 µs. None of them is a real PRI.</p>
+    <p><b>With missing pulses.</b> Even with one radar, if the receiver misses a pulse (weak signal, a collision with another pulse, a moment spent tuned elsewhere as in Part 4 Step 3), that gap becomes 2 000 µs. Any method has to survive missed pulses.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Gap to the next pulse</th><th>One radar (A)</th><th>A with 20 % of pulses missed</th><th>All six radars</th></tr>
+    <tr><td>Most common gap</td><td class="n">1 000 µs</td><td class="n">1 000 µs</td><td class="n">near 0, falling off</td></tr>
+    <tr><td>Other gaps</td><td class="n">none</td><td class="n">2 000, 3 000 µs</td><td class="n">anything up to ≈ 500 µs</td></tr>
+    <tr class="sum"><td>Does it find the PRI?</td><td class="n">yes</td><td class="n">yes</td><td class="n">no</td></tr>
+  </table></div>
+  <div class="col"><p>So recognition is done in two stages. First, sort the pulses into groups using the parameters that each pulse carries on its own (Step 11). Then, inside each group, find the rhythm using the time of arrival of <i>every</i> pair of pulses, not only neighbours (Step 12).</p></div>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <div class="secno">Step 11</div>
+  <h2>Sorting by parameters: grouping pulses that look alike</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Before looking at timing, put pulses that came from the same direction, have the same length and the same frequency into the same pile. Direction is the most trusted: a radar can change its frequency every pulse, but it cannot change where it is. This first sort is called pre-sorting or clustering.</div>
+  <div class="term"><h4>Which parameters can be trusted</h4><p><b>AOA</b> (angle of arrival): fixed by the radar's position, changes only slowly as it or the listener moves. The radar cannot hide it. Accuracy about 3° (Part 4 Step 6).<br><b>PW</b> (pulse width): fixed by the radar's mode. Accuracy about 50 ns, but distorted when pulses overlap or by multipath.<br><b>RF</b>: measured to about 1 MHz by an IFM or digital receiver. Reliable for fixed-frequency radars, useless for sorting a frequency-agile one.<br><b>Amplitude</b>: changes all the time as the beam scans (Part 4 Step 0), so it is not used for sorting.<br><b>TOA</b>: carries the rhythm, used in Step 12.</p></div>
+  <div class="col">
+    <p><b>The method.</b> Two pulses are put in the same group if they are close in every parameter used: here within 3σ of the measurement error (9° in AOA, 150 ns or 10 % in PW, 5 MHz in RF). Any pulse close to any member joins the group.</p>
+    <p><b>Choosing the gate width.</b> Too narrow, and one radar's pulses are split into several groups by measurement noise. Too wide, and two radars are put in one group. 3σ keeps 99.7 % of one radar's pulses together, so gates follow the receiver's measurement accuracy. That is why AOA accuracy matters so much: with a 10° error the gate becomes 30° and radars A (40°) and D (45°) can only be split by their PW.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: our six radars</th><th>AOA only</th><th>AOA + PW</th><th>AOA + PW + RF</th></tr>
+    <tr><td>A (40°, 1 µs) and D (45°, 10 µs)</td><td class="n">merged: 5° apart &lt; 9° gate</td><td class="n">split by PW</td><td class="n">split</td></tr>
+    <tr><td>B1 and B2 (118°/123°, same PW and RF)</td><td class="n">merged</td><td class="n">merged</td><td class="n">merged: only timing can split them</td></tr>
+    <tr><td>C (200°)</td><td class="n">alone</td><td class="n">alone</td><td class="n">alone</td></tr>
+    <tr><td>E (300°, RF hops in 20 MHz steps)</td><td class="n">one group</td><td class="n">one group</td><td class="n">shattered into ≈ 41 groups, one per channel</td></tr>
+    <tr class="sum"><td>Groups found</td><td class="n">4</td><td class="n">5 (best)</td><td class="n">≈ 45</td></tr>
+  </table></div>
+  <div class="col"><p>So the order matters: sort on AOA first, then PW, and use RF only for radars that do not hop. A real sorter checks whether a group's RF spread is wide but regular, and if so marks it "agile" instead of splitting it.</p></div>
+  <div class="bench">
+    <canvas id="cCl" width="640" height="420" aria-label="Scatter plot of pulse records and the groups found"></canvas>
+    <div class="ctrl">
+      <label for="clX">Horizontal axis</label><select id="clX"><option value="aoa" selected>AOA</option><option value="rf">RF</option><option value="pw">PW</option></select>
+      <label for="clY">Vertical axis</label><select id="clY"><option value="aoa">AOA</option><option value="rf" selected>RF</option><option value="pw">PW</option></select>
+      <label for="clU">Sort using</label><select id="clU"><option value="1">AOA only</option><option value="2" selected>AOA + PW</option><option value="3">AOA + PW + RF</option></select>
+      <label for="clA">AOA error (rms) <b id="clAv"></b></label><input id="clA" type="range" min="0.5" max="15" step="0.5" value="3">
+      <div class="readout" id="clOut"></div>
+    </div>
+    <p class="cap">Try it: 20 ms of PDWs (about 200 pulses), each a dot, coloured by the group the sorter put it in. Things to check: (1) default (AOA + PW): 5 groups; B1 and B2 share one; (2) "AOA only": A and D merge, 4 groups; (3) add RF: E breaks into dozens of groups; (4) back to AOA + PW, raise the AOA error to 10°: the gate widens to 30° and starts to swallow neighbours; (5) switch the axes to RF against PW to see why PW splits A from D.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <div class="secno">Step 12</div>
+  <h2>Finding the pulse rhythm: PRI analysis</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>The group at 118–123° holds two ships' radars that look identical. To split them, measure the time between every pair of pulses in the group, not only neighbours, and count how often each gap occurs. A radar with a 1 100 µs rhythm produces many pairs exactly 1 100 µs apart; random pairs spread evenly. The rhythms stand out as peaks.</div>
+  <div class="term"><h4>Definitions</h4><p><b>PRI</b>: pulse repetition interval, the time between successive pulses of one radar. <b>Difference histogram</b>: a count of how many pulse pairs are separated by each time difference τ. <b>Order</b>: a first-order difference is between neighbours, a second-order difference skips one pulse, and so on. <b>Harmonic</b>: a peak at 2×, 3× … a true PRI, which every difference histogram also shows, because pulses two apart are 2 PRIs apart.</p></div>
+  <div class="col">
+    <p><b>Three methods, from simplest to best.</b></p>
+    <p>1. <b>Consecutive differences</b> (first order only): fails as soon as radars are interleaved (Step 10).</p>
+    <p>2. <b>All differences</b> (cumulative difference histogram, CDIF/SDIF family): count the differences between every pulse and every later pulse up to a maximum τ. True PRIs give tall peaks. But so do their multiples (2 × 1 100 = 2 200 µs, 2 × 1 250 = 2 500 µs), and peaks can also appear at sums of two PRIs. A threshold is set above the level that random pulse pairs would give, and the lowest peak above it is tried first.</p>
+    <p>3. <b>PRI transform</b>: like method 2, but each pair adds a unit arrow with phase 2π·t/τ instead of adding 1. For a true PRI τ, every pair's later pulse is at t = t₀ + kτ, so all arrows point the same way and add. At 2τ, half the pairs start on odd pulses and half on even ones, so their arrows point opposite ways and cancel. Harmonics are suppressed.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: the B group, 100 ms</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Pulses in the group</td><td>100 ms × (800 + 909) pulses/s</td><td class="n">≈ 171</td></tr>
+    <tr><td>Pairs with τ up to 3 000 µs</td><td>each pulse pairs with the next ≈ 5</td><td class="n">≈ 850</td></tr>
+    <tr><td>Pairs at τ = 1 100 µs (B2)</td><td>100 ms / 1.1 ms, minus 1</td><td class="n">≈ 90</td></tr>
+    <tr><td>Pairs at τ = 1 250 µs (B1)</td><td>100 ms / 1.25 ms, minus 1</td><td class="n">≈ 79</td></tr>
+    <tr><td>Random pairs per 10 µs bin</td><td>≈ 850 pairs × 10 µs / 3 000 µs</td><td class="n">≈ 3</td></tr>
+    <tr class="sum"><td>Peak-to-background</td><td>90 / 3</td><td class="n">≈ 30 : 1</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Choosing the parameters.</b> <b>Bin width</b>: wider than the TOA error plus any jitter, so that one radar's pairs stay in one bin; narrower than the gap between two PRIs to be separated. 10 µs here. <b>Maximum τ</b>: at least the longest expected PRI, ideally 2–3×, so that missed pulses and stagger frames still show. <b>Observation time</b>: the peak grows in proportion to time while the random background per bin grows too, so the contrast improves; 100 ms gives about 80 pulses per radar. <b>Threshold</b>: a few times the random level, or pulses from noise make false PRIs.</p>
+    <p><b>Then extract.</b> Once a PRI is found, the sorter walks through the group. It starts at a pulse, looks for another pulse one PRI later (within a tolerance), and repeats. The chain of pulses found is one radar. Those pulses are removed, and the analysis is run again on what is left.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPri" width="640" height="420" aria-label="Difference histogram of pulse arrival times, with peaks found and pulses extracted"></canvas>
+    <div class="ctrl">
+      <label for="prG">Pulses analysed</label><select id="prG"><option value="B" selected>The B group (B1 + B2)</option><option value="A">Radar A only</option><option value="C">Radar C only (stagger)</option><option value="D">Radar D only (jitter)</option><option value="ALL">All six, unsorted</option></select>
+      <label for="prM">Method</label><select id="prM"><option value="0">Consecutive differences</option><option value="1">All differences</option><option value="2" selected>PRI transform</option></select>
+      <label for="prL">Missed pulses <b id="prLv"></b></label><input id="prL" type="range" min="0" max="50" step="5" value="0">
+      <label for="prT">Observation time <b id="prTv"></b></label><input id="prT" type="range" min="10" max="100" step="10" value="100">
+      <div class="readout" id="prOut"></div>
+    </div>
+    <p class="cap">Try it: top, the pulses analysed on a time line (coloured by the radar they were extracted into). Middle, the histogram against τ (0–3 000 µs, 10 µs bins) and the threshold (dashed). Below, the PRIs found and how many pulses each chain took. Things to check: (1) default: PRI transform finds 1 100 and 1 250 µs and nothing else, and extracts both ships; (2) "All differences": the same two peaks plus harmonics at 2 200 and 2 500 µs; (3) "Consecutive differences" on the B group: wrong peaks, at the gaps between the two radars' interleaved pulses; (4) 30 % missed pulses: consecutive differences fail even for radar A alone, while the PRI transform still finds 1 000 µs; (5) observation time 10 ms: only about 8 pulses each, and the peaks sink towards the threshold.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <div class="secno">Step 13</div>
+  <h2>Matching a library: what is this radar?</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>After Steps 2–12, each group has a list of measured properties: frequency, pulse width, PRI pattern, modulation and scan. The listener compares that list with a library of known radar types, each described by the range of values it can use, and gives each type a score. One clear winner is an identification; two close scores are an ambiguity; no good score is an unknown radar, which is itself useful news.</div>
+  <div class="term"><h4>Definitions</h4><p><b>Emitter library</b>: a table of radar types, each with the ranges of RF, PW and PRI, the PRI pattern, the modulation and the scan. <b>Match score</b>: how well a measurement fits a library entry, from 0 to 1. <b>Ambiguity</b>: two or more entries scoring nearly the same.</p></div>
+  <div class="col">
+    <p><b>The scoring used here.</b> Each parameter scores 1 if the measured value is inside the entry's range, falling linearly to 0 at one tolerance outside it. The tolerance is the measurement accuracy plus a margin (RF 20 MHz, PW 20 %, PRI 10 %, scan 20 %). Categories (PRI pattern, modulation) score 1 if they match and 0.3 if not, because a pattern can be mis-classified. The total is the product of the parameter scores, so one clearly wrong parameter rules an entry out.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: radar D's measurements</th><th>Library entry "Tracking, X band"</th><th>Score</th><th>Entry "Surveillance, X band"</th><th>Score</th></tr>
+    <tr><td>RF 9.60 GHz</td><td>9.2–9.9 GHz</td><td class="n">1</td><td>9.0–10.0 GHz</td><td class="n">1</td></tr>
+    <tr><td>PW 10 µs</td><td>5–15 µs</td><td class="n">1</td><td>0.5–2 µs</td><td class="n">0 (far outside)</td></tr>
+    <tr><td>PRI 400 µs mean</td><td>300–600 µs</td><td class="n">1</td><td>800–1 500 µs</td><td class="n">0</td></tr>
+    <tr><td>PRI pattern: jitter</td><td>jitter</td><td class="n">1</td><td>constant</td><td class="n">0.3</td></tr>
+    <tr><td>Modulation: LFM</td><td>LFM</td><td class="n">1</td><td>none</td><td class="n">0.3</td></tr>
+    <tr class="sum"><td>Total (product)</td><td></td><td class="n">1.00</td><td></td><td class="n">0</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Why ranges overlap.</b> Many radar types share bands and pulse widths; that is why one parameter alone rarely identifies anything. B1 and B2 are both a perfect match to "Navigation, X band": the library can say what they are, but not tell the two ships apart. Only their PRIs and directions do that.</p>
+    <p><b>What the listener reports.</b> One line per radar: its identity and score, bearing, RF, PRI and when it was last heard. That list is updated continuously as new PDWs arrive, and is what an operator or a jammer (Part 6) works from.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cLib" width="640" height="330" aria-label="Library entries scored against the measured parameters"></canvas>
+    <div class="ctrl">
+      <label for="lbE">Load measurements of</label><select id="lbE"><option value="A">Radar A</option><option value="B">Radar B1</option><option value="C">Radar C</option><option value="D" selected>Radar D</option><option value="E">Radar E</option><option value="X">An unknown radar</option></select>
+      <label for="lbF">Measured RF <b id="lbFv"></b></label><input id="lbF" type="range" min="2000" max="12000" step="10" value="9600">
+      <label for="lbW">Measured PW <b id="lbWv"></b></label><input id="lbW" type="range" min="0.1" max="20" step="0.05" value="10">
+      <label for="lbP">Measured mean PRI <b id="lbPv"></b></label><input id="lbP" type="range" min="100" max="3000" step="10" value="400">
+      <label for="lbT">PRI pattern</label><select id="lbT"><option value="c">Constant</option><option value="s">Stagger</option><option value="j" selected>Jitter</option></select>
+      <label for="lbM">Modulation</label><select id="lbM"><option value="n">None</option><option value="l" selected>LFM</option><option value="p">Phase code</option></select>
+      <div class="readout" id="lbOut"></div>
+    </div>
+    <p class="cap">Try it: each bar is one library entry's score for the measurements set on the right (scan is left out here). Things to check: (1) radar D: "Tracking, X band" scores 1.00, everything else near 0; (2) radar B1: "Navigation, X band" scores 1.00; (3) radar A: two entries score high, an ambiguity, until the PRI pattern is set; (4) the unknown radar: no entry above 0.5, so it is reported as unknown; (5) move D's PW from 10 µs to 4 µs: its best score falls as PW leaves the 5–15 µs range.</p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <div class="secno">Step 14</div>
+  <h2>Where your components show up</h2>
+  <div class="comp"><h4>Component link</h4><ul>
+    <li><b>Clock and timestamping (FPGA):</b> TOA resolution and stability. The PRI peaks of Step 12 are 10 µs bins, but stagger levels, jitter statistics and pulse extraction need TOA to tens of ns over seconds.</li>
+    <li><b>IFM or digital receiver:</b> RF accuracy (1 MHz here) sets the RF gate of Step 11 and the RF score of Step 13.</li>
+    <li><b>Video bandwidth and detector:</b> PW accuracy (Part 4 Step 5), which split A from D in Step 11.</li>
+    <li><b>DF antennas and channel phase match:</b> AOA accuracy, the most trusted sorting parameter. A 10° error made the gates swallow neighbours.</li>
+    <li><b>ADC sample rate, bits and phase flatness:</b> intrapulse analysis (Step 7b) needs the pulse's whole bandwidth sampled with a flat phase response.</li>
+    <li><b>Sensitivity and dynamic range (Part 4):</b> every missed pulse weakens Step 12 and Step 8b. Strong pulses hiding weak ones (SFDR) cause missed pulses in exactly the busy environments where sorting is hardest.</li>
+    <li><b>Memory and processing:</b> 10 000 PDWs per second here, a million in a dense environment. The pair counting of Step 12 grows with the number of pulses × pulses per maximum τ.</li>
+  </ul></div>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Deinterleaving</dt><dd>Sorting a mixed pulse stream into the pulses of each radar.</dd>
+    <dt>Pre-sorting, clustering</dt><dd>Grouping pulses by AOA, PW and RF before timing analysis.</dd>
+    <dt>Gate</dt><dd>The tolerance within which two pulses count as alike; about 3σ of the measurement error.</dd>
+    <dt>Difference histogram</dt><dd>Count of pulse pairs at each time difference; peaks at the PRIs and their multiples.</dd>
+    <dt>PRI transform</dt><dd>A difference histogram with phase weighting that suppresses the harmonics.</dd>
+    <dt>Pulse extraction</dt><dd>Walking through the pulses one PRI at a time to pull out one radar's chain.</dd>
+    <dt>Stagger, frame</dt><dd>Repeating sequence of PRIs / the sum of one cycle.</dd>
+    <dt>Jitter</dt><dd>Random variation of the PRI around a mean.</dd>
+    <dt>Dwell and switch, sliding</dt><dd>PRI held then changed / PRI changing smoothly.</dd>
+    <dt>Intrapulse modulation</dt><dd>Frequency or phase changes inside a pulse (chirp, phase code).</dd>
+    <dt>Instantaneous frequency</dt><dd>(1/2π)·dφ/dt, measured from I/Q samples.</dd>
+    <dt>Scan period</dt><dd>Time for the radar's beam to return to the same direction, found by autocorrelation.</dd>
+    <dt>Emitter library, match score</dt><dd>Known radar types with parameter ranges / how well a measurement fits an entry.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, Part 6 · Respond:</b> transmitting: the transmit chain and ERP, PA back-off, and the principles of jamming: J/S, burn-through and look-through.</p>
+</section>
+
+<footer>General textbook material: Wiley, <i>ELINT: The Interception and Analysis of Radar Signals</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>; Nishiguchi &amp; Kobayashi, "Improved algorithm for estimating pulse repetition intervals", IEEE Trans. AES 36(2), 2000; Mardia, "New techniques for the deinterleaving of repetitive sequences", IEE Proc. F 136(4), 1989; Adamy, <i>EW 101</i>. The six radars and the library are invented for teaching and not tied to any real system or RFME product.</footer>
+</div>
+
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ===== the scene: six radars ===== */
+const RAD=[{id:'A',rf:10000,pw:1,aoa:40,amp:-78.5,col:'--accent'},{id:'B1',rf:9410,pw:.25,aoa:118,amp:-58,col:'--trace'},{id:'B2',rf:9410,pw:.25,aoa:123,amp:-63,col:'--trace2'},
+  {id:'C',rf:2800,pw:2,aoa:200,amp:-50.5,col:'--good'},{id:'D',rf:9600,pw:10,aoa:45,amp:-60.6,col:'--bad'},{id:'E',rf:9000,pw:.5,aoa:300,amp:-76.5,col:'--ink'}];
+function gauss(r){ return Math.sqrt(-2*Math.log(1-r()*.999999))*Math.cos(2*Math.PI*r()); }
+const STREAMS={};
+function stream(T,seed,sa){ const key=T+'|'+seed+'|'+sa; if(STREAMS[key]) return STREAMS[key]; const r=rng(seed), P=[];
+  const add=(s,t,rf)=>{ const R=RAD[s]; P.push({t:t+.05*gauss(r),rf:(rf??R.rf)+gauss(r),pw:Math.max(.05,R.pw+.05*gauss(r)),aoa:((R.aoa+sa*gauss(r))%360+360)%360,amp:R.amp+gauss(r),src:s,tt:t}); };
+  for(let t=37;t<T;t+=1000) add(0,t); for(let t=210;t<T;t+=1250) add(1,t); for(let t=530;t<T;t+=1100) add(2,t);
+  { let t=90,i=0; const L=[900,1000,1100]; while(t<T){ add(3,t); t+=L[i++%3]; } }
+  { let t=15; while(t<T){ add(4,t); t+=400*(1+.1*(2*r()-1)); } }
+  for(let t=60;t<T;t+=250) add(5,t,9000+20*Math.floor(41*r()));
+  P.sort((a,b)=>a.t-b.t); return STREAMS[key]=P; }
+const RCOL=i=>css(RAD[i].col);
+
+/* 0 MIXED STREAM */
+bind(['mxT','mxW','mxC'],function(){ const c=$('cMix'), g=ctx(c), P=stream(100000,5,3), T0=+$('mxT').value*1000, W=+$('mxW').value, col=+$('mxC').value;
+  $('mxTv').textContent=(T0/1000).toFixed(1)+' ms'; const win=P.filter(p=>p.t>=T0&&p.t<T0+W);
+  const x0=40,w=580,y0=20,h=110; g.strokeStyle=css('--line'); g.beginPath(); g.moveTo(x0,y0+h); g.lineTo(x0+w,y0+h); g.stroke();
+  for(const p of win){ const X=x0+(p.t-T0)/W*w, H=(p.amp+86)*2.6; g.strokeStyle=col?RCOL(p.src):css('--muted'); g.lineWidth=W<=2000?2:1; g.beginPath(); g.moveTo(X,y0+h); g.lineTo(X,y0+h-H); g.stroke(); } g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText((T0/1000).toFixed(1)+' ms',x0,y0+h+14); g.fillText('+'+(W/1000)+' ms',x0+w-50,y0+h+14); g.fillText('pulses arriving (height = amplitude)',x0,y0+8);
+  if(col){ RAD.forEach((R,i)=>{ g.fillStyle=RCOL(i); g.fillText(R.id,x0+300+i*45,y0+8); }); }
+  // PDW table
+  const ty=y0+h+40, cols=[['#',0],['TOA (µs)',30],['RF (MHz)',130],['PW (µs)',230],['AOA (°)',320],['Amp (dBm)',410]]; if(col) cols.push(['radar',510]);
+  g.fillStyle=css('--ink'); g.fillText('first 10 PDWs in the window, as written by the receiver',x0,ty-14); cols.forEach(cc=>{ g.fillStyle=css('--muted'); g.fillText(cc[0],x0+cc[1],ty+4); });
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,ty+10); g.lineTo(x0+w,ty+10); g.stroke();
+  win.slice(0,10).forEach((p,i)=>{ const y=ty+28+i*20; g.fillStyle=col?RCOL(p.src):css('--ink'); const v=[i+1,p.t.toFixed(2),p.rf.toFixed(0),p.pw.toFixed(2),p.aoa.toFixed(0),p.amp.toFixed(1)]; if(col) v.push(RAD[p.src].id); v.forEach((s,k)=>g.fillText(String(s),x0+cols[k][1],y)); });
+  let gsum=0; for(let i=1;i<win.length;i++) gsum+=win[i].t-win[i-1].t;
+  ro($('mxOut'),[['pulses in the window',win.length],['average gap to the next pulse',win.length>1?(gsum/(win.length-1)).toFixed(0)+' µs':'—'],['pulses per second, whole 100 ms',(P.length*10).toLocaleString('en-GB')],['PDW data rate (16 bytes each)',(P.length*10*16/1000).toFixed(0)+' kB/s']]);
+});
+
+/* 2 CLUSTERING */
+function cluster(P,use,sa){ const n=P.length, par=new Int32Array(n).map((_,i)=>i), f=i=>{ while(par[i]!==i){ par[i]=par[par[i]]; i=par[i]; } return i; };
+  const ga=3*sa; for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ const a=P[i], b=P[j]; let d=Math.abs(a.aoa-b.aoa); d=Math.min(d,360-d); if(d>ga) continue;
+    if(use>=2 && Math.abs(a.pw-b.pw)>Math.max(.15,.1*Math.max(a.pw,b.pw))) continue; if(use>=3 && Math.abs(a.rf-b.rf)>5) continue; const ra=f(i), rb=f(j); if(ra!==rb) par[ra]=rb; }
+  const lab=new Int32Array(n), map={}; let k=0; const sizes=[]; for(let i=0;i<n;i++){ const r=f(i); if(map[r]===undefined){ map[r]=k++; sizes.push(0); } lab[i]=map[r]; sizes[lab[i]]++; } return {lab,k,sizes}; }
+bind(['clX','clY','clU','clA'],function(){ const c=$('cCl'), g=ctx(c), sa=+$('clA').value, use=+$('clU').value, P=stream(20000,8,sa), ax=$('clX').value, ay=$('clY').value;
+  $('clAv').textContent=sa+'°'; const C=cluster(P,use,sa);
+  const rngs={aoa:[0,360,v=>v,'AOA (°)'],rf:[2500,10300,v=>v,'RF (MHz)'],pw:[Math.log10(.1),Math.log10(20),v=>Math.log10(v),'PW (µs, log)']};
+  const x0=60,y0=16,w=560,h=330; frame(g,x0,y0,w,h,4); const X=v=>x0+(rngs[ax][2](v)-rngs[ax][0])/(rngs[ax][1]-rngs[ax][0])*w, Y=v=>y0+h-(rngs[ay][2](v)-rngs[ay][0])/(rngs[ay][1]-rngs[ay][0])*h;
+  const order=C.sizes.map((s,i)=>[s,i]).sort((a,b)=>b[0]-a[0]), rank=new Int32Array(C.k); order.forEach((o,r)=>rank[o[1]]=r);
+  P.forEach((p,i)=>{ const r=rank[C.lab[i]]; g.fillStyle=r<8?['#e8590c','#1c7ed6','#2f9e44','#ae3ec9','#f08c00','#0c8599','#c2255c','#5c940d'][r]:`hsl(${(r*47)%360},55%,50%)`; g.beginPath(); g.arc(X(p[ax]),Y(p[ay]),2.6,0,7); g.fill(); });
+  g.fillStyle=css('--muted'); g.fillText(rngs[ax][3],x0+w/2-30,y0+h+30); g.save(); g.translate(16,y0+h/2+40); g.rotate(-Math.PI/2); g.fillText(rngs[ay][3],0,0); g.restore();
+  const tk=(a,v,lbl)=>{ if(a==='x'){ g.fillText(lbl,X(v)-10,y0+h+14); } else g.fillText(lbl,x0-44,Y(v)+4); };
+  [['x',ax],['y',ay]].forEach(([a,k])=>{ const vals=k==='aoa'?[0,90,180,270,360]:k==='rf'?[3000,5000,7000,9000,10000]:[.1,1,10]; vals.forEach(v=>tk(a,v,k==='rf'?(v/1000)+'G':String(v))); });
+  // summary
+  const groups=[]; for(let q=0;q<C.k;q++) groups.push(new Set()); P.forEach((p,i)=>groups[C.lab[i]].add(p.src));
+  const merged=groups.filter(s=>s.size>1).map(s=>[...s].map(i=>RAD[i].id).join('+'));
+  const split=RAD.map((R,i)=>[R.id,groups.filter(s=>s.has(i)).length]).filter(x=>x[1]>1).map(x=>x[0]+' in '+x[1]);
+  ro($('clOut'),[['pulses (20 ms)',P.length],['groups found',C.k],['AOA gate (3σ)','±'+(3*sa).toFixed(1)+'°'],['radars merged',merged.length?merged.join(', '):'none'],['radars split',split.length?split.join(', '):'none']]);
+});
+
+/* 3 PRI ANALYSIS */
+const PRB=10, PRMAX=3500, PRN=PRMAX/PRB;
+function priHist(t,meth){ const H=new Float64Array(PRN), Hr=new Float64Array(PRN), Hi=new Float64Array(PRN), n=t.length;
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ const d=t[j]-t[i]; if(d>=PRMAX) break; const k=Math.floor(d/PRB); if(meth===0){ if(j===i+1) H[k]++; break; } if(meth===1) H[k]++; else { const ph=2*Math.PI*t[j]/d; Hr[k]+=Math.cos(ph); Hi[k]+=Math.sin(ph); } }
+  if(meth===2) for(let k=0;k<PRN;k++) H[k]=Math.hypot(Hr[k],Hi[k]); return H; }
+function priThr(meth,n,T,k){ const tau=(k+.5)*PRB, rho=n/T, base=n*rho*PRB;
+  if(meth===0) return 3*base*Math.exp(-rho*tau)+3; if(meth===1) return 3*base*Math.max(0,1-tau/T)+3; return Math.max(.35*T/tau,4*Math.sqrt(base),3); }
+function extract(P,tau,tol,used){ let got=0; const lab=[]; for(let s=0;s<P.length;s++){ if(used[s]>=0) continue; const chain=[s]; let cur=s;
+    for(;;){ let nxt=-1; for(let m=1;m<=2&&nxt<0;m++){ const want=P[cur].t+m*tau; for(let q=cur+1;q<P.length&&P[q].t<want+tol;q++){ if(used[q]<0&&Math.abs(P[q].t-want)<tol){ nxt=q; break; } } } if(nxt<0) break; chain.push(nxt); cur=nxt; }
+    if(chain.length>=5){ chain.forEach(q=>used[q]=-2); got+=chain.length; lab.push(chain); } }
+  return {got,chains:lab}; }
+bind(['prG','prM','prL','prT'],function(){ const c=$('cPri'), g=ctx(c), grp=$('prG').value, meth=+$('prM').value, miss=+$('prL').value/100, T=+$('prT').value*1000;
+  $('prLv').textContent=(miss*100).toFixed(0)+' %'; $('prTv').textContent=(T/1000)+' ms';
+  const sel={A:[0],B:[1,2],C:[3],D:[4],ALL:[0,1,2,3,4,5]}[grp]; const rr=rng(77); const P=stream(100000,5,3).filter(p=>p.t<T&&sel.includes(p.src)&&rr()>=miss);
+  const t=P.map(p=>p.t), H=priHist(t,meth), n=t.length; const peaks=[];
+  for(let k=1;k<PRN-1;k++){ if(H[k]>priThr(meth,n,T,k)&&H[k]>=H[k-1]&&H[k]>=H[k+1]){ const tau=k*PRB+PRB/2; if(!peaks.length||tau-peaks[peaks.length-1][0]>2*PRB) peaks.push([tau,H[k]]); else if(H[k]>peaks[peaks.length-1][1]) peaks[peaks.length-1]=[tau,H[k]]; } }
+  // refine each peak with a weighted centroid over ±1 bin
+  peaks.forEach(pk=>{ const k=Math.floor(pk[0]/PRB); let s=0,w=0; for(let d=-1;d<=1;d++){ const q=k+d; if(q>=0&&q<PRN){ s+=H[q]*(q*PRB+PRB/2); w+=H[q]; } } pk[0]=s/w; });
+  const used=new Int32Array(n).fill(-1), res=[], colOf=new Int32Array(n).fill(-1);
+  peaks.slice(0,8).forEach((pk,i)=>{ const before=[...used]; const e=extract(P,pk[0],6,used); res.push([pk[0],e.got]); e.chains.forEach(ch=>ch.forEach(q=>colOf[q]=i)); });
+  // timeline
+  const x0=40,w=580; g.fillStyle=css('--muted'); g.fillText('pulses analysed ('+n+'), coloured by the chain they were extracted into',x0,12);
+  const pal=['#e8590c','#1c7ed6','#2f9e44','#ae3ec9','#f08c00','#0c8599','#c2255c','#5c940d'];
+  P.forEach((p,i)=>{ const X=x0+p.t/T*w; g.strokeStyle=colOf[i]>=0?pal[colOf[i]]:css('--muted'); g.beginPath(); g.moveTo(X,22); g.lineTo(X,52); g.stroke(); });
+  // histogram
+  const hy=80,hh=220; frame(g,x0,hy,w,hh,4); let mx=0; for(let k=0;k<PRN;k++) mx=Math.max(mx,H[k],priThr(meth,n,T,k)*(k>3?1:0)); mx=mx||1;
+  g.fillStyle=css('--trace'); for(let k=0;k<PRN;k++){ const hgt=H[k]/mx*hh; g.fillRect(x0+k/PRN*w,hy+hh-hgt,Math.max(1,w/PRN),hgt); }
+  g.strokeStyle=css('--bad'); g.setLineDash([4,3]); g.beginPath(); for(let k=2;k<PRN;k++){ const Y=hy+hh-Math.min(hh,priThr(meth,n,T,k)/mx*hh); k>2?g.lineTo(x0+(k+.5)/PRN*w,Y):g.moveTo(x0+(k+.5)/PRN*w,Y); } g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--muted'); for(let v=0;v<=3500;v+=500) g.fillText(v+'',x0+v/PRMAX*w-10,hy+hh+14); g.fillText('τ (µs)',x0+w-40,hy+hh+28);
+  g.fillStyle=css('--ink'); g.fillText(['consecutive differences','all differences','PRI transform'][meth],x0+6,hy+14);
+  peaks.slice(0,8).forEach((pk,i)=>{ const X=x0+pk[0]/PRMAX*w; g.fillStyle=pal[i]; g.beginPath(); g.moveTo(X,hy-2); g.lineTo(X-5,hy-10); g.lineTo(X+5,hy-10); g.fill(); });
+  // results
+  g.fillStyle=css('--ink'); g.fillText('PRIs found → pulses extracted:',x0,hy+hh+46);
+  res.forEach((r,i)=>{ g.fillStyle=pal[i]; g.fillText(r[0].toFixed(0)+' µs → '+r[1],x0+(i%4)*145,hy+hh+66+Math.floor(i/4)*18); });
+  if(!res.length){ g.fillStyle=css('--muted'); g.fillText('none above the threshold',x0,hy+hh+66); }
+  const assigned=res.reduce((a,r)=>a+r[1],0);
+  ro($('prOut'),[['pulses analysed',n],['peaks above threshold',peaks.length],['PRIs found',res.length?res.map(r=>r[0].toFixed(0)).join(', ')+' µs':'none'],['pulses extracted into chains',assigned+' of '+n]]);
+});
+
+/* 4 PRI PATTERNS */
+const TYD={1:[2,8,3,'levels'],2:[1,30,10,'% jitter'],3:[2,6,3,'levels'],0:[2,8,3,'(not used)'],4:[2,8,3,'(not used)']};
+let tyLast=-1;
+bind(['tyT','tyP','tyS','tyM'],function(){ const c=$('cTy'), g=ctx(c), ty=+$('tyT').value, P0=+$('tyP').value, sl=$('tyS'), miss=+$('tyM').value/100;
+  if(ty!==tyLast){ const d=TYD[ty]; sl.min=d[0]; sl.max=d[1]; if(tyLast>=0) sl.value=d[2]; tyLast=ty; }
+  const S=+sl.value; $('tyPv').textContent=P0+' µs'; $('tySv').textContent=(ty===0||ty===4)?'—':S+' '+TYD[ty][3]; $('tyMv').textContent=(miss*100).toFixed(0)+' %';
+  const r=rng(31), pri=[]; let i=0; const lev=q=>P0*(1+(ty===3?.15:.1)*(q-(S-1)/2));
+  const N=200; const raw=[]; for(i=0;i<N;i++){ let v; if(ty===0) v=P0; else if(ty===1) v=lev(i%S); else if(ty===2) v=P0*(1+S/100*(2*r()-1)); else if(ty===3) v=lev(Math.floor(i/20)%S); else v=P0*(.8+.4*((i%60)/59)); raw.push(v); }
+  // arrival times, misses, measured PRIs
+  let t=0; const toa=[]; for(i=0;i<N;i++){ if(r()>=miss) toa.push(t+.05*gauss(r)); t+=raw[i]; }
+  for(i=1;i<toa.length&&pri.length<120;i++) pri.push(toa[i]-toa[i-1]);
+  const lo=P0*.5, hi=P0*2.6; const x0=56,w=564,y0=16,h=160; frame(g,x0,y0,w,h,4); const Y=v=>y0+h-(v-lo)/(hi-lo)*h;
+  g.fillStyle=css('--accent'); pri.forEach((v,k)=>{ g.fillRect(x0+k/119*w-1.5,Y(v)-1.5,3,3); });
+  g.fillStyle=css('--muted'); g.fillText(Math.round(hi)+'',x0-44,y0+10); g.fillText(Math.round(lo)+'',x0-44,y0+h); g.fillText('PRI of each pulse (µs) against pulse number',x0+6,y0+14);
+  const hy=y0+h+40,hh=110; frame(g,x0,hy,w,hh,3); const NB=113, Hb=new Array(NB).fill(0); pri.forEach(v=>{ const k=Math.floor((v-lo)/(hi-lo)*NB); if(k>=0&&k<NB) Hb[k]++; }); const mb=Math.max(...Hb,1);
+  g.fillStyle=css('--trace'); Hb.forEach((v,k)=>{ g.fillRect(x0+k/NB*w,hy+hh-v/mb*hh,w/NB-1,v/mb*hh); });
+  g.fillStyle=css('--muted'); for(let q=0;q<=4;q++){ const v=lo+(hi-lo)*q/4; g.fillText(Math.round(v)+'',x0+q/4*w-14,hy+hh+14); } g.fillText('histogram of PRIs (µs)',x0+6,hy+12);
+  // classifier
+  const sorted=[...pri].sort((a,b)=>a-b), med=sorted[Math.floor(sorted.length/2)]; const base=pri.filter(v=>v<1.6*sorted[Math.floor(sorted.length*.1)]), gaps=pri.length-base.length;
+  const mean=base.reduce((a,b)=>a+b,0)/base.length, sd=Math.sqrt(base.reduce((a,b)=>a+(b-mean)**2,0)/base.length);
+  const sb=[...base].sort((a,b)=>a-b), levels=[[sb[0]]]; for(let q=1;q<sb.length;q++){ if(sb[q]-sb[q-1]>.02*mean) levels.push([]); levels[levels.length-1].push(sb[q]); }
+  const lv=levels.map(L=>L.reduce((a,b)=>a+b,0)/L.length);
+  const lvOf=v=>{ let b=0; lv.forEach((L,q)=>{ if(Math.abs(v-L)<Math.abs(v-lv[b])) b=q; }); return b; };
+  let runs=0,changes=0; for(let q=1;q<base.length;q++){ if(lvOf(base[q])!==lvOf(base[q-1])) changes++; } const avgRun=base.length/(changes+1);
+  let same=0; for(let q=2;q<base.length;q++){ if(Math.sign(base[q]-base[q-1])===Math.sign(base[q-1]-base[q-2])) same++; }
+  let cls; if(sd<.002*mean) cls='constant'; else if(lv.length===1) cls=same/(base.length-2)>.8?'sliding':'jitter'; else if(lv.length<=9) cls=avgRun>3?'dwell and switch':'stagger'; else cls='jitter';
+  const frameT=cls==='stagger'?lv.reduce((a,b)=>a+b,0):NaN;
+  ro($('tyOut'),[['classified as',cls],['mean PRI',mean.toFixed(1)+' µs'],['spread (standard deviation)',sd.toFixed(sd<1?2:1)+' µs'],['levels found',cls==='stagger'||cls==='dwell and switch'?lv.map(v=>v.toFixed(0)).join(' / ')+' µs':String(lv.length===1?1:lv.length)],['stagger frame',isFinite(frameT)?frameT.toFixed(0)+' µs':'—'],['gaps from missed pulses',gaps]]);
+});
+
+/* 5 INTRAPULSE */
+const BARK=[1,1,1,1,1,-1,-1,1,1,-1,1,-1,1];
+bind(['ipT','ipB','ipS'],function(){ const c=$('cIp'), g=ctx(c), ty=+$('ipT').value, B=+$('ipB').value*1e6, snr=+$('ipS').value;
+  $('ipBv').textContent=ty===1?(B/1e6)+' MHz':'—'; $('ipSv').textContent=snr+' dB';
+  const fs=100e6, PWs=10e-6, N=1000, f0=1e6, r=rng(9), sig=1/Math.sqrt(2*lin(snr)); const zr=new Float64Array(N), zi=new Float64Array(N);
+  let ph=0; for(let n=0;n<N;n++){ const tt=n/fs; let f=f0, s=1; if(ty===1) f=f0+B*(tt/PWs-.5); if(ty===2) s=BARK[Math.min(12,Math.floor(tt/PWs*13))]; ph+=2*Math.PI*f/fs; zr[n]=s*Math.cos(ph)+sig*gauss(r); zi[n]=s*Math.sin(ph)+sig*gauss(r); }
+  // instantaneous frequency: average the lag-1 product over 20-sample windows
+  const NW=20, pts=[]; for(let w0=1;w0+NW<=N;w0+=NW){ let ar=0,ai=0; for(let n=w0;n<w0+NW;n++){ ar+=zr[n]*zr[n-1]+zi[n]*zi[n-1]; ai+=zi[n]*zr[n-1]-zr[n]*zi[n-1]; } pts.push([(w0+NW/2)/fs,Math.atan2(ai,ar)*fs/(2*Math.PI)]); }
+  let sx=0,sy=0,sxx=0,sxy=0; pts.forEach(p=>{ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; }); const m=pts.length, slope=(m*sxy-sx*sy)/(m*sxx-sx*sx), icpt=(sy-slope*sx)/m;
+  const bwM=slope*PWs, fc=icpt+slope*PWs/2; let rms=0; pts.forEach(p=>rms+=(p[1]-(icpt+slope*p[0]))**2); rms=Math.sqrt(rms/m);
+  // unwrapped phase, with the carrier and fitted chirp removed
+  const uph=new Float64Array(N); let jumps=0, lastJ=-99; for(let n=1;n<N;n++){ const ar=zr[n]*zr[n-1]+zi[n]*zi[n-1], ai=zi[n]*zr[n-1]-zr[n]*zi[n-1]; let d=Math.atan2(ai,ar)-2*Math.PI*(icpt+slope*n/fs)/fs; d=Math.atan2(Math.sin(d),Math.cos(d)); uph[n]=uph[n-1]+d; if(Math.abs(d)>Math.PI/2&&n-lastJ>20){ jumps++; lastJ=n; } }
+  const x0=60,w=560; const X=tt=>x0+tt/PWs*w;
+  // waveform
+  let y0=14,h=100; frame(g,x0,y0,w,h,2); g.strokeStyle=css('--trace'); g.beginPath(); for(let n=0;n<N;n++){ const Y=y0+h/2-zr[n]/(1+3*sig)*h/2*.95; n?g.lineTo(X(n/fs),Y):g.moveTo(X(n/fs),Y); } g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('I (real part) after mixing down',x0+6,y0+12);
+  // inst freq
+  y0=140; h=130; frame(g,x0,y0,w,h,4); const fmax=Math.max(12e6,B*.7); const Yf=f=>y0+h/2-f/fmax*h/2;
+  g.fillStyle=css('--accent'); pts.forEach(p=>{ const Y=Math.max(y0,Math.min(y0+h,Yf(p[1]))); g.fillRect(X(p[0])-2,Y-2,4,4); });
+  g.strokeStyle=css('--ink'); g.beginPath(); g.moveTo(X(0),Yf(icpt)); g.lineTo(X(PWs),Yf(icpt+slope*PWs)); g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('+'+(fmax/1e6).toFixed(0)+' MHz',x0-56,y0+10); g.fillText('−'+(fmax/1e6).toFixed(0)+' MHz',x0-56,y0+h); g.fillText('instantaneous frequency (dots: 0.2 µs averages; line: fit)',x0+6,y0+12);
+  // phase
+  y0=296; h=80; frame(g,x0,y0,w,h,2); let pm=Math.PI; for(let n=0;n<N;n++) pm=Math.max(pm,Math.abs(uph[n])); g.strokeStyle=css('--trace2'); g.beginPath(); for(let n=0;n<N;n++){ const Y=y0+h/2-uph[n]/pm*h/2; n?g.lineTo(X(n/fs),Y):g.moveTo(X(n/fs),Y); } g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('phase left after removing the fitted frequency',x0+6,y0+12); g.fillText('0',x0,y0+h+14); g.fillText('10 µs',x0+w-36,y0+h+14);
+  ro($('ipOut'),[['fitted frequency change over the pulse',(bwM/1e6).toFixed(2)+' MHz'],['true change',ty===1?(B/1e6).toFixed(2)+' MHz':'0 MHz'],['chirp slope',(slope/1e12).toFixed(3)+' MHz/µs'],['scatter about the fit (rms)',(rms/1e6).toFixed(2)+' MHz'],['180° phase jumps found',jumps+(ty===2?' (code has 6)':'')],['compressed resolution c/2B',ty===1?(c0/2/B).toFixed(0)+' m':ty===2?(c0/2/1.3e6).toFixed(0)+' m (0.77 µs chips)':(c0/2/1e5).toFixed(0)+' m (10 µs plain)']]);
+});
+
+/* 6 SCAN */
+bind(['scT','scP','scL'],function(){ const c=$('cSc'), g=ctx(c), ty=+$('scT').value, P=+$('scP').value, L=+$('scL').value; $('scPv').textContent=P+' s'; $('scLv').textContent=L+' s';
+  const r=rng(12); const dt=ty===2?.001:.01, Tshow=ty===2?.5:L, n=Math.round((ty===2?Math.min(L,4):L)/dt), amp=new Float64Array(n);
+  const pat=off=>{ const u=off/2*0.886; const s=Math.abs(u)<1e-6?1:Math.sin(Math.PI*u)/(Math.PI*u); return Math.max(s*s,lin(-30)*(.6+.8*Math.abs(Math.sin(off*.9)))); };
+  for(let k=0;k<n;k++){ const t=k*dt; let off; if(ty===0){ off=((360*t/P+180)%360)-180; } else if(ty===1){ const ph=(t/P)%1, az=-45+90*(ph<.5?ph*2:2-ph*2); off=az-20; } else if(ty===2){ off=1.2*Math.cos(2*Math.PI*25*t)+.3; } else off=0;
+    amp[k]=-45+10*Math.log10(pat(off))+.5*gauss(r); }
+  const x0=56,w=564,y0=14,h=130; frame(g,x0,y0,w,h,4); const Y=v=>y0+h-(v+82)/40*h; const ns=Math.round(Tshow/dt);
+  g.strokeStyle=css('--accent'); g.beginPath(); for(let k=0;k<Math.min(n,ns);k++){ const XX=x0+k/ns*w; k?g.lineTo(XX,Y(amp[k])):g.moveTo(XX,Y(amp[k])); } g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('−42 dBm',x0-54,y0+10); g.fillText('−82',x0-30,y0+h); g.fillText('0',x0,y0+h+14); g.fillText(Tshow+' s',x0+w-30,y0+h+14); g.fillText('pulse amplitude heard',x0+6,y0+12);
+  // autocorrelation of power
+  const pw=Array.from(amp,v=>lin(v)), mu=pw.reduce((a,b)=>a+b,0)/n, va=pw.reduce((a,b)=>a+(b-mu)**2,0)/n; const maxLag=Math.floor(n*.75), ac=new Float64Array(maxLag);
+  for(let k=0;k<maxLag;k++){ let s=0; for(let q=0;q+k<n;q++) s+=(pw[q]-mu)*(pw[q+k]-mu); ac[k]=va>0?s/(n-k)/va:0; }
+  let k0=1; while(k0<maxLag&&ac[k0]>.3) k0++; let best=-1; for(let k=k0+1;k<maxLag-1;k++){ if(ac[k]>.5&&ac[k]>=ac[k-1]&&ac[k]>=ac[k+1]&&(best<0||ac[k]>ac[best])) best=k; }
+  if(best>0){ for(let k=k0+1;k<best;k++){ if(ac[k]>=.9*ac[best]&&ac[k]>=ac[k-1]&&ac[k]>=ac[k+1]){ best=k; break; } } }
+  const ay=y0+h+40, ah=90; frame(g,x0,ay,w,ah,2); const lagShow=Math.min(maxLag,ty===2?Math.round(.5/dt):maxLag);
+  g.strokeStyle=css('--trace'); g.beginPath(); for(let k=0;k<lagShow;k++){ const XX=x0+k/lagShow*w, YY=ay+ah/2-Math.max(-1,Math.min(1,ac[k]))*ah/2; k?g.lineTo(XX,YY):g.moveTo(XX,YY); } g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('autocorrelation against shift',x0+6,ay+12); g.fillText('0',x0,ay+ah+14); g.fillText((lagShow*dt).toFixed(ty===2?2:1)+' s',x0+w-40,ay+ah+14);
+  if(best>0&&best<lagShow){ g.strokeStyle=css('--bad'); g.setLineDash([4,3]); g.beginPath(); g.moveTo(x0+best/lagShow*w,ay); g.lineTo(x0+best/lagShow*w,ay+ah); g.stroke(); g.setLineDash([]); }
+  let bursts=0, inB=false; for(let k=0;k<n;k++){ if(amp[k]>-55&&!inB){ bursts++; inB=true; } if(amp[k]<-60) inB=false; }
+  ro($('scOut'),[['period found',best>0?(best*dt).toFixed(ty===2?3:2)+' s':'none'],['main-beam bursts heard',ty===3?'steady':ty===2?'continuous':bursts],['burst length (2° beam)',ty===0?(P*2/360*1000).toFixed(0)+' ms':ty===1?(P/2*2/90*1000).toFixed(0)+' ms':'—'],['amplitude range',Math.min(...amp).toFixed(0)+' to '+Math.max(...amp).toFixed(0)+' dBm']]);
+});
+
+/* 7 LIBRARY */
+const LIB=[['Surveillance, X band',9000,10000,.5,2,800,1500,'c','n'],['Coastal surveillance, X band',9700,10100,.8,1.5,900,1200,'c','n'],['Navigation, X band',9380,9440,.05,1.2,400,2000,'c','n'],['Air traffic, S band',2700,2900,1,3,800,1300,'s','n'],
+  ['Tracking, X band',9200,9900,5,15,300,600,'j','l'],['Weather, C band',5400,5800,.8,2,800,3000,'c','n'],['Agile surveillance, X band',8800,9900,.3,1,150,400,'c','p'],['Pulse-Doppler, X band',9500,10000,.1,1,50,200,'c','n'],['Altimeter-type, C band',4200,4400,.05,.3,50,300,'c','l']];
+const LBM={A:[10000,1,1000,'c','n'],B:[9410,.25,1250,'c','n'],C:[2800,2,1000,'s','n'],D:[9600,10,400,'j','l'],E:[9400,.5,250,'c','p'],X:[6500,3,1700,'s','p']};
+const sc1=(v,lo,hi,tol)=>v>=lo&&v<=hi?1:Math.max(0,1-(v<lo?lo-v:v-hi)/tol);
+$('lbE').addEventListener('input',()=>{ const m=LBM[$('lbE').value]; $('lbF').value=m[0]; $('lbW').value=m[1]; $('lbP').value=m[2]; $('lbT').value=m[3]; $('lbM').value=m[4]; });
+bind(['lbE','lbF','lbW','lbP','lbT','lbM'],function(){ const c=$('cLib'), g=ctx(c), F=+$('lbF').value, W=+$('lbW').value, Pm=+$('lbP').value, T=$('lbT').value, M=$('lbM').value;
+  $('lbFv').textContent=(F/1000).toFixed(2)+' GHz'; $('lbWv').textContent=W+' µs'; $('lbPv').textContent=Pm+' µs';
+  const S=LIB.map(e=>{ const parts=[sc1(F,e[1],e[2],20),sc1(W,e[3],e[4],.2*(W<e[3]?e[3]:e[4])),sc1(Pm,e[5],e[6],.1*(Pm<e[5]?e[5]:e[6])),T===e[7]?1:.3,M===e[8]?1:.3]; return [e[0],parts.reduce((a,b)=>a*b,1),parts]; });
+  const x0=230,w=330,y0=18,rh=32; g.fillStyle=css('--muted'); g.fillText('library entry',10,12); g.fillText('match score 0 … 1',x0,12);
+  S.forEach((s,i)=>{ const y=y0+i*rh; g.fillStyle=css('--ink'); g.fillText(s[0],10,y+18); g.fillStyle=css('--grid'); g.fillRect(x0,y+6,w,16); g.fillStyle=s[1]>=.7?css('--good'):s[1]>=.3?css('--accent'):css('--muted'); g.fillRect(x0,y+6,w*s[1],16); g.fillStyle=css('--ink'); g.fillText(s[1].toFixed(2),x0+w+8,y+18); });
+  const o=[...S].sort((a,b)=>b[1]-a[1]); let verdict; if(o[0][1]<.5) verdict='unknown radar'; else if(o[1][1]>=.7*o[0][1]) verdict='ambiguous: '+o[0][0]+' or '+o[1][0]; else verdict='identified: '+o[0][0];
+  ro($('lbOut'),[['best',o[0][0]+' ('+o[0][1].toFixed(2)+')'],['second',o[1][0]+' ('+o[1][1].toFixed(2)+')'],['verdict',verdict]]);
+});
+
+
+/* ===== PARAMETER STEPS ===== */
+const XR=[{R:20,b:40,P:60,G:30,f:10e9,bw:2,scan:6,ph:2.7},{R:8,b:118,P:74,G:28,f:9.41e9,bw:2.4,scan:2.4,ph:.6},{R:9,b:123,P:70,G:28,f:9.41e9,bw:2.4,scan:2.5,ph:1.9},{R:45,b:200,P:80,G:34,f:2.8e9,bw:1.5,scan:4,ph:3.1},{R:15,b:45,P:67,G:38,f:9.6e9,bw:1.2,scan:0,ph:0},{R:30,b:300,P:63,G:32,f:9.4e9,bw:2,scan:-1,ph:0}];
+const fsplK=(Rkm,f)=>20*Math.log10(4*Math.PI*Rkm*1000*f/c0);
+const mainAt=(i,Rkm)=>XR[i].P+XR[i].G-fsplK(Rkm??XR[i].R,XR[i].f);
+
+/* 2 RF */
+bind(['rfZ','rfE','rfH'],function(){ const c=$('cRF'), g=ctx(c), z=+$('rfZ').value, s=+$('rfE').value, hl=+$('rfH').value; $('rfEv').textContent=s.toFixed(1)+' MHz';
+  const [lo,hi,bin]=[[2000,11000,20],[8900,10100,2],[9400,9420,.1]][z], nb=Math.round((hi-lo)/bin), r=rng(3), H=RAD.map(()=>new Float64Array(nb));
+  RAD.forEach((R,i)=>{ for(let q=0;q<200;q++){ const f0=i===5?9000+20*Math.floor(41*r()):R.rf; const f=f0+s*gauss(r), k=Math.floor((f-lo)/bin); if(k>=0&&k<nb) H[i][k]++; } });
+  const x0=50,y0=20,w=570,h=270; frame(g,x0,y0,w,h,4); let mx=1; H.forEach(a=>a.forEach(v=>{ if(v>mx) mx=v; }));
+  const X=f=>x0+(f-lo)/(hi-lo)*w;
+  H.forEach((a,i)=>{ g.fillStyle=RCOL(i); g.globalAlpha=(hl<0||hl===i)?.85:.12; for(let k=0;k<nb;k++){ if(!a[k]) continue; const hh=Math.sqrt(a[k]/mx)*h; g.fillRect(X(lo+k*bin),y0+h-hh,Math.max(1.5,w/nb),hh); } }); g.globalAlpha=1;
+  g.fillStyle=css('--muted'); for(let q=0;q<=4;q++){ const f=lo+(hi-lo)*q/4; g.fillText(z===2?(f/1000).toFixed(3)+' GHz':(f/1000).toFixed(z?2:1)+' GHz',Math.min(X(f)-24,x0+w-70),y0+h+16); }
+  g.fillText('pulses per bin (square-root scale), 200 pulses per radar',x0+6,y0+14);
+  RAD.forEach((R,i)=>{ g.fillStyle=RCOL(i); g.fillText(R.id,x0+8+i*44,y0+h+40); }); g.fillStyle=css('--muted'); g.fillText('bin '+bin+' MHz',x0+w-90,y0+h+40);
+  const gate=3*s*Math.SQRT2, fr=i=>i===5?Array.from({length:41},(_,k)=>9000+20*k):[RAD[i].rf], pairs=[];
+  for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){ if(fr(i).some(a=>fr(j).some(b=>Math.abs(a-b)<gate))) pairs.push(RAD[i].id+'–'+RAD[j].id); }
+  ro($('rfOut'),[['gate for "same frequency" (3σ√2)','±'+gate.toFixed(1)+' MHz'],['pairs RF cannot separate',pairs.length?pairs.join(', '):'none'],['E spans','9.00–9.80 GHz, 41 channels']]);
+});
+
+/* 3 AOA */
+bind(['aoS','aoW','aoX'],function(){ const c=$('cAO'), g=ctx(c), s=+$('aoS').value, k=+$('aoW').value, two=+$('aoX').value; $('aoSv').textContent=s+'°';
+  const cx=320,cy=232,sc=4.4; const P=(xk,yk)=>[cx+xk*sc,cy-yk*sc];
+  g.strokeStyle=css('--grid'); [10,25,50].forEach(rk=>{ g.beginPath(); g.arc(cx,cy,rk*sc,0,7); g.stroke(); g.fillStyle=css('--muted'); g.fillText(rk+' km',cx+3,cy-rk*sc+12); });
+  g.fillStyle=css('--muted'); g.fillText('N',cx-4,12); g.fillText('E',cx+50*sc+4,cy+4);
+  const pos=XR.map(x=>[x.R*Math.sin(x.b*deg),x.R*Math.cos(x.b*deg)]);
+  const wedge=(ox,oy,bear,colr)=>{ const [px,py]=P(ox,oy), L=60*sc; g.fillStyle=colr; g.globalAlpha=.16; g.beginPath(); g.moveTo(px,py); for(let a=-k*s;a<=k*s+1e-9;a+=Math.max(.25,k*s/20)){ const bb=(bear+a)*deg; g.lineTo(px+L*Math.sin(bb),py-L*Math.cos(bb)); } g.closePath(); g.fill(); g.globalAlpha=1;
+    g.strokeStyle=colr; g.setLineDash([3,3]); g.beginPath(); g.moveTo(px,py); g.lineTo(px+L*Math.sin(bear*deg),py-L*Math.cos(bear*deg)); g.stroke(); g.setLineDash([]); };
+  g.save(); g.beginPath(); g.rect(0,0,640,460); g.clip();
+  XR.forEach((x,i)=>wedge(0,0,x.b,RCOL(i)));
+  const L2=[10,0]; if(two){ XR.forEach((x,i)=>{ const dx=pos[i][0]-L2[0], dy=pos[i][1]-L2[1]; wedge(L2[0],L2[1],Math.atan2(dx,dy)/deg,RCOL(i)); }); }
+  g.restore();
+  g.fillStyle=css('--ink'); g.beginPath(); g.arc(cx,cy,5,0,7); g.fill(); g.fillText('us',cx-22,cy+16);
+  if(two){ const [lx,ly]=P(10,0); g.fillRect(lx-4,ly-4,8,8); g.fillText('listener 2',lx+6,ly+16); }
+  XR.forEach((x,i)=>{ const [px,py]=P(pos[i][0],pos[i][1]); g.fillStyle=RCOL(i); g.beginPath(); g.arc(px,py,4.5,0,7); g.fill(); g.fillText(RAD[i].id,px+7,py-(i===2?-12:5)); });
+  const ov=[]; for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){ let d=Math.abs(XR[i].b-XR[j].b); d=Math.min(d,360-d); if(d<2*k*s) ov.push(RAD[i].id+'–'+RAD[j].id); }
+  const bA2=Math.atan2(pos[0][0]-10,pos[0][1])/deg, cross=Math.abs(((bA2-40)+540)%360-180), R2=Math.hypot(pos[0][0]-10,pos[0][1]);
+  const errA=Math.max(20,R2)*s*deg/Math.sin(Math.max(cross,1)*deg);
+  ro($('aoOut'),[['wedge half-width','±'+(k*s).toFixed(1)+'°'],['wedges overlapping',ov.length?ov.join(', '):'none'],['sideways error at A (20 km), ±'+k+'σ','±'+(20*k*s*deg).toFixed(2)+' km'],['sideways error at C (45 km), ±'+k+'σ','±'+(45*k*s*deg).toFixed(1)+' km'],['cross-fix on A: bearings cross at',two?cross.toFixed(0)+'°, location ≈ ±'+(errA).toFixed(1)+' km (1σ)':'(second listener off)']]);
+});
+
+/* 4 PW */
+bind(['pwV','pwS'],function(){ const c=$('cPW'), g=ctx(c), BW=+$('pwV').value*1e6, Ts=+$('pwS').value; $('pwVv').textContent=(BW/1e6)+' MHz';
+  const tau=0.159/BW*1e6; // µs
+  const x0=60,w=560,y0=20,rh=58; const X=t=>x0+t/Ts*w; let rows=[];
+  RAD.forEach((R,i)=>{ const pw=R.pw, peak=1-Math.exp(-pw/tau), t1=-tau*Math.log(1-peak/2), t2=pw+tau*Math.log(2), meas=t2-t1, y=y0+i*rh, hh=40, off=Ts*.04;
+    g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,y+hh); g.lineTo(x0+w,y+hh); g.stroke();
+    g.strokeStyle=css('--muted'); g.setLineDash([2,3]); g.strokeRect(X(off),y+hh-hh,Math.min(w,X(off+pw)-X(off)),hh); g.setLineDash([]);
+    g.strokeStyle=RCOL(i); g.lineWidth=2; g.beginPath(); const N=400; for(let q=0;q<=N;q++){ const t=q/N*Ts-off; let v=0; if(t>0&&t<=pw) v=1-Math.exp(-t/tau); else if(t>pw) v=peak*Math.exp(-(t-pw)/tau); const XX=x0+q/N*w, YY=y+hh-v*hh; q?g.lineTo(XX,YY):g.moveTo(XX,YY); } g.stroke(); g.lineWidth=1;
+    g.fillStyle=css('--accent'); [t1,t2].forEach(t=>{ if(off+t<=Ts){ g.beginPath(); g.arc(X(off+t),y+hh-peak*hh/2,3,0,7); g.fill(); } });
+    g.fillStyle=RCOL(i); g.fillText(R.id,x0-40,y+hh-12); g.fillStyle=css('--ink'); const txt='true '+pw+' µs → measured '+meas.toFixed(3)+' µs'+(peak<.98?', height '+(20*Math.log10(peak)).toFixed(1)+' dB':''); g.fillText(txt,Math.min(X(off+Math.min(pw,Ts))+8,x0+w-g.measureText(txt).width),y+12);
+    rows.push([R.id,meas,peak]); });
+  g.fillStyle=css('--muted'); g.fillText('0',x0,y0+6*rh+4); g.fillText(Ts+' µs',x0+w-40,y0+6*rh+4); g.fillText('dashed: the true pulse; colour: what our video path outputs; dots: half-height crossings',x0,y0+6*rh+20);
+  ro($('pwOut'),[['rise time 0.35/BW',(0.35/BW*1e9).toFixed(0)+' ns'],['B1 measured (true 0.25 µs)',rows[1][1].toFixed(3)+' µs'],['B1 height reached',(rows[1][2]*100).toFixed(0)+' % ('+(20*Math.log10(rows[1][2])).toFixed(1)+' dB)'],['D measured (true 10 µs)',rows[4][1].toFixed(3)+' µs']]);
+});
+
+/* 5 AMPLITUDE */
+$('amR').addEventListener('input',()=>{ $('amD').value=XR[+$('amR').value].R; });
+bind(['amS','amR','amD'],function(){ const c=$('cAm'), g=ctx(c), S=+$('amS').value, sel=+$('amR').value, Rd=+$('amD').value; $('amSv').textContent=S+' dBm'; $('amDv').textContent=Rd+' km';
+  const x0=60,y0=16,w=560,h=170, lo=-95,hi=-10, Y=v=>y0+h-(v-lo)/(hi-lo)*h; frame(g,x0,y0,w,h,4);
+  g.fillStyle=css('--muted'); [-90,-70,-50,-30].forEach(v=>g.fillText(v+'',x0-34,Y(v)+4)); g.fillText('dBm at our hill',x0+6,y0+12);
+  RAD.forEach((R,i)=>{ const m=mainAt(i,i===sel?Rd:undefined), sl=m-30, cx=x0+40+i*90; const heardM=i!==4&&m>=S, heardS=sl>=S;
+    g.fillStyle=RCOL(i); g.globalAlpha=i===4?.25:(heardM?.85:.25); g.fillRect(cx,Y(m),26,y0+h-Y(m)); g.globalAlpha=heardS?.85:.25; g.fillRect(cx+30,Y(sl),26,y0+h-Y(sl)); g.globalAlpha=1;
+    g.fillStyle=css('--ink'); g.fillText(R.id+(i===sel?' *':''),cx+18,y0+h+16); g.font='10px "IBM Plex Mono",monospace'; g.fillStyle=css('--muted'); g.fillText(m.toFixed(1),cx-2,Y(m)-4); g.fillText(sl.toFixed(1),cx+28,Y(sl)-4); g.font='12px "IBM Plex Mono",monospace'; });
+  g.strokeStyle=css('--bad'); g.setLineDash([5,4]); g.beginPath(); g.moveTo(x0,Y(S)); g.lineTo(x0+w,Y(S)); g.stroke(); g.setLineDash([]); g.fillStyle=css('--bad'); g.fillText('our sensitivity',x0+w-120,Y(S)-4);
+  g.fillStyle=css('--muted'); g.fillText('left bar: main beam (D never points at us), right bar: sidelobes; faded = not heard',x0,y0+h+32);
+  // link budget waterfall
+  const x=XR[sel], fs=fsplK(Rd,x.f), erp=x.P+x.G, m=erp-fs; const by=y0+h+60, bh=110, blo=-160, bhi=130, BY=v=>by+bh-(v-blo)/(bhi-blo)*bh;
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,BY(0)); g.lineTo(x0+w,BY(0)); g.stroke(); g.fillStyle=css('--muted'); g.fillText('0 dBm',x0-46,BY(0)+4);
+  const steps=[['peak power',0,x.P,'--accent'],['+ antenna gain',x.P,erp,'--good'],['− path loss '+fs.toFixed(1)+' dB',erp,m,'--bad'],['= main beam at us',0,m,'--trace'],['sidelobe (−30)',0,m-30,'--trace2']];
+  steps.forEach((st,q)=>{ const bx=x0+20+q*110, a=BY(Math.max(st[1],st[2])), b=BY(Math.min(st[1],st[2])); g.fillStyle=css(st[3]); g.fillRect(bx,a,60,Math.max(2,b-a)); g.fillStyle=css('--ink'); g.font='11px "IBM Plex Mono",monospace'; g.fillText(st[0],bx-6,by+bh+14); g.fillText(st[2].toFixed(1)+' dBm',bx,a-4); g.font='12px "IBM Plex Mono",monospace'; });
+  const Rest=e=>c0/x.f/(4*Math.PI)*Math.pow(10,(erp-e)/20)/1000;
+  ro($('amOut'),[['ERP',erp+' dBm'],['path loss at '+Rd+' km',fs.toFixed(1)+' dB'],['main beam / sidelobes at us',sel===4?'never / '+(m-30).toFixed(1)+' dBm':m.toFixed(1)+' / '+(m-30).toFixed(1)+' dBm'],['distance estimated from amplitude (ERP known)',Rest(m).toFixed(1)+' km'],['same, with a 3 dB amplitude error',Rest(m+3).toFixed(1)+' to '+Rest(m-3).toFixed(1)+' km'],['heard at '+S+' dBm',['all six (sidelobes)','main beams only'][RAD.every((R,i)=>mainAt(i,i===sel?Rd:undefined)-30>=S)?0:1]]]);
+});
+
+/* 6 PULSE TRAINS */
+bind(['trT','trW','trC'],function(){ const c=$('cTr'), g=ctx(c), T0=+$('trT').value*1000, W=+$('trW').value, colr=+$('trC').value; $('trTv').textContent=(T0/1000).toFixed(1)+' ms';
+  const P=stream(100000,5,3), x0=50,w=570,y0=14,rh=48, X=t=>x0+(t-T0)/W*w;
+  RAD.forEach((R,i)=>{ const y=y0+i*rh, ps=P.filter(p=>p.src===i&&p.tt>=T0&&p.tt<T0+W); g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,y+30); g.lineTo(x0+w,y+30); g.stroke(); g.fillStyle=RCOL(i); g.fillText(R.id,x0-36,y+28);
+    g.strokeStyle=RCOL(i); g.lineWidth=2; ps.forEach((p,q)=>{ g.beginPath(); g.moveTo(X(p.tt),y+30); g.lineTo(X(p.tt),y+8); g.stroke(); if(q>0){ const gap=p.tt-ps[q-1].tt, mx=(X(p.tt)+X(ps[q-1].tt))/2; if(X(p.tt)-X(ps[q-1].tt)>34){ g.fillStyle=css('--muted'); g.font='10px "IBM Plex Mono",monospace'; g.fillText(gap.toFixed(0),mx-11,y+44); g.font='12px "IBM Plex Mono",monospace'; } } }); g.lineWidth=1; });
+  const y=y0+6*rh+10, all=P.filter(p=>p.tt>=T0&&p.tt<T0+W); g.fillStyle=css('--ink'); g.fillText('all',x0-36,y+28); g.strokeStyle=css('--line'); g.beginPath(); g.moveTo(x0,y+30); g.lineTo(x0+w,y+30); g.stroke();
+  all.forEach(p=>{ g.strokeStyle=colr?RCOL(p.src):css('--ink'); g.lineWidth=1.5; g.beginPath(); g.moveTo(X(p.tt),y+30); g.lineTo(X(p.tt),y+6); g.stroke(); }); g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText((T0/1000).toFixed(1)+' ms',x0,y+46); g.fillText('+'+(W/1000)+' ms',x0+w-50,y+46); g.fillText('gaps between neighbours in µs',x0+180,y+46);
+  let gs=0; for(let q=1;q<all.length;q++) gs+=all[q].tt-all[q-1].tt;
+  ro($('trOut'),[['pulses in the window',all.length],['average gap in the mixed row',all.length>1?(gs/(all.length-1)).toFixed(0)+' µs':'—'],['share of pulses from E','≈ '+(100*P.filter(p=>p.src===5).length/P.length).toFixed(0)+' %']]);
+});
+
+/* 7 INSIDE THE PULSE, six radars */
+bind(['inS','inV'],function(){ const c=$('cIn'), g=ctx(c), snr=+$('inS').value, view=+$('inV').value; $('inSv').textContent=snr+' dB';
+  const fs=500e6, sig=1/Math.sqrt(2*lin(snr)), r=rng(17), NW=25; const res=[];
+  RAD.forEach((R,i)=>{ const PW=R.pw*1e-6, N=Math.round(PW*fs), zr=new Float64Array(N), zi=new Float64Array(N); let ph=0;
+    for(let n=0;n<N;n++){ const u=n/N; let f=0, s=1; if(i===1) f=6e6*(u-.5); if(i===2) f=9e6*(u-.5); if(i===4) f=5e6*(u-.5); if(i===5) s=BARK[Math.min(12,Math.floor(u*13))]; ph+=2*Math.PI*f/fs; zr[n]=s*Math.cos(ph)+sig*gauss(r); zi[n]=s*Math.sin(ph)+sig*gauss(r); }
+    const pts=[]; for(let w0=1;w0+NW<=N;w0+=NW){ let ar=0,ai=0; for(let n=w0;n<w0+NW;n++){ ar+=zr[n]*zr[n-1]+zi[n]*zi[n-1]; ai+=zi[n]*zr[n-1]-zr[n]*zi[n-1]; } pts.push([(w0+NW/2)/N,Math.atan2(ai,ar)*fs/(2*Math.PI)]); }
+    let sx=0,sy=0,sxx=0,sxy=0; pts.forEach(p=>{ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; }); const m=pts.length, sl=(m*sxy-sx*sy)/(m*sxx-sx*sx), ic=(sy-sl*sx)/m;
+    const uph=new Float64Array(N); let jumps=0,last=-99; for(let n=1;n<N;n++){ const ar=zr[n]*zr[n-1]+zi[n]*zi[n-1], ai=zi[n]*zr[n-1]-zr[n]*zi[n-1]; let d=Math.atan2(ai,ar)-2*Math.PI*(ic+sl*n/N)/fs; d=Math.atan2(Math.sin(d),Math.cos(d)); uph[n]=uph[n-1]+d; if(Math.abs(d)>Math.PI/2&&n-last>8){ jumps++; last=n; } }
+    const col=i%3, row=Math.floor(i/3), px=50+col*200, py=24+row*180, pw=170, ph_=130; frame(g,px,py,pw,ph_,2); g.fillStyle=RCOL(i); g.fillText(R.id+' · '+R.pw+' µs',px,py-6);
+    if(view===0){ const fm=8e6, Yf=f=>py+ph_/2-Math.max(-1,Math.min(1,f/fm))*ph_/2; g.fillStyle=RCOL(i); pts.forEach(p=>g.fillRect(px+p[0]*pw-1.5,Yf(p[1])-1.5,3,3)); g.strokeStyle=css('--ink'); g.beginPath(); g.moveTo(px,Yf(ic)); g.lineTo(px+pw,Yf(ic+sl)); g.stroke();
+      g.fillStyle=css('--muted'); g.font='10px "IBM Plex Mono",monospace'; g.fillText('±8 MHz',px+pw-44,py+10); g.fillText('change '+(sl/1e6).toFixed(1)+' MHz',px+4,py+ph_-4); g.font='12px "IBM Plex Mono",monospace'; }
+    else { const pm=Math.PI*1.4; g.strokeStyle=RCOL(i); g.beginPath(); for(let n=0;n<N;n++){ const XX=px+n/N*pw, YY=py+ph_/2-Math.max(-1,Math.min(1,uph[n]/(4*pm)))*ph_/2; n?g.lineTo(XX,YY):g.moveTo(XX,YY); } g.stroke();
+      g.fillStyle=css('--muted'); g.font='10px "IBM Plex Mono",monospace'; g.fillText('180° jumps: '+jumps,px+4,py+ph_-4); g.font='12px "IBM Plex Mono",monospace'; }
+    res.push([R.id,sl/1e6,jumps]); });
+  ro($('inOut'),[['frequency change across the pulse',res.map(x=>x[0]+' '+x[1].toFixed(1)).join(' · ')+' MHz'],['180° phase jumps found',res.map(x=>x[0]+' '+x[2]).join(' · ')],['true','B1 6, B2 9, D 5 MHz; E has 6 jumps']]);
+});
+
+/* 8 SCAN, six radars */
+function scanPeriod(amp,dt){ const n=amp.length, pw=Array.from(amp,v=>lin(v)), mu=pw.reduce((a,b)=>a+b,0)/n, va=pw.reduce((a,b)=>a+(b-mu)**2,0)/n; const maxLag=Math.floor(n*.75), ac=new Float64Array(maxLag);
+  if(!(va>0)) return NaN; for(let k=0;k<maxLag;k++){ let s=0; for(let q=0;q+k<n;q++) s+=(pw[q]-mu)*(pw[q+k]-mu); ac[k]=s/(n-k)/va; }
+  let k0=1; while(k0<maxLag&&ac[k0]>.3) k0++; let best=-1; for(let k=k0+1;k<maxLag-1;k++){ if(ac[k]>.5&&ac[k]>=ac[k-1]&&ac[k]>=ac[k+1]&&(best<0||ac[k]>ac[best])) best=k; }
+  if(best>0){ for(let k=k0+1;k<best;k++){ if(ac[k]>=.7*ac[best]&&ac[k]>=ac[k-1]&&ac[k]>=ac[k+1]){ best=k; break; } } } return best>0?best*dt:NaN; }
+bind(['sxL','sxS'],function(){ const c=$('cSx'), g=ctx(c), L=+$('sxL').value, S=+$('sxS').value; $('sxLv').textContent=L+' s'; $('sxSv').textContent=S+' dBm';
+  const dt=.005, n=Math.round(L/dt), r=rng(21), x0=50,w=570,y0=14,rh=64, lo=-85, hi=-15; const out=[];
+  const visits=[]; { let t=.3; const rv=rng(8); while(t<L){ visits.push(t); t+=.4+2.6*rv(); } }
+  RAD.forEach((R,i)=>{ const x=XR[i], m=mainAt(i), amp=new Float64Array(n);
+    for(let k=0;k<n;k++){ const t=k*dt; let v;
+      if(x.scan>0){ const off=((360*(t+x.ph)/x.scan)%360+360)%360-180, u=off/x.bw*.886, s=Math.abs(u)<1e-6?1:Math.sin(Math.PI*u)/(Math.PI*u); v=m+10*Math.log10(Math.max(s*s,lin(-30)*(.6+.8*Math.abs(Math.sin(off*.9))))); }
+      else if(x.scan===0) v=m-30; else { v=m-30+3*Math.sin(t*1.7); for(const tv of visits){ if(t>=tv&&t<tv+.02) v=m; } }
+      amp[k]=v+.5*gauss(r); }
+    const heard=Array.from(amp,v=>v>=S?v:-120); const per=(i===4)?NaN:scanPeriod(heard,dt); out.push([R.id,per]);
+    const y=y0+i*rh, Y=v=>y+50-(Math.max(lo,Math.min(hi,v))-lo)/(hi-lo)*50; g.strokeStyle=css('--grid'); g.strokeRect(x0,y,w,50);
+    for(let k=1;k<n;k+=2){ const h1=amp[k]>=S; g.strokeStyle=h1?RCOL(i):css('--grid'); g.beginPath(); g.moveTo(x0+(k-2)/n*w,Y(amp[k-2>=0?k-2:0])); g.lineTo(x0+k/n*w,Y(amp[k])); g.stroke(); }
+    g.strokeStyle=css('--bad'); g.setLineDash([3,3]); g.beginPath(); g.moveTo(x0,Y(S)); g.lineTo(x0+w,Y(S)); g.stroke(); g.setLineDash([]);
+    g.fillStyle=RCOL(i); g.fillText(R.id,x0-36,y+30); g.fillStyle=css('--muted'); g.font='10px "IBM Plex Mono",monospace'; g.fillText(isFinite(per)?'period '+per.toFixed(2)+' s':'no period',x0+w-90,y+12); g.font='12px "IBM Plex Mono",monospace'; });
+  g.fillStyle=css('--muted'); g.fillText('0',x0,y0+6*rh+8); g.fillText(L+' s',x0+w-30,y0+6*rh+8); g.fillText('each strip −85 to −15 dBm; dashed: our sensitivity; grey: not heard',x0+60,y0+6*rh+8);
+  ro($('sxOut'),out.map(o=>[o[0]+' period found',isFinite(o[1])?o[1].toFixed(2)+' s':'none']));
+});
+
+/* 9 FINGERPRINT CARDS */
+(function(){ const F=[['10.00 GHz','40°, 20 km','1.0 µs','−48.5 / −78.5 dBm','constant 1 000 µs','plain','circular 6 s'],['9.41 GHz','118°, 8 km','0.25 µs','−28.0 / −58.0 dBm','constant 1 250 µs','drift ≈ 6 MHz','circular 2.4 s'],['9.41 GHz','123°, 9 km','0.25 µs','−33.0 / −63.0 dBm','constant 1 100 µs','drift ≈ 9 MHz','circular 2.5 s'],['2.80 GHz','200°, 45 km','2.0 µs','−20.5 / −50.5 dBm','stagger 900/1 000/1 100 µs','plain','circular 4 s'],['9.60 GHz','45°, 15 km','10 µs','sidelobes only, −60.6 dBm','jitter 400 µs ± 10 %','LFM 5 MHz','none (tracking)'],['9.00–9.80 GHz, hopping','300°, 30 km','0.5 µs','−46.5 / −76.5 dBm','constant 250 µs','Barker 13','electronic, irregular']];
+  const K=['RF','AOA','PW','Amplitude (main / side)','PRI','Inside the pulse','Scan']; const role=['surveillance','ship navigation 1','ship navigation 2','air traffic','tracking','frequency-agile'];
+  $('fpCards').innerHTML=F.map((f,i)=>`<div class="fcard" style="border-top:4px solid var(${RAD[i].col})"><b>Radar ${RAD[i].id}</b> <span style="color:var(--muted)">${role[i]}</span><dl>${f.map((v,q)=>`<dt>${K[q]}</dt><dd>${v}</dd>`).join('')}</dl></div>`).join(''); })();
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

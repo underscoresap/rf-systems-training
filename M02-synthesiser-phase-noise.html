@@ -1,0 +1,1159 @@
+<title>Synthesisers and Phase Noise</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1 and the antenna module. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+.comp .tw{margin:4px 0 2px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Synthesisers and Phase Noise · RF Systems for Component Engineers</div>
+  <h1>Synthesisers and phase noise, from the oscillator to the radar picture</h1>
+  <p class="lede">Every radar, SAR and ESM receiver needs one or more local oscillators (LOs) and a reference. This page opens the box that makes them: the VCO, the crystal reference, the phase-locked loop, the fractional-N divider and the DDS. It starts from what phase noise actually is, then follows each design choice to a datasheet number and on to what the system loses: clutter that is not cancelled, a slow target that disappears, a smeared SAR image, a weak emitter hidden next to a strong one. Every term is explained before it is used. Every step has worked numbers and most have a demo you can change.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#what">1 What phase noise is</a><a href="#integ">2 Integrated noise and jitter</a><a href="#vco">3 The VCO</a><a href="#mult">4 Reference and 20·log N</a><a href="#pll">5 PLL loop bandwidth</a><a href="#frac">6 Integer-N and fractional-N</a><a href="#dds">7 DDS</a><a href="#settle">8 Settling and agility</a><a href="#recip">9 Reciprocal mixing and blocking</a><a href="#range">10 Range correlation and clutter</a><a href="#sar">11 SAR image quality</a><a href="#esm">12 Signal identification</a><a href="#summary">13 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 1 -->
+<section id="what">
+  <div class="secno">Step 1</div>
+  <h2>What phase noise is: a sine wave whose timing wobbles</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An ideal oscillator output is v(t) = A·cos(2πf₀t): one frequency f₀, a single line on a spectrum analyser. A real oscillator has noise inside it (thermal noise in resistors, shot noise and flicker noise in transistors). An amplifier adds noise power kTB·F to whatever passes through it. A mixer multiplies two signals and produces their sum and difference frequencies.</p>
+  </div>
+  <div class="col">
+    <p><b>Noise disturbs either the size or the timing of the sine.</b> Write the real output as v(t) = A·[1 + a(t)]·cos(2πf₀t + φ(t)). a(t) is <b>amplitude noise</b>: the peaks are not all the same height. φ(t) is <b>phase noise</b>: the zero crossings arrive a little early or a little late, at random. An oscillator runs in saturation (its gain compresses until the loop gain is exactly 1), so amplitude disturbances are pulled back every cycle; phase disturbances are not, because nothing in the oscillator knows what the "correct" phase is. Phase errors accumulate. That is why phase noise is much larger than amplitude noise in every oscillator, and why the datasheet talks about phase noise.</p>
+    <p><b>Phase wobble makes sidebands.</b> Take the simplest case, a small sinusoidal phase wobble φ(t) = β·sin(2πf<sub>m</sub>t), with β the peak phase deviation in radians and f<sub>m</sub> the rate. For small β, cos(x + φ) ≈ cos x − φ·sin x. Put in φ and use the product rule for sines: the output is the carrier plus two small lines at f₀ + f<sub>m</sub> and f₀ − f<sub>m</sub>, each with amplitude β/2 of the carrier. Random phase noise is the sum of many such wobbles at all rates, so instead of two lines you see a continuous "skirt" of noise on both sides of the carrier. The distance from the carrier is called the <b>offset frequency</b>, f.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Carrier:</b> the wanted sine at f₀. <b>dBc:</b> decibels relative to the carrier power.</p>
+    <p><b>Offset frequency f:</b> distance from the carrier, for example "at 10 kHz offset".</p>
+    <p><b>Sideband:</b> energy at f₀ ± f. <b>Spur (spurious tone):</b> a discrete line at a fixed offset, caused by something periodic (a reference leaking, a divider pattern). Phase noise is random and continuous; a spur is a single line.</p>
+    <p><b>L(f) ("script L"):</b> the power of one sideband in a 1 Hz bandwidth at offset f, divided by the carrier power. Unit: dBc/Hz.</p>
+  </div>
+  <div class="eq">Sinusoidal phase modulation:  each sideband = 20·log₁₀(β/2)  dBc<br>Random phase noise:  L(f) = ½·S<sub>φ</sub>(f)   (S<sub>φ</sub> = phase spectral density in rad²/Hz, valid while φ ≪ 1 rad)<br>Additive noise floor:  L<sub>floor</sub> = −174 dBm/Hz + NF − P<sub>carrier</sub> − 3 dB
+    <small>The −3 dB in the floor appears because added white noise splits equally into an amplitude part and a phase part; only the phase half counts in L(f). A carrier of +10 dBm through a stage with NF = 5 dB cannot be cleaner than −174 + 5 − 10 − 3 = −172 dBc/Hz far from the carrier.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Peak phase wobble β</th><th>In degrees</th><th>Each sideband 20·log(β/2)</th></tr>
+    <tr><td>0.1 rad</td><td class="n">5.7°</td><td class="n">−26 dBc</td></tr>
+    <tr><td>0.01 rad</td><td class="n">0.57°</td><td class="n">−46 dBc</td></tr>
+    <tr><td>0.001 rad (1 mrad)</td><td class="n">0.057°</td><td class="n">−66 dBc</td></tr>
+    <tr><td>Random noise reading L(10 kHz) = −100 dBc/Hz, seen in a 1 kHz RBW</td><td class="n">n/a</td><td class="n">−100 + 30 = −70 dBc on screen</td></tr>
+  </table></div>
+  <div class="col"><p>The last row shows how to read a spectrum analyser: noise power grows with the resolution bandwidth (RBW), so a reading in dBc must be divided by the RBW (subtract 10·log RBW) to get dBc/Hz. Real analysers also need small corrections for their filter shape and log averaging (about +2 dB in total); phase-noise test sets do this for you and also reject the amplitude noise.</p></div>
+  <div class="bench">
+    <canvas id="cPm" width="640" height="360" aria-label="Phasor and spectrum of a phase-modulated carrier"></canvas>
+    <div class="ctrl">
+      <label for="pmM"><span>Kind of phase wobble</span></label>
+      <select id="pmM"><option value="tone" selected>One sinusoidal wobble (gives spurs)</option><option value="noise">Random wobble (gives phase noise)</option></select>
+      <label for="pmB"><span>Wobble size (peak β, or rms for noise)</span> <b id="pmBv"></b></label><input id="pmB" type="range" min="-3" max="0" step="0.05" value="-2">
+      <label for="pmF"><span>Rate f<sub>m</sub> (tone) or noise corner</span> <b id="pmFv"></b></label><input id="pmF" type="range" min="1000" max="20000" step="100" value="5000">
+      <div class="readout" id="pmOut"></div>
+    </div>
+    <p class="cap">Left: the phasor. An ideal carrier is a dot that rotates at f₀; here it is drawn in a frame that rotates with it, so an ideal carrier stands still on the right of the circle. Phase noise makes the dot wander along the circle (the arc); amplitude noise would move it in and out. Right: the spectrum computed from 4096 samples (FFT, Blackman-Harris window, 100 Hz bins), in dBc per bin. Raise β: the sidebands rise 20 dB per decade, and above about 1 rad energy leaves the carrier itself.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Oscillator drive level +10 dBm instead of 0 dBm; buffer amplifier NF 5 dB</td><td>Far-out floor −172 instead of −162 dBc/Hz</td><td>Wideband receivers integrate that floor over 100s of MHz: 10 dB lower floor = 10 dB more blocker tolerance far from the carrier</td></tr>
+      <tr><td>Supply ripple of 1 mV at 100 kHz on a VCO with 2 MHz/V pushing</td><td>Spur at 100 kHz: Δf = 2 kHz peak, β = Δf/f = 0.02 rad → −40 dBc</td><td>A Doppler radar sees a false target at 100 kHz Doppler; an ESM receiver sees two phantom lines beside every strong signal</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A spur sits at −60 dBc. What peak phase wobble causes it?</summary><p>20·log(β/2) = −60 → β/2 = 0.001 → β = 2 mrad = 0.11°.</p></details>
+    <details><summary>Why can an LO buffer amplifier make phase noise worse far from the carrier but not close to it?</summary><p>The amplifier adds a flat (white) noise floor of about −174 + NF − P − 3 dBc/Hz. Close to the carrier the oscillator's own noise is far above that floor; far from the carrier the oscillator noise has fallen below it, so the floor sets L(f).</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="integ">
+  <div class="secno">Step 2</div>
+  <h2>Integrated phase noise and jitter: one number for the whole curve</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>Noise power in a band is the density times the bandwidth: kT·B. When the density changes across the band you add up (integrate) the density over the band. From step 1: L(f) is a density in dBc/Hz, and S<sub>φ</sub> = 2·L in rad²/Hz.</p>
+  </div>
+  <div class="col">
+    <p><b>The rms phase error is the area under the curve.</b> Many systems do not care which offset the noise sits at, only how much phase error accumulates over the time they look at the signal. A system that looks for a time T is blind to wobbles slower than about 1/T (they look like a constant phase) and averages out wobbles faster than its bandwidth B. So the useful single number is the phase variance integrated from f₁ ≈ 1/T to f₂ ≈ B. Remember to count both sidebands: that is the factor 2.</p>
+    <p><b>Jitter is the same thing seen as time.</b> A phase error of σ<sub>φ</sub> radians on a carrier with period 1/f₀ is a timing error σ<sub>t</sub> = σ<sub>φ</sub>/(2πf₀). Digital designers specify clocks in femtoseconds of jitter; RF designers specify LOs in degrees rms or dBc. They are the same quantity.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Integrated phase noise:</b> 10·log₁₀(σ<sub>φ</sub>²), in dBc, over a stated band f₁ to f₂.</p>
+    <p><b>RMS phase error σ<sub>φ</sub>:</b> the square root of the integrated variance, in radians or degrees.</p>
+    <p><b>RMS jitter σ<sub>t</sub>:</b> rms timing error of the zero crossings, in seconds (fs, ps).</p>
+    <p><b>EVM (error vector magnitude):</b> the error of a received constellation point relative to the ideal; for a phase-only error EVM ≈ σ<sub>φ</sub> in radians.</p>
+  </div>
+  <div class="eq">σ<sub>φ</sub>² = 2 · ∫<sub>f₁</sub><sup>f₂</sup> 10<sup>L(f)/10</sup> df   [rad²]      σ<sub>t</sub> = σ<sub>φ</sub> / (2π f₀)<br>ADC clocked by this source, input at f<sub>in</sub>:  SNR<sub>max</sub> = −20·log₁₀(2π f<sub>in</sub> σ<sub>t</sub>)
+    <small>Multiplying a carrier by N multiplies the phase by N but keeps the jitter the same in seconds: jitter is the natural unit for clocks, phase (degrees) for LOs.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: flat L = −100 dBc/Hz from 1 kHz to 1 MHz, f₀ = 10 GHz</th><th>Value</th></tr>
+    <tr><td>σ<sub>φ</sub>² = 2 × 10⁻¹⁰ × (1 MHz − 1 kHz)</td><td class="n">2.0 × 10⁻⁴ rad²  (−37 dBc)</td></tr>
+    <tr><td>σ<sub>φ</sub></td><td class="n">14.1 mrad = 0.81°</td></tr>
+    <tr><td>σ<sub>t</sub> = 0.0141 / (2π × 10¹⁰)</td><td class="n">225 fs</td></tr>
+    <tr><td>EVM from this LO alone</td><td class="n">1.4 %</td></tr>
+    <tr><td>Same 225 fs clocking an ADC at f<sub>in</sub> = 1 GHz: SNR limit −20·log(2π·10⁹·2.25·10⁻¹³)</td><td class="n">57 dB</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cIn" width="640" height="360" aria-label="Phase noise curve with the integration band shaded"></canvas>
+    <div class="ctrl">
+      <label for="inP"><span>Source</span></label>
+      <select id="inP"><option value="A">A: low-cost frac-N PLL, on-chip VCO</option><option value="B" selected>B: integer-N PLL, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option><option value="F">Flat −100 dBc/Hz (the worked example)</option></select>
+      <label for="inLo"><span>Lower limit f₁</span> <b id="inLov"></b></label><input id="inLo" type="range" min="1" max="5" step="0.05" value="3">
+      <label for="inHi"><span>Upper limit f₂</span> <b id="inHiv"></b></label><input id="inHi" type="range" min="4" max="8" step="0.05" value="6">
+      <label for="inF"><span>Carrier f₀</span> <b id="inFv"></b></label><input id="inF" type="range" min="1" max="40" step="0.5" value="10">
+      <div class="readout" id="inOut"></div>
+    </div>
+    <p class="cap">Sources A to C are drawn as they would be at 10 GHz; moving f₀ shifts the whole curve by 20·log(f₀/10 GHz), as if the same synthesiser design were scaled (step 4 explains why). The shaded area is what gets integrated. Notice which decade contributes most: on a PLL output it is usually the flat region near the loop bandwidth (step 5), not the steep close-in part.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>PLL loop bandwidth and in-band floor (step 5)</td><td>Integrated phase noise −40 dBc (1 kHz to 10 MHz) = 0.81° rms</td><td>Communications link EVM 1.4 %; a phase-coded radar pulse keeps its sidelobes</td></tr>
+      <tr><td>ADC sampling clock from a 100 fs source instead of 500 fs</td><td>Jitter 100 fs rms (10 kHz to 20 MHz)</td><td>Digital receiver SNR limit at 1 GHz input rises from 50 dB to 64 dB</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 2 GHz LO has 0.5° rms. It is multiplied by 8 to 16 GHz. What is its rms phase error and jitter now?</summary><p>Phase scales with N: 4° rms. Jitter is unchanged: 0.5° = 8.7 mrad, σ<sub>t</sub> = 8.7·10⁻³/(2π·2·10⁹) = 0.69 ps, and at 16 GHz 4° = 69.8 mrad gives the same 0.69 ps.</p></details>
+    <details><summary>Why does the integration band have to be stated with every jitter number?</summary><p>The integral depends on where you start and stop. Starting at 10 Hz instead of 1 kHz can double the number on a free-running source, and a wideband ADC sees noise up to half its sampling rate.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="vco">
+  <div class="secno">Step 3</div>
+  <h2>The VCO: why resonator Q sets phase noise (Leeson's model)</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An oscillator is an amplifier with a resonator in a feedback loop. It oscillates at the frequency where the loop phase shift is 360° and the loop gain is 1. A resonator of quality factor Q has a phase slope: its phase changes by about 2Q radians per unit of fractional frequency change near resonance. A varactor is a reverse-biased diode whose capacitance changes with voltage.</p>
+  </div>
+  <div class="col">
+    <p><b>The resonator turns a phase disturbance into a small frequency change.</b> Noise in the amplifier adds a small random phase δφ to the loop. The loop must still total 360°, so the oscillator moves its frequency until the resonator cancels δφ. A high-Q resonator needs only a tiny frequency shift to do that (steep phase slope); a low-Q one needs a large shift. A random frequency wobble Δf at rate f is a phase wobble Δf/f (phase is the integral of frequency), so inside the resonator half-bandwidth f₀/(2Q<sub>L</sub>) the noise rises as 1/f²: 20 dB per decade towards the carrier. Outside it the resonator has no effect and you see the amplifier's own flat noise floor.</p>
+    <p><b>Flicker noise adds a steeper part close in.</b> Transistors have flicker (1/f) noise below a corner frequency f<sub>c</sub> (about 1 to 50 kHz for silicon bipolar and SiGe, 1 MHz and more for GaAs FETs). It modulates the phase, so inside both f<sub>c</sub> and f₀/2Q<sub>L</sub> the slope becomes 30 dB per decade. This model is Leeson's equation. It is approximate, but it shows every lever you have.</p>
+    <p><b>The VCO is also an FM modulator for noise on its tuning line.</b> The tuning sensitivity K<sub>V</sub> (Hz per volt) turns any noise voltage on the varactor into frequency noise. A wideband VCO has a large K<sub>V</sub>, so its tuning line must be very quiet: the loop filter resistors, the op-amp and the supply all feed in here.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>VCO:</b> voltage-controlled oscillator, tuned by a varactor (or by current, for a YIG oscillator).</p>
+    <p><b>Loaded Q (Q<sub>L</sub>):</b> the Q of the resonator as it sits in the circuit, including the loading by the transistor and output coupling. Always lower than the unloaded Q of the resonator alone.</p>
+    <p><b>Leeson frequency f₀/(2Q<sub>L</sub>):</b> the offset below which the 1/f² region starts. <b>Flicker corner f<sub>c</sub>:</b> where 1/f noise equals white noise.</p>
+    <p><b>K<sub>V</sub> (tuning sensitivity):</b> MHz/V. <b>Pushing:</b> frequency change per volt of supply. <b>Pulling:</b> frequency change with load mismatch.</p>
+  </div>
+  <div class="eq">L(f) = 10·log₁₀{ (F·k·T / 2P<sub>s</sub>) · [1 + (f₀ / (2Q<sub>L</sub>·f))²] · (1 + f<sub>c</sub>/f) }   dBc/Hz<br>Tuning-line noise v<sub>n</sub> (V/√Hz):  L(f) ≈ 20·log₁₀( K<sub>V</sub>·v<sub>n</sub> / (√2·f) )
+    <small>F = amplifier noise factor (linear), kT = 4.0 × 10⁻²¹ W/Hz, P<sub>s</sub> = signal power in the resonator loop. In dB the first factor is −174 dBm/Hz + NF − P<sub>s</sub>(dBm) − 3 dB.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: f₀ = 10 GHz, Q<sub>L</sub> = 20, P<sub>s</sub> = +5 dBm, NF = 8 dB, f<sub>c</sub> = 50 kHz</th><th>Value</th></tr>
+    <tr><td>Floor term −174 + 8 − 5 − 3</td><td class="n">−174 dBc/Hz</td></tr>
+    <tr><td>Leeson frequency 10 GHz / 40</td><td class="n">250 MHz</td></tr>
+    <tr><td>At 100 kHz: 20·log(250 MHz/100 kHz) = 68 dB, flicker 10·log(1.5) = 1.8 dB</td><td class="n">−104 dBc/Hz</td></tr>
+    <tr><td>At 1 MHz: 48 dB + 0.2 dB</td><td class="n">−126 dBc/Hz</td></tr>
+    <tr><td>Same circuit with Q<sub>L</sub> = 200 (ceramic coaxial resonator) at 100 kHz</td><td class="n">−124 dBc/Hz (20 dB better)</td></tr>
+    <tr><td>Tuning line: K<sub>V</sub> = 500 MHz/V, v<sub>n</sub> = 1 nV/√Hz, at 100 kHz: 20·log(0.5/(1.41·10⁵))</td><td class="n">−109 dBc/Hz</td></tr>
+  </table></div>
+  <div class="col"><p>The last row is the trap for wideband designs: 1 nV/√Hz is the noise of a 60 Ω resistor, yet with K<sub>V</sub> = 500 MHz/V it is almost as bad as the whole oscillator. Wide tuning range, low K<sub>V</sub> and high Q pull against each other: a wideband VCO uses a large varactor (lowering Q) or switched capacitor bands (adding a band-calibration step, see step 8).</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Resonator</th><th>Typical Q<sub>L</sub></th><th>Tuning range</th><th>Typical L(100 kHz) scaled to 10 GHz</th></tr>
+    <tr><td>On-chip LC (inside a PLL IC)</td><td class="n">5 to 15</td><td>octave, in switched bands</td><td class="n">−90 to −105 dBc/Hz</td></tr>
+    <tr><td>PCB microstrip with varactor</td><td class="n">15 to 40</td><td>10 to 40 %</td><td class="n">−100 to −110 dBc/Hz</td></tr>
+    <tr><td>Ceramic coaxial resonator</td><td class="n">100 to 400</td><td>a few %</td><td class="n">−115 to −130 dBc/Hz</td></tr>
+    <tr><td>YIG sphere (magnetically tuned)</td><td class="n">100 to 1000+</td><td>multi-octave</td><td class="n">−120 to −130 dBc/Hz</td></tr>
+    <tr><td>Dielectric resonator (DRO)</td><td class="n">500 to 3000</td><td>&lt; 1 % (mechanical or varactor trim)</td><td class="n">−130 to −140 dBc/Hz</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cVc" width="640" height="360" aria-label="Leeson phase noise curve of a VCO"></canvas>
+    <div class="ctrl">
+      <label for="vcT"><span>Resonator preset</span></label>
+      <select id="vcT"><option value="chip">On-chip LC</option><option value="pcb" selected>PCB varactor</option><option value="coax">Ceramic coaxial</option><option value="yig">YIG</option><option value="dro">DRO (GaAs FET)</option><option value="custom">Custom (keep sliders)</option></select>
+      <label for="vcQ"><span>Loaded Q</span> <b id="vcQv"></b></label><input id="vcQ" type="range" min="0.5" max="3.7" step="0.05" value="1.3">
+      <label for="vcP"><span>Loop signal power P<sub>s</sub></span> <b id="vcPv"></b></label><input id="vcP" type="range" min="-10" max="15" step="1" value="5">
+      <label for="vcN"><span>Amplifier NF</span> <b id="vcNv"></b></label><input id="vcN" type="range" min="3" max="15" step="0.5" value="8">
+      <label for="vcC"><span>Flicker corner f<sub>c</sub></span> <b id="vcCv"></b></label><input id="vcC" type="range" min="3" max="6" step="0.05" value="4.7">
+      <label for="vcF"><span>Oscillation frequency f₀</span> <b id="vcFv"></b></label><input id="vcF" type="range" min="1" max="40" step="0.5" value="10">
+      <div class="readout" id="vcOut"></div>
+    </div>
+    <p class="cap">Solid: Leeson's L(f). Dashed: the three asymptotes (floor, 1/f² resonator region, 1/f³ flicker region). The vertical markers are f<sub>c</sub> and the Leeson frequency f₀/2Q<sub>L</sub>. Picking a preset sets the sliders; moving a slider afterwards switches the preset to Custom. Doubling f₀ at the same Q costs 6 dB; ten times the Q gains 20 dB.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Resonator Q<sub>L</sub> 20 → 200</td><td>L(100 kHz) −104 → −124 dBc/Hz</td><td>Outside the PLL bandwidth the VCO sets L(f): 20 dB less reciprocal-mixing noise from a blocker 100 kHz to 1 MHz away (step 9)</td></tr>
+      <tr><td>SiGe HBT (f<sub>c</sub> ≈ 10 kHz) instead of GaAs FET (f<sub>c</sub> ≈ 1 MHz)</td><td>Close-in slope stays 20 dB/dec down to 10 kHz</td><td>Lower close-in noise lets the PLL use a narrower loop bandwidth if needed (step 5)</td></tr>
+      <tr><td>Tuning range 2× wider with the same varactor technology</td><td>K<sub>V</sub> doubles; tuning-line noise contribution +6 dB</td><td>Loop filter resistors must be 4× smaller, or the VCO must be split into switched bands (adds calibration time, step 8)</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 5 GHz VCO measures −110 dBc/Hz at 100 kHz. What would the same topology give at 20 GHz with the same Q?</summary><p>In the 1/f² region L ∝ (f₀/Q)². Four times f₀ at the same Q is 20·log 4 = 12 dB worse: −98 dBc/Hz.</p></details>
+    <details><summary>Why does more oscillator signal power improve phase noise everywhere, not only on the floor?</summary><p>Every term in Leeson's equation is multiplied by FkT/2P<sub>s</sub>. The same transistor noise is a smaller fraction of a larger signal, so the phase disturbance it causes is smaller at every offset. The limit is device breakdown and the varactor's own nonlinearity.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="mult">
+  <div class="secno">Step 4</div>
+  <h2>The reference, and why multiplying frequency by N costs 20·log N</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A quartz crystal is a mechanical resonator with an unloaded Q of 10⁵ to 10⁶, far higher than any microwave resonator. It only works up to about 100 to 150 MHz (the crystal gets too thin). A frequency doubler (a diode or a saturated transistor) makes 2f₀ from f₀. A divider (a flip-flop) makes f₀/2.</p>
+  </div>
+  <div class="col">
+    <p><b>Crystals are clean but low in frequency.</b> Because Q is so high, the 1/f² region of a crystal oscillator starts only a few kHz from the carrier (Leeson frequency 100 MHz/(2 × 50 000) = 1 kHz), and the floor is reached by 10 kHz. To get a clean 10 GHz signal, every synthesiser starts from a crystal and multiplies its frequency up, either directly with multiplier chains or with a PLL (step 5) that copies the crystal's phase onto a VCO.</p>
+    <p><b>Multiplying frequency multiplies phase.</b> A ×N multiplier makes the output phase N times the input phase: if the zero crossings of a 100 MHz signal wobble by 1° of its cycle (28 ps), the 10 GHz output made from it wobbles by the same 28 ps, which is 100° of a 10 GHz cycle. The timing error is the same in seconds, but each output cycle is N times shorter. Phase deviation ×N means sideband amplitude ×N and power ×N². In dB: <b>+20·log₁₀ N</b>. Dividing by N does the opposite and lowers phase noise by 20·log N, until the divider's own floor is reached.</p>
+    <p><b>Multiplication has a limit: the carrier collapses.</b> The ×N rule holds only while the total phase error stays well below 1 rad. When σ<sub>φ</sub> grows towards 1 rad the carrier power itself falls (to about e<sup>−σφ²</sup> of the total) and appears in the noise skirt instead. That is why millimetre-wave systems (×100 to ×1000 from a crystal) need exceptionally clean references close to the carrier.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>TCXO / VCXO / OCXO:</b> temperature-compensated, voltage-controlled, and oven-controlled crystal oscillators. An OCXO keeps the crystal at a fixed temperature (about 80 °C): best stability and lowest close-in noise.</p>
+    <p><b>Multiplication factor N:</b> output frequency / reference frequency. <b>Residual (additive) noise:</b> noise a multiplier or amplifier adds by itself, measured with the same source on both sides.</p>
+    <p><b>Carrier collapse:</b> loss of carrier power into the noise skirt when σ<sub>φ</sub> approaches 1 rad.</p>
+  </div>
+  <div class="eq">L<sub>out</sub>(f) = L<sub>ref</sub>(f) + 20·log₁₀ N     (×2 = +6.0 dB, ×3 = +9.5 dB, ×10 = +20 dB, ×100 = +40 dB)<br>Carrier left after multiplication ≈ e<sup>−σφ²</sup>  (σ<sub>φ</sub> at the output, in rad)
+    <small>The offset frequency is unchanged by multiplication: noise at 10 kHz from 100 MHz is still at 10 kHz from 10 GHz.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: 100 MHz OCXO to 10 GHz, N = 100</th><th>At 100 Hz</th><th>At 10 kHz</th></tr>
+    <tr><td>OCXO at 100 MHz</td><td class="n">−140 dBc/Hz</td><td class="n">−165 dBc/Hz</td></tr>
+    <tr><td>+20·log 100</td><td class="n">+40 dB</td><td class="n">+40 dB</td></tr>
+    <tr class="sum"><td>Ideal output at 10 GHz</td><td class="n">−100 dBc/Hz</td><td class="n">−125 dBc/Hz</td></tr>
+    <tr><td>Same with a low-cost 100 MHz VCXO (−110, −150)</td><td class="n">−70 dBc/Hz</td><td class="n">−110 dBc/Hz</td></tr>
+    <tr><td>Multiplier chain residual floor (amplifiers, diodes)</td><td class="n">n/a</td><td class="n">−160 dBc/Hz, not limiting</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cMu" width="640" height="360" aria-label="Reference phase noise before and after multiplication by N"></canvas>
+    <div class="ctrl">
+      <label for="muR"><span>Reference</span></label>
+      <select id="muR"><option value="o100" selected>100 MHz OCXO</option><option value="x100">100 MHz VCXO (low cost)</option><option value="o10">10 MHz OCXO</option></select>
+      <label for="muN"><span>Multiplication N</span> <b id="muNv"></b></label><input id="muN" type="range" min="0" max="3.3" step="0.01" value="2">
+      <label for="muA"><span>Multiplier / amplifier residual floor</span> <b id="muAv"></b></label><input id="muA" type="range" min="-175" max="-140" step="1" value="-160">
+      <div class="readout" id="muOut"></div>
+    </div>
+    <p class="cap">Grey dashed: the reference at its own frequency. Solid: after ×N, including the residual floor of the multiplier chain. The readout integrates from 10 Hz to 10 MHz. Push N past about 1000 with the VCXO: the rms phase error passes 1 rad and the carrier starts to collapse, so no loop or filter after it can recover a clean carrier.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>OCXO instead of VCXO as the 100 MHz reference</td><td>L(100 Hz) at 10 GHz: −100 instead of −70 dBc/Hz</td><td>Slow targets (Doppler 100 Hz to 1 kHz, step 10) sit on a 30 dB lower noise skirt from the clutter</td></tr>
+      <tr><td>Reference 10 MHz instead of 100 MHz for a 10 GHz output</td><td>N = 1000: +60 dB instead of +40 dB</td><td>The 10 MHz crystal must be 20 dB cleaner just to break even; this is why 100 MHz OCXOs are the usual microwave reference</td></tr>
+      <tr><td>Output at 35 GHz instead of 10 GHz from the same design</td><td>+11 dB at every offset (20·log 3.5)</td><td>Millimetre-wave radars need a better reference or a lower multiplication ratio to keep the same clutter cancellation</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 640 MHz reference reads −150 dBc/Hz at 10 kHz. You need 10.24 GHz. What is the best you can expect at 10 kHz?</summary><p>N = 16, 20·log 16 = 24.1 dB → −125.9 dBc/Hz, unless the multiplier floor or the PLL in-band floor (step 5) is worse.</p></details>
+    <details><summary>Does dividing a noisy 10 GHz VCO by 10 to make 1 GHz improve its phase noise?</summary><p>Yes, by 20 dB at every offset, down to the divider's own floor (typically −150 to −165 dBc/Hz). The jitter in seconds stays the same.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="pll">
+  <div class="secno">Step 5</div>
+  <h2>The PLL: loop bandwidth decides who sets the noise at each offset</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A feedback loop with gain makes its output follow its input inside the loop bandwidth and ignores the input outside it. Disturbances injected inside the loop (at its output) are suppressed inside the bandwidth and pass unchanged outside it. From steps 3 and 4: the VCO is noisy close in and clean far out; a crystal reference is clean close in but multiplying it up costs 20·log N.</p>
+  </div>
+  <div class="col">
+    <p><b>How a PLL works.</b> The VCO output is divided by N in a counter. A phase-frequency detector (PFD) compares the divided signal with the reference at f<sub>PD</sub> = f<sub>ref</sub> (or a divided-down reference). If the divided VCO is late, a charge pump pushes current pulses into a loop filter, whose voltage tunes the VCO up; if it is early, it pulls current out. In lock, the divided VCO is exactly in step with the reference, so f<sub>out</sub> = N·f<sub>PD</sub>, and the VCO phase is N times the reference phase: a PLL is an electronic ×N multiplier.</p>
+    <p><b>Two transfer functions.</b> Inside the loop bandwidth the loop tracks the reference, so the output phase noise is the reference noise ×N (+20·log N, step 4), plus the noise of the PFD and charge pump, also ×N. Outside the bandwidth the loop cannot react, so the output is the free-running VCO. The reference path is filtered by the closed-loop low-pass response H(f); the VCO noise is filtered by the high-pass error response 1 − H(f).</p>
+    <p><b>Where to put the bandwidth.</b> The best total noise comes when the loop bandwidth is placed near the offset where the free-running VCO curve crosses the in-band (N-multiplied) floor. A narrower loop lets VCO noise through closer in; a wider loop passes more multiplied reference and PFD noise further out, and lets reference spurs through (step 6). Near the bandwidth edge a loop with low damping also peaks, adding a "shoulder" of a few dB.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>PFD:</b> phase-frequency detector. <b>Charge pump (CP):</b> current source that delivers ± I<sub>CP</sub> pulses proportional to the phase error.</p>
+    <p><b>Loop filter:</b> RC network that turns charge-pump current into a smooth tuning voltage. It sets the loop bandwidth and damping.</p>
+    <p><b>Loop bandwidth (BW):</b> offset where the closed-loop response H(f) falls 3 dB. <b>Damping ζ:</b> how much the loop overshoots and peaks (0.707 is the common choice).</p>
+    <p><b>PLL figure of merit (FOM):</b> the PFD/charge-pump noise normalised to 1 Hz comparison frequency and N = 1, in dBc/Hz. Modern parts: −220 to −232 dBc/Hz.</p>
+  </div>
+  <div class="eq">In-band floor:  L<sub>PD</sub> = FOM + 10·log₁₀ f<sub>PD</sub> + 20·log₁₀ N<br>L<sub>out</sub>(f) = |H(f)|²·[L<sub>ref</sub>(f)·N² + L<sub>PD</sub>] + |1 − H(f)|²·L<sub>VCO</sub>(f)   (powers added in linear units)
+    <small>For a fixed output frequency N = f<sub>out</sub>/f<sub>PD</sub>, so the in-band floor is FOM + 20·log f<sub>out</sub> − 10·log f<sub>PD</sub>: every decade higher comparison frequency is 10 dB lower in-band noise.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: 10 GHz out, 100 MHz OCXO, N = 100, FOM = −226 dBc/Hz</th><th>Value</th></tr>
+    <tr><td>PFD in-band floor: −226 + 80 + 40</td><td class="n">−106 dBc/Hz</td></tr>
+    <tr><td>Reference ×N at 100 Hz / at 10 kHz</td><td class="n">−100 / −125 dBc/Hz</td></tr>
+    <tr><td>→ in band, the reference dominates below about 300 Hz, the PFD from there to the loop bandwidth</td><td class="n">n/a</td></tr>
+    <tr><td>Free-running VCO (step 3 example) at 100 kHz / 1 MHz</td><td class="n">−104 / −126 dBc/Hz</td></tr>
+    <tr><td>VCO crosses the −106 dBc/Hz floor at about</td><td class="n">120 kHz → choose BW ≈ 100 to 150 kHz</td></tr>
+    <tr><td>Same loop with f<sub>PD</sub> = 10 MHz (N = 1000): −226 + 70 + 60</td><td class="n">−96 dBc/Hz (10 dB worse)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cPl" width="640" height="360" aria-label="PLL output phase noise and its contributors"></canvas>
+    <div class="ctrl">
+      <label for="plR"><span>Reference (f<sub>PD</sub> = f<sub>ref</sub>)</span></label>
+      <select id="plR"><option value="o100" selected>100 MHz OCXO</option><option value="x100">100 MHz VCXO</option><option value="o10">10 MHz OCXO</option></select>
+      <label for="plV"><span>VCO</span></label>
+      <select id="plV"><option value="chip">On-chip LC</option><option value="pcb" selected>PCB varactor</option><option value="yig">YIG</option></select>
+      <label for="plB"><span>Loop bandwidth</span> <b id="plBv"></b></label><input id="plB" type="range" min="3" max="6.3" step="0.02" value="5.1">
+      <label for="plF"><span>Output frequency</span> <b id="plFv"></b></label><input id="plF" type="range" min="2" max="18" step="0.1" value="10">
+      <label for="plD"><span>PLL figure of merit</span> <b id="plDv"></b></label><input id="plD" type="range" min="-232" max="-216" step="1" value="-226">
+      <div class="readout" id="plOut"></div>
+    </div>
+    <p class="cap">Dashed: reference ×N (grey), PFD floor (violet) and free-running VCO (orange), each as it would be without the loop. Solid teal: the locked output. Move the bandwidth through the crossing point and watch the readout's integrated σφ (1 kHz to 100 MHz): it has a minimum. Loop damping is fixed at ζ = 0.707 here; step 8 shows what damping does in time.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>f<sub>PD</sub> 10 → 100 MHz (needs fractional-N for fine steps, step 6)</td><td>In-band floor −96 → −106 dBc/Hz</td><td>Integrated jitter about 3× lower; pulse-Doppler targets near 10 to 100 kHz Doppler see 10 dB less clutter noise</td></tr>
+      <tr><td>Loop bandwidth set at the VCO crossing (≈ 120 kHz) instead of 10 kHz</td><td>No VCO hump between 10 and 120 kHz; integrated noise lowest</td><td>Best EVM and SAR ISLR; also about 10× faster settling (step 8)</td></tr>
+      <tr><td>Loop bandwidth 1 MHz (too wide) for fast hopping</td><td>In-band floor extends to 1 MHz; reference spur less filtered</td><td>Receiver blocking 100 kHz to 1 MHz away gets worse (step 9); faster frequency agility is the gain</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A PLL datasheet shows a flat −100 dBc/Hz from 1 kHz to 200 kHz and then a fall. Which block sets the flat part?</summary><p>The flat in-band region is the PFD/charge pump floor (FOM + 10·log f<sub>PD</sub> + 20·log N), possibly with reference noise ×N near its lower end. The fall after 200 kHz is the loop bandwidth, beyond which the VCO takes over.</p></details>
+    <details><summary>Why can a cleaner reference sometimes make no difference to the PLL output?</summary><p>If the PFD floor is above the reference ×N across the loop bandwidth, the PFD dominates; improving the reference only helps very close in, below a few hundred Hz.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="frac">
+  <div class="secno">Step 6</div>
+  <h2>Integer-N and fractional-N: step size, noise and spurs</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>From step 5: f<sub>out</sub> = N·f<sub>PD</sub> and the in-band floor rises 10 dB for every decade lower f<sub>PD</sub>. A loop filter is a low-pass filter: it attenuates anything at the comparison frequency, but it can only do so if that frequency is well above the loop bandwidth.</p>
+  </div>
+  <div class="col">
+    <p><b>Integer-N: the step size is the comparison frequency.</b> If N may only be a whole number, the output can only move in steps of f<sub>PD</sub>. A radar that must tune in 1 MHz steps at 10 GHz needs f<sub>PD</sub> = 1 MHz and N = 10 000, which raises the in-band floor 20 dB compared with f<sub>PD</sub> = 100 MHz. The loop must also be at least 10 times narrower than f<sub>PD</sub> so the loop filter can suppress the <b>reference spur</b>: the small ripple the charge pump leaves on the tuning line at f<sub>PD</sub> (leakage, current mismatch), which frequency-modulates the VCO and makes spurs at ± f<sub>PD</sub>. Narrow loop means slow settling.</p>
+    <p><b>Fractional-N: N may have a fractional part.</b> The divider switches between N and N+1 in a pattern whose average is, for example, 100.0005. A sigma-delta (ΣΔ) modulator chooses the pattern so that the error it makes is pushed to high offsets (noise shaping), where the loop filter removes it. Now f<sub>PD</sub> can be 100 MHz with steps of a few Hz (f<sub>PD</sub>/2²⁴ = 6 Hz). The price: (1) <b>ΣΔ quantisation noise</b>, a hump rising at high offsets that a wide loop lets through; (2) <b>fractional spurs</b>, especially the <b>integer-boundary spur</b>: when the output is just above or below an exact multiple of f<sub>PD</sub>, a spur appears at the distance to that multiple. If that distance is inside the loop bandwidth, the loop cannot filter it.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Channel step (resolution):</b> the smallest frequency change. Integer-N: f<sub>PD</sub>. Fractional-N: f<sub>PD</sub>/modulus.</p>
+    <p><b>Reference spur:</b> spur at ± f<sub>PD</sub> (and its harmonics). <b>Integer-boundary spur (IBS):</b> spur at the distance from f<sub>out</sub> to the nearest k·f<sub>PD</sub>.</p>
+    <p><b>Sigma-delta (ΣΔ) modulator, MASH-1-1-1:</b> the digital sequencer that dithers N; "third order" shapes its noise at 40 dB/decade in phase.</p>
+  </div>
+  <div class="eq">Integer-N:  step = f<sub>PD</sub>,   N = f<sub>out</sub>/f<sub>PD</sub>,   BW ≤ f<sub>PD</sub>/10,   ref spur at ± f<sub>PD</sub><br>Fractional-N:  N = N<sub>int</sub> + F/M,   IBS offset = |f<sub>out</sub> − round(f<sub>out</sub>/f<sub>PD</sub>)·f<sub>PD</sub>|<br>ΣΔ noise (order m):  S<sub>φ</sub>(f) = (2π)²/(12·f<sub>PD</sub>) · [2·sin(πf/f<sub>PD</sub>)]<sup>2(m−1)</sup>,  then ×|H(f)|²
+    <small>Spurs are discrete lines: their level is in dBc, not dBc/Hz. Spur levels in the demo are illustrative (charge-pump leakage spur −40 dBc before filtering, boundary spur −50 dBc inside the loop) and fall at 40 dB/decade outside the loop bandwidth.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: 10 GHz with 1 MHz steps</th><th>Integer-N</th><th>Fractional-N</th></tr>
+    <tr><td>f<sub>PD</sub>, N</td><td class="n">1 MHz, 10 000</td><td class="n">100 MHz, 100.01 …</td></tr>
+    <tr><td>In-band floor (FOM −226 int, −223 frac)</td><td class="n">−226 + 60 + 80 = −86 dBc/Hz</td><td class="n">−223 + 80 + 40 = −103 dBc/Hz</td></tr>
+    <tr><td>Maximum loop bandwidth</td><td class="n">≈ 100 kHz</td><td class="n">≈ 1 MHz (ΣΔ noise sets it)</td></tr>
+    <tr><td>Main spur</td><td class="n">−80 dBc at 1 MHz</td><td class="n">IBS at 50 kHz for 10 000.05 MHz: ≈ −50 dBc</td></tr>
+    <tr><td>Finest step</td><td class="n">1 MHz</td><td class="n">6 Hz</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cFn" width="640" height="360" aria-label="Integer-N and fractional-N output phase noise with spurs"></canvas>
+    <div class="ctrl">
+      <label for="fnM"><span>Architecture</span></label>
+      <select id="fnM"><option value="int" selected>Integer-N</option><option value="frac">Fractional-N (f_PD 100 MHz, MASH-1-1-1)</option></select>
+      <label for="fnS"><span>Integer-N channel step = f<sub>PD</sub></span></label>
+      <select id="fnS"><option value="0.1">100 kHz</option><option value="1" selected>1 MHz</option><option value="10">10 MHz</option></select>
+      <label for="fnF"><span>Wanted output</span> <b id="fnFv"></b></label><input id="fnF" type="range" min="9990" max="10010" step="0.05" value="10000.05">
+      <label for="fnB"><span>Loop bandwidth</span> <b id="fnBv"></b></label><input id="fnB" type="range" min="4" max="6" step="0.02" value="5">
+      <div class="readout" id="fnOut"></div>
+    </div>
+    <p class="cap">Solid: output L(f) from a PCB varactor VCO locked to a 100 MHz OCXO. Vertical lines: spurs, with their dBc level at the top (read them against the same scale, but in dBc rather than dBc/Hz). In integer-N the wanted frequency may not be reachable: the readout shows the error. In fractional-N slide the output close to 10 000.00 MHz and watch the boundary spur walk into the loop bandwidth, where nothing removes it. Widen the loop in fractional-N to see the ΣΔ hump (dashed violet: ΣΔ noise before the loop filter). The readout's σφ integrates 1 kHz to 100 MHz.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Integer-N at 1 MHz f<sub>PD</sub></td><td>In-band −86 dBc/Hz; spur −80 dBc at ±1 MHz</td><td>A 1 MHz offset spur in a pulse-Doppler radar with PRF near 1 MHz folds onto Doppler zero; noise 17 dB above the fractional-N choice</td></tr>
+      <tr><td>Fractional-N, frequency plan that avoids outputs within ±1 MHz of k·100 MHz</td><td>Boundary spur kept outside the loop: ≤ −80 dBc</td><td>Channel list in the system specification must exclude these "spur channels", or the reference is shifted for them</td></tr>
+      <tr><td>MASH order 3 instead of 2, loop 1 MHz instead of 200 kHz</td><td>ΣΔ hump visible above 1 MHz</td><td>Far-out noise floor rises for a wideband ESM receiver; trade against faster settling</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Fractional-N with f<sub>PD</sub> = 50 MHz, output 4 950.2 MHz, loop bandwidth 100 kHz. Where is the boundary spur and is it filtered?</summary><p>Nearest multiple 99 × 50 = 4 950 MHz, so the spur is at 200 kHz offset, twice the loop bandwidth: attenuated by only about 40·log 2 = 12 dB. It will be visible.</p></details>
+    <details><summary>Why is integer-N still used?</summary><p>No ΣΔ noise and no fractional spurs: for fixed-frequency LOs (a single LO in a fixed-tuned receiver, a reference multiplier) integer-N with a high f<sub>PD</sub> gives the cleanest spectrum.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="dds">
+  <div class="secno">Step 7</div>
+  <h2>DDS: frequency made by arithmetic, and the spurs that come with it</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A DAC converts a number to a voltage; it updates once per clock and holds the value in between (zero-order hold), which gives an output spectrum shaped by sin(x)/x with images at f<sub>clk</sub> ± f<sub>out</sub>. A B-bit DAC has a quantisation step of 1/2<sup>B</sup> of full scale. From step 4: dividing a frequency lowers phase noise by 20·log of the division ratio.</p>
+  </div>
+  <div class="col">
+    <p><b>How a DDS makes a sine.</b> A direct digital synthesiser (DDS) has a phase accumulator: an M-bit register (M = 32 or 48) that adds a fixed number, the frequency tuning word (FTW), every clock. The register value is the phase of the output, wrapping round at 2<sup>M</sup> (= 360°). The top P bits of the phase go to a sine look-up table; the result drives a B-bit DAC; a low-pass (reconstruction) filter removes the images. The output frequency is FTW·f<sub>clk</sub>/2<sup>M</sup>: with M = 32 and a 1 GHz clock the step is 0.23 Hz.</p>
+    <p><b>Why it has spurs.</b> Two kinds of rounding make periodic errors, and periodic errors are spurs, not noise. (1) <b>Phase truncation:</b> only P of the M phase bits address the sine table; the dropped bits make a saw-tooth phase error that repeats in a pattern set by the FTW. Worst case it gives spurs near −6.02·P dBc. (2) <b>Amplitude quantisation</b> in the table and the DAC, plus DAC nonlinearity, make harmonics of f<sub>out</sub> that alias back into the band. These spurs can land anywhere, including close to the carrier, and they move when you change frequency.</p>
+    <p><b>Why it is clean in phase noise and fast.</b> The DDS output is a divided-down version of its clock: L<sub>out</sub> = L<sub>clk</sub> − 20·log(f<sub>clk</sub>/f<sub>out</sub>), down to the DAC's own floor (−150 to −165 dBc/Hz). A new FTW takes effect after a fixed pipeline delay of tens of ns, with no loop to settle, and the change is phase-continuous. The limits: output below about 0.4·f<sub>clk</sub>, so a DDS is used at low frequency (as a fine-tuning reference for a PLL, or as a waveform source that is then up-converted).</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>FTW:</b> frequency tuning word. <b>Phase accumulator width M:</b> sets the frequency resolution f<sub>clk</sub>/2<sup>M</sup>.</p>
+    <p><b>Phase bits P:</b> bits kept for the sine look-up. <b>DAC bits B:</b> amplitude resolution.</p>
+    <p><b>SFDR (spurious-free dynamic range):</b> carrier to the largest spur, in dBc. <b>Image:</b> copy of the output at f<sub>clk</sub> − f<sub>out</sub>, f<sub>clk</sub> + f<sub>out</sub>, …</p>
+  </div>
+  <div class="eq">f<sub>out</sub> = FTW · f<sub>clk</sub> / 2<sup>M</sup>     Δf<sub>min</sub> = f<sub>clk</sub> / 2<sup>M</sup><br>Phase-truncation spurs ≲ −6.02·P dBc      sinc droop at f<sub>out</sub>: 20·log₁₀[sin(πf<sub>out</sub>/f<sub>clk</sub>)/(πf<sub>out</sub>/f<sub>clk</sub>)]<br>L<sub>out</sub>(f) = L<sub>clk</sub>(f) − 20·log₁₀(f<sub>clk</sub>/f<sub>out</sub>)   (until the DAC floor)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: f<sub>clk</sub> = 1 GHz, M = 32, wanted 100 MHz</th><th>Value</th></tr>
+    <tr><td>FTW = 100 MHz × 2³² / 1 GHz = 429 496 729.6 → 429 496 730</td><td class="n">f<sub>out</sub> = 100.000 000 09 MHz</td></tr>
+    <tr><td>Resolution 10⁹ / 2³²</td><td class="n">0.233 Hz</td></tr>
+    <tr><td>Phase bits P = 12 / 14</td><td class="n">worst spur ≈ −72 / −84 dBc</td></tr>
+    <tr><td>First image at 1 GHz − 100 MHz</td><td class="n">900 MHz (needs the reconstruction filter)</td></tr>
+    <tr><td>Sinc droop at 100 MHz / at 400 MHz</td><td class="n">−0.14 dB / −2.4 dB</td></tr>
+    <tr><td>Clock −140 dBc/Hz at 100 kHz → output, −20·log 10</td><td class="n">−160 dBc/Hz (DAC floor limits)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cDd" width="640" height="360" aria-label="Simulated DDS output spectrum"></canvas>
+    <div class="ctrl">
+      <label for="ddF"><span>Wanted output</span> <b id="ddFv"></b></label><input id="ddF" type="range" min="1" max="450" step="0.01" value="100.37">
+      <label for="ddP"><span>Phase bits kept P</span> <b id="ddPv"></b></label><input id="ddP" type="range" min="6" max="18" step="1" value="12">
+      <label for="ddB"><span>DAC bits B</span> <b id="ddBv"></b></label><input id="ddB" type="range" min="4" max="16" step="1" value="12">
+      <label for="ddV"><span>View</span></label>
+      <select id="ddV"><option value="full" selected>Full band 0 to f_clk/2</option><option value="zoom">Zoom ±20 MHz around the carrier</option></select>
+      <div class="readout" id="ddOut"></div>
+    </div>
+    <p class="cap">A real simulation: 8192 clocks of a 32-bit accumulator at 1 GHz, truncated to P bits, sine table quantised to B bits, FFT with a Blackman-Harris window (bin 122 kHz). The dashed line is the −6.02·P guide. Slide the output frequency: the spurs jump around because their positions depend on the bit pattern of the FTW. Some frequencies (FTW with few low bits set, such as 125 MHz) are spur-free.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Phase bits P 12 → 16 (bigger sine table or compression)</td><td>SFDR from about 72 to about 90+ dBc (then the DAC limits)</td><td>A chirp or LO made by DDS no longer puts false targets 70 dB below strong returns</td></tr>
+      <tr><td>DDS as the reference of a PLL (DDS-driven PLL)</td><td>Step ≈ 0.2 Hz at 10 GHz; DDS spurs ×N (+20·log N) inside the loop</td><td>Fine tuning for Doppler compensation, but every DDS spur at −80 dBc becomes −40 dBc after ×100</td></tr>
+      <tr><td>DDS as the hopping element (no loop)</td><td>Switching time ≈ 20 to 100 ns, phase-continuous</td><td>Pulse-to-pulse and even intra-pulse frequency agility for ECCM and for coherent stepped-frequency waveforms</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why are DDS spurs often worse after a PLL multiplies the DDS output up?</summary><p>A PLL is a ×N multiplier inside its bandwidth (step 5). Spurs, like phase noise, rise by 20·log N. A −80 dBc spur on a 100 MHz DDS becomes −40 dBc at 10 GHz if it lies inside the loop bandwidth.</p></details>
+    <details><summary>The DDS output at 380 MHz with a 1 GHz clock: what other strong line must the filter remove?</summary><p>The first image at 1000 − 380 = 620 MHz, only 240 MHz away. Sinc puts the carrier at −2.2 dB and the image at −6.4 dB, so the image is only about 4 dB below the carrier and the reconstruction filter must be steep.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="settle">
+  <div class="secno">Step 8</div>
+  <h2>Switching and settling time: how fast a synthesiser can hop</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A second-order feedback loop answers a step input with a damped oscillation: it rings at about its natural frequency and the ringing dies away as e<sup>−ζω<sub>n</sub>t</sup>. A wider loop has a higher natural frequency ω<sub>n</sub>, so it settles faster. From step 5: loop bandwidth also sets the noise and spurs.</p>
+  </div>
+  <div class="col">
+    <p><b>Settling is set by the loop bandwidth.</b> When N changes, the PFD sees a growing phase error and the loop drives the VCO to the new frequency. The frequency error then dies away as a damped ringing. How long until it is "settled" depends on how small the remaining error must be: a radar that hops between pulses needs the new frequency within about 1 kHz (or the phase within a few degrees) before it transmits, or the echo will not cancel in the Doppler processing.</p>
+    <p><b>Other things add time.</b> Wideband integrated VCOs choose one of many switched capacitor bands at each new frequency: band calibration takes 10 to 100 µs. A large jump can drive the PFD outside its linear range and slip cycles, which makes the real time longer than the linear formula. YIG oscillators tune their main coil slowly (ms). Designers use pre-tuning (a DAC sets the tuning voltage close to the final value first), fast-lock modes (wide loop during the jump, narrow afterwards), or ping-pong pairs of synthesisers (one settles while the other is in use).</p>
+    <p><b>Frequency agility</b> means changing frequency often and unpredictably: from pulse to pulse to defeat a jammer that measures and follows the radar, between dwells to avoid interference and multipath fades, or across a burst to make a stepped-frequency wideband waveform. The synthesiser settling time must be well inside the gap the timeline allows: for pulse-to-pulse agility, inside the pulse repetition interval minus the receive window.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Settling (lock) time:</b> time from the frequency command until the error stays within a stated tolerance (in Hz, ppm or degrees).</p>
+    <p><b>Natural frequency ω<sub>n</sub>, damping ζ:</b> parameters of the second-order loop. For ζ = 0.707 the −3 dB bandwidth is about 2.06·ω<sub>n</sub>/2π.</p>
+    <p><b>PRI:</b> pulse repetition interval, 1/PRF. <b>Frequency agility:</b> changing carrier frequency between pulses or dwells.</p>
+  </div>
+  <div class="eq">Frequency error after a jump Δf (type-2, second-order loop):  f<sub>e</sub>(t) = Δf · e<sup>−ζω<sub>n</sub>t</sup> · [cos ω<sub>d</sub>t − (ζ/√(1−ζ²))·sin ω<sub>d</sub>t],  ω<sub>d</sub> = ω<sub>n</sub>√(1−ζ²)<br>Rule of thumb:  t<sub>s</sub> ≈ ln(Δf / (tol·√(1−ζ²))) / (ζ·ω<sub>n</sub>)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: jump 100 MHz, settle to 1 kHz, ζ = 0.707</th><th>BW 100 kHz</th><th>BW 1 MHz</th></tr>
+    <tr><td>ω<sub>n</sub> = 2π·BW/2.06</td><td class="n">3.05·10⁵ rad/s</td><td class="n">3.05·10⁶ rad/s</td></tr>
+    <tr><td>ζω<sub>n</sub> (decay rate)</td><td class="n">2.16·10⁵ /s</td><td class="n">2.16·10⁶ /s</td></tr>
+    <tr><td>ln(10⁵/0.707) = 11.9</td><td class="n">t<sub>s</sub> ≈ 55 µs</td><td class="n">t<sub>s</sub> ≈ 5.5 µs</td></tr>
+    <tr><td>+ VCO band calibration 30 µs</td><td class="n">85 µs</td><td class="n">35 µs</td></tr>
+    <tr><td>Fits a PRI of 100 µs (PRF 10 kHz) with 50 µs receive window?</td><td class="n">no (even 55 µs is too long)</td><td class="n">yes (35 µs)</td></tr>
+    <tr><td>DDS hop (no loop)</td><td class="n" colspan="2">≈ 0.05 µs</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSt" width="640" height="360" aria-label="PLL frequency error after a frequency jump"></canvas>
+    <div class="ctrl">
+      <label for="stB"><span>Loop bandwidth</span> <b id="stBv"></b></label><input id="stB" type="range" min="3" max="6.3" step="0.02" value="5">
+      <label for="stZ"><span>Damping ζ</span></label>
+      <select id="stZ"><option value="0.5">0.5 (underdamped)</option><option value="0.707" selected>0.707</option><option value="1">1.0 (critically damped)</option></select>
+      <label for="stJ"><span>Frequency jump Δf</span> <b id="stJv"></b></label><input id="stJ" type="range" min="5" max="9" step="0.05" value="8">
+      <label for="stT"><span>Tolerance</span> <b id="stTv"></b></label><input id="stT" type="range" min="0" max="5" step="0.05" value="3">
+      <label for="stC"><span>VCO band calibration</span></label>
+      <select id="stC"><option value="0">None (single-band VCO or DDS reference)</option><option value="10e-6">10 µs</option><option value="30e-6" selected>30 µs</option><option value="100e-6">100 µs</option></select>
+      <label for="stR"><span>Radar PRI</span> <b id="stRv"></b></label><input id="stR" type="range" min="1" max="3" step="0.02" value="2">
+      <div class="readout" id="stOut"></div>
+    </div>
+    <p class="cap">Top: |frequency error| on a log scale after the jump (band calibration first, shaded), with the tolerance line. Bottom: the radar timeline, pulses at the PRI, and where the synthesiser is ready. The model is linear; real jumps larger than the PFD range also slip cycles and take longer.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Loop bandwidth 100 kHz → 1 MHz</td><td>Lock time 55 → 5.5 µs (100 MHz, 1 kHz)</td><td>Pulse-to-pulse agility at PRF up to ≈ 50 kHz; but in-band noise extends to 1 MHz (step 5)</td></tr>
+      <tr><td>Single-band VCO with pre-tune DAC instead of switched-band VCO</td><td>No 30 µs calibration</td><td>Burst-to-burst agility within a 50 µs dead time; narrower tuning range per VCO</td></tr>
+      <tr><td>Two synthesisers, ping-pong</td><td>Effective switching time = output switch time (≈ 100 ns)</td><td>ESM scanning superhet can dwell 10 µs per step without waiting for lock</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A loop settles a 50 MHz jump to 1 kHz in 40 µs. How long to settle to 10 Hz?</summary><p>Each factor of 10 tighter tolerance adds ln(10)/(ζω<sub>n</sub>). Here ln(5·10⁴/0.707) = 11.2 gives ζω<sub>n</sub> = 2.8·10⁵ /s, and 2 more decades add 2 × 2.30/2.8·10⁵ = 16 µs: about 56 µs.</p></details>
+    <details><summary>Why does a coherent pulse-Doppler radar care about phase settling, not just frequency settling?</summary><p>Doppler processing compares the phase of echoes from pulse to pulse. A residual frequency error of 1 kHz during a 10 µs echo gives 3.6° of phase drift; if that varies from pulse to pulse it spreads clutter into the Doppler bins.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="recip">
+  <div class="secno">Step 9</div>
+  <h2>Reciprocal mixing and blocking: when the LO lets a strong neighbour in</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A mixer multiplies the RF input by the LO. The IF output contains the RF minus the LO frequency. An IF filter then selects the wanted channel of bandwidth B. Thermal noise in that channel is −174 dBm/Hz + NF + 10·log B. A strong unwanted signal near the wanted one is called a blocker.</p>
+  </div>
+  <div class="col">
+    <p><b>The LO's noise skirt translates the blocker onto the wanted channel.</b> The mixer multiplies every RF signal by the whole LO spectrum, carrier and skirt. The wanted signal, at offset 0 from where the LO carrier puts it, lands in the IF channel. A blocker Δ away is shifted by the carrier to IF + Δ, outside the filter. But the LO also has phase noise at offset Δ: that part of the LO moves the blocker exactly onto the IF channel. The result is the blocker power multiplied by the LO noise density at offset Δ: noise in the channel that was not there without the blocker. It is called <b>reciprocal mixing</b> because it is the same as if the LO were clean and the blocker carried the LO's phase noise.</p>
+    <p><b>LO spurs do the same with discrete lines.</b> An LO spur at offset Δ moves a blocker at Δ onto the IF as a clean, steady signal: a <b>spurious response</b>. In a radar this is a false target; in an ESM receiver it is a false emitter reported with a believable frequency.</p>
+    <p><b>Blocking</b> is the overall loss of sensitivity caused by a strong out-of-channel signal. It has two mechanisms: reciprocal mixing (LO phase noise) and compression (the blocker drives the LNA or mixer towards P1dB and the wanted signal loses gain). Whichever happens first sets the blocking specification. In modern receivers with good linearity, reciprocal mixing is often the limit for blockers within a few MHz.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Blocker:</b> strong unwanted signal at offset Δ from the wanted signal. <b>Desensitisation (desense):</b> rise of the noise floor in dB caused by the blocker.</p>
+    <p><b>Spurious response:</b> a clean output caused by an LO spur and a blocker. <b>Selectivity:</b> the receiver's ability to reject signals outside the wanted channel, set by filters and by LO purity.</p>
+  </div>
+  <div class="eq">Reciprocal-mixing noise in the channel:  N<sub>RM</sub> ≈ P<sub>blocker</sub> + L(Δ) + 10·log₁₀ B   (dBm, for L flat across the channel)<br>Thermal noise:  N<sub>th</sub> = −174 + NF + 10·log₁₀ B   (dBm)      Desense = 10·log₁₀(1 + 10<sup>(N<sub>RM</sub> − N<sub>th</sub>)/10</sup>)<br>For ≤ 1 dB desense:  L(Δ) ≤ N<sub>th</sub> − 5.9 dB − P<sub>blocker</sub> − 10·log₁₀ B</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: blocker −20 dBm at Δ = 1 MHz, B = 1 MHz, NF = 5 dB, LO L(1 MHz) = −130 dBc/Hz</th><th>Value</th></tr>
+    <tr><td>N<sub>RM</sub> = −20 − 130 + 60</td><td class="n">−90 dBm</td></tr>
+    <tr><td>N<sub>th</sub> = −174 + 5 + 60</td><td class="n">−109 dBm</td></tr>
+    <tr class="sum"><td>Desense</td><td class="n">19 dB</td></tr>
+    <tr><td>L(1 MHz) needed for ≤ 1 dB desense: −109 − 5.9 + 20 − 60</td><td class="n">−155 dBc/Hz</td></tr>
+    <tr><td>LO spur −70 dBc at 1 MHz with the same blocker</td><td class="n">spurious response −90 dBm, 19 dB above the noise floor</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cRm" width="640" height="360" aria-label="Reciprocal mixing: blocker and wanted signal before and after the mixer"></canvas>
+    <div class="ctrl">
+      <label for="rmL"><span>LO</span></label>
+      <select id="rmL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <label for="rmP"><span>Blocker power</span> <b id="rmPv"></b></label><input id="rmP" type="range" min="-60" max="0" step="1" value="-20">
+      <label for="rmO"><span>Blocker offset Δ</span> <b id="rmOv"></b></label><input id="rmO" type="range" min="4" max="8" step="0.05" value="6">
+      <label for="rmB"><span>Channel bandwidth B</span> <b id="rmBv"></b></label><input id="rmB" type="range" min="3" max="7" step="0.05" value="6">
+      <label for="rmN"><span>Receiver NF</span> <b id="rmNv"></b></label><input id="rmN" type="range" min="2" max="15" step="0.5" value="5">
+      <label for="rmS"><span>Wanted signal</span> <b id="rmSv"></b></label><input id="rmS" type="range" min="-120" max="-50" step="1" value="-95">
+      <div class="readout" id="rmOut"></div>
+    </div>
+    <p class="cap">Top: the RF input, wanted signal at 0 and the blocker at Δ (linear frequency axis, dBm per channel bandwidth). Bottom: after the mixer, as seen at IF: the blocker now carries the LO's noise skirt, which fills the wanted channel (shaded). The readout integrates the LO noise across the channel, so it stays correct when B is comparable to Δ.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>VCO Q and loop bandwidth (steps 3, 5)</td><td>L(1 MHz) −130 → −150 dBc/Hz</td><td>Desense from a −20 dBm blocker 1 MHz away: 19 dB → 1.2 dB; an ESM receiver keeps its sensitivity next to a strong radar</td></tr>
+      <tr><td>Preselector filter before the mixer</td><td>Blocker attenuated 30 dB if it is outside the filter</td><td>Reciprocal mixing falls 30 dB: filtering helps only for blockers outside the filter, not for close-in ones</td></tr>
+      <tr><td>Frequency plan avoiding LO spurs at common blocker offsets</td><td>Spur ≤ −90 dBc</td><td>No false emitters or false targets above the noise floor from a −20 dBm signal</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A wideband ESM channel is 20 MHz wide. A −10 dBm radar sits 30 MHz away. LO L(30 MHz) = −150 dBc/Hz, NF 10 dB. What is the desense?</summary><p>N<sub>RM</sub> = −10 − 150 + 73 = −87 dBm. N<sub>th</sub> = −174 + 10 + 73 = −91 dBm. N<sub>RM</sub> is 4 dB above thermal, so desense = 10·log(1 + 10<sup>0.4</sup>) = 5.5 dB.</p></details>
+    <details><summary>Why does a narrower channel bandwidth not reduce desense from reciprocal mixing?</summary><p>Both N<sub>RM</sub> and N<sub>th</sub> grow as 10·log B, so their ratio, and the desense, stays the same (as long as L is flat across the channel).</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="range">
+  <div class="secno">Step 10</div>
+  <h2>The range-correlation effect: why phase noise limits clutter cancellation</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A radar transmits, then receives the echo a time τ = 2R/c later. A moving target shifts the echo frequency by the Doppler shift f<sub>d</sub> = 2v/λ (at 10 GHz, λ = 3 cm, so 67 Hz per m/s). Clutter (ground, sea, rain) is a very strong echo at almost zero Doppler. Pulse-Doppler and MTI processing separate targets from clutter by Doppler frequency, in Doppler bins of width about 1/T<sub>CPI</sub>.</p>
+  </div>
+  <div class="col">
+    <p><b>The same synthesiser makes the transmit signal and the receive LO.</b> The echo carries the phase noise the transmitter had at time t − τ. The receiver mixes it with the LO, which has the phase noise of the same synthesiser at time t. The output has the difference: φ(t) − φ(t − τ). Wobbles much slower than 1/τ have hardly changed in that time and cancel. Wobbles faster than about 1/(2τ) are uncorrelated and add (up to +3 dB on average, +6 dB at some offsets).</p>
+    <p><b>As a filter:</b> subtracting a delayed copy is a filter with power response 4·sin²(πfτ). For a clutter cell at 1.5 km, τ = 10 µs: at 2 kHz offset this factor is −18 dB; at 15 km, τ = 100 µs, it is +1.4 dB. Close-in phase noise is therefore much less harmful for near clutter than for far clutter.</p>
+    <p><b>What it does to a target.</b> The clutter echo, perhaps 60 to 80 dB above a small target, now carries a residual noise skirt. In the Doppler bin of the target, that skirt adds noise: residual L(f<sub>d</sub>) + 10·log(bin width) dBc relative to the clutter. If that is not well below the target, the target is lost, however good the Doppler filters are. This is the phase-noise limit on <b>subclutter visibility</b> and on the MTI <b>improvement factor</b>.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Range correlation (range-correlation effect):</b> partial cancellation of transmitter phase noise in the receiver for short delays.</p>
+    <p><b>CPI (coherent processing interval):</b> time over which pulses are combined into Doppler bins. Bin width ≈ 1/T<sub>CPI</sub>.</p>
+    <p><b>Clutter-to-target ratio C/T:</b> how much stronger the clutter echo is than the target. <b>Subclutter visibility (SCV):</b> the largest C/T at which a target can still be detected.</p>
+    <p><b>MTI / pulse-Doppler:</b> moving-target indication by pulse cancellers / by Doppler filter banks (FFT).</p>
+  </div>
+  <div class="eq">L<sub>res</sub>(f) = L(f) + 10·log₁₀[4·sin²(π f τ)],   τ = 2R/c<br>Residual in the target's Doppler bin:  N<sub>PN</sub> = L<sub>res</sub>(f<sub>d</sub>) + 10·log₁₀(1/T<sub>CPI</sub>)   dBc (relative to clutter)<br>Target visible if  −C/T − N<sub>PN</sub> ≥ 13 dB   (typical detection threshold)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example: 10 GHz, target 30 m/s (f<sub>d</sub> = 2 kHz), source B: L(2 kHz) = −102.4 dBc/Hz, CPI 10 ms</th><th>Clutter at 1.5 km</th><th>Clutter at 15 km</th></tr>
+    <tr><td>τ</td><td class="n">10 µs</td><td class="n">100 µs</td></tr>
+    <tr><td>4·sin²(π·2000·τ)</td><td class="n">−18.0 dB</td><td class="n">+1.4 dB</td></tr>
+    <tr><td>+10·log(100 Hz)</td><td class="n">+20 dB</td><td class="n">+20 dB</td></tr>
+    <tr class="sum"><td>Residual noise in the target's bin, re clutter</td><td class="n">−100.4 dBc</td><td class="n">−81.0 dBc</td></tr>
+    <tr><td>Margin with C/T = 60 dB (need ≥ 13 dB)</td><td class="n">40.4 dB</td><td class="n">21.0 dB</td></tr>
+    <tr><td>Margin with C/T = 80 dB</td><td class="n">20.4 dB</td><td class="n">1.0 dB: target lost</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cRc" width="640" height="360" aria-label="Residual phase noise after range correlation versus Doppler offset"></canvas>
+    <div class="ctrl">
+      <label for="rcL"><span>Synthesiser</span></label>
+      <select id="rcL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <label for="rcR"><span>Clutter range R</span> <b id="rcRv"></b></label><input id="rcR" type="range" min="-0.5" max="2" step="0.001" value="1.1761">
+      <label for="rcV"><span>Target radial speed</span> <b id="rcVv"></b></label><input id="rcV" type="range" min="1" max="300" step="1" value="30">
+      <label for="rcT"><span>CPI</span> <b id="rcTv"></b></label><input id="rcT" type="range" min="0" max="2" step="0.02" value="1">
+      <label for="rcC"><span>Clutter-to-target ratio</span> <b id="rcCv"></b></label><input id="rcC" type="range" min="20" max="100" step="1" value="80">
+      <div class="readout" id="rcOut"></div>
+    </div>
+    <p class="cap">Grey dashed: the synthesiser's own L(f). Solid: what is left after the echo and the LO are subtracted for clutter at range R. Its notches are at multiples of 1/τ. The marker is the target's Doppler, with the target level (−C/T, converted to per-Hz using the bin width) shown as a dot. Raise the range: the cancellation moves closer in and the residual at the target rises.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>OCXO and high f<sub>PD</sub> (source B → C)</td><td>L(2 kHz) −102 → −123 dBc/Hz</td><td>Margin at 15 km, C/T 80 dB, from 1 dB to about 22 dB: small slow targets in strong ground clutter become detectable</td></tr>
+      <tr><td>Longer CPI 10 → 40 ms</td><td>(system choice) bin 100 → 25 Hz</td><td>Residual in the bin −6 dB; the synthesiser specification can relax 6 dB, at the cost of longer dwell</td></tr>
+      <tr><td>Synthesiser spur at a Doppler offset</td><td>−70 dBc at 3 kHz</td><td>Clutter 70 dB above the floor makes a steady false target at 3 kHz Doppler (≈ 45 m/s)</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>At what offset does range correlation stop helping for clutter at 30 km?</summary><p>τ = 200 µs. The factor 4·sin²(πfτ) reaches 0 dB (= 1) when sin² = 0.25, i.e. πfτ = π/6, f = 1/(6τ) ≈ 830 Hz. Beyond that the residual is equal to or larger than L(f).</p></details>
+    <details><summary>Why does an airborne radar looking down suffer more from synthesiser phase noise than a ground radar looking up?</summary><p>Its clutter is at long range (large τ, little cancellation) and very strong (C/T 80 to 100 dB in the main beam), and its targets can have Doppler close to the clutter spread by platform motion. All three push the synthesiser requirement down by tens of dB.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="sar">
+  <div class="secno">Step 11</div>
+  <h2>SAR: how phase noise and spurs blur the image and make ghosts</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A SAR (synthetic aperture radar) forms a sharp azimuth (along-track) image by recording the phase of the echo from each scatterer over an aperture time T<sub>a</sub> (0.1 to several seconds) and focusing them with a matched filter. After focusing, a single point scatterer becomes an impulse response (IRF): a narrow main lobe with sidelobes. PSLR is the highest sidelobe; ISLR is the energy in all sidelobes relative to the main lobe.</p>
+  </div>
+  <div class="col">
+    <p><b>The image is made from phase, so phase errors become image errors.</b> Every pulse adds the synthesiser phase error at that moment (after range correlation) to the scatterer's phase. Three cases, by the rate of the error compared with the aperture time:</p>
+    <p>(1) <b>Slow errors</b> (f &lt; 1/T<sub>a</sub>) bend the phase history across the aperture like a parabola: the main lobe widens and the image defocuses. (2) <b>Fast random errors</b> (f ≫ 1/T<sub>a</sub>) scatter energy evenly into the sidelobes: the ISLR rises by about σ<sub>φ</sub>² and shadows and low-contrast areas fill in. (3) <b>A sinusoidal error</b> (a spur) at f<sub>e</sub> creates two "paired echoes", ghosts at ±f<sub>e</sub>·T<sub>a</sub> resolution cells from every bright scatterer, each at 20·log(β/2) dBc, just as in step 1.</p>
+    <p><b>Range correlation still applies</b>, but SAR ranges are long (10 to 100 km, τ = 67 to 670 µs), so little cancellation remains above a few hundred Hz. Noise from offsets above PRF/2 is also sampled once per pulse and folds (aliases) into the azimuth spectrum, so the integration band for ISLR runs from about 1/T<sub>a</sub> up to the receiver bandwidth.</p>
+  </div>
+  <div class="term"><h4>Terms</h4>
+    <p><b>Aperture time T<sub>a</sub>:</b> time over which one scatterer is illuminated and integrated. <b>Azimuth resolution cell:</b> one IRF width; ±1 cell ≈ ±1/T<sub>a</sub> in Doppler.</p>
+    <p><b>IRF:</b> impulse response function (image of a point). <b>PSLR / ISLR:</b> peak / integrated sidelobe ratio, in dB.</p>
+    <p><b>Paired echoes:</b> symmetric ghost images caused by sinusoidal phase or amplitude errors.</p>
+  </div>
+  <div class="eq">ISLR contribution from random phase error ≈ 10·log₁₀(σ<sub>φ</sub>²),   σ<sub>φ</sub>² = 2∫<sub>1/T<sub>a</sub></sub><sup>B<sub>rx</sub></sup> L(f)·4sin²(πfτ) df<br>Paired echo:  position ±f<sub>e</sub>·T<sub>a</sub> cells,  level 20·log₁₀(β/2) dBc = spur level in dBc</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example</th><th>Value</th></tr>
+    <tr><td>σ<sub>φ</sub> = 3° rms = 0.052 rad → σ<sub>φ</sub>²</td><td class="n">2.7·10⁻³ → ISLR term −25.6 dB</td></tr>
+    <tr><td>Typical image ISLR requirement (all causes)</td><td class="n">≤ −20 dB</td></tr>
+    <tr><td>Share usually given to the synthesiser: −30 dB → σ<sub>φ</sub></td><td class="n">≤ 1.8° rms</td></tr>
+    <tr><td>Spur −40 dBc at 50 Hz, T<sub>a</sub> = 1 s</td><td class="n">ghosts ±50 cells away at −40 dB</td></tr>
+    <tr><td>Range correlation at 20 km (τ = 133 µs), f = 100 Hz</td><td class="n">4·sin²(π·100·τ) = −21.5 dB</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSa" width="640" height="360" aria-label="Simulated SAR azimuth impulse response with synthesiser phase noise"></canvas>
+    <div class="ctrl">
+      <label for="saL"><span>Synthesiser</span></label>
+      <select id="saL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <label for="saS"><span>Shift the whole L(f)</span> <b id="saSv"></b></label><input id="saS" type="range" min="-20" max="30" step="1" value="20">
+      <label for="saT"><span>Aperture time T<sub>a</sub></span> <b id="saTv"></b></label><input id="saT" type="range" min="0.1" max="4" step="0.05" value="1">
+      <label for="saR"><span>Range</span> <b id="saRv"></b></label><input id="saR" type="range" min="2" max="100" step="1" value="20">
+      <label for="saP"><span>Spur offset f<sub>e</sub></span> <b id="saPv"></b></label><input id="saP" type="range" min="5" max="200" step="1" value="40">
+      <label for="saQ"><span>Spur level</span> <b id="saQv"></b></label><input id="saQ" type="range" min="-90" max="-20" step="1" value="-40">
+      <button id="saN" type="button">New noise sample</button>
+      <div class="readout" id="saOut"></div>
+    </div>
+    <p class="cap">Simulation of one point scatterer: 1024 pulses over T<sub>a</sub>, each with the synthesiser phase error drawn from L(f) after range correlation (noise above PRF/2 folded in, up to 1 MHz), plus the spur. Azimuth compression by FFT with a Hamming window. Grey: ideal IRF. Teal: with the synthesiser. Shift L(f) up to see ISLR rise and the floor fill in; the spur makes the paired echoes.</p>
+  </div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>Loop bandwidth and VCO choice that lower the 1 to 100 kHz plateau</td><td>Integrated σ<sub>φ</sub> 3° → 1°</td><td>ISLR term −25.6 → −35 dB: dark areas (roads, water, shadows) stay dark</td></tr>
+      <tr><td>Supply filtering and layout that keep spurs below −60 dBc</td><td>Spurs ≤ −60 dBc in 1 Hz to 1 kHz</td><td>Ghosts of bright scatterers (ships, buildings) 60 dB down, below the image clutter</td></tr>
+      <tr><td>OCXO with low close-in noise (1 to 10 Hz)</td><td>L(10 Hz) improved 10 dB</td><td>Less defocus over long apertures (T<sub>a</sub> &gt; 1 s, high resolution spotlight modes)</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A SAR shows ghost copies of a bright ship 80 cells either side, 45 dB down. T<sub>a</sub> = 2 s. What would you look for in the synthesiser?</summary><p>A spur at 80/2 = 40 Hz offset, at −45 dBc. Typical causes: a fan, a switching supply sub-harmonic, mechanical vibration on the reference crystal or the VCO (microphonics).</p></details>
+    <details><summary>Why can a longer aperture time make the image worse, not better?</summary><p>Longer T<sub>a</sub> moves the lower limit 1/T<sub>a</sub> of the integration closer in, where L(f) is highest, and also makes slow drift look like a quadratic phase error. A synthesiser good enough for 0.5 s may defocus at 4 s.</p></details>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="esm">
+  <div class="secno">Step 12</div>
+  <h2>Signal identification: what the LO does to an ESM receiver's reports</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An ESM (electronic support measures) receiver listens to other people's radars. For each pulse it measures a pulse descriptor word: frequency, pulse width, time of arrival, amplitude, angle of arrival and intra-pulse modulation. Emitter identification compares these with a library. From step 9: a strong signal plus LO noise raises the floor around it; a strong signal plus an LO spur makes a phantom signal.</p>
+  </div>
+  <div class="col">
+    <p><b>Five ways the synthesiser enters the identification.</b> (1) <b>Absolute frequency</b> comes from the reference: its accuracy in ppm becomes a frequency error on every report. (2) <b>Short-term stability</b> (close-in phase noise and jitter) spreads the measured frequency of each pulse. (3) <b>Intra-pulse analysis</b> (chirp slope, phase-code steps) is a phase measurement inside the pulse: the LO's integrated phase error over the pulse adds to it. (4) <b>Spurs</b> create phantom emitters next to every strong one; the library may even match them to a real radar type. (5) <b>Reciprocal mixing</b> hides weak emitters next to strong ones: the dense signal environment is exactly where it matters most.</p>
+    <p><b>Specific emitter identification (SEI)</b> goes further: it tells two radars of the same type apart by their unintentional modulation, including their own transmitter phase noise and spurs. To measure an emitter's phase noise, the receiver's LO must be cleaner than the emitter by about 10 dB at the offsets used, otherwise the receiver measures itself.</p>
+    <p><b>Tuning speed</b> matters too. A scanning superheterodyne ESM receiver steps its LO across the band and dwells on each step; a slow synthesiser (step 8) either lengthens the revisit time or misses short, agile emitters.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Synthesiser property</th><th>Worked number</th><th>Effect on identification</th></tr>
+    <tr><td>Reference accuracy</td><td>TCXO 2 ppm at 10 GHz = 20 kHz; OCXO 0.1 ppm = 1 kHz</td><td>Fine for type identification (bins of 1 MHz); OCXO needed to track a radar's small frequency changes or Doppler</td></tr>
+    <tr><td>Integrated phase noise over a 1 µs pulse (1 MHz to 100 MHz)</td><td>−40 dBc = 0.8° rms</td><td>Negligible for 180° BPSK codes; matters for polyphase codes with small steps and for SEI</td></tr>
+    <tr><td>Spur −70 dBc, strong emitter −10 dBm</td><td>Phantom at −80 dBm</td><td>Above a −90 dBm channelised sensitivity: false emitter reported; need spurs ≤ −85 dBc for clean reports</td></tr>
+    <tr><td>Reciprocal mixing: −10 dBm emitter 2 MHz away, channel 10 MHz, L(2 MHz) = −135 dBc/Hz, NF 10 dB</td><td>N<sub>RM</sub> = −75 dBm vs N<sub>th</sub> = −94 dBm</td><td>19 dB desense: a −85 dBm emitter next to it is not seen</td></tr>
+    <tr><td>SEI on a radar with L(100 kHz) = −110 dBc/Hz</td><td>ESM LO needs ≤ −120 dBc/Hz at 100 kHz</td><td>Otherwise all radars of that type look the same</td></tr>
+    <tr><td>Step time of a scanning superhet, 200 steps</td><td>50 µs settle + 10 µs dwell = 12 ms per sweep; 5 µs + 10 µs = 3 ms</td><td>4× faster revisit; better probability of intercept for short-duty emitters</td></tr>
+  </table></div>
+  <div class="comp"><h4>Chain: design choice → datasheet spec → system effect</h4>
+    <div class="tw"><table class="t">
+      <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+      <tr><td>OCXO instead of TCXO reference</td><td>0.1 ppm instead of 2 ppm</td><td>Frequency reports accurate to 1 kHz at 10 GHz; library match on fine frequency and tracking of agile emitters</td></tr>
+      <tr><td>Fractional-N plan with spur channels excluded (step 6)</td><td>Spurs ≤ −85 dBc</td><td>No phantom emitters from strong signals; clean emitter count in dense environments</td></tr>
+      <tr><td>Low-noise VCO and loop bandwidth at the VCO crossing</td><td>L(1 to 10 MHz) ≤ −145 dBc/Hz</td><td>Weak emitters visible a few MHz from strong ones; SEI possible on typical radars</td></tr>
+    </table></div>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM operator sees the same "new" emitter every time a nearby ship radar transmits, always 3 MHz above it and 65 dB weaker. What is it?</summary><p>Almost certainly a spurious response: an LO spur at 3 MHz offset (or a mixing product in the receiver) at about −65 dBc. A real emitter would not track the ship radar's timing exactly.</p></details>
+    <details><summary>Why does SEI need a better LO than radar-type identification?</summary><p>Type identification uses coarse parameters (frequency band, PRI, pulse width) that the LO barely affects. SEI measures tiny differences in the emitter's own phase noise and transients; the receiver's own phase noise must be well below those differences or it masks them.</p></details>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="summary">
+  <div class="secno">Step 13</div>
+  <h2>Summary: each parameter, what sets it, and where it shows up</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (components)</th><th>System effect</th></tr>
+    <tr><td>L(f) close in (1 Hz to 1 kHz)</td><td>Reference crystal (OCXO/VCXO), its multiplication 20·log N, vibration (microphonics)</td><td>Slow-target detection in clutter, long-range MTI; SAR defocus over long apertures</td></tr>
+    <tr><td>L(f) in band (1 kHz to loop BW)</td><td>PFD/charge pump FOM, f<sub>PD</sub>, N, reference ×N</td><td>Integrated jitter; pulse-Doppler clutter residual for 1 to 100 kHz Doppler; SAR ISLR</td></tr>
+    <tr><td>L(f) outside loop BW</td><td>VCO resonator Q<sub>L</sub>, active device flicker, P<sub>s</sub>, tuning-line noise × K<sub>V</sub></td><td>Reciprocal mixing and blocking 100 kHz to tens of MHz away; ESM selectivity</td></tr>
+    <tr><td>Far-out floor</td><td>Oscillator power, buffer NF, divider and DAC floor: −174 + NF − P − 3</td><td>Wideband receivers and ADCs integrate it over hundreds of MHz</td></tr>
+    <tr><td>Integrated phase noise, jitter</td><td>Whole L(f) over the stated band; loop bandwidth placement</td><td>EVM, ADC SNR limit −20·log(2πf<sub>in</sub>σ<sub>t</sub>), phase-code fidelity, SAR ISLR ≈ σ<sub>φ</sub>²</td></tr>
+    <tr><td>Multiplication 20·log N</td><td>Output/reference ratio, multiplier chain, carrier collapse near σ<sub>φ</sub> ≈ 1 rad</td><td>Millimetre-wave systems need cleaner references</td></tr>
+    <tr><td>Loop bandwidth</td><td>Loop filter, charge-pump current, K<sub>V</sub>, N</td><td>Noise crossover, reference-spur filtering, settling time</td></tr>
+    <tr><td>Reference spur</td><td>Charge-pump leakage and mismatch, loop filter attenuation at f<sub>PD</sub></td><td>False targets at f<sub>PD</sub> Doppler; spurious responses in receivers</td></tr>
+    <tr><td>Fractional and boundary spurs, ΣΔ noise</td><td>Fractional-N modulus and ΣΔ order, frequency plan, loop bandwidth</td><td>Channels with spurs inside the loop; far-out noise hump</td></tr>
+    <tr><td>DDS spurs</td><td>Phase bits P (≈ −6.02·P dBc), DAC bits and linearity, FTW pattern, images and sinc</td><td>Spurs anywhere, moving with frequency; ×N if the DDS feeds a PLL</td></tr>
+    <tr><td>Frequency resolution</td><td>f<sub>PD</sub> (integer-N), f<sub>PD</sub>/modulus (fractional-N), f<sub>clk</sub>/2<sup>M</sup> (DDS)</td><td>Channel grid, Doppler pre-compensation, stepped-frequency waveforms</td></tr>
+    <tr><td>Switching / settling time</td><td>Loop bandwidth and damping, VCO band calibration, cycle slips; DDS pipeline</td><td>Pulse-to-pulse agility (ECCM), ESM scan revisit time</td></tr>
+    <tr><td>Tuning range</td><td>Varactor ratio, switched bands, YIG coil, multiplier</td><td>Band coverage; trades against Q and K<sub>V</sub> noise</td></tr>
+    <tr><td>Reference accuracy and stability</td><td>Crystal cut, oven, ageing, calibration</td><td>Absolute frequency of reports and of radar transmissions; Doppler accuracy</td></tr>
+    <tr><td>Range correlation</td><td>(geometry) τ = 2R/c; same synthesiser for transmit and LO</td><td>Near clutter cancels better than far clutter; residual factor 4·sin²(πfτ)</td></tr>
+    <tr><td>Reciprocal-mixing desense</td><td>L(Δ) at the blocker offset, preselector filtering</td><td>Receiver selectivity; ESM in dense environments; radar co-site operation</td></tr>
+  </table></div>
+</section>
+
+<section id="gloss">
+  <div class="secno">Reference</div>
+  <h2>Glossary</h2>
+  <dl class="gl">
+    <dt>Aperture time T<sub>a</sub></dt><dd>SAR integration time for one scatterer; sets azimuth resolution and the lowest offset that matters.</dd>
+    <dt>Blocker</dt><dd>Strong unwanted signal close to the wanted channel.</dd>
+    <dt>Blocking</dt><dd>Loss of receiver sensitivity caused by a blocker, through reciprocal mixing or compression.</dd>
+    <dt>Carrier</dt><dd>The wanted sine wave at f₀.</dd>
+    <dt>Carrier collapse</dt><dd>Loss of carrier power into the noise skirt when the rms phase error approaches 1 rad (high multiplication).</dd>
+    <dt>Charge pump (CP)</dt><dd>Current source in a PLL that converts the PFD phase error into current pulses for the loop filter.</dd>
+    <dt>Clutter</dt><dd>Unwanted radar echoes from ground, sea or weather, strong and near zero Doppler.</dd>
+    <dt>CPI</dt><dd>Coherent processing interval: the time over which pulses are combined; Doppler bin ≈ 1/CPI.</dd>
+    <dt>Damping ζ</dt><dd>Loop parameter controlling overshoot and peaking; 0.707 is common.</dd>
+    <dt>dBc, dBc/Hz</dt><dd>dB relative to the carrier power; per 1 Hz of bandwidth for noise densities.</dd>
+    <dt>DDS</dt><dd>Direct digital synthesiser: phase accumulator, sine table and DAC.</dd>
+    <dt>Desensitisation</dt><dd>Rise in receiver noise floor, in dB, due to a blocker.</dd>
+    <dt>Doppler shift f<sub>d</sub></dt><dd>2v/λ: frequency shift of an echo from a target moving at radial speed v.</dd>
+    <dt>DRO</dt><dd>Dielectric resonator oscillator: very high Q, narrow tuning.</dd>
+    <dt>ESM</dt><dd>Electronic support measures: receivers that detect, measure and identify other emitters.</dd>
+    <dt>EVM</dt><dd>Error vector magnitude; for phase error alone ≈ σ<sub>φ</sub> in radians.</dd>
+    <dt>Flicker (1/f) noise, corner f<sub>c</sub></dt><dd>Low-frequency device noise rising as 1/f; its corner is where it equals the white noise.</dd>
+    <dt>Fractional-N</dt><dd>PLL whose divider ratio has a fractional part, made by dithering N with a ΣΔ modulator.</dd>
+    <dt>Frequency agility</dt><dd>Changing carrier frequency between pulses or dwells, for ECCM and interference avoidance.</dd>
+    <dt>FTW</dt><dd>Frequency tuning word of a DDS: f<sub>out</sub> = FTW·f<sub>clk</sub>/2<sup>M</sup>.</dd>
+    <dt>Improvement factor</dt><dd>MTI measure: signal-to-clutter ratio at the output over that at the input; limited by phase noise.</dd>
+    <dt>Integer-boundary spur</dt><dd>Fractional-N spur at the distance from f<sub>out</sub> to the nearest integer multiple of f<sub>PD</sub>.</dd>
+    <dt>Integer-N</dt><dd>PLL with a whole-number divider; step size equals f<sub>PD</sub>.</dd>
+    <dt>Integrated phase noise</dt><dd>10·log(σ<sub>φ</sub>²) over a stated offset band, in dBc.</dd>
+    <dt>IRF, PSLR, ISLR</dt><dd>Impulse response function (image of a point); its peak and integrated sidelobe ratios.</dd>
+    <dt>Jitter σ<sub>t</sub></dt><dd>RMS timing error of zero crossings: σ<sub>φ</sub>/(2πf₀).</dd>
+    <dt>K<sub>V</sub></dt><dd>VCO tuning sensitivity in Hz/V; also converts tuning-line noise into phase noise.</dd>
+    <dt>L(f)</dt><dd>Single-sideband phase noise: noise power in 1 Hz at offset f relative to the carrier, dBc/Hz.</dd>
+    <dt>Leeson's equation</dt><dd>Model of oscillator phase noise from resonator Q<sub>L</sub>, power, noise figure and flicker corner.</dd>
+    <dt>Loaded Q (Q<sub>L</sub>)</dt><dd>Resonator Q including circuit loading; sets the Leeson frequency f₀/2Q<sub>L</sub>.</dd>
+    <dt>Loop bandwidth</dt><dd>Offset where the PLL closed-loop response falls 3 dB; divides reference-dominated from VCO-dominated noise.</dd>
+    <dt>LO</dt><dd>Local oscillator: the signal a mixer multiplies the input with.</dd>
+    <dt>MTI, pulse-Doppler</dt><dd>Radar processing that separates moving targets from clutter by Doppler.</dd>
+    <dt>OCXO, TCXO, VCXO</dt><dd>Oven-controlled, temperature-compensated, voltage-controlled crystal oscillators.</dd>
+    <dt>Offset frequency f</dt><dd>Distance from the carrier at which noise or a spur is measured.</dd>
+    <dt>Paired echoes</dt><dd>Symmetric ghost images in SAR or pulse compression caused by a sinusoidal phase error.</dd>
+    <dt>PFD, f<sub>PD</sub></dt><dd>Phase-frequency detector and the frequency at which it compares.</dd>
+    <dt>PLL</dt><dd>Phase-locked loop: VCO, divider, PFD, charge pump and loop filter that lock a VCO to a reference.</dd>
+    <dt>PLL figure of merit</dt><dd>PFD/charge-pump noise normalised to 1 Hz f<sub>PD</sub> and N = 1, dBc/Hz.</dd>
+    <dt>PRI, PRF</dt><dd>Pulse repetition interval and its inverse, the pulse repetition frequency.</dd>
+    <dt>Range correlation</dt><dd>Partial cancellation of transmitter phase noise in the receiver for short echo delays: factor 4·sin²(πfτ).</dd>
+    <dt>Reciprocal mixing</dt><dd>LO phase noise mixing a blocker onto the wanted channel.</dd>
+    <dt>Reference spur</dt><dd>Spur at ± f<sub>PD</sub> from charge-pump ripple on the tuning line.</dd>
+    <dt>S<sub>φ</sub>(f)</dt><dd>Phase spectral density in rad²/Hz; equals 2·L(f) for small angles.</dd>
+    <dt>SEI</dt><dd>Specific emitter identification: telling individual emitters apart by their unintentional modulation.</dd>
+    <dt>Settling (lock) time</dt><dd>Time from a frequency command until the error stays within tolerance.</dd>
+    <dt>SFDR</dt><dd>Spurious-free dynamic range: carrier to largest spur, in dBc.</dd>
+    <dt>Sigma-delta (ΣΔ) modulator</dt><dd>Digital sequencer that dithers the divider and shapes its error noise to high offsets.</dd>
+    <dt>Spur</dt><dd>Discrete unwanted line at a fixed offset, in dBc.</dd>
+    <dt>Subclutter visibility</dt><dd>Largest clutter-to-target ratio at which a target is still detected.</dd>
+    <dt>VCO</dt><dd>Voltage-controlled oscillator.</dd>
+    <dt>YIG</dt><dd>Yttrium iron garnet sphere resonator, tuned by a magnetic field over multiple octaves.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Banerjee, <i>PLL Performance, Simulation, and Design</i>; Rohde, <i>Microwave and Wireless Synthesizers: Theory and Design</i>; Best, <i>Phase-Locked Loops: Design, Simulation, and Applications</i>; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Carrara, Goodman and Majewski, <i>Spotlight Synthetic Aperture Radar</i>; Leeson's oscillator noise model as presented in these texts. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const L10=Math.log10;
+
+/* plotting helpers (generic plot as in the antenna module, plus log-frequency helpers) */
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>lines(g,{X,Y},c));
+  return {X,Y,x0,y0,w,h,xa,xb,ya,yb};
+}
+function lines(g,P,c){ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+  for(let i=0;i<c.x.length;i++){ const yv=c.y[i]; if(!isFinite(yv)||(c.clip&&(yv>P.yb||yv<P.ya))){ st=false; continue; } const px=P.X(c.x[i]), py=P.Y(yv); st?g.lineTo(px,py):g.moveTo(px,py); st=true; }
+  g.stroke(); g.setLineDash([]); g.lineWidth=1; }
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,P,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(P.x0,P.Y(y)); g.lineTo(P.x0+P.w,P.Y(y)); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function tagR(g,P,s,row,color){ g.fillStyle=color||css('--ink'); g.fillText(s,P.x0+P.w-8-g.measureText(s).width,P.y0+16+row*15); }
+const flab=v=>{ const f=Math.pow(10,v); const r=x=>String(+x.toPrecision(3)); if(f>=1e9) return r(f/1e9)+'G'; if(f>=1e6) return r(f/1e6)+'M'; if(f>=1e3) return r(f/1e3)+'k'; return r(f); };
+function logGrid(g,P){ g.strokeStyle=css('--grid'); for(let d=Math.floor(P.xa); d<P.xb; d++) for(let m=1;m<10;m++){ const v=d+L10(m); if(v<=P.xa||v>=P.xb) continue; g.globalAlpha=m===1?1:0.45; const px=P.X(v); g.beginPath(); g.moveTo(px,P.y0); g.lineTo(px,P.y0+P.h); g.stroke(); } g.globalAlpha=1; }
+function logPlot(g,x0,y0,w,h,a,b,ya,yb,o){ const P=plot(g,x0,y0,w,h,a,b,ya,yb,[],Object.assign({nx:b-a,fx:flab,xl:'offset f (Hz)'},o||{})); logGrid(g,P); return P; }
+const logspace=(a,b,n)=>Array.from({length:n+1},(_,i)=>a+(b-a)*i/n);
+function integ(fn,f1,f2,n){ n=n||400; const a=L10(f1), b=L10(f2); let s=0, pf=f1, pv=lin(fn(f1)); for(let i=1;i<=n;i++){ const f=Math.pow(10,a+(b-a)*i/n), v=lin(fn(f)); s+=(v+pv)/2*(f-pf); pf=f; pv=v; } return 2*s; } // returns σφ² in rad²
+
+/* FFT (radix 2, in place) and random numbers */
+function fft(re,im){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+  for(let len=2;len<=n;len<<=1){ const h=len>>1, ang=-TAU/len; for(let j=0;j<h;j++){ const wr=Math.cos(ang*j), wi=Math.sin(ang*j); for(let i=j;i<n;i+=len){ const b=i+h; const xr=re[b]*wr-im[b]*wi, xi=re[b]*wi+im[b]*wr; re[b]=re[i]-xr; im[b]=im[i]-xi; re[i]+=xr; im[i]+=xi; } } } }
+function rngF(seed){ let s=seed>>>0; return ()=>{ s=(s+0x6D2B79F5)>>>0; let t=s; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+function gaussF(r){ return ()=>{ let u=0; while(u===0) u=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*r()); }; }
+function bhWin(N){ const a=[0.35875,0.48829,0.14128,0.01168], w=new Float64Array(N); for(let n=0;n<N;n++){ const x=TAU*n/(N-1); w[n]=a[0]-a[1]*Math.cos(x)+a[2]*Math.cos(2*x)-a[3]*Math.cos(3*x); } return w; }
+const FACT=[1]; for(let i=1;i<40;i++) FACT[i]=FACT[i-1]*i;
+function besselJ(n,x){ let s=0; for(let k=0;k<25;k++) s+=(k%2?-1:1)*Math.pow(x/2,2*k+n)/(FACT[k]*FACT[k+n]); return s; }
+
+/* shared synthesiser models (illustrative) */
+const PROF={A:[[10,-55],[100,-72],[1e3,-86],[1e4,-94],[1e5,-100],[1e6,-118],[1e7,-140],[1e8,-152]],
+  B:[[10,-62],[100,-85],[1e3,-100],[1e4,-108],[1e5,-110],[1e6,-130],[1e7,-150],[1e8,-158]],
+  C:[[10,-75],[100,-100],[1e3,-120],[1e4,-130],[1e5,-133],[1e6,-140],[1e7,-155],[1e8,-165]]};
+function interp(p,f){ const lf=L10(Math.max(f,1e-3)), n=p.length; if(lf>=L10(p[n-1][0])) return p[n-1][1]; let i=0; while(i<n-2&&lf>L10(p[i+1][0])) i++; const x1=L10(p[i][0]), x2=L10(p[i+1][0]); return Math.min(-10,p[i][1]+(p[i+1][1]-p[i][1])*(lf-x1)/(x2-x1)); }
+function Lsyn(k,f,f0){ if(k==='F') return -100; return interp(PROF[k],f)+20*L10((f0||10e9)/10e9); }
+const REF={o100:{f:100e6,n:'100 MHz OCXO',p:[[1,-85],[10,-115],[100,-140],[1e3,-157],[1e4,-165],[1e5,-170],[1e6,-172],[1e8,-172]]},
+  x100:{f:100e6,n:'100 MHz VCXO',p:[[1,-60],[10,-85],[100,-110],[1e3,-135],[1e4,-150],[1e5,-155],[1e6,-157],[1e8,-157]]},
+  o10:{f:10e6,n:'10 MHz OCXO',p:[[1,-100],[10,-130],[100,-150],[1e3,-158],[1e4,-162],[1e5,-163],[1e8,-163]]}};
+const VP={chip:{Q:12,P:0,N:10,fc:2e5},pcb:{Q:20,P:5,N:8,fc:5e4},coax:{Q:200,P:8,N:7,fc:2e4},yig:{Q:150,P:10,N:8,fc:3e4},dro:{Q:1000,P:10,N:6,fc:1e6}};
+const leeson=(f,f0,v)=>-174+v.N-v.P-3+db((1+Math.pow(f0/(2*v.Q*f),2))*(1+v.fc/f));
+function loop(BW,z){ const k=Math.sqrt(1+2*z*z+Math.sqrt(Math.pow(1+2*z*z,2)+1)), wn=TAU*BW/k;
+  return f=>{ const w=TAU*f, nr=wn*wn, ni=2*z*wn*w, dr=wn*wn-w*w, di=2*z*wn*w, den=dr*dr+di*di; return {h:(nr*nr+ni*ni)/den, e:(w*w)*(w*w)/den}; }; }
+const sumdb=(...a)=>db(a.reduce((s,v)=>s+lin(v),0));
+const degs=x=>{ const d=x/deg; return (d>=0.1?d.toFixed(2):d>=1e-4?d.toPrecision(2):d.toExponential(1))+'°'; };
+
+/* 1 PHASE MODULATION */
+const NP=4096, FSP=409600, bhP=bhWin(NP); let bhPS=0; for(let i=0;i<NP;i++) bhPS+=bhP[i];
+function pmDraw(){
+  const mode=$('pmM').value, b=Math.pow(10,+$('pmB').value), fm=+$('pmF').value;
+  $('pmBv').textContent=(b<0.1?(b*1000).toFixed(1)+' mrad':b.toFixed(2)+' rad')+' ('+(b/deg).toFixed(2)+'°)';
+  $('pmFv').textContent=fmt(fm,'Hz',1);
+  const phi=new Float64Array(NP);
+  if(mode==='tone'){ for(let n=0;n<NP;n++) phi[n]=b*Math.sin(TAU*fm*n/FSP); }
+  else { const gs=gaussF(rngF(777)), a=Math.exp(-TAU*fm/FSP); let x=0, mu=0, ss=0; for(let n=-3000;n<NP;n++){ x=a*x+gs(); if(n>=0) phi[n]=x; }
+    for(let n=0;n<NP;n++) mu+=phi[n]; mu/=NP; for(let n=0;n<NP;n++){ phi[n]-=mu; ss+=phi[n]*phi[n]; } const sc=b/Math.sqrt(ss/NP); for(let n=0;n<NP;n++) phi[n]*=sc; }
+  const re=new Float64Array(NP), im=new Float64Array(NP); for(let n=0;n<NP;n++){ re[n]=Math.cos(phi[n])*bhP[n]; im[n]=Math.sin(phi[n])*bhP[n]; } fft(re,im);
+  const Pk=k=>{ const i=(k%NP+NP)%NP; return (re[i]*re[i]+im[i]*im[i])/(bhPS*bhPS); };
+  const xs=[], ys=[]; for(let k=-500;k<=500;k++){ xs.push(k*FSP/NP/1000); ys.push(db(Pk(k)+1e-20)); }
+  const c=$('cPm'), g=ctx(c);
+  // phasor
+  const cx=110, cy=190, r=78; g.strokeStyle=css('--line'); g.beginPath(); g.arc(cx,cy,r,0,TAU); g.stroke();
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(cx-r-10,cy); g.lineTo(cx+r+10,cy); g.moveTo(cx,cy-r-10); g.lineTo(cx,cy+r+10); g.stroke();
+  let mx=0; for(let n=0;n<NP;n++) mx=Math.max(mx,Math.abs(phi[n]));
+  let mag=1; if(mx<0.15) mag=Math.pow(10,Math.floor(L10(0.4/mx)));
+  g.fillStyle=css('--trace'); g.globalAlpha=0.35; for(let n=0;n<NP;n+=3){ const a=-phi[n]*mag; g.fillRect(cx+r*Math.cos(a)-1.5,cy+r*Math.sin(a)-1.5,3,3); } g.globalAlpha=1;
+  g.strokeStyle=css('--ink'); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+r,cy); g.stroke(); dot(g,cx+r,cy,css('--accent'));
+  g.fillStyle=css('--muted'); g.fillText('phasor (rotating frame)',12,24); g.fillText('ideal carrier: dot at right',12,40);
+  g.fillText('spread ±'+(mx/deg).toFixed(mx<0.01?3:2)+'°',12,300); g.fillText(mag>1?'angles shown ×'+mag:'angles to scale',12,316);
+  // spectrum
+  const P=plot(g,292,24,330,286,-50,50,-120,0,[{x:xs,y:ys,color:css('--trace'),w:1.2}],{nx:4,ny:6,fx:v=>v.toFixed(0),xl:'offset from carrier (kHz)',yl:'dBc per 100 Hz bin'});
+  const sbSmall=20*L10(b/2);
+  let rows;
+  if(mode==='tone'){ const kb=Math.round(fm/(FSP/NP)), meas=db(Pk(kb)), j1=20*L10(Math.abs(besselJ(1,b))), j0=20*L10(Math.abs(besselJ(0,b)));
+    hline(g,P,sbSmall,css('--accent'),[3,4]); tagR(g,P,'small-angle 20·log(β/2) = '+sbSmall.toFixed(1)+' dBc',0,css('--accent'));
+    rows=[['Sidebands at','± '+fmt(fm,'Hz',1)],['RMS phase',degs(b/Math.SQRT2)],['Sideband 20·log(β/2)',sbSmall.toFixed(1)+' dBc'],['Sideband exact J₁(β)',j1.toFixed(1)+' dBc'],['Sideband measured',meas.toFixed(1)+' dBc'],['Carrier exact J₀(β)²',j0.toFixed(2)+' dB'],['Carrier measured',db(Pk(0)).toFixed(2)+' dB']]; }
+  else { let s=0; for(let k=95;k<=105;k++) s+=Pk(k); const l10=db(s/11)-db(2*FSP/NP);
+    tagR(g,P,'random wobble, σ = '+(b/deg).toFixed(2)+'° rms',0,css('--muted'));
+    rows=[['RMS phase σ',degs(b)],['Noise corner',fmt(fm,'Hz',1)],['Carrier left e^(−σ²)',(-4.343*b*b).toFixed(2)+' dB'],['Carrier measured',db(Pk(0)).toFixed(2)+' dB'],['Skirt at 10 kHz',l10.toFixed(1)+' dBc/Hz']]; }
+  ro($('pmOut'),rows);
+}
+bind(['pmM','pmB','pmF'],pmDraw);
+
+/* 2 INTEGRATION */
+function inDraw(){
+  const k=$('inP').value, a=+$('inLo').value, b=+$('inHi').value, f0=+$('inF').value*1e9;
+  $('inLov').textContent=fmt(Math.pow(10,a),'Hz',1); $('inHiv').textContent=fmt(Math.pow(10,b),'Hz',1); $('inFv').textContent=fmt(f0,'Hz',1);
+  const lo=Math.min(a,b), hi=Math.max(a,b)+(a===b?0.01:0), L=f=>Lsyn(k,f,f0);
+  const c=$('cIn'), g=ctx(c), P=logPlot(g,60,24,560,286,1,8,-180,-40,{ny:7,yl:'L(f), dBc/Hz'});
+  const xs=logspace(1,8,350), ys=xs.map(v=>L(Math.pow(10,v)));
+  g.beginPath(); g.moveTo(P.X(lo),P.Y(-180)); for(let i=0;i<=120;i++){ const v=lo+(hi-lo)*i/120; g.lineTo(P.X(v),P.Y(L(Math.pow(10,v)))); } g.lineTo(P.X(hi),P.Y(-180)); g.closePath();
+  g.fillStyle=css('--accent'); g.globalAlpha=0.18; g.fill(); g.globalAlpha=1;
+  lines(g,P,{x:xs,y:ys,color:css('--trace'),w:1.8});
+  vline(g,P.X(lo),P.y0,P.h,css('--accent')); vline(g,P.X(hi),P.y0,P.h,css('--accent'));
+  const s2=integ(L,Math.pow(10,lo),Math.pow(10,hi),500), s=Math.sqrt(s2), jt=s/(TAU*f0);
+  let best='', bv=-1; for(let d=Math.floor(lo); d<Math.ceil(hi); d++){ const u=Math.max(d,lo), w=Math.min(d+1,hi); if(w<=u) continue; const v=integ(L,Math.pow(10,u),Math.pow(10,w),100); if(v>bv){ bv=v; best=flab(d)+'–'+flab(d+1)+' Hz'; } }
+  tagR(g,P,'f₀ = '+fmt(f0,'Hz',1)+'   σφ = '+(s/deg).toFixed(2)+'° rms',0);
+  ro($('inOut'),[['Band',flab(lo)+'–'+flab(hi)+' Hz'],['Integrated',db(s2).toFixed(1)+' dBc'],['σφ',(s*1000).toFixed(2)+' mrad'],['σφ in degrees',degs(s)],['Jitter σt',(jt*1e15).toFixed(jt<1e-12?1:0)+' fs'],['EVM (phase)',(s*100).toFixed(2)+' %'],['ADC SNR, 1 GHz in',(-20*L10(TAU*1e9*jt)).toFixed(1)+' dB'],['Largest decade',best+(a>b?' (limits swapped)':'')]].concat(s>0.5?[['Note','σ &gt; 0.5 rad']]:[]));
+}
+bind(['inP','inLo','inHi','inF'],inDraw);
+
+/* 3 VCO LEESON */
+function vcPreset(){ const v=VP[$('vcT').value]; if(!v) return; $('vcQ').value=L10(v.Q); $('vcP').value=v.P; $('vcN').value=v.N; $('vcC').value=L10(v.fc); }
+function vcDraw(){
+  const v={Q:Math.pow(10,+$('vcQ').value),P:+$('vcP').value,N:+$('vcN').value,fc:Math.pow(10,+$('vcC').value)}, f0=+$('vcF').value*1e9;
+  $('vcQv').textContent=v.Q.toFixed(v.Q<100?1:0); $('vcPv').textContent=v.P+' dBm'; $('vcNv').textContent=v.N.toFixed(1)+' dB'; $('vcCv').textContent=fmt(v.fc,'Hz',1); $('vcFv').textContent=fmt(f0,'Hz',1);
+  const fl=-174+v.N-v.P-3, fL=f0/(2*v.Q), L=f=>leeson(f,f0,v);
+  const c=$('cVc'), g=ctx(c), P=logPlot(g,60,24,560,286,2,9,-190,-10,{ny:9,yl:'L(f), dBc/Hz'});
+  const xs=logspace(2,9,350);
+  lines(g,P,{x:xs,y:xs.map(()=>fl),color:css('--muted'),dash:[4,4],w:1,clip:true});
+  lines(g,P,{x:xs,y:xs.map(x=>fl+20*L10(fL/Math.pow(10,x))),color:css('--muted'),dash:[4,4],w:1,clip:true});
+  lines(g,P,{x:xs,y:xs.map(x=>fl+20*L10(fL/Math.pow(10,x))+10*L10(v.fc/Math.pow(10,x))),color:css('--muted'),dash:[2,3],w:1,clip:true});
+  lines(g,P,{x:xs,y:xs.map(x=>L(Math.pow(10,x))),color:css('--trace'),w:2});
+  g.fillStyle=css('--muted');
+  [[v.fc,'fc'],[fL,'f₀/2Q']].forEach(m=>{ const x=L10(m[0]); if(x>2&&x<9){ vline(g,P.X(x),P.y0,P.h,css('--accent')); g.fillStyle=css('--accent'); g.fillText(m[1],P.X(x)+4,P.y0+P.h-8); } });
+  tagR(g,P,'f₀ = '+fmt(f0,'Hz',1)+', Q = '+v.Q.toFixed(0),0);
+  const r100=(()=>{ const a=lin(0)+0, t2=Math.pow(fL/1e5,2), t3=t2*v.fc/1e5; return t3>Math.max(1,t2)?'−30 dB/dec':t2>1?'−20 dB/dec':'flat'; })();
+  ro($('vcOut'),[['Floor',fl.toFixed(1)+' dBc/Hz'],['Leeson f₀/2Q',fmt(fL,'Hz',1)],['L(10 kHz)',L(1e4).toFixed(1)+' dBc/Hz'],['L(100 kHz)',L(1e5).toFixed(1)+' dBc/Hz'],['L(1 MHz)',L(1e6).toFixed(1)+' dBc/Hz'],['Slope at 100 kHz',r100]]);
+}
+['vcQ','vcP','vcN','vcC'].forEach(i=>$(i).addEventListener('input',()=>{ $('vcT').value='custom'; }));
+$('vcT').addEventListener('input',vcPreset); vcPreset();
+bind(['vcT','vcQ','vcP','vcN','vcC','vcF'],vcDraw);
+
+/* 4 MULTIPLICATION */
+function muDraw(){
+  const r=REF[$('muR').value], N=Math.pow(10,+$('muN').value), fl=+$('muA').value;
+  $('muNv').textContent='×'+(N<10?N.toFixed(2):N.toFixed(0))+' → '+fmt(r.f*N,'Hz',2); $('muAv').textContent=fl+' dBc/Hz';
+  const Li=f=>interp(r.p,f), Lo=f=>sumdb(Li(f)+20*L10(N),fl);
+  const c=$('cMu'), g=ctx(c), P=logPlot(g,60,24,560,286,0,8,-180,0,{ny:6,yl:'L(f), dBc/Hz'});
+  const xs=logspace(0,8,320);
+  lines(g,P,{x:xs,y:xs.map(x=>Li(Math.pow(10,x))),color:css('--muted'),dash:[5,4],w:1.4});
+  lines(g,P,{x:xs,y:xs.map(x=>Lo(Math.pow(10,x))),color:css('--trace'),w:2});
+  hline(g,P,fl,css('--accent'),[2,4]);
+  const si=integ(Li,10,1e7), so=integ(Lo,10,1e7), fo=r.f*N;
+  tagR(g,P,r.n+' × '+(N<10?N.toFixed(2):N.toFixed(0))+' = '+fmt(fo,'Hz',2),0); tagR(g,P,'+20·log N = '+(20*L10(N)).toFixed(1)+' dB',1,css('--muted'));
+  if(so>1){ g.fillStyle=css('--bad'); g.fillText('σφ > 1 rad: carrier collapsing',P.x0+10,P.y0+16); }
+  ro($('muOut'),[['Output',fmt(fo,'Hz',3)],['+20·log N',(20*L10(N)).toFixed(1)+' dB'],['L_out(100 Hz)',Lo(100).toFixed(1)+' dBc/Hz'],['L_out(10 kHz)',Lo(1e4).toFixed(1)+' dBc/Hz'],['Above floor, 1 MHz',(Li(1e6)+20*L10(N)-fl).toFixed(1)+' dB'],['σφ reference',degs(Math.sqrt(si))],['σφ out',degs(Math.sqrt(so))],['Jitter in / out',(Math.sqrt(si)/(TAU*r.f)*1e15).toFixed(0)+' / '+(Math.sqrt(so)/(TAU*fo)*1e15).toFixed(0)+' fs'],['Carrier left',so>1?'collapsed '+(-4.343*so).toFixed(1)+' dB':(-4.343*so).toFixed(2)+' dB']]);
+}
+bind(['muR','muN','muA'],muDraw);
+
+/* 5 PLL */
+function plDraw(){
+  const r=REF[$('plR').value], v=VP[$('plV').value], BW=Math.pow(10,+$('plB').value), fo=+$('plF').value*1e9, FOM=+$('plD').value;
+  $('plBv').textContent=fmt(BW,'Hz',1); $('plFv').textContent=fmt(fo,'Hz',1); $('plDv').textContent=FOM+' dBc/Hz';
+  const fPD=r.f, N=fo/fPD, pd=FOM+10*L10(fPD)+20*L10(N), H=loop(BW,0.707);
+  const refN=f=>interp(r.p,f)+20*L10(N), vco=f=>leeson(f,fo,v);
+  const tot=f=>{ const t=H(f); return db(t.h*(lin(refN(f))+lin(pd))+t.e*lin(vco(f))); };
+  const c=$('cPl'), g=ctx(c), P=logPlot(g,60,24,560,286,2,8,-180,-60,{ny:6,yl:'L(f), dBc/Hz'});
+  const xs=logspace(2,8,320), F=xs.map(x=>Math.pow(10,x));
+  lines(g,P,{x:xs,y:F.map(refN),color:css('--muted'),dash:[5,4],w:1.2,clip:true});
+  lines(g,P,{x:xs,y:F.map(()=>pd),color:css('--trace2'),dash:[5,4],w:1.2,clip:true});
+  lines(g,P,{x:xs,y:F.map(vco),color:css('--accent'),dash:[5,4],w:1.2,clip:true});
+  lines(g,P,{x:xs,y:F.map(tot),color:css('--trace'),w:2.2});
+  let fx=NaN; for(let i=0;i<F.length;i++){ if(vco(F[i])<Math.max(refN(F[i]),pd)){ fx=F[i]; break; } }
+  vline(g,P.X(L10(BW)),P.y0,P.h,css('--ink'),[2,3]); g.fillStyle=css('--ink'); g.fillText('BW',P.X(L10(BW))+4,P.y0+P.h-8);
+  if(isFinite(fx)){ vline(g,P.X(L10(fx)),P.y0,P.h,css('--accent'),[1,4]); }
+  tagR(g,P,'N = '+N.toFixed(N<1000?1:0)+', f_PD = '+fmt(fPD,'Hz',0),0);
+  const s2=integ(tot,1e3,1e8,500), s=Math.sqrt(s2);
+  ro($('plOut'),[['N, 20·log N',N.toFixed(1)+', '+(20*L10(N)).toFixed(1)+' dB'],['PFD floor',pd.toFixed(1)+' dBc/Hz'],['VCO crossing',isFinite(fx)?fmt(fx,'Hz',0):'below 100 Hz'],['L(1 kHz)',tot(1e3).toFixed(1)+' dBc/Hz'],['L(100 kHz)',tot(1e5).toFixed(1)+' dBc/Hz'],['L(1 MHz)',tot(1e6).toFixed(1)+' dBc/Hz'],['σφ',degs(s)],['Jitter',(s/(TAU*fo)*1e15).toFixed(0)+' fs']]);
+}
+bind(['plR','plV','plB','plF','plD'],plDraw);
+
+/* 6 INTEGER-N / FRACTIONAL-N */
+function fnDraw(){
+  const mode=$('fnM').value, step=+$('fnS').value, fw=+$('fnF').value, BW=Math.pow(10,+$('fnB').value);
+  $('fnFv').textContent=fw.toFixed(2)+' MHz'; $('fnBv').textContent=fmt(BW,'Hz',1);
+  let fPD,N,fo,floor,spurs=[],sd=false,res;
+  if(mode==='int'){ fPD=step*1e6; N=Math.round(fw*1e6/fPD); fo=N*fPD; floor=-226+10*L10(fPD)+20*L10(N); res=fPD;
+    spurs.push({f:fPD,l:-40-(fPD>BW?40*L10(fPD/BW):0),n:'reference'}); }
+  else { fPD=100e6; const M=16777216, Nx=fw*1e6/fPD, Fr=Math.round((Nx-Math.floor(Nx))*M); N=Math.floor(Nx)+Fr/M; fo=N*fPD; floor=-223+10*L10(fPD)+20*L10(N); sd=true; res=fPD/M;
+    const ofs=Math.abs(fo-Math.round(fo/fPD)*fPD); if(ofs>1) spurs.push({f:ofs,l:-50-(ofs>BW?40*L10(ofs/BW):0),n:'boundary'}); }
+  const H=loop(BW,0.707), v=VP.pcb, refN=f=>interp(REF.o100.p,f)+20*L10(fo/100e6), vco=f=>leeson(f,fo,v);
+  const sdl=f=>db(Math.pow(TAU,2)/(12*fPD)*Math.pow(2*Math.sin(Math.PI*Math.min(f,fPD/2)/fPD),4)/2+1e-30);
+  const tot=f=>{ const t=H(f); return db(t.h*(lin(refN(f))+lin(floor)+(sd?lin(sdl(f)):0))+t.e*lin(vco(f))); };
+  const c=$('cFn'), g=ctx(c), P=logPlot(g,60,24,560,286,3,8,-170,-30,{ny:7,yl:'L(f) dBc/Hz; spurs in dBc'});
+  const xs=logspace(3,8,320), F=xs.map(x=>Math.pow(10,x));
+  if(sd) lines(g,P,{x:xs,y:F.map(sdl),color:css('--trace2'),dash:[5,4],w:1.2,clip:true});
+  lines(g,P,{x:xs,y:F.map(tot),color:css('--trace'),w:2.2});
+  vline(g,P.X(L10(BW)),P.y0,P.h,css('--ink'),[2,3]); g.fillStyle=css('--ink'); g.fillText('BW',P.X(L10(BW))+4,P.y0+P.h-8);
+  spurs.forEach(s=>{ const x=clamp(L10(s.f),3,8), px=P.X(x); g.strokeStyle=css('--bad'); g.lineWidth=2.5; g.beginPath(); g.moveTo(px,P.Y(-170)); g.lineTo(px,P.Y(s.l)); g.stroke(); g.lineWidth=1; dot(g,px,P.Y(s.l),css('--bad'),3.5);
+    g.fillStyle=css('--bad'); const t=s.l.toFixed(0)+' dBc'+(s.f<1e3?' (at '+fmt(s.f,'Hz',0)+')':''); g.fillText(t,clamp(px+6,P.x0+4,P.x0+P.w-g.measureText(t).width-4),P.Y(s.l)-6); });
+  tagR(g,P,(mode==='int'?'integer-N':'fractional-N')+', f_PD = '+fmt(fPD,'Hz',1),0);
+  if(mode==='int'&&BW>fPD/10){ g.fillStyle=css('--bad'); g.fillText('loop wider than f_PD/10: spur poorly filtered, loop near instability',P.x0+10,P.y0+P.h-26); }
+  const s2=integ(tot,1e3,1e8,400), ts=Math.log(1e7/(1e3*0.7071))/(0.707*TAU*BW/2.058), err=fo-fw*1e6;
+  const ws=spurs.length?spurs[0].l.toFixed(1)+' dBc':'none', wf=spurs.length?fmt(spurs[0].f,'Hz',1):'exact integer N';
+  ro($('fnOut'),[['f_PD',fmt(fPD,'Hz',1)],['N',mode==='int'?String(N):N.toFixed(6)],['Step size',fmt(res,'Hz',mode==='int'?1:2)],['Output',(fo/1e6).toFixed(6)+' MHz'],['Error',Math.abs(err)<0.5?'0 Hz':fmt(err,'Hz',1)],['In-band floor',floor.toFixed(1)+' dBc/Hz'],['Worst spur',ws],['… at',wf],['σφ',degs(Math.sqrt(s2))],['Settle, 10 MHz hop',fmt(ts,'s')]]);
+}
+bind(['fnM','fnS','fnF','fnB'],fnDraw);
+
+/* 7 DDS */
+const ND=8192, bhD=bhWin(ND); let bhDS=0; for(let i=0;i<ND;i++) bhDS+=bhD[i];
+function ddDraw(){
+  const fw=+$('ddF').value*1e6, Pb=+$('ddP').value, Bb=+$('ddB').value, view=$('ddV').value, fclk=1e9, M=4294967296;
+  $('ddFv').textContent=(fw/1e6).toFixed(2)+' MHz'; $('ddPv').textContent=Pb+' bits'; $('ddBv').textContent=Bb+' bits';
+  const FTW=Math.round(fw*M/fclk), fo=FTW*fclk/M, sh=Math.pow(2,32-Pb), np=Math.pow(2,Pb), q=Math.pow(2,Bb-1)-1;
+  const re=new Float64Array(ND), im=new Float64Array(ND); let acc=0;
+  for(let n=0;n<ND;n++){ const ph=TAU*Math.floor(acc/sh)/np; re[n]=Math.round(Math.sin(ph)*q)/q*bhD[n]; acc=(acc+FTW)%M; }
+  fft(re,im); const bw=fclk/ND, ref=Math.pow(bhDS/2,2), Pd=new Float64Array(ND/2); for(let k=0;k<ND/2;k++) Pd[k]=db((re[k]*re[k]+im[k]*im[k])/ref+1e-20);
+  const kc=Math.round(fo/bw); let car=-300; for(let k=Math.max(0,kc-2);k<=Math.min(ND/2-1,kc+2);k++) car=Math.max(car,Pd[k]);
+  let sp=-300, sk=0; for(let k=4;k<ND/2;k++){ if(Math.abs(k-kc)<=8) continue; if(Pd[k]>sp){ sp=Pd[k]; sk=k; } }
+  let xa=0, xb=500; if(view==='zoom'){ xa=Math.max(0,fo/1e6-20); xb=Math.min(500,xa+40); xa=xb-40; }
+  const c=$('cDd'), g=ctx(c); const xs=[], ys=[]; for(let k=0;k<ND/2;k++){ const f=k*bw/1e6; if(f<xa||f>xb) continue; xs.push(f); ys.push(Pd[k]); }
+  const P=plot(g,60,24,560,286,xa,xb,-150,0,[{x:xs,y:ys,color:css('--trace'),w:1}],{nx:5,ny:6,fx:v=>v.toFixed(0),xl:'frequency (MHz)',yl:'dBFS (per 122 kHz bin)'});
+  hline(g,P,car-6.02*Pb,css('--accent'),[4,4]);
+  if(sk*bw/1e6>=xa&&sk*bw/1e6<=xb) dot(g,P.X(sk*bw/1e6),P.Y(sp),css('--bad'),4);
+  tagR(g,P,'−6.02·P guide = '+(-6.02*Pb).toFixed(0)+' dBc',0,css('--accent')); tagR(g,P,'worst spur '+(sp-car).toFixed(1)+' dBc',1,css('--bad'));
+  const sinc=x=>x===0?1:Math.sin(Math.PI*x)/(Math.PI*x);
+  ro($('ddOut'),[['View',xa.toFixed(0)+'–'+xb.toFixed(0)+' MHz'],['FTW',FTW.toLocaleString('en-US')],['Actual output',(fo/1e6).toFixed(6)+' MHz'],['Tuning error',(fo-fw).toFixed(3)+' Hz'],['Resolution',(fclk/M).toFixed(3)+' Hz'],['Worst spur',(sp-car).toFixed(1)+' dBc'],['… at',fmt(sk*bw,'Hz',1)],['Guide −6.02·P',(-6.02*Pb).toFixed(1)+' dBc'],['DAC SQNR',(6.02*Bb+1.76).toFixed(1)+' dB'],['First image',fmt(fclk-fo,'Hz',2)],['Sinc droop',(20*L10(sinc(fo/fclk))).toFixed(2)+' dB']]);
+}
+bind(['ddF','ddP','ddB','ddV'],ddDraw);
+
+/* 8 SETTLING */
+function stDraw(){
+  const BW=Math.pow(10,+$('stB').value), z=+$('stZ').value, df=Math.pow(10,+$('stJ').value), tol=Math.pow(10,+$('stT').value), cal=+$('stC').value, PRI=Math.pow(10,+$('stR').value)*1e-6;
+  $('stBv').textContent=fmt(BW,'Hz',1); $('stJv').textContent=fmt(df,'Hz',1); $('stTv').textContent=fmt(tol,'Hz',1); $('stRv').textContent=fmt(PRI,'s')+' (PRF '+fmt(1/PRI,'Hz',1)+')';
+  const k=Math.sqrt(1+2*z*z+Math.sqrt(Math.pow(1+2*z*z,2)+1)), wn=TAU*BW/k, crit=z>=0.999, wd=crit?0:wn*Math.sqrt(1-z*z);
+  const fe=t=>crit?df*Math.exp(-wn*t)*(1-wn*t):df*Math.exp(-z*wn*t)*(Math.cos(wd*t)-z/Math.sqrt(1-z*z)*Math.sin(wd*t));
+  const est=Math.log(df/tol*(crit?wn*10:1/Math.sqrt(1-z*z)))/((crit?1:z)*wn), Ts=Math.max(4*est,6/wn);
+  let ts=0; const ns=6000; for(let i=ns;i>=0;i--){ const t=Ts*i/ns; if(Math.abs(fe(t))>tol){ ts=Ts*(i+1)/ns; break; } }
+  const total=cal+ts, Tp=Math.max(total*1.35,cal+3/((crit?1:z)*wn));
+  const c=$('cSt'), g=ctx(c);
+  const ya=Math.floor(L10(tol))-2, yb=Math.ceil(L10(df)+0.05), P=plot(g,60,20,560,200,0,Tp*1e6,ya,yb,[],{nx:5,ny:yb-ya,fx:v=>v.toPrecision(3),fy:v=>flab(v),xl:'time after command (µs)',yl:'|frequency error| (Hz, log)'});
+  if(cal>0){ g.fillStyle=css('--accent'); g.globalAlpha=0.14; g.fillRect(P.x0,P.y0,P.X(cal*1e6)-P.x0,P.h); g.globalAlpha=1; g.fillStyle=css('--muted'); g.fillText('band cal',P.x0+4,P.y0+P.h-8); }
+  const xs=[], ys=[]; for(let i=0;i<=900;i++){ const t=Tp*i/900; xs.push(t*1e6); ys.push(t<cal?L10(df):L10(Math.abs(fe(t-cal))+1e-9)); }
+  lines(g,P,{x:xs,y:ys,color:css('--trace'),w:1.4});
+  hline(g,P,L10(tol),css('--bad'),[4,4]); g.fillStyle=css('--bad'); g.fillText('tolerance',P.x0+P.w-70,P.Y(L10(tol))-5);
+  vline(g,P.X(total*1e6),P.y0,P.h,css('--ink'),[2,3]); g.fillStyle=css('--ink'); g.fillText('settled '+fmt(total,'s'),clamp(P.X(total*1e6)+4,P.x0,P.x0+P.w-110),P.y0+14);
+  // timeline
+  const gap=PRI/2, T2=Math.max(1.25*PRI+gap,total*1.15), X2=t=>60+560*t/T2, y2=290;
+  g.strokeStyle=css('--line'); g.strokeRect(60,y2-22,560,44);
+  for(let t=gap;t<T2;t+=PRI){ g.fillStyle=css('--accent'); g.fillRect(X2(t),y2-18,Math.max(2,X2(t+PRI*0.02)-X2(t)),36); g.fillStyle=css('--trace'); g.globalAlpha=0.2; g.fillRect(X2(t+PRI*0.02),y2-18,Math.min(X2(t+gap)-X2(t+PRI*0.02),620-X2(t+PRI*0.02)),36); g.globalAlpha=1; }
+  const ok=total<=gap; g.strokeStyle=ok?css('--good'):css('--bad'); g.lineWidth=2; const xr=Math.min(X2(total),619); g.beginPath(); g.moveTo(xr,y2-26); g.lineTo(xr,y2+26); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText('hop at 0 · pulses orange · receive teal · ready at the line',60,y2+40);
+  ro($('stOut'),[['Natural freq. fn',fmt(wn/TAU,'Hz',1)],['Loop settling',fmt(ts,'s',2)],['Band calibration',fmt(cal,'s')],['Total',fmt(total,'s',2)],['Available, ½ PRI',fmt(gap,'s')],['Pulse-to-pulse hop',ok?'<b style="color:var(--good)">yes</b>':'<b style="color:var(--bad)">no</b>'],['Max hop rate',fmt(1/total,'Hz',1)]]);
+}
+bind(['stB','stZ','stJ','stT','stC','stR'],stDraw);
+
+/* 9 RECIPROCAL MIXING */
+function rmDraw(){
+  const k=$('rmL').value, Pb=+$('rmP').value, D=Math.pow(10,+$('rmO').value), B=Math.pow(10,+$('rmB').value), NF=+$('rmN').value, Ps=+$('rmS').value;
+  $('rmPv').textContent=Pb+' dBm'; $('rmOv').textContent=fmt(D,'Hz',1); $('rmBv').textContent=fmt(B,'Hz',1); $('rmNv').textContent=NF.toFixed(1)+' dB'; $('rmSv').textContent=Ps+' dBm';
+  const L=f=>Lsyn(k,Math.max(f,100)), Nth=-174+NF+10*L10(B);
+  const f1=Math.max(D-B/2,100), f2=Math.max(D+B/2,f1*1.001), inside=D<B/2;
+  const Nrm=Pb+db(integ(L,f1,f2,300)/2+(inside?lin(0)*0:0)), Ntot=sumdb(Nth,Nrm), des=Ntot-Nth, need=Nth-5.87-Pb-10*L10(B);
+  const S0=Math.max(D,B), xa=-0.5*S0, xb=1.5*S0, ylo=Math.floor((Math.min(Nth,Ps,Nrm)-20)/10)*10, yhi=10;
+  const c=$('cRm'), g=ctx(c), u=Math.max(Math.abs(xa),xb)>=2e6?1e6:1e3, un=u===1e6?'MHz':'kHz', fx=v=>String(+(v/u).toPrecision(3));
+  const P1=plot(g,60,22,560,110,xa,xb,ylo,yhi,[],{nx:4,ny:3,fx:fx,yl:'RF input, dBm (per channel B)'});
+  const bar=(P,x,y,col)=>{ g.strokeStyle=col; g.lineWidth=2.5; g.beginPath(); g.moveTo(P.X(x),P.Y(ylo)); g.lineTo(P.X(x),P.Y(y)); g.stroke(); g.lineWidth=1; dot(g,P.X(x),P.Y(y),col,3.5); };
+  hline(g,P1,Nth,css('--muted'),[3,3]); bar(P1,0,Ps,css('--trace')); bar(P1,D,Pb,css('--accent'));
+  g.fillStyle=css('--trace'); g.fillText('wanted',P1.X(0)+5,P1.Y(Ps)-4); g.fillStyle=css('--accent'); g.fillText('blocker',clamp(P1.X(D)+5,0,560),P1.Y(Pb)+12);
+  const P2=plot(g,60,180,560,130,xa,xb,ylo,yhi,[],{nx:4,ny:4,fx:fx,xl:'offset from wanted ('+un+')',yl:'after the mixer: noise and signals in channel B (dBm)'});
+  g.fillStyle=css('--trace'); g.globalAlpha=0.13; g.fillRect(P2.X(-B/2),P2.y0,P2.X(B/2)-P2.X(-B/2),P2.h); g.globalAlpha=1;
+  const xs=[], ys=[]; for(let i=0;i<=700;i++){ const x=xa+(xb-xa)*i/700; xs.push(x); ys.push(Pb+L(Math.abs(x-D))+10*L10(B)); }
+  lines(g,P2,{x:xs,y:ys,color:css('--accent'),w:1.5});
+  hline(g,P2,Nth,css('--muted'),[3,3]); bar(P2,0,Ps,css('--trace')); bar(P2,D,Pb,css('--accent'));
+  g.strokeStyle=css('--bad'); g.lineWidth=2.5; g.beginPath(); g.moveTo(P2.X(-B/2),P2.Y(Ntot)); g.lineTo(P2.X(B/2),P2.Y(Ntot)); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--bad'); g.fillText('noise in channel '+Ntot.toFixed(1)+' dBm',P2.X(-B/2)+4,P2.Y(Ntot)-6);
+  ro($('rmOut'),[['Thermal in B',Nth.toFixed(1)+' dBm'],['Reciprocal mixing',Nrm.toFixed(1)+' dBm'],['Total',Ntot.toFixed(1)+' dBm'],['Desense',des.toFixed(1)+' dB'],['SNR clean/blocked',(Ps-Nth).toFixed(1)+'/'+(Ps-Ntot).toFixed(1)+' dB'],['L(Δ) of LO',L(D).toFixed(1)+' dBc/Hz'],['L(Δ) for 1 dB',need.toFixed(1)+' dBc/Hz']].concat(inside?[['Note','blocker inside the channel']]:[]));
+}
+bind(['rmL','rmP','rmO','rmB','rmN','rmS'],rmDraw);
+
+/* 10 RANGE CORRELATION */
+function rcDraw(){
+  const k=$('rcL').value, R=Math.pow(10,+$('rcR').value)*1e3, v=+$('rcV').value, T=Math.pow(10,+$('rcT').value)*1e-3, C=+$('rcC').value;
+  $('rcRv').textContent=fmt(R,'m'); $('rcVv').textContent=v+' m/s'; $('rcTv').textContent=fmt(T,'s'); $('rcCv').textContent=C+' dB';
+  const tau=2*R/c0, fd=2*v/0.03, cf=f=>4*Math.pow(Math.sin(Math.PI*f*tau),2), Lr=f=>Lsyn(k,f)+db(cf(f)+1e-18);
+  const c=$('cRc'), g=ctx(c), P=logPlot(g,60,24,560,286,1,6,-180,-40,{ny:7,xl:'Doppler offset from clutter (Hz)',yl:'dBc/Hz relative to the clutter echo'});
+  const xs=logspace(1,6,2400), F=xs.map(x=>Math.pow(10,x));
+  lines(g,P,{x:xs,y:F.map(f=>Lsyn(k,f)),color:css('--muted'),dash:[5,4],w:1.3});
+  lines(g,P,{x:xs,y:F.map(Lr),color:css('--trace'),w:1.4});
+  const tg=-C+10*L10(T), res=Lr(fd)+10*L10(1/T), mg=-C-res, x=clamp(L10(fd),1,6);
+  vline(g,P.X(x),P.y0,P.h,css('--accent'),[2,3]); dot(g,P.X(x),P.Y(tg),mg>=13?css('--good'):css('--bad'),5);
+  g.fillStyle=css('--accent'); g.fillText('target '+fmt(fd,'Hz',1),clamp(P.X(x)+6,P.x0,P.x0+P.w-120),P.y0+P.h-10);
+  tagR(g,P,'τ = '+fmt(tau,'s',2)+'  (1/τ = '+fmt(1/tau,'Hz',1)+')',0);
+  ro($('rcOut'),[['Delay τ',fmt(tau,'s',2)],['Target Doppler',fmt(fd,'Hz',1)],['L(f_d)',Lsyn(k,fd).toFixed(1)+' dBc/Hz'],['4·sin²(πf_dτ)',db(cf(fd)+1e-18).toFixed(1)+' dB'],['Doppler bin 1/CPI',fmt(1/T,'Hz',1)],['Residual in bin',res.toFixed(1)+' dBc'],['Target',(-C)+' dBc'],['Margin (need 13)',mg.toFixed(1)+' dB'],['Verdict',mg>=13?'<b style="color:var(--good)">detected</b>':'<b style="color:var(--bad)">lost</b>']]);
+}
+bind(['rcL','rcR','rcV','rcT','rcC'],rcDraw);
+
+/* 11 SAR */
+const NS=1024, ZS=8192, hamS=new Float64Array(NS); for(let n=0;n<NS;n++) hamS[n]=0.54-0.46*Math.cos(TAU*n/(NS-1));
+let saSeed=1;
+function irf(phi){ const re=new Float64Array(ZS), im=new Float64Array(ZS); for(let n=0;n<NS;n++){ re[n]=Math.cos(phi[n])*hamS[n]; im[n]=Math.sin(phi[n])*hamS[n]; } fft(re,im); const p=new Float64Array(ZS); for(let i=0;i<ZS;i++) p[i]=re[i]*re[i]+im[i]*im[i]; return p; }
+function metrics(p){ const m=16; let pk=0; for(let i=-m;i<=m;i++) pk=Math.max(pk,p[(i+ZS)%ZS]); let ins=0, out=0, sl=0; for(let i=0;i<ZS;i++){ const d=Math.min(i,ZS-i); if(d<=m) ins+=p[i]; else { out+=p[i]; sl=Math.max(sl,p[i]); } } return {pk, islr:db(out/ins), pslr:db(sl/pk)}; }
+const irf0=irf(new Float64Array(NS)), m0=metrics(irf0);
+function saDraw(){
+  const k=$('saL').value, S=+$('saS').value, Ta=+$('saT').value, R=+$('saR').value*1e3, fe=+$('saP').value, Q=+$('saQ').value;
+  $('saSv').textContent=(S>0?'+':'')+S+' dB'; $('saTv').textContent=fmt(Ta,'s'); $('saRv').textContent=fmt(R,'m'); $('saPv').textContent=fe+' Hz'; $('saQv').textContent=Q+' dBc';
+  const PRF=NS/Ta, tau=2*R/c0, cf=f=>4*Math.pow(Math.sin(Math.PI*f*tau),2);
+  const r=rngF(saSeed*7919+13), gs=gaussF(rngF(saSeed*104729+7));
+  const re=new Float64Array(NS), im=new Float64Array(NS); let vin=0;
+  for(let m=1;m<NS/2;m++){ const f=m/Ta, Sp=2*lin(Lsyn(k,f)+S)*cf(f), a=Math.sqrt(2*Sp/Ta), th=TAU*r(); vin+=a*a/2; re[m]=a/2*Math.cos(th)*NS; im[m]=-a/2*Math.sin(th)*NS; re[NS-m]=re[m]; im[NS-m]=-im[m]; }
+  fft(re,im);
+  const va=integ(f=>Lsyn(k,f)+S+db(f*tau>1?2:cf(f)+1e-18),PRF/2,1e6,600), sw=Math.sqrt(va), b=2*Math.pow(10,Q/20);
+  const phi=new Float64Array(NS); for(let n=0;n<NS;n++) phi[n]=re[n]/NS+sw*gs()+b*Math.sin(TAU*fe*n/PRF);
+  const p=irf(phi), m1=metrics(p), pk0=m0.pk;
+  const xs=[], y0=[], y1=[]; for(let i=-800;i<=800;i++){ const j=(i+ZS)%ZS; xs.push(i/8); y0.push(db(irf0[j]/pk0+1e-20)); y1.push(db(p[j]/pk0+1e-20)); }
+  const c=$('cSa'), g=ctx(c), P=plot(g,60,24,560,286,-100,100,-80,0,[{x:xs,y:y0,color:css('--muted'),w:1.1},{x:xs,y:y1,color:css('--trace'),w:1.3}],{nx:8,ny:8,fx:v=>v.toFixed(0),xl:'azimuth (resolution cells)',yl:'IRF, dB relative to ideal peak'});
+  let fa=fe-PRF*Math.round(fe/PRF), cells=fa*Ta; const ali=Math.abs(fa-fe)>1e-9;
+  if(Math.abs(cells)<=100){ [cells,-cells].forEach(cc=>vline(g,P.X(cc),P.y0,P.h,css('--bad'),[2,4])); }
+  const st=Math.sqrt(vin+va);
+  tagR(g,P,'σφ = '+(st/deg).toFixed(2)+'°, ISLR '+m1.islr.toFixed(1)+' dB',0);
+  ro($('saOut'),[['PRF',fmt(PRF,'Hz',0)],['Delay τ',fmt(tau,'s',1)],['σφ in band',degs(Math.sqrt(vin))],['σφ folded',degs(sw)],['10·log σφ²',db(vin+va).toFixed(1)+' dB'],['ISLR ideal/synth',m0.islr.toFixed(1)+'/'+m1.islr.toFixed(1)+' dB'],['PSLR ideal/synth',m0.pslr.toFixed(1)+'/'+m1.pslr.toFixed(1)+' dB'],['Peak loss',db(m1.pk/pk0).toFixed(2)+' dB'],['Paired echoes','±'+(Math.abs(cells)).toFixed(1)+' cells'+(ali?' (folded)':'')],['Echo level',Q+' dBc']]);
+}
+bind(['saL','saS','saT','saR','saP','saQ'],saDraw);
+$('saN').addEventListener('click',()=>{ saSeed++; saDraw(); });
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

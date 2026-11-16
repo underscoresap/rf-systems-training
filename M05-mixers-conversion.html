@@ -1,0 +1,1111 @@
+<meta charset="utf-8">
+<title>Mixers and Frequency Conversion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+.check ul{margin:0;padding-left:18px}
+.check li{margin:4px 0}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Mixers and Frequency Conversion · RF Systems for Component Engineers</div>
+  <h1>Mixers, the LO and frequency conversion, from two sine waves to the frequency plan</h1>
+  <p class="lede">A mixer moves a signal from one frequency to another. It does this by multiplying the signal with a local oscillator, and every imperfection of that multiplication shows up somewhere in the system: as lost sensitivity, as a false target, as a signal heard at the wrong frequency, or as a tone that an enemy receiver can detect. This page starts from the product of two sines, builds the switching picture of a real diode or FET mixer, and then follows each datasheet line (conversion loss, noise figure, LO drive, isolation, IIP3, spurs, image rejection, IQ balance) through to its system effect, with numbers. It ends with the choice of frequency plan and the FMCW dechirp mixer.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#why">0 Why convert frequency</a><a href="#mult">1 Multiplying two sines</a><a href="#switch">2 LO drive and switching</a><a href="#cl">3 Conversion loss and NF</a><a href="#iso">4 Isolation and LO leakage</a><a href="#lin">5 IIP3 and P1dB</a><a href="#spur">6 Spur chart</a><a href="#image">7 Image rejection</a><a href="#iq">8 IQ mixers</a><a href="#plan">9 Frequency plans and DC offset</a><a href="#fmcw">10 FMCW dechirp</a><a href="#summary">11 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <div class="secno">Step 0</div>
+  <h2>Why a receiver converts frequency at all</h2>
+  <div class="know"><h4>You already know</h4><p>A filter is easiest to build when its bandwidth is a sensible fraction of its centre frequency. Gain is cheaper and more stable at low frequency. An ADC samples a limited bandwidth, and its cost rises steeply with sample rate.</p></div>
+  <div class="col">
+    <p>A radar at 10 GHz needs to separate its own echo from a jammer 20 MHz away. A 20 MHz wide filter at 10 GHz has a fractional bandwidth of 0.2 %, which needs resonators with an unloaded Q of several thousand and drifts with temperature. The same 20 MHz filter at 140 MHz is 14 % fractional: a routine design. An ESM receiver that must cover 2 to 18 GHz cannot digitise 16 GHz at once with good dynamic range, but it can move any 500 MHz slice of that band to a fixed frequency where one well-designed filter, amplifier and ADC do all the work.</p>
+    <p>So almost every receiver moves the signal: from the <b>radio frequency (RF)</b> where it arrives, to an <b>intermediate frequency (IF)</b> or straight to <b>baseband</b> (around 0 Hz), where filtering, gain and digitising are easy. The part that does the move is the <b>mixer</b>; the reference tone it uses is the <b>local oscillator (LO)</b>. If the LO is tuned, the receiver is tuned: the IF stays fixed while the RF it listens to changes. This is the <b>superheterodyne</b> idea, and it has been the core of radio receivers for a hundred years.</p>
+    <p>Transmitters use the same part in reverse (an <b>upconverter</b>): the waveform is made at low frequency, where it is easy to generate precisely, and mixed up to RF.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Superheterodyne receive chain: antenna, preselector filter, LNA, image filter, mixer with local oscillator from a synthesiser, IF filter, IF amplifier, ADC. The three mixer ports are labelled RF, LO and IF.">
+    <svg viewBox="0 0 860 190" xmlns="http://www.w3.org/2000/svg">
+      <g style="stroke:var(--line);stroke-width:1.5;fill:var(--chip)">
+        <rect x="70" y="50" width="86" height="44" rx="4"/>
+        <polygon points="178,46 178,98 244,72" style="fill:var(--panel);stroke:var(--line);stroke-width:1.5"/>
+        <rect x="266" y="50" width="86" height="44" rx="4"/>
+        <circle cx="410" cy="72" r="24" style="fill:var(--panel);stroke:var(--accent);stroke-width:2"/>
+        <rect x="466" y="50" width="86" height="44" rx="4"/><rect x="574" y="50" width="80" height="44" rx="4"/><rect x="676" y="50" width="66" height="44" rx="4"/>
+        <rect x="360" y="134" width="100" height="36" rx="4"/>
+      </g>
+      <g style="stroke:var(--muted);stroke-width:1.5;fill:none">
+        <path d="M20 30 L40 72 L60 30"/><line x1="40" y1="72" x2="70" y2="72"/><line x1="156" y1="72" x2="178" y2="72"/><line x1="244" y1="72" x2="266" y2="72"/><line x1="352" y1="72" x2="386" y2="72"/><line x1="434" y1="72" x2="466" y2="72"/><line x1="552" y1="72" x2="574" y2="72"/><line x1="654" y1="72" x2="676" y2="72"/><line x1="742" y1="72" x2="780" y2="72"/>
+        <line x1="410" y1="96" x2="410" y2="134"/><path d="M393 55 L427 89 M427 55 L393 89" style="stroke:var(--accent)"/>
+      </g>
+      <text x="113" y="76" text-anchor="middle">Preselect</text><text x="206" y="76" text-anchor="middle">LNA</text><text x="309" y="76" text-anchor="middle">Image filt</text>
+      <text x="509" y="76" text-anchor="middle">IF filter</text><text x="614" y="76" text-anchor="middle">IF amp</text><text x="709" y="76" text-anchor="middle">ADC</text><text x="410" y="157" text-anchor="middle">LO synth</text><text x="790" y="76">bits</text>
+      <text x="40" y="20" text-anchor="middle" class="mut">antenna</text>
+      <text x="372" y="44" class="mut">RF</text><text x="438" y="44" class="mut">IF</text><text x="418" y="118" class="mut">LO</text>
+      <text x="200" y="124" text-anchor="middle" class="mut">10 GHz (RF)</text><text x="560" y="124" text-anchor="middle" class="mut">1 GHz (IF)</text><text x="410" y="186" text-anchor="middle" class="mut">11 GHz (LO)</text>
+    </svg>
+  </div>
+  <div class="term"><h4>Terms used on this page</h4>
+    <p><b>RF, LO, IF ports:</b> a mixer has three ports. The signal enters at RF, the local oscillator at LO, and the converted signal leaves at IF. The same device works in both directions, so an upconverter feeds IF in and takes RF out.</p>
+    <p><b>Local oscillator (LO):</b> a clean, strong, single-frequency tone made inside the equipment, usually by a synthesiser. Its purity (phase noise and spurs) is covered in the <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> module; this page treats the LO as a given tone of known power.</p>
+    <p><b>Baseband:</b> a band that starts at or near 0 Hz. A zero-IF receiver converts straight to baseband.</p>
+    <p><b>dBc:</b> power relative to a reference carrier, here usually the wanted IF output. −60 dBc is one millionth of its power.</p>
+    <p><b>ESM (electronic support measures):</b> a receiver that listens for other people's emissions to detect, identify and locate them. ESM appears twice on this page: as a user of mixers, and as the threat that can detect a mixer's LO leakage.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="mult">
+  <div class="secno">Step 1</div>
+  <h2>Frequency conversion is multiplication of two sines</h2>
+  <div class="know"><h4>You already know</h4><p>A linear amplifier cannot create new frequencies: what comes out is the input, scaled and delayed. New frequencies need a non-linear or time-varying part. You also know the school identity cos A · cos B = ½ cos(A − B) + ½ cos(A + B).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>High-side and low-side LO:</b> high-side means f<sub>LO</sub> &gt; f<sub>RF</sub> (LO above the signal), low-side means f<sub>LO</sub> &lt; f<sub>RF</sub>. With high-side LO the IF spectrum is mirrored: a chirp rising in frequency at RF falls at IF.</p>
+    <p><b>Image frequency:</b> the other input frequency that lands on the same IF, on the opposite side of the LO, 2 × f<sub>IF</sub> away from the wanted signal.</p>
+  </div>
+  <div class="col">
+    <p>Put a signal cos(2π f<sub>RF</sub> t) and an LO cos(2π f<sub>LO</sub> t) into an ideal multiplier. The identity says the output contains exactly two tones: one at the <b>difference</b> |f<sub>RF</sub> − f<sub>LO</sub>| and one at the <b>sum</b> f<sub>RF</sub> + f<sub>LO</sub>, each with half the product of the amplitudes. Nothing at f<sub>RF</sub>, nothing at f<sub>LO</sub>. A filter after the multiplier keeps the one you want: the difference for a downconverter, the sum (or difference) for an upconverter.</p>
+    <p>The amplitude and phase of the signal are carried over unchanged. If the RF signal is a radar pulse with a chirp on it, the IF signal is the same pulse with the same chirp, just centred somewhere else. That is why a mixer is called a <b>frequency translator</b>: it is linear in the signal (double the RF, double the IF) even though it is a multiplier.</p>
+    <p>Now notice a problem that runs through the rest of the page. The difference |f<sub>RF</sub> − f<sub>LO</sub>| does not care which side of the LO the RF is on. With the LO at 11 GHz and the IF at 1 GHz, a signal at 10 GHz gives 1 GHz, and so does a signal at 12 GHz. That second input is the <b>image</b>. The multiplier cannot tell them apart. Only something before the mixer (a filter, Step 7) or a cleverer mixer (the IQ mixer, Step 8) can.</p>
+  </div>
+  <div class="eq">cos(ω<sub>RF</sub>t) · cos(ω<sub>LO</sub>t) = ½ cos((ω<sub>RF</sub> − ω<sub>LO</sub>)t) + ½ cos((ω<sub>RF</sub> + ω<sub>LO</sub>)t) &nbsp;&nbsp; f<sub>image</sub> = 2 f<sub>LO</sub> − f<sub>RF</sub><small>ω = 2πf. A real mixer is not a perfect multiplier: it multiplies by a square-ish wave (Step 2), so it also makes |f<sub>RF</sub> ± 3 f<sub>LO</sub>|, |f<sub>RF</sub> ± 5 f<sub>LO</sub>| and, because it is not perfectly linear, |m f<sub>RF</sub> ± n f<sub>LO</sub>| (Step 6).</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Naive idea 1: add the LO to the signal and amplify.</b> A sum of 1.2 GHz and 1.0 GHz through a linear amplifier contains only 1.2 GHz and 1.0 GHz. There is no 0.2 GHz at all: adding is not mixing. You need a product.</p><p><b>Naive idea 2: a perfect multiplier with nothing around it.</b> The output then holds 0.2 GHz and 2.2 GHz at the same 0.5 V, so without an IF filter the 2.2 GHz sum reaches the IF amplifier at full strength. And without a filter in front, an emitter at the 0.8 GHz image also produces 0.2 GHz at 0.5 V: the receiver cannot tell it from the wanted 1.2 GHz signal.</p></div>
+  <h3>Side by side: what comes out</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Case</th><th>f<sub>RF</sub></th><th>f<sub>LO</sub></th><th>Difference (IF)</th><th>Sum</th><th>Image</th></tr>
+    <tr><td>Bench demo default</td><td class="n">1.20 GHz</td><td class="n">1.00 GHz</td><td class="n">0.20 GHz</td><td class="n">2.20 GHz</td><td class="n">0.80 GHz</td></tr>
+    <tr><td>X-band radar, high-side LO</td><td class="n">10.0 GHz</td><td class="n">11.0 GHz</td><td class="n">1.0 GHz</td><td class="n">21.0 GHz</td><td class="n">12.0 GHz</td></tr>
+    <tr><td>Same radar, low-side LO</td><td class="n">10.0 GHz</td><td class="n">9.0 GHz</td><td class="n">1.0 GHz</td><td class="n">19.0 GHz</td><td class="n">8.0 GHz</td></tr>
+    <tr><td>Ideal multiplier, both inputs 1 V</td><td colspan="5">IF amplitude 0.5 V: −6.0 dB relative to the RF. A switching mixer does better, 2/π = 0.64 (−3.9 dB), Step 2.</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>High-side or low-side LO:</b> high-side (11 GHz for a 10 GHz signal) puts the image at 12 GHz; low-side (9 GHz) puts it at 8 GHz. Pick the side whose image falls where the preselector and the threats are weakest, and remember that high-side mirrors the spectrum.</li><li><b>IF value:</b> the image is always 2 × f<sub>IF</sub> away, so the IF sets how hard the image filter is (Step 7) and which spurs land in band (Step 6).</li><li><b>LO waveform</b> (the bench's select): a <b>sine</b> LO is the ideal multiplier of this step. A <b>square ±1</b> LO is how real switching mixers behave (Step 2): the IF grows from 0.500 to 0.637 V (−6.0 to −3.9 dB) and extra outputs appear at |f<sub>RF</sub> ± 3f<sub>LO</sub>|, |f<sub>RF</sub> ± 5f<sub>LO</sub>| with 1/3 and 1/5 of the amplitude.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cMu" width="640" height="345" aria-label="RF, LO and their product in time, and the spectrum of the product"></canvas>
+    <div class="ctrl">
+      <label for="muR"><span>RF frequency f<sub>RF</sub></span> <b id="muRv"></b></label><input id="muR" type="range" min="0.5" max="2" step="0.01" value="1.2">
+      <label for="muL"><span>LO frequency f<sub>LO</sub></span> <b id="muLv"></b></label><input id="muL" type="range" min="0.5" max="2.5" step="0.01" value="1">
+      <label for="muW"><span>LO waveform</span></label><select id="muW"><option value="sin" selected>Sine (ideal multiplier)</option><option value="sq">Square ±1 (switching mixer)</option></select>
+      <div class="readout" id="muOut"></div>
+    </div>
+    <p class="cap">Top: 10 ns of RF, LO and their product. Bottom: the spectrum of the product (amplitude, for a 1 V RF). With a sine LO there are exactly two lines. With a square LO, as in a real switching mixer, the difference line grows to 0.64 and new lines appear at |f<sub>RF</sub> ± 3 f<sub>LO</sub>|, |f<sub>RF</sub> ± 5 f<sub>LO</sub>| and so on, each 1/n as large. Move the LO past the RF to see the IF fold through zero.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>At the defaults (RF 1.20 GHz, LO 1.00 GHz) the readout shows IF 0.200 GHz, sum 2.20 GHz and image 0.800 GHz, as in the side-by-side table.</li><li>Set the LO to 1.20 GHz: the IF reads 0 (DC). That is the zero-IF receiver of Step 9.</li><li>Switch the LO to square: IF amplitude 0.500 → 0.637 V, conversion −6.02 → −3.92 dB.</li><li>With a square LO, find the line at |1.2 − 3 × 1.0| = 1.8 GHz: its height is 0.212, one third of the IF line.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Frequency ranges of RF, LO, IF ports</td><td>Balun and transformer bandwidth, diode or FET size and package parasitics</td><td>RF/LO 6–18 GHz, IF DC–4 GHz</td><td>Sets which frequency plans are possible: an IF port that stops at 2 GHz rules out a 3 GHz first IF (Step 9).</td></tr>
+    <tr><td>Image (a property of mixing itself)</td><td>None inside a simple mixer: it is the arithmetic of the product</td><td>Not on a simple mixer datasheet; image rejection appears only for IQ mixers (Step 8)</td><td>Every receiver must add image protection, or a 12 GHz emitter is reported as a 10 GHz one.</td></tr>
+  </table></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>RF 5.6 GHz, LO 4.9 GHz. Where are the IF, the sum and the image?</summary><p>IF 0.7 GHz, sum 10.5 GHz, image 2 × 4.9 − 5.6 = 4.2 GHz.</p></details>
+    <details><summary>Why does a linear amplifier with 30 dB of gain not mix two tones?</summary><p>A perfectly linear system obeys superposition, so the output only contains the input frequencies. Mixing needs a product term, which only a non-linear or time-varying element provides. Real amplifiers do mix a little: that is intermodulation (Step 5).</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="switch">
+  <div class="secno">Step 2</div>
+  <h2>LO drive and the switching picture: why a diode mixer loses about 6 dB</h2>
+  <div class="know"><h4>You already know</h4><p>A Schottky diode conducts once its forward voltage passes a turn-on value (about 0.2 to 0.6 V depending on barrier height). A FET channel switches between a low on-resistance and open as its gate swings past threshold. Transformers and baluns turn a single-ended signal into a balanced pair.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Conversion loss (CL):</b> RF input power minus IF output power, in dB, for the wanted conversion. A Gilbert cell has negative loss, called conversion gain.</p>
+    <p><b>Commutating (switching) mixer:</b> a mixer in which the LO switches the signal path, so the RF is multiplied by a square-like wave rather than a sine.</p>
+    <p><b>Starved LO:</b> LO drive below the level the mixer was designed for. Conversion loss, noise figure and IIP3 all get worse, often steeply.</p>
+  </div>
+  <div class="col">
+    <p><b>The double-balanced diode mixer.</b> The most common microwave mixer is four Schottky diodes in a ring, with a balun on the LO port and one on the RF port, and the IF taken from the balun centre taps. The LO is made much larger than the RF signal. On one half of the LO cycle, one pair of diodes is driven hard on and connects the RF to the IF with one polarity; on the other half, the other pair is on and connects it with the opposite polarity. So the RF signal is simply <b>multiplied by a square wave that flips between +1 and −1 at the LO rate</b>. The diodes act as a reversing switch (a <b>commutator</b>), and the small RF signal barely affects when they switch. That is why the mixer is linear in the RF signal.</p>
+    <p><b>Why a square wave gives 3.9 dB of loss even with perfect switches.</b> A ±1 square wave is (4/π)[cos ωt − ⅓ cos 3ωt + ⅕ cos 5ωt − …]. Multiplying the RF by its first term gives, by Step 1, a difference tone of amplitude ½ × 4/π = 2/π = 0.637 of the RF. That is −3.92 dB. The rest of the RF power is not lost as heat: it goes to the sum frequency and to |f<sub>RF</sub> ± 3f<sub>LO</sub>|, |f<sub>RF</sub> ± 5f<sub>LO</sub>|, each with amplitude 2/(πn). Add up the powers of all of them, 2 × Σ (2/πn)² over odd n, and you get exactly 1. So the ideal commutating mixer has 3.92 dB conversion loss because it splits the RF power among many output frequencies and you keep only one.</p>
+    <p><b>Why the LO must be strong: the conduction angle.</b> Real diodes need a voltage before they conduct. In a ring, each conducting path has two diodes in series, so the LO must exceed about twice the diode turn-on voltage before anything happens. While the LO swings through the middle of its cycle, neither pair conducts: the switch is open and the RF is not passed. The fraction of the cycle in which a pair is on is the <b>conduction angle</b>. With a sine LO of peak V<sub>pk</sub> and a threshold V<sub>th</sub>, a pair is on while |cos ωt| &gt; V<sub>th</sub>/V<sub>pk</sub>. The fundamental of this "square wave with gaps" shrinks to (4/π)·sin φ<sub>0</sub>, where φ<sub>0</sub> = arccos(V<sub>th</sub>/V<sub>pk</sub>). Less LO means bigger gaps, a smaller fundamental, and more conversion loss. Add about 1 dB for balun loss and diode series resistance, and the numbers below appear.</p>
+    <p><b>LO drive levels.</b> Mixer families are sold by the LO power they need: "level 7" (+7 dBm), "level 13", "level 17", up to +23 dBm. A higher barrier diode, or more diodes in series per arm, needs more LO but tolerates a larger RF signal before the RF itself starts to switch the diodes. That is the trade at the heart of mixer linearity (Step 5): <b>IIP3 rises roughly dB for dB with LO drive</b>, and so does the power your LO chain must deliver.</p>
+    <p><b>FET and active mixers.</b> A passive FET ring (GaAs pHEMT or CMOS switches) works the same way with the gates as the switch control: lower on-resistance, sharper switching, higher IIP3 for a given LO, and almost no DC power. An active <b>Gilbert cell</b> (a differential transistor pair whose tail current is switched by a second, LO-driven pair) gives conversion <b>gain</b> instead of loss, needs only about 0 dBm of LO, but has a higher noise figure and a lower IIP3. It is common in integrated transceivers.</p>
+  </div>
+  <div class="eq">V<sub>pk</sub> = √(2 · 50 Ω · P<sub>LO</sub>) &nbsp;&nbsp; φ<sub>0</sub> = arccos(V<sub>th</sub>/V<sub>pk</sub>) &nbsp;&nbsp; CL ≈ −20·log((2/π)·sin φ<sub>0</sub>) + L<sub>balun+R<sub>s</sub></sub><small>A simplified threshold model used for the bench below. V<sub>th</sub> is the turn-on of the two diodes in series in one arm. Example: +7 dBm = 5 mW, V<sub>pk</sub> = 0.71 V; low-barrier ring V<sub>th</sub> = 0.4 V gives φ<sub>0</sub> = 55.5°, sin φ<sub>0</sub> = 0.825, CL = 3.92 + 1.67 + 0.9 = 6.5 dB. Real mixers differ by about 1 dB from this model; the trend is what matters.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Under-driving the ring.</b> A low-barrier ring needs about 0.4 V across each arm before anything conducts. At +1 dBm the LO peak is only 0.35 V: no diode ever turns on and there is no conversion at all. At +4 dBm (0.50 V) the diodes conduct only 41 % of the time and conversion loss is 9.2 dB, 2.7 dB worse than at the rated +7 dBm.</p><p><b>Using one small-signal diode as a multiplier.</b> A single diode with a weak LO works by its square-law curve rather than by switching. Conversion loss is typically 20 to 30 dB, IIP3 is near the LO level, and with no balance the LO comes straight out of the RF port. The switching ring exists to fix all three.</p></div>
+  <h3>Side by side: conversion loss against LO drive (threshold model)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Mixer</th><th>LO drive</th><th>V<sub>pk</sub></th><th>On fraction</th><th>Conversion loss</th></tr>
+    <tr><td>Low-barrier ring (V<sub>th</sub> 0.4 V)</td><td class="n">+4 dBm</td><td class="n">0.50 V</td><td class="n">41 %</td><td class="n">9.2 dB</td></tr>
+    <tr><td>Low-barrier ring</td><td class="n">+7 dBm</td><td class="n">0.71 V</td><td class="n">62 %</td><td class="n">6.5 dB</td></tr>
+    <tr><td>Low-barrier ring</td><td class="n">+13 dBm</td><td class="n">1.41 V</td><td class="n">82 %</td><td class="n">5.2 dB</td></tr>
+    <tr><td>Medium-barrier ring (V<sub>th</sub> 0.6 V)</td><td class="n">+7 dBm</td><td class="n">0.71 V</td><td class="n">36 %</td><td class="n">10.3 dB</td></tr>
+    <tr><td>Medium-barrier ring</td><td class="n">+13 dBm</td><td class="n">1.41 V</td><td class="n">72 %</td><td class="n">5.7 dB</td></tr>
+    <tr><td>High-barrier ring (V<sub>th</sub> 0.9 V)</td><td class="n">+17 dBm</td><td class="n">2.24 V</td><td class="n">74 %</td><td class="n">5.6 dB</td></tr>
+    <tr><td>Ideal switches, any drive</td><td class="n">n/a</td><td class="n">n/a</td><td class="n">100 %</td><td class="n">3.9 dB</td></tr>
+  </table></div>
+  <h3>Side by side: the switching elements on the same job</h3>
+  <div class="tw"><table class="t"><tr><th>Element</th><th>LO drive</th><th>Conversion</th><th>IIP3 (estimate)</th><th>DC power</th></tr><tr><td>Low-barrier diode ring</td><td class="n">+7 dBm</td><td class="n">6.5 dB loss</td><td class="n">+15 dBm</td><td>None</td></tr><tr><td>High-barrier diode ring</td><td class="n">+17 dBm</td><td class="n">5.6 dB loss</td><td class="n">+25.5 dBm</td><td>None</td></tr><tr><td>Passive FET ring</td><td class="n">+13 dBm</td><td class="n">5.1 dB loss</td><td class="n">+26.6 dBm</td><td>Gate drive only</td></tr><tr><td>Gilbert cell (active)</td><td class="n">0 dBm</td><td class="n">10 dB gain</td><td class="n">+5 dBm</td><td>20 to 100 mW</td></tr></table></div>
+  <div class="col"><p class="legend" style="margin:0">Diode and FET values from the threshold model and IIP3 rule of thumb above; Gilbert cell values typical. Illustrative.</p></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Start from the IIP3 you need</b> (Step 5). IIP3 ≈ P<sub>LO</sub> + 8 to 10 dB, so a mixer IIP3 of +25 dBm means a level-17 class part.</li><li><b>Leave margin above the knee.</b> LO power varies 2 to 3 dB over band and temperature. On the low-barrier curve, +7 dBm already sits on the knee; +10 dBm gives 5.6 dB loss and room for a 3 dB droop.</li><li><b>Count the cost:</b> each 3 dB more LO doubles the LO amplifier's output power and raises the leaked LO by 3 dB (Step 4).</li><li><b>Pick the element:</b> diode ring for wide band and robustness, FET ring for the highest IIP3 per mW of LO, Gilbert cell when LO power is scarce and gain is wanted.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cSw" width="640" height="340" aria-label="LO waveform with diode thresholds and the resulting switching function, and conversion loss against LO drive"></canvas>
+    <div class="ctrl">
+      <label for="swP"><span>LO drive P<sub>LO</sub></span> <b id="swPv"></b></label><input id="swP" type="range" min="-5" max="23" step="0.5" value="7">
+      <label for="swD"><span>Switching element</span></label><select id="swD"><option value="lb" selected>Low-barrier Schottky ring</option><option value="mb">Medium-barrier Schottky ring</option><option value="hb">High-barrier Schottky ring</option><option value="fet">Passive FET ring</option></select>
+      <div class="readout" id="swOut"></div>
+    </div>
+    <p class="cap">Top: two LO cycles across the diode arm (accent), with the turn-on threshold ±V<sub>th</sub> dashed. Shaded columns are when a diode pair conducts. Middle: the resulting switch state, +1, 0 (both pairs off) or −1. Bottom: conversion loss against LO drive for all four elements (the selected one bold). Below a certain drive nothing conducts at all; well above it the curve flattens towards 3.9 dB plus fixed losses. IIP3 and P1dB in the readout are rule-of-thumb estimates (IIP3 ≈ P<sub>LO</sub> + 9 dB when fully switched), not a simulation.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Default (low-barrier, +7 dBm): on fraction 61.8 %, conversion loss 6.49 dB, IIP3 estimate +15.0 dBm, as in the side-by-side table.</li><li>Lower the drive to +4 dBm: loss 9.2 dB. At +1 dBm the readout says "no switching" (0.35 V peak is below 0.40 V).</li><li>Select the high-barrier ring at +7 dBm: no switching. Raise to +17 dBm: 5.6 dB.</li><li>Select the passive FET ring at +13 dBm: about 5.1 dB loss and the highest IIP3 estimate (+26.6 dBm).</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LO drive level</td><td>Diode barrier height and number of diodes per arm, FET size and threshold</td><td>"LO +13 dBm nominal, +10 to +16 dBm"</td><td>The LO chain must deliver it across band and temperature. 3 dB short on a level-7 ring: CL 6.5 → 9.2 dB, about 2.7 dB of system NF if the mixer is not hidden by gain (Step 3).</td></tr>
+    <tr><td>Conversion loss</td><td>Switching sharpness (conduction angle), balun loss, diode R<sub>s</sub>, port matching</td><td>CL 6.5 dB typ, 8.5 dB max</td><td>Sets the mixer's noise figure (≈ CL for a passive mixer) and how much IF gain follows. Flatness of CL across band adds to receiver amplitude ripple.</td></tr>
+    <tr><td>Topology (passive diode, passive FET, Gilbert)</td><td>Technology and power budget</td><td>CL −6.5 dB / −6 dB / +10 dB; LO +7 / +13 / 0 dBm</td><td>Passive: higher IIP3, needs LO power. Active: gain and low LO power, but higher NF and lower IIP3 (Step 5).</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LO amplifier designers:</b> your output power and its flatness over band and temperature set the mixer's operating point. A mixer whose LO droops 3 dB at the band edge has worse NF and IIP3 exactly there.</li>
+    <li><b>Synthesiser designers:</b> the mixer multiplies the signal by your LO waveform, so every phase-noise sideband and spur on the LO is transferred onto every received signal (reciprocal mixing). See the <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> module.</li>
+    <li><b>Hybrid and MMIC designers:</b> balun balance and diode matching decide the isolation and even-order spur suppression in Steps 4 and 6.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A level-7 mixer is fed +7 dBm from an LO amplifier with 1 dB loss in its cable. Roughly how much worse is the conversion loss?</summary><p>At +6 dBm the bench gives about 7.1 dB instead of 6.5 dB: 0.6 dB worse, and the IIP3 falls by roughly 1 dB too.</p></details>
+    <details><summary>Why is the ideal switching mixer loss 3.9 dB and not 6 dB?</summary><p>A sine LO gives IF amplitude ½; a ±1 square wave has a fundamental of 4/π, so the IF amplitude is 2/π = 0.637, which is −3.9 dB. The square wave puts more of the RF power into the wanted product.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="cl">
+  <div class="secno">Step 3</div>
+  <h2>Conversion loss, conversion gain and noise figure: SSB vs DSB</h2>
+  <div class="know"><h4>You already know</h4><p>A passive attenuator of loss L at 290 K has a noise figure of L dB. Friis' formula: F<sub>sys</sub> = F<sub>1</sub> + (F<sub>2</sub> − 1)/G<sub>1</sub> + …, so a stage with gain in front hides the noise of the stages behind it. Both are developed in the <a href="M01-lna-noise.html">LNA and receiver noise</a> module.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Image-band noise:</b> the thermal noise that sits at the image frequency and converts to the IF together with the wanted band's noise.</p>
+    <p><b>Equivalent noise temperature T<sub>e</sub>:</b> the noise a stage adds, expressed as the temperature of a matched resistor at its input that would produce the same noise: T<sub>e</sub> = 290 (F − 1). Contributions in kelvin simply add when referred to the same point.</p>
+  </div>
+  <div class="col">
+    <p><b>A passive mixer behaves like an attenuator for noise.</b> To first order, a diode or FET mixer is a lossy, time-varying network at room temperature. Its noise figure is therefore close to its conversion loss: a 6.5 dB CL mixer has an NF of about 7 dB. The extra half dB comes from diode shot noise and from noise in the conduction gaps.</p>
+    <p><b>Two input bands land on one IF, and so does their noise.</b> From Step 1, both the signal band (around f<sub>RF</sub>) and the image band (around 2f<sub>LO</sub> − f<sub>RF</sub>) convert to the IF with equal conversion loss. Thermal noise exists in both bands. So the IF output carries the noise from two RF bands, while a radar echo or a radio signal sits in only one of them.</p>
+    <p>This gives two ways of quoting noise figure:</p>
+    <ul class="col">
+      <li><b>SSB (single-sideband) NF:</b> the signal is in one band only, the noise comes from both. This is the case for a radar, an ESM receiver and nearly every communication link. Use this number.</li>
+      <li><b>DSB (double-sideband) NF:</b> the signal is assumed to be in both bands, as in a radiometer that measures broadband noise. The signal power doubles for the same noise, so DSB NF reads about <b>3 dB lower</b> than SSB NF. A datasheet that quotes DSB NF looks 3 dB better than the mixer will be in your radar.</li>
+    </ul>
+    <p><b>The image noise problem in a receiver.</b> With an LNA in front of the mixer, the LNA amplifies noise across its whole band, image band included. If nothing removes that noise before the mixer, the amplified image-band noise folds onto the IF as well and the system noise is almost doubled: up to 3 dB of sensitivity lost before anyone notices. An image filter between LNA and mixer (or an image-reject mixer, Step 8) removes it. This is a separate job from rejecting image <b>signals</b> (Step 7), but the same filter does both.</p>
+    <p><b>Active mixers.</b> A Gilbert cell with +10 dB conversion gain and 11 dB NF looks worse than a 7 dB passive mixer on its own. Behind a 20 dB LNA, its gain then hides the IF amplifier, and the system NF ends up nearly the same. The comparison only means something in the full cascade.</p>
+  </div>
+  <div class="eq">F<sub>sys</sub> = F<sub>LNA</sub> + [(F<sub>LNA</sub>G<sub>LNA</sub> − 1)/R<sub>img</sub>]/G<sub>LNA</sub> + (F<sub>mix,SSB</sub> − 1)/G<sub>LNA</sub> + (F<sub>IF</sub> − 1)/(G<sub>LNA</sub>G<sub>c</sub>)<small>All in linear ratios. R<sub>img</sub> is the image-band noise rejection of the filter between LNA and mixer (R<sub>img</sub> = 1 means no filter). F<sub>mix,SSB</sub> already includes the noise of a matched image termination at 290 K, so with a perfect filter this is just Friis. G<sub>c</sub> is the conversion gain (1/CL for a passive mixer). NF<sub>DSB</sub> ≈ NF<sub>SSB</sub> − 3 dB.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Mixer first, no LNA.</b> The mixer (7 dB SSB) and the IF amplifier (3 dB) behind its 6.5 dB loss give a receiver NF of 9.76 dB, against 1.75 dB with a 20 dB LNA in front. Radar range scales as F<sup>−1/4</sup>, so that is (1.50/9.46)<sup>1/4</sup> = 0.63: 37 % less range.</p><p><b>LNA with no filter before the mixer.</b> The amplified image-band noise folds in: NF 4.62 dB, range factor 0.85 (15 % less).</p><p><b>Trusting a DSB number.</b> Budgeting a "4 dB DSB" mixer as 4 dB when the radar sees it as 7 dB SSB.</p></div>
+  <h3>Side by side: LNA 20 dB / 1.5 dB, passive mixer 6.5 dB CL / 7 dB SSB NF, IF amplifier 3 dB NF</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Image-noise filter</th><th>LNA</th><th>Image noise</th><th>Mixer</th><th>IF amp</th><th>System NF</th></tr>
+    <tr><td>40 dB rejection</td><td class="n">119.6 K</td><td class="n">0.04 K</td><td class="n">11.6 K</td><td class="n">12.9 K</td><td class="n">1.75 dB</td></tr>
+    <tr><td>10 dB rejection</td><td class="n">119.6 K</td><td class="n">40.7 K</td><td class="n">11.6 K</td><td class="n">12.9 K</td><td class="n">2.14 dB</td></tr>
+    <tr><td>No filter</td><td class="n">119.6 K</td><td class="n">406.7 K</td><td class="n">11.6 K</td><td class="n">12.9 K</td><td class="n">4.62 dB</td></tr>
+    <tr><td>No LNA (mixer first)</td><td class="n">n/a</td><td class="n">n/a</td><td class="n">1 163 K</td><td class="n">1 289 K</td><td class="n">9.76 dB</td></tr>
+    <tr><td>LNA + Gilbert cell (+10 dB, NF 11 dB), 40 dB filter</td><td class="n">119.6 K</td><td class="n">0.04 K</td><td class="n">33.6 K</td><td class="n">0.3 K</td><td class="n">1.85 dB</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>LNA gain:</b> enough that mixer plus IF amplifier add less than about a fifth of the LNA's own noise. With 20 dB: 11.6 + 12.9 = 24.5 K against the LNA's 120 K. More gain buys little NF and costs IIP3 (Step 5).</li><li><b>Image-band noise rejection:</b> 10 dB already recovers 2.5 of the 2.9 dB (NF 2.14 dB); 20 dB or more makes it negligible. The image filter needed for image <i>signals</i> (Step 7) usually gives far more.</li><li><b>Mixer type:</b> compare in the cascade, not alone. A Gilbert cell (NF 11 dB) behind the LNA gives 1.85 dB, only 0.1 dB worse than the passive mixer.</li><li><b>IF amplifier NF:</b> only matters when the gain in front is small.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cNf" width="640" height="300" aria-label="Noise temperature contributions of LNA, image-band noise, mixer and IF amplifier, referred to the antenna port"></canvas>
+    <div class="ctrl">
+      <label for="nfG"><span>LNA gain (0 = no LNA)</span> <b id="nfGv"></b></label><input id="nfG" type="range" min="0" max="30" step="0.5" value="20">
+      <label for="nfN"><span>LNA noise figure</span> <b id="nfNv"></b></label><input id="nfN" type="range" min="0" max="4" step="0.05" value="1.5">
+      <label for="nfM"><span>Mixer</span></label><select id="nfM"><option value="pd" selected>Passive diode: CL 6.5 dB, NF 7 dB</option><option value="pf">Passive FET: CL 6 dB, NF 6.5 dB</option><option value="gc">Gilbert cell: gain +10 dB, NF 11 dB</option></select>
+      <label for="nfR"><span>Image-band noise rejection</span> <b id="nfRv"></b></label><input id="nfR" type="range" min="0" max="40" step="0.5" value="40">
+      <label for="nfI"><span>IF amplifier NF</span> <b id="nfIv"></b></label><input id="nfI" type="range" min="1" max="10" step="0.1" value="3">
+      <div class="readout" id="nfOut"></div>
+    </div>
+    <p class="cap">Each bar is the noise one stage adds, referred to the LNA input, in kelvin; they add up to the receiver's T<sub>e</sub>. Slide the image-band rejection to 0 dB and watch the image-noise bar grow to about the LNA's own output noise: system NF rises by nearly 3 dB. Set the LNA gain to 0 dB and NF to 0 dB to see a mixer-first receiver. Sensitivity assumes 10 MHz bandwidth and 10 dB SNR.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults: system NF 1.75 dB, image-noise bar 0.04 K, mixer 11.6 K, IF 12.9 K, as in the side-by-side table.</li><li>Image-band rejection to 0 dB: NF 4.62 dB, penalty +2.87 dB. At 10 dB: 2.14 dB.</li><li>LNA gain 0 dB and NF 0 dB (no LNA): NF 9.76 dB, mixer 1 163 K and IF 1 289 K.</li><li>Choose the Gilbert cell: NF 1.85 dB; the IF bar drops to 0.3 K while the mixer bar rises to 33.6 K.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Mixer NF (SSB)</td><td>Conversion loss (switching, balun loss), diode shot noise, LO drive</td><td>NF 7 dB SSB (or "4 dB DSB": the same mixer)</td><td>Behind a 20 dB LNA: adds 11.6 K, 0.13 dB of system NF. Without an LNA (wideband ESM front ends): the mixer and IF set NF ≈ 9.8 dB, sensitivity 8 dB worse than with the LNA.</td></tr>
+    <tr><td>Image-band noise</td><td>Image filter between LNA and mixer, or an image-reject mixer</td><td>Filter rejection at f<sub>image</sub>; IQ mixer image rejection</td><td>No filter: system NF 1.75 → 4.62 dB. In radar terms that is (10<sup>0.287</sup>)<sup>1/4</sup>: 15 % less detection range.</td></tr>
+    <tr><td>Conversion gain (active mixer)</td><td>Gilbert cell load resistance, transistor g<sub>m</sub></td><td>G<sub>c</sub> +10 dB, NF 11 dB</td><td>Hides the IF chain (12.9 K → 0.3 K) but adds more itself (33.6 K): net 0.1 dB worse here, and IIP3 is lower (Step 5).</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the image filter between LNA and mixer is a noise component as well as a signal one. 10 dB of image-band rejection already recovers most of the 3 dB.</li>
+    <li><b>LNA designers:</b> your gain decides how much the mixer's 7 dB NF matters. At 10 dB of LNA gain the mixer adds 116 K instead of 11.6 K.</li>
+    <li><b>Test engineers:</b> a Y-factor NF measurement on a mixer without an image filter measures DSB NF. Ask which one a datasheet quotes.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A mixer datasheet says "NF 4.5 dB DSB". What do you budget for a radar receiver?</summary><p>About 7.5 dB SSB: the radar echo is in one sideband only.</p></details>
+    <details><summary>Why does removing image-band noise not matter in a mixer-first receiver?</summary><p>Without an LNA there is no amplified noise in the image band, only the 290 K termination noise, which is already counted in the SSB NF. The 3 dB penalty comes from amplified image-band noise.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="iso">
+  <div class="secno">Step 4</div>
+  <h2>Isolation (LO-RF, LO-IF, RF-IF) and LO leakage out of the antenna</h2>
+  <div class="know"><h4>You already know</h4><p>A balun converts single-ended to balanced. If the two halves are perfectly equal in amplitude and phase, anything common to both cancels at a balanced port. Isolation in a coupler or a switch is the leakage from one port to another, in dB.</p></div>
+  <div class="col">
+    <p><b>Why a double-balanced mixer isolates its ports.</b> In the diode ring, the LO drives the ring through one balun and the RF through another, at right angles electrically: the LO voltage appears at the RF balun's terminals as a common-mode voltage, which a balanced port does not see, and vice versa. The IF is taken from the centre taps, where both RF and LO cancel. With perfect baluns and perfectly matched diodes the ports would be completely isolated. In practice, balun amplitude and phase imbalance and diode mismatch leave residues:</p>
+    <ul class="col">
+      <li><b>LO-RF isolation</b> (typically 25 to 45 dB): how much LO comes out of the RF port. Since the LO is the strongest signal in the receiver (+7 to +17 dBm), even 35 dB of isolation leaves −22 dBm heading back towards the antenna.</li>
+      <li><b>LO-IF isolation</b> (20 to 40 dB): LO at the IF port. It can overload the IF amplifier or ADC, and in an upconverter it appears in the transmitted spectrum.</li>
+      <li><b>RF-IF isolation</b> (15 to 30 dB): RF passing straight to the IF port without conversion. A strong signal that happens to sit at the IF frequency gets through (the "IF feedthrough" response, Step 6).</li>
+    </ul>
+    <p><b>LO leakage out of the antenna.</b> The leaked LO travels backwards through the chain: through the LNA in reverse (its reverse isolation |S<sub>12</sub>|, typically 20 to 50 dB), through the preselector (which rejects it only if the LO lies outside the passband), and out of the antenna with the antenna's gain. A receiver that is supposed to be silent now radiates a steady, narrowband tone. An ESM receiver can detect it, and its frequency tells the ESM operator the receiver's IF and therefore what it is tuned to. For a passive sensor, a submarine's ESM mast, or a radar in receive-only mode, this is an emission-security problem. On the same platform, the leaked LO can also appear in your own ESM as a false emitter (<b>co-site interference</b>).</p>
+    <p>The defences are, in order of effect: choose the LO outside the antenna and preselector band (Step 9), put an LNA with good reverse isolation in front, buy or build a mixer with better LO-RF isolation, and use the lowest LO power the mixer allows.</p>
+  </div>
+  <div class="eq">EIRP<sub>LO</sub> = P<sub>LO</sub> − I<sub>LO-RF</sub> − I<sub>LNA,rev</sub> − A<sub>presel</sub>(f<sub>LO</sub>) + G<sub>ant</sub> &nbsp;&nbsp; R<sub>detect</sub> = (c / 4πf) · 10<sup>(EIRP − S<sub>ESM</sub> + G<sub>ESM</sub>)/20</sup><small>All in dB/dBm. S<sub>ESM</sub> is the ESM receiver's sensitivity, G<sub>ESM</sub> its antenna gain (0 dBi in the bench). The range formula is the free-space path loss FSPL = 20·log(4πRf/c) solved for R.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Ignore the backward path.</b> A mixer-first receiver with its LO inside the antenna band: +13 dBm LO, 30 dB LO-RF isolation, no LNA, no filter rejection, 15 dBi antenna. EIRP = 13 − 30 + 15 = −2 dBm. A narrowband ESM receiver (−120 dBm) detects it at 1.9 km, and a co-sited receiver 10 m away sees −74 dBm, a strong false emitter.</p><p><b>The three ESM receivers in the bench</b> (the threat that listens): a <b>wideband crystal-video</b> receiver is a detector diode behind a wide filter, no LO, sensitivity about −60 dBm; a <b>superhet ESM</b> receiver tunes a channel a few MHz wide, about −90 dBm; a <b>narrowband digital ESM</b> integrates an FFT over a long time on a steady tone, about −120 dBm. A leaked LO is a steady tone, the easiest signal for the last one.</p></div>
+  <h3>Side by side: LO +13 dBm at 10 GHz, antenna 15 dBi</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Case</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>LO at mixer RF port (LO-RF isolation 30 dB)</td><td>+13 − 30</td><td class="n">−17 dBm</td></tr>
+    <tr><td>At antenna port, LNA reverse isolation 20 dB, LO in band</td><td>−17 − 20 − 0</td><td class="n">−37 dBm</td></tr>
+    <tr><td>EIRP</td><td>−37 + 15</td><td class="n">−22 dBm</td></tr>
+    <tr><td>Detection range, narrowband ESM −120 dBm, 0 dBi</td><td>FSPL allowed 98 dB at 10 GHz</td><td class="n">190 m</td></tr>
+    <tr><td>Same, mixer first (no LNA)</td><td>EIRP −2 dBm, FSPL allowed 118 dB</td><td class="n">1.9 km</td></tr>
+    <tr><td>Same, LO outside a preselector that rejects it by 28 dB</td><td>EIRP −50 dBm</td><td class="n">7.5 m</td></tr>
+    <tr><td>Co-site: own receiver 10 m away, LO in band</td><td>−22 − 72.4</td><td class="n">−94 dBm</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Set a target first:</b> for example, invisible to a −120 dBm ESM beyond 100 m: EIRP ≤ −120 + FSPL(100 m, 10 GHz) = −120 + 92.4 = −27.6 dBm. Or co-site: ≤ −94 dBm at 10 m for a −90 dBm own ESM with 4 dB margin.</li><li><b>Then buy dB in the cheapest place:</b> LO outside the preselector (28 dB with a 1 GHz IF, Step 7), LNA reverse isolation (+20 dB for a second stage), mixer LO-RF isolation (+10 dB costs a better balun), LO power (each dB less is a dB less leak, but also a dB less IIP3).</li><li><b>Remember the rule:</b> range halves for every 6 dB.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cIso" width="640" height="320" aria-label="Received leaked LO power against distance, with the ESM sensitivity line and the detection range"></canvas>
+    <div class="ctrl">
+      <label for="isP"><span>LO drive P<sub>LO</sub></span> <b id="isPv"></b></label><input id="isP" type="range" min="-5" max="20" step="0.5" value="13">
+      <label for="isI"><span>Mixer LO-RF isolation</span> <b id="isIv"></b></label><input id="isI" type="range" min="15" max="60" step="0.5" value="30">
+      <label for="isL"><span>LNA reverse isolation (0 = no LNA)</span> <b id="isLv"></b></label><input id="isL" type="range" min="0" max="50" step="0.5" value="20">
+      <label for="isF"><span>Preselector rejection at f<sub>LO</sub></span> <b id="isFv"></b></label><input id="isF" type="range" min="0" max="70" step="0.5" value="0">
+      <label for="isE"><span>Listening ESM receiver</span></label><select id="isE"><option value="-60">Wideband crystal video, −60 dBm</option><option value="-90">Superhet ESM, −90 dBm</option><option value="-120" selected>Narrowband digital ESM, −120 dBm</option></select>
+      <div class="readout" id="isOut"></div>
+    </div>
+    <p class="cap">Power of the leaked LO received by a 0 dBi ESM antenna at distance R (log scale), for an LO at 10 GHz radiated through a 15 dBi antenna. The dashed line is the ESM sensitivity; where the curve crosses it is the detection range. The dot at 10 m is a co-sited receiver on the same platform. Each 6 dB of extra isolation halves the detection range.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults: EIRP −22.0 dBm, detection range 190 m, co-site −94.4 dBm, as in the side-by-side table.</li><li>LNA reverse isolation to 0 (no LNA): EIRP −2 dBm, range 1.9 km.</li><li>Preselector rejection 28 dB: EIRP −50 dBm, range about 7.5 m.</li><li>Add 6 dB of LO-RF isolation (36 dB): range halves to 95 m.</li><li>Select the crystal-video receiver (−60 dBm): it cannot detect the leak beyond 1 m.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LO-RF isolation</td><td>Balun amplitude/phase balance, diode matching, layout symmetry, ground return</td><td>30 dB typ, 25 dB min, often worse at band edges</td><td>Sets LO radiated from the antenna. 30 → 40 dB: EIRP −22 → −32 dBm, ESM detection range 190 → 60 m. Also the source of DC offset in zero-IF (Step 9).</td></tr>
+    <tr><td>LO-IF isolation</td><td>Centre-tap balance, IF port filtering</td><td>25 dB typ</td><td>+13 dBm LO leaves −12 dBm at the IF port: can compress an IF amplifier unless it is filtered. In an upconverter, appears as an LO spur in the transmit spectrum.</td></tr>
+    <tr><td>RF-IF isolation</td><td>RF balun balance</td><td>20 dB typ</td><td>An emitter at the IF frequency feeds straight through: a 1 GHz IF in a 10 GHz radar relies on the preselector for this (Step 6).</td></tr>
+    <tr><td>LNA reverse isolation |S<sub>12</sub>|</td><td>Number of stages, cascode, feedback</td><td>S<sub>12</sub> −25 dB (one stage) to −50 dB (three stages)</td><td>Every dB of S<sub>12</sub> is a dB less LO at the antenna.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mixer and balun designers:</b> 1 dB of amplitude imbalance and 5° of phase imbalance in a balun cap the isolation near 20 dB, whatever the diodes do. Isolation is a balance specification.</li>
+    <li><b>LNA designers:</b> reverse isolation is rarely treated as a headline spec, but here it is a security spec.</li>
+    <li><b>Filter designers:</b> a preselector's rejection at the LO frequency is the cheapest isolation in the system, which is one reason the LO is placed outside the RF band.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The LO leak is detected at 400 m. How much more isolation do you need to get it down to 100 m?</summary><p>Range scales as 10<sup>ΔdB/20</sup>: a factor 4 is 12 dB more isolation, anywhere in the path.</p></details>
+    <details><summary>Why does the LO frequency an ESM operator measures give away the receiver's tuning?</summary><p>Most receivers use a known IF; the tuned frequency is f<sub>LO</sub> ± f<sub>IF</sub>, so the LO frequency tells the operator where the receiver is listening, often to within the IF bandwidth.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="lin">
+  <div class="secno">Step 5</div>
+  <h2>IIP3 and P1dB: the mixer's share of the dynamic range</h2>
+  <div class="know"><h4>You already know</h4><p>Two tones at f<sub>1</sub> and f<sub>2</sub> through a slightly non-linear amplifier produce third-order products at 2f<sub>1</sub> − f<sub>2</sub> and 2f<sub>2</sub> − f<sub>1</sub>, which rise 3 dB for every 1 dB of input. IIP3 is the input power at which the extrapolated product would equal the fundamental. P1dB is where the gain has dropped by 1 dB.</p></div>
+  <div class="col">
+    <p><b>Why a mixer is non-linear in the RF signal.</b> The switching picture of Step 2 assumes the RF is too small to affect when the diodes switch. As the RF grows, it adds to the LO across the diodes and moves the switching instants: the switch timing now depends on the signal, which is a non-linearity. The stronger the LO compared with the RF, the less the RF can do this. That is why <b>IIP3 tracks LO drive</b>: a diode double-balanced mixer typically has IIP3 ≈ P<sub>LO</sub> + 8 to 10 dB and an input P1dB ≈ P<sub>LO</sub> − 6 dB. A level-7 mixer: IIP3 about +15 dBm, P1dB about +1 dBm. Level 17: about +25 dBm and +11 dBm.</p>
+    <p><b>Why the mixer usually limits the receiver.</b> In a cascade, the input-referred IIP3 is set by the stage that sees the largest signal compared with its own IIP3. The mixer sits after the LNA, so it sees the signal multiplied by the LNA gain. A mixer IIP3 of +15 dBm behind a 20 dB LNA acts like −5 dBm at the antenna, which is below a typical LNA's own IIP3. So the LNA gain that hides the mixer's noise (Step 3) also exposes the mixer's linearity. This is the central trade in receiver design: enough LNA gain for noise, not so much that the mixer limits the dynamic range.</p>
+    <p><b>Spur-free dynamic range.</b> The useful range runs from the noise floor N (−174 dBm/Hz + NF + 10·log B) up to the input at which third-order products just reach N. That span, the <b>SFDR</b>, is (2/3)(IIP3 − N). Above it, two strong emitters make a false third emitter, or a jammer and a target make a false target.</p>
+  </div>
+  <div class="eq">1/IIP3<sub>sys</sub> = 1/IIP3<sub>LNA</sub> + G<sub>LNA</sub>/IIP3<sub>mix</sub> &nbsp;&nbsp; SFDR = ⅔ (IIP3<sub>sys</sub> − N) &nbsp;&nbsp; N = −174 + NF<sub>sys</sub> + 10·log B<small>Powers in mW and gains linear in the first formula. The same form, with P1dB in place of IIP3, gives the cascade P1dB to a good approximation.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Maximise LNA gain for the best noise figure.</b> Raising the LNA from 20 to 30 dB in front of a level-7 mixer improves the system NF only from 1.75 to 1.53 dB, but drops the system IIP3 from −5.1 to −15.0 dBm. SFDR in 10 MHz falls from 64.7 to 58.3 dB: two −45 dBm emitters now make a false emitter above the noise.</p></div>
+  <h3>Side by side: LNA 20 dB gain, 1.5 dB NF, IIP3 +10 dBm, bandwidth 10 MHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Mixer behind it</th><th>Mixer IIP3</th><th>System IIP3</th><th>Noise floor</th><th>SFDR</th></tr>
+    <tr><td>Level 7 diode</td><td class="n">+15 dBm</td><td class="n">−5.1 dBm</td><td class="n">−102.3 dBm</td><td class="n">64.7 dB</td></tr>
+    <tr><td>Level 17 diode</td><td class="n">+25 dBm</td><td class="n">+3.8 dBm</td><td class="n">−102.2 dBm</td><td class="n">70.7 dB</td></tr>
+    <tr><td>Level 7, LNA gain cut to 10 dB</td><td class="n">+15 dBm</td><td class="n">+3.8 dBm</td><td class="n">−100.5 dBm</td><td class="n">69.5 dB</td></tr>
+    <tr><td>Gilbert cell</td><td class="n">+5 dBm</td><td class="n">−15.0 dBm</td><td class="n">−102.2 dBm</td><td class="n">58.1 dB</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Noise first:</b> choose the smallest LNA gain that keeps the system NF within about 0.2 to 0.3 dB of the LNA's own NF (20 dB here: 1.75 vs 1.5 dB).</li><li><b>Then linearity:</b> with that gain fixed, pick the mixer LO class whose IIP3, divided by the LNA gain, meets the target. Level 17 behind 20 dB gives +3.8 dBm.</li><li><b>Then bandwidth:</b> SFDR falls by ⅔ dB for each dB of extra noise, so a 1 GHz ESM channel has 20 dB more noise than 10 MHz and 13 dB less SFDR.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cLi" width="640" height="340" aria-label="Output referred to input against input power: fundamental, third-order product and noise floor, with IIP3, P1dB and SFDR marked"></canvas>
+    <div class="ctrl">
+      <label for="liM"><span>Mixer</span></label><select id="liM"><option value="l7" selected>Level 7 diode: IIP3 +15, P1dB +1</option><option value="l13">Level 13 diode: IIP3 +20, P1dB +7</option><option value="l17">Level 17 diode: IIP3 +25, P1dB +11</option><option value="gil">Gilbert cell: IIP3 +5, P1dB −8</option></select>
+      <label for="liG"><span>LNA gain</span> <b id="liGv"></b></label><input id="liG" type="range" min="0" max="30" step="0.5" value="20">
+      <label for="liI"><span>LNA IIP3</span> <b id="liIv"></b></label><input id="liI" type="range" min="-5" max="30" step="0.5" value="10">
+      <label for="liB"><span>Bandwidth B</span> <b id="liBv"></b></label><input id="liB" type="range" min="4" max="9" step="0.05" value="7">
+      <div class="readout" id="liOut"></div>
+    </div>
+    <p class="cap">All powers referred to the LNA input. The wanted signal (teal) rises 1:1 and compresses near the cascade P1dB; the third-order product (violet) rises 3:1 and meets the extrapolated fundamental at the system IIP3. The bracket is the SFDR: from the noise floor up to the input where the IM3 product reaches the noise. Raise the LNA gain and watch the system IIP3 fall while the noise floor barely moves.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults (level 7, 20 dB, +10 dBm, 10 MHz): IIP3 −5.1 dBm, P1dB −19.1 dBm, SFDR 64.7 dB.</li><li>Select level 17: IIP3 +3.8 dBm, SFDR 70.7 dB.</li><li>LNA gain to 10 dB: IIP3 +3.8 dBm but NF 3.54 dB; to 30 dB: IIP3 −15.0 dBm.</li><li>Bandwidth to 1 GHz: noise floor −82.2 dBm, SFDR 51.4 dB.</li><li>Gilbert cell: IIP3 −15.0 dBm with the same gain.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Mixer IIP3</td><td>LO drive, diodes per arm, barrier height, FET vs diode</td><td>IIP3 +15 dBm at LO +7 dBm</td><td>Behind 20 dB of LNA gain it sets the receiver IIP3 (−5.1 dBm) and SFDR (65 dB in 10 MHz). Two emitters at −40 dBm each make a −110 dBm false emitter: just below the noise.</td></tr>
+    <tr><td>Mixer P1dB</td><td>Same as IIP3</td><td>P1dB +1 dBm</td><td>Behind 20 dB gain, the receiver compresses at about −19 dBm at the antenna: a nearby jammer or own-ship transmitter leakage desensitises it.</td></tr>
+    <tr><td>LNA gain (as seen by the mixer)</td><td>LNA stages, gain distribution</td><td>G 20 dB</td><td>Each 10 dB of extra LNA gain lowers system IIP3 by up to 10 dB once the mixer dominates, and buys only fractions of a dB of NF.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LO chain designers:</b> each extra dB of LO power is about a dB of receiver IIP3, at the cost of LO amplifier DC power and more LO leakage (Step 4).</li>
+    <li><b>LNA designers:</b> "more gain" is not free. Agree the gain with the mixer's IIP3 rather than maximising it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>System IIP3 is −5 dBm and the noise floor is −102 dBm. What is the SFDR?</summary><p>(2/3)(−5 + 102) = 64.7 dB.</p></details>
+    <details><summary>Why does doubling the LO power not double the IIP3 in watts?</summary><p>It does, roughly: 3 dB more LO gives about 3 dB more IIP3, i.e. twice the power. The cost is twice the LO power, and the improvement stops once other non-linearities (diode capacitance, balun saturation) dominate.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="spur">
+  <div class="secno">Step 6</div>
+  <h2>The spur chart: every m×RF ± n×LO that lands in the IF</h2>
+  <div class="know"><h4>You already know</h4><p>A non-linear device driven by a tone makes harmonics. Driven by two tones, it makes every combination of their harmonics. Balanced circuits cancel even-order products when they are well balanced.</p></div>
+  <div class="col">
+    <p><b>Where spurs come from.</b> The mixer multiplies by a square-ish LO, so it contains all odd LO harmonics (n = 1, 3, 5 …), and imbalance lets the even ones through weakly. It is also slightly non-linear in the RF, so it makes RF harmonics m = 2, 3 … Every pair (m, n) produces outputs at |m·f<sub>in</sub> ± n·f<sub>LO</sub>|. The wanted conversion is (1, 1). Any input frequency f<sub>in</sub> for which some |m·f<sub>in</sub> ± n·f<sub>LO</sub>| falls in the IF passband is a <b>spurious response</b>: the receiver hears a signal there as if it were at the tuned frequency. Solving for f<sub>in</sub>:</p>
+  </div>
+  <div class="eq">f<sub>in</sub> = (n · f<sub>LO</sub> ± f<sub>IF</sub>) / m &nbsp;&nbsp; order = m + n<small>(1,1) gives the wanted signal and the image. (2,2) gives the half-IF spur, f<sub>LO</sub> ∓ f<sub>IF</sub>/2, only f<sub>IF</sub>/2 away from the wanted signal. (1,0) is IF feedthrough: an input at the IF frequency itself. Lower order means stronger.</small></div>
+  <div class="col">
+    <p><b>How strong is a spur?</b> Mixer datasheets give a <b>spur table</b>: the level of each (m, n) product in dBc below the wanted IF, measured at a stated RF input (often −10 dBm) and LO drive. Two rules make it usable at other levels:</p>
+    <ul class="col">
+      <li>A product with RF order m changes by m dB for each dB of RF input, while the wanted IF changes by 1 dB. So its rejection relative to the wanted output <b>improves by (m − 1) dB for each dB the RF is reduced</b>. A (2,2) spur at −60 dBc with RF −10 dBm is −80 dBc with RF −30 dBm.</li>
+      <li>Products with m = 1 (only LO harmonics) do not improve with lower RF: their rejection is fixed by the LO waveform and balance. The image (1,1) has no mixer rejection at all; only filtering or an IQ mixer removes it.</li>
+    </ul>
+    <p><b>The system effect.</b> A spurious response is a hole in the receiver's out-of-band rejection. For a radar it lets an out-of-band emitter (or jammer) into the receiver as if it were in band. For an ESM receiver it is worse: the receiver reports an emitter at the wrong frequency, and the identification library may name the wrong radar. A typical ESM requirement is that all spurious responses are 60 to 70 dB below the wanted response. The total rejection of each response is the spur-table rejection plus the preselector's attenuation at f<sub>in</sub>, which is why the frequency plan aims to push every low-order response outside the preselector.</p>
+  </div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Choose the IF for convenience and never draw the chart.</b> A 0.5 GHz IF is attractive because filters and ADCs are easy there. With RF 10 GHz and a 1 GHz preselector, the image is at 11 GHz with only 28 dB of rejection, and the half-IF response at 10.25 GHz is inside the preselector, protected only by the mixer's 62 dB. Against a 60 dB spurious-response specification, the image alone fails by 32 dB.</p></div>
+  <h3>Side by side: RF 10 GHz, IF 1 GHz, high-side LO 11 GHz, preselector 1 GHz wide (5-pole)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>(m, n)</th><th>Input frequency</th><th>Mixer rejection (RF −10 dBm)</th><th>Preselector</th><th>Total</th></tr>
+    <tr><td>(1,1) wanted</td><td class="n">10.0 GHz</td><td class="n">0 dB</td><td class="n">0 dB</td><td class="n">0 dB</td></tr>
+    <tr><td>(1,1) image</td><td class="n">12.0 GHz</td><td class="n">0 dB</td><td class="n">56 dB</td><td class="n">56 dB</td></tr>
+    <tr><td>(2,2) half-IF</td><td class="n">10.5 GHz</td><td class="n">62 dB</td><td class="n">2.5 dB (band edge)</td><td class="n">64.5 dB</td></tr>
+    <tr><td>(3,3)</td><td class="n">10.67 GHz</td><td class="n">74 dB</td><td class="n">11 dB</td><td class="n">85 dB</td></tr>
+    <tr><td>(1,0) IF feedthrough</td><td class="n">1.0 GHz</td><td class="n">25 dB (RF-IF isolation)</td><td class="n">&gt; 100 dB</td><td class="n">&gt; 100 dB</td></tr>
+    <tr><td>Same plan, IF 3 GHz (LO 13 GHz): (2,2)</td><td class="n">11.5 GHz</td><td class="n">62 dB</td><td class="n">45 dB</td><td class="n">107 dB</td></tr>
+  </table></div>
+  <p class="col">Mixer rejections here come from an illustrative spur table for a double-balanced diode mixer; real tables differ by 10 dB or more between parts, so use the datasheet of the part you buy.</p>
+  <h3>Side by side: the same receiver with three IF choices</h3>
+  <div class="tw"><table class="t"><tr><th>IF</th><th>Image rejection</th><th>Half-IF at</th><th>Half-IF total</th></tr><tr><td class="n">0.5 GHz</td><td class="n">28.1 dB</td><td class="n">10.25 GHz</td><td class="n">62.0 dB</td></tr><tr><td class="n">1.0 GHz</td><td class="n">56.4 dB</td><td class="n">10.50 GHz</td><td class="n">64.5 dB</td></tr><tr><td class="n">3.0 GHz</td><td class="n">98.9 dB</td><td class="n">11.50 GHz</td><td class="n">106.8 dB</td></tr></table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Draw the chart up to order 5 to 7</b> for every tuning point, not one frequency: spurs move as the LO tunes.</li><li><b>Push the half-IF out of the preselector:</b> it sits f<sub>IF</sub>/2 from the wanted signal, so it is outside when f<sub>IF</sub> &gt; preselector bandwidth.</li><li><b>Keep the RF into the mixer modest:</b> each 10 dB less improves m = 2 spurs by 10 dB and m = 3 by 20 dB.</li><li><b>Use the order select to see what matters:</b> order 3 hides the half-IF (order 4); order 7 shows how crowded the chart gets. The view select only zooms the drawing.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cSp" width="640" height="360" aria-label="Spur chart: output frequency of every m times input plus or minus n times LO product against input frequency, with the IF band and preselector band shaded and spurious responses marked"></canvas>
+    <div class="ctrl">
+      <label for="spR"><span>Tuned RF f<sub>RF</sub></span> <b id="spRv"></b></label><input id="spR" type="range" min="4" max="18" step="0.05" value="10">
+      <label for="spI"><span>IF f<sub>IF</sub></span> <b id="spIv"></b></label><input id="spI" type="range" min="0.1" max="3" step="0.01" value="1">
+      <label for="spS"><span>LO side</span></label><select id="spS"><option value="hi" selected>High-side (LO above RF)</option><option value="lo">Low-side (LO below RF)</option></select>
+      <label for="spB"><span>Preselector bandwidth</span> <b id="spBv"></b></label><input id="spB" type="range" min="0.2" max="4" step="0.05" value="1">
+      <label for="spP"><span>RF input level</span> <b id="spPv"></b></label><input id="spP" type="range" min="-40" max="0" step="1" value="-10">
+      <label for="spN"><span>Highest order m + n</span></label><select id="spN"><option value="3">3</option><option value="5" selected>5</option><option value="7">7</option></select>
+      <label for="spZ"><span>View</span></label><select id="spZ"><option value="zoom" selected>Zoom on preselector</option><option value="full">Whole input range</option></select>
+      <div class="readout" id="spOut"></div>
+    </div>
+    <p class="cap">Horizontal axis: the frequency of a signal arriving at the mixer. Vertical axis: the output frequency of each |m·f<sub>in</sub> − n·f<sub>LO</sub>| product (coloured by order). The horizontal band is the IF passband; the vertical band is the preselector. Every line crossing the IF band is a spurious response (dot). Dot size shows how strong it is after the spur table and the preselector. Try IF 0.5 GHz and watch the image and half-IF responses crowd into the preselector, then IF 2.5 GHz.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults (RF 10, IF 1 GHz, high-side, 1 GHz preselector, −10 dBm): image 12.00 · 56 dB, half-IF 10.50 · 65 dB, as in the side-by-side table.</li><li>IF to 0.5 GHz: image rejection about 28 dB; the half-IF moves inside the preselector.</li><li>IF to 2.5 GHz: the half-IF leaves the preselector and its rejection rises well above 90 dB.</li><li>RF level to −40 dBm: the half-IF rejection improves by 30 dB.</li><li>Order 3: the half-IF row reads "order &gt; N".</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Even-order spur suppression (2,2), (2,1)</td><td>Balun balance, diode matching (double-balanced vs single-balanced)</td><td>Spur table: (2,2) −62 dBc at RF −10 dBm</td><td>The half-IF response sits only f<sub>IF</sub>/2 from the wanted signal, often inside the preselector: it is usually the spur that sets an ESM receiver's spurious-response spec.</td></tr>
+    <tr><td>Odd LO harmonics (1,3), (1,5)</td><td>LO waveform (squareness), balun bandwidth at 3f<sub>LO</sub></td><td>(1,3) −24 dBc, independent of RF level</td><td>Responses at 3f<sub>LO</sub> ± f<sub>IF</sub>: far away, but they need preselector rejection at 32 to 34 GHz, where a filter may have spurious passbands.</td></tr>
+    <tr><td>RF level into the mixer</td><td>LNA gain, gain distribution</td><td>Spur table reference level</td><td>10 dB less RF improves an m = 2 spur by 10 dB and m = 3 by 20 dB. Another reason not to over-amplify before the mixer.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the preselector's rejection at each spurious-response frequency adds directly to the mixer's spur rejection. A filter specification should list those frequencies, not just a passband.</li>
+    <li><b>Mixer designers:</b> balance is spur suppression. A single-balanced mixer may show (2,2) at −35 dBc where a good double-balanced one shows −60.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>RF 8 GHz, IF 0.8 GHz, LO 8.8 GHz. Where is the half-IF spur?</summary><p>(2·8.8 − 0.8)/2 = 8.4 GHz: 0.4 GHz above the wanted signal.</p></details>
+    <details><summary>A (3,2) spur is −70 dBc at RF −10 dBm. What is it at RF −25 dBm?</summary><p>Rejection improves by (m − 1) × 15 = 30 dB: −100 dBc.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="image">
+  <div class="secno">Step 7</div>
+  <h2>Image frequency and image rejection by filtering</h2>
+  <div class="know"><h4>You already know</h4><p>A band-pass filter's rejection at a given offset rises with the number of poles (resonators) and falls with its bandwidth. A Butterworth filter of N poles falls by 20·N dB per decade of normalised offset far from the passband.</p></div>
+  <div class="col">
+    <p>The image sits 2 × f<sub>IF</sub> from the wanted signal, on the far side of the LO. A filter in front of the mixer (the preselector and the image filter of Step 3) must attenuate it. <b>The higher the IF, the further away the image, and the easier the filter.</b> But a high IF makes the IF filter's fractional bandwidth smaller (harder), needs a higher-frequency LO, and needs a mixer whose IF port reaches that high. A low IF makes the IF filter and ADC easy and the image filter impossible. The frequency plan (Step 9) is the negotiation between these.</p>
+    <p><b>System effect.</b> An emitter at the image frequency with power P appears in the IF as a signal of power P − R<sub>image</sub>, indistinguishable from a real signal at the tuned frequency. For a radar, a jammer at the image frequency jams the receiver as though it were in band. For ESM, the receiver reports a 12 GHz emitter as a 10 GHz one: wrong frequency, wrong identification. Typical requirements are 60 to 80 dB of image rejection.</p>
+    <p>Filter design itself is covered in the Filters and preselectors module (module 04 of this series). Here we only need its rejection at one frequency.</p>
+  </div>
+  <div class="eq">f<sub>image</sub> = f<sub>RF</sub> ± 2 f<sub>IF</sub> &nbsp;&nbsp; A(f) = 10·log(1 + Ω<sup>2N</sup>), Ω = (f/f<sub>0</sub> − f<sub>0</sub>/f) · f<sub>0</sub>/BW<small>+ for high-side LO, − for low-side. A(f) is a Butterworth band-pass of N poles, centre f<sub>0</sub> and 3 dB bandwidth BW: a simple, honest model for a first estimate.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>A low IF with a fixed preselector.</b> With a 0.2 GHz IF, the image at 10.4 GHz sits inside the 1 GHz-wide filter: 0.4 dB of rejection. A −30 dBm emitter at 10.4 GHz appears at the IF at −30.4 dBm, as strong as if it were at 10 GHz.</p></div>
+  <h3>Side by side: RF 10 GHz, 5-pole filter 1 GHz wide, high-side LO</h3>
+  <div class="tw"><table class="t">
+    <tr><th>IF</th><th>Image</th><th>Image rejection</th><th>Rejection at the LO</th></tr>
+    <tr><td class="n">0.2 GHz</td><td class="n">10.4 GHz</td><td class="n">0.4 dB</td><td class="n">0.0 dB</td></tr>
+    <tr><td class="n">0.5 GHz</td><td class="n">11.0 GHz</td><td class="n">28.1 dB</td><td class="n">2.5 dB</td></tr>
+    <tr><td class="n">1.0 GHz</td><td class="n">12.0 GHz</td><td class="n">56.4 dB</td><td class="n">28.1 dB</td></tr>
+    <tr><td class="n">2.0 GHz</td><td class="n">14.0 GHz</td><td class="n">83.6 dB</td><td class="n">56.4 dB</td></tr>
+    <tr><td class="n">3.0 GHz</td><td class="n">16.0 GHz</td><td class="n">98.9 dB</td><td class="n">72.5 dB</td></tr>
+  </table></div>
+  <h3>Side by side: more filter poles, same 1 GHz IF</h3>
+  <div class="tw"><table class="t"><tr><th>Poles N</th><th>Image rejection at 12 GHz</th></tr><tr><td class="n">3</td><td class="n">33.9 dB</td></tr><tr><td class="n">5</td><td class="n">56.4 dB</td></tr><tr><td class="n">7</td><td class="n">79.0 dB</td></tr><tr><td>5 poles, bandwidth 30 % instead of 10 %</td><td class="n">9.3 dB</td></tr></table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Start from the requirement</b> (say 60 dB) and the filter you can build. The readout's "IF for 60 dB" solves for the lowest IF that meets it.</li><li><b>More poles</b> buy about 20 dB each here, but add insertion loss, which adds to the noise figure dB for dB when the filter is before the LNA.</li><li><b>Narrower bandwidth</b> helps rejection but limits the band the receiver can tune without a tracking filter.</li><li><b>Raising the IF</b> is often the cheapest way, until the IF filter or the mixer IF port becomes the problem (Step 9).</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cIm" width="640" height="320" aria-label="Band-pass filter response with the wanted signal, LO and image frequency marked"></canvas>
+    <div class="ctrl">
+      <label for="imR"><span>RF centre f<sub>RF</sub></span> <b id="imRv"></b></label><input id="imR" type="range" min="1" max="18" step="0.1" value="10">
+      <label for="imI"><span>IF f<sub>IF</sub></span> <b id="imIv"></b></label><input id="imI" type="range" min="0.05" max="3" step="0.01" value="1">
+      <label for="imB"><span>Filter bandwidth</span> <b id="imBv"></b></label><input id="imB" type="range" min="2" max="30" step="0.5" value="10">
+      <label for="imN"><span>Filter poles N</span></label><select id="imN"><option value="3">3</option><option value="5" selected>5</option><option value="7">7</option></select>
+      <div class="readout" id="imOut"></div>
+    </div>
+    <p class="cap">The filter's attenuation (teal) with the wanted RF (green), the LO (accent) and the image (red) marked. The readout shows what a −30 dBm emitter at the image would look like at the IF, and the lowest IF that gives 60 dB of image rejection with this filter.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults: image 12.00 GHz, 56.4 dB, rejection at the LO 28.1 dB, IF for 60 dB = 1.09 GHz.</li><li>IF to 0.2 GHz: image rejection under 1 dB.</li><li>7 poles: 79.0 dB; 3 poles: 33.9 dB.</li><li>Bandwidth to 30 %: rejection drops to about 9 dB.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Image rejection (filter)</td><td>Filter order, Q of resonators, bandwidth; the IF chosen by the system designer</td><td>Rejection ≥ 60 dB at f<sub>RF</sub> + 2 f<sub>IF</sub></td><td>A −30 dBm emitter at the image appears at −86 dBm with 56 dB: above a −90 dBm sensitivity, so a false emitter is reported.</td></tr>
+    <tr><td>Filter bandwidth</td><td>Tuning range to cover, fixed vs tunable (YIG) filter</td><td>BW 10 % fixed, or 50 MHz tracking YIG</td><td>A wide fixed preselector covering an octave rejects nothing near the band: wideband ESM receivers use high first IFs (Step 9) or tracking filters.</td></tr>
+  </table></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>RF 6 GHz, IF 300 MHz, low-side LO. Where is the image?</summary><p>6 − 0.6 = 5.4 GHz.</p></details>
+    <details><summary>Why not simply use a very high IF, such as 8 GHz for a 10 GHz radar?</summary><p>The image moves to 26 GHz and is easy to reject, but the IF filter must then select a 20 MHz channel at 8 GHz (0.25 % fractional), the LO moves to 18 GHz, and the problem has only moved. This is why double conversion exists.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="iq">
+  <div class="secno">Step 8</div>
+  <h2>IQ mixers: amplitude and phase imbalance set the image rejection</h2>
+  <div class="know"><h4>You already know</h4><p>A 90° hybrid splits a signal into two equal outputs 90° apart. A complex number x + jy can be pictured as a phasor; e<sup>+jωt</sup> rotates one way and e<sup>−jωt</sup> the other, so positive and negative frequencies are different.</p></div>
+  <div class="col">
+    <p><b>Why one mixer cannot separate the image.</b> A single mixer output is a real signal. A real signal at +f and the same at −f are the same thing (cos is even), so the wanted signal (f<sub>RF</sub> − f<sub>LO</sub> = +f<sub>IF</sub>) and the image (f<sub>image</sub> − f<sub>LO</sub> = −f<sub>IF</sub>) collide.</p>
+    <p><b>The IQ (quadrature) mixer.</b> Use two mixers, fed by the same RF, with LOs 90° apart: cos(ω<sub>LO</sub>t) for the I (in-phase) mixer and sin(ω<sub>LO</sub>t) for the Q (quadrature) mixer. Treat the two outputs as one complex signal I + jQ. Now +f<sub>IF</sub> and −f<sub>IF</sub> are different: the wanted signal comes out as a phasor rotating one way and the image as one rotating the other way. A digital processor (or an analogue 90° IF hybrid in a Hartley image-reject mixer) keeps one and cancels the other. No filter is needed to separate them.</p>
+    <p><b>How well it cancels depends on balance.</b> Cancellation needs the I and Q paths to have exactly equal gain and exactly 90° between them. Write the gain ratio as g (amplitude imbalance ε dB = 20·log g) and the phase error as φ. The residual image is set by how far the two paths are from perfect. One dB and one degree, both ordinary numbers for a hybrid plus two mixers over a wide band, give only about 25 dB. Forty dB needs about 0.1 dB and 1°; 50 dB needs 0.05 dB and 0.3°. Analogue hardware alone rarely beats 30 to 40 dB over a wide band, so systems measure the imbalance (inject a tone, see the image) and correct it digitally. A single-frequency calibration helps at that frequency; imbalance that varies across the band needs a wideband (frequency-dependent) correction.</p>
+  </div>
+  <div class="eq">IRR = (1 + 2g·cos φ + g²) / (1 − 2g·cos φ + g²) &nbsp;&nbsp; ≈ 4 / (ε<sub>lin</sub>² + φ²) for small errors<small>g = 10<sup>ε/20</sup> is the I/Q gain ratio, φ the deviation from 90° in radians, ε<sub>lin</sub> = g − 1. IRR is the power ratio of wanted to image output. 1 dB and 1°: g = 1.122, φ = 0.0175 rad, IRR = 296 = 24.7 dB.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>One mixer and no filter:</b> 0 dB of image rejection; wanted and image are identical at the output.</p><p><b>An uncorrected wideband IQ mixer:</b> 1 dB and 1° of imbalance give 24.7 dB. A −30 dBm emitter on the image appears at −54.7 dBm, 35 dB above a −90 dBm floor.</p></div>
+  <h3>Side by side: image rejection for typical balances</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Amplitude imbalance</th><th>Phase error</th><th>IRR</th><th>Typical of</th></tr>
+    <tr><td class="n">1 dB</td><td class="n">1°</td><td class="n">24.7 dB</td><td>Wideband hybrid and mixer pair, uncorrected</td></tr>
+    <tr><td class="n">0.5 dB</td><td class="n">3°</td><td class="n">28.2 dB</td><td>Octave-band image-reject mixer</td></tr>
+    <tr><td class="n">0.25 dB</td><td class="n">2°</td><td class="n">32.9 dB</td><td>Good analogue design</td></tr>
+    <tr><td class="n">0.1 dB</td><td class="n">1°</td><td class="n">39.6 dB</td><td>Narrowband analogue, or mild correction</td></tr>
+    <tr><td class="n">0.05 dB</td><td class="n">0.3°</td><td class="n">48.2 dB</td><td>Digitally corrected at one frequency</td></tr>
+    <tr><td class="n">0.02 dB</td><td class="n">0.2°</td><td class="n">53.6 dB</td><td>Wideband digital correction</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Turn the requirement into an error budget</b> with IRR ≈ 4/(ε<sub>lin</sub>² + φ²). For 40 dB: ε<sub>lin</sub>² + φ² ≤ 4 × 10⁻⁴; split equally, ε<sub>lin</sub> ≈ φ ≈ 0.014, i.e. 0.12 dB and 0.8°.</li><li><b>Decide what hardware can hold</b> over band and temperature (typically 0.25 dB / 2° wideband).</li><li><b>Close the gap with calibration</b> (the correction select): a single-frequency calibration if the errors are flat, a wideband one if they vary across the band.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cIq" width="640" height="320" aria-label="Contours of image rejection against amplitude and phase imbalance, and the output spectrum with the wanted signal and residual image"></canvas>
+    <div class="ctrl">
+      <label for="iqA"><span>Amplitude imbalance ε</span> <b id="iqAv"></b></label><input id="iqA" type="range" min="0" max="2" step="0.01" value="0.5">
+      <label for="iqP"><span>Phase error φ</span> <b id="iqPv"></b></label><input id="iqP" type="range" min="0" max="10" step="0.05" value="3">
+      <label for="iqC"><span>Correction</span></label><select id="iqC"><option value="1" selected>None (analogue only)</option><option value="0.1">Single-frequency calibration (errors ÷ 10)</option><option value="0.03">Wideband calibration (errors ÷ 30)</option></select>
+      <div class="readout" id="iqOut"></div>
+    </div>
+    <p class="cap">Left: contours of equal image rejection over amplitude imbalance (horizontal) and phase error (vertical). The open circle is the hardware; the filled circle is after correction. Right: the IQ output spectrum, with the wanted signal at +f<sub>IF</sub> (0 dB) and the residual image at −f<sub>IF</sub>.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults (0.5 dB, 3°, no correction): IRR 28.2 dB, as in the side-by-side table.</li><li>Amplitude 0 dB, phase 2°: 35.2 dB, matching IRR ≈ 4/φ².</li><li>Single-frequency calibration on the defaults: residual 0.05 dB / 0.3°, IRR 48.2 dB.</li><li>Wideband calibration: IRR about 58.7 dB.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Quadrature phase error</td><td>90° hybrid (Lange, branch-line, polyphase), LO path lengths, mixer matching</td><td>Phase balance ±3° over band</td><td>3° alone limits IRR to about 31.6 dB: a −30 dBm emitter's mirror at −62 dBm, 28 dB above a −90 dBm sensitivity.</td></tr>
+    <tr><td>Amplitude imbalance</td><td>Hybrid amplitude split, mixer CL matching, I/Q baseband gain matching</td><td>Amplitude balance ±0.5 dB</td><td>0.5 dB alone limits IRR to about 30.8 dB. Equal contributions add: 0.5 dB with 3° gives 28 dB.</td></tr>
+    <tr><td>Balance flatness over band and temperature</td><td>Broadband hybrid design, thermal tracking of the two paths</td><td>Often not specified: ask for it</td><td>Decides whether a one-off calibration lasts: imbalance that drifts 0.2 dB with temperature costs about 6 dB of corrected IRR.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Hybrid and coupler designers:</b> the phase and amplitude balance of your 90° hybrid is the image rejection of the receiver. Quote it as a function of frequency.</li>
+    <li><b>Baseband and ADC designers:</b> the I and Q filters, amplifiers and ADC channels are part of the balance too: a 1 % gain difference is 0.09 dB.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Perfect amplitude balance, 2° phase error. What IRR?</summary><p>IRR ≈ 4/φ² with φ = 0.0349 rad: 3 283, i.e. 35.2 dB.</p></details>
+    <details><summary>An ESM receiver needs 60 dB image rejection and its IQ hardware gives 30 dB. Where do the other 30 dB come from?</summary><p>Either from digital correction (needs residual errors near 0.01 dB and 0.1°, hard over a wide band) or from adding filtering in front, as in the superhet with an image-reject mixer (Step 9).</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="plan">
+  <div class="secno">Step 9</div>
+  <h2>Frequency-plan choices: superhet, double conversion, zero-IF, low-IF and DC offset</h2>
+  <div class="know"><h4>You already know</h4><p>Everything from Steps 3 to 8: image noise, LO leakage, spurs, image rejection by filters and by IQ balance. The frequency plan is the choice of IF(s) and LO(s) that balances them.</p></div>
+  <div class="col">
+    <p><b>Single-conversion superheterodyne.</b> One mixer to a fixed IF, typically 5 to 15 % of the RF. Image rejection comes from the preselector; an image-reject (IQ) mixer can add its 25 to 35 dB on top. The LO lies outside the RF band, so the preselector also cuts LO leakage. Simple and good, if the IF filter at that IF is buildable.</p>
+    <p><b>Double conversion.</b> A high first IF (here 3 GHz) puts the first image far away (RF + 6 GHz, easy to reject), then a second mixer moves to a low second IF (here 140 MHz) where channel filtering and the ADC are easy. The second conversion has its own image (2 × 140 MHz from the first IF), which only the first IF filter can reject, and a new set of spurs and LO leakage paths. This is the standard plan for wideband ESM receivers and for radars that must hop across a wide band.</p>
+    <p><b>Zero-IF (direct conversion).</b> The LO equals the RF; an IQ mixer converts straight to baseband. There is no image filter because the image is the signal's own mirror within the channel, separated only by IQ balance. No IF filter, no second LO: small, cheap, wideband, and common in integrated transceivers. Its weaknesses are:</p>
+    <ul class="col">
+      <li><b>DC offset by self-mixing.</b> LO that leaks to the RF port (Step 4) reflects back and is mixed with the LO itself, giving a DC voltage. Equally, a strong RF signal that leaks into the LO port mixes with itself. The DC lands exactly in the middle of the wanted channel. With LO +7 dBm and 50 dB of LO-RF isolation, the leak is −43 dBm: about 47 dB above a −90 dBm sensitivity, eating ADC headroom and hiding weak signals near 0 Hz. It is removed by a high-pass filter or a DC-offset correction loop, both of which also remove the wanted signal's lowest frequencies. Doppler and CW returns near zero beat frequency suffer.</li>
+      <li><b>Flicker (1/f) noise.</b> Transistor and diode noise rises at low frequency. In a superhet it is far below the IF; in zero-IF it lands on the signal.</li>
+      <li><b>Even-order distortion (IIP2).</b> A strong pulsed or amplitude-modulated signal anywhere in band is squared by the mixer's second-order non-linearity, giving an envelope product at baseband. Zero-IF receivers specify IIP2 (often +50 dBm or more) for this reason; superhets filter it out.</li>
+      <li><b>LO in band.</b> The LO sits at the RF, inside the preselector and the antenna band, so the leakage radiates freely (Step 4).</li>
+    </ul>
+    <p><b>Low-IF.</b> The LO is offset by a small IF (one or two channel widths, here 20 MHz). The signal lands at +20 MHz, clear of DC and most flicker noise, so a high-pass filter removes the DC offset without touching the signal. The price: the image is now an adjacent channel only 40 MHz away, which no filter can reject, so IQ balance alone sets the image rejection, and a strong neighbour leaks onto the wanted channel at −IRR.</p>
+  </div>
+  <div class="eq">DC offset (input-referred) ≈ P<sub>LO</sub> − I<sub>LO-RF</sub> &nbsp;&nbsp; Sensitivity = −174 + NF + 10·log B + SNR<sub>min</sub> = −174 + 4 + 70 + 10 = −90 dBm<small>The DC estimate assumes the leaked LO re-enters the mixer with little loss (an unmatched LNA input reflects most of it); it is an upper-bound picture for comparison. The sensitivity is for a 10 MHz channel, 4 dB NF and 10 dB SNR.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>A single conversion straight to a low IF.</b> A 10 GHz receiver converting to a 20 MHz IF with only a filter for protection has its image at 9.96 GHz, inside any practical preselector: 0 dB of rejection. A −40 dBm emitter there appears at −40 dBm on top of the −80 dBm wanted signal.</p><p><b>Zero-IF with an ordinary mixer.</b> With 30 dB of LO-RF isolation and a +7 dBm LO, the DC offset is −23 dBm input-referred: 67 dB above a −90 dBm sensitivity, enough to saturate the baseband chain.</p></div>
+  <h3>Side by side: plans for a 10 GHz receiver, 10 MHz channel, LO-RF isolation 50 dB, IQ 0.25 dB / 1°</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Plan</th><th>Image at</th><th>Image rejected by</th><th>Image rejection</th><th>DC offset</th></tr>
+    <tr><td>Superhet, IF 1 GHz, IQ first mixer</td><td class="n">12.0 GHz</td><td>Preselector + IRR</td><td class="n">56.4 + 35.5 dB</td><td>None (IF ≠ 0)</td></tr>
+    <tr><td>Double: IF1 3 GHz, IF2 140 MHz</td><td class="n">16 GHz; then 10.28 GHz</td><td>Preselector + IRR; IF1 filter</td><td class="n">98.9 + 35.5; 46.9 dB</td><td>None</td></tr>
+    <tr><td>Zero-IF</td><td>Mirror in channel</td><td>IQ balance only</td><td class="n">35.5 dB</td><td>−43 dBm, 47 dB above sensitivity, in band</td></tr>
+    <tr><td>Low-IF, 20 MHz</td><td class="n">9.96 GHz (adjacent channel)</td><td>IQ balance only</td><td class="n">35.5 dB</td><td>−43 dBm, outside channel, high-passed</td></tr>
+  </table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Tuning range and instantaneous bandwidth:</b> wide tuning with high image rejection points to double conversion; a fixed narrow band can use a single superhet.</li><li><b>Size, power and cost:</b> zero-IF and low-IF remove the IF filters and second LO, and fit in one chip.</li><li><b>What lives near 0 Hz in your signal:</b> CW and low-Doppler returns are hurt by zero-IF DC removal; low-IF keeps them but needs IQ balance for the image.</li><li><b>Image requirement:</b> filters give 50 to 100 dB; IQ balance alone gives 25 to 40 dB analogue, about 50 to 60 dB calibrated.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cPl" width="640" height="360" aria-label="Spectrum at each conversion stage for the chosen frequency plan, showing the wanted signal, a strong emitter at the image, LO leakage, the image residue and DC offset"></canvas>
+    <div class="ctrl">
+      <label for="plA"><span>Frequency plan</span></label><select id="plA"><option value="sh" selected>Single superhet, IF 1 GHz</option><option value="dc">Double conversion, 3 GHz then 140 MHz</option><option value="zif">Zero-IF (direct conversion)</option><option value="lif">Low-IF, 20 MHz</option></select>
+      <label for="plR"><span>RF f<sub>RF</sub></span> <b id="plRv"></b></label><input id="plR" type="range" min="2" max="18" step="0.1" value="10">
+      <label for="plI"><span>LO-RF isolation</span> <b id="plIv"></b></label><input id="plI" type="range" min="20" max="80" step="0.5" value="50">
+      <label for="plQ"><span>IQ imbalance (with 1°)</span> <b id="plQv"></b></label><input id="plQ" type="range" min="0" max="1.5" step="0.01" value="0.25">
+      <div class="readout" id="plOut"></div>
+    </div>
+    <p class="cap">Each row is the spectrum at one point in the chain, as input-referred power (−130 to +10 dBm). Green: the wanted −80 dBm signal. Red: a −40 dBm emitter placed on the image (or, for zero-IF, on the in-channel mirror), and its residue after rejection. Accent: the leaked LO and, for zero-IF and low-IF, the DC offset at 0 Hz. Shaded bands are filters. In the superhet plans the first mixer is an IQ image-reject mixer, so its IRR adds to the filter.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Superhet default: image rejection 56.4 + 35.5 dB; the image emitter falls to about −132 dBm.</li><li>Double conversion: second image at 10.28 GHz with 47 dB, the worst residue.</li><li>Zero-IF at 50 dB isolation: DC −43 dBm, +47 dB above sensitivity; lower the isolation to 30 dB and it becomes +67 dB.</li><li>Low-IF: the same DC, but out of the channel and high-passed; IQ imbalance 1.5 dB drops the IRR to about 21 dB.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>IF choice</td><td>System design: image vs IF filter vs LO range vs mixer IF bandwidth</td><td>Mixer IF port range (e.g. DC–4 GHz) allows it</td><td>1 GHz IF: 56 dB filter image rejection at 10 GHz. 3 GHz IF: 99 dB, but a second conversion with its own 47 dB image.</td></tr>
+    <tr><td>DC offset (zero-IF)</td><td>LO-RF isolation, LNA input match, LO level</td><td>LO-RF isolation 50 dB</td><td>−43 dBm of DC in the channel, 47 dB above the signal floor: needs DC removal, which also blanks near-zero Doppler.</td></tr>
+    <tr><td>IIP2 (zero-IF)</td><td>Mixer balance (even-order cancellation)</td><td>IIP2 +50 dBm</td><td>Two −30 dBm blockers make a −110 dBm baseband product; a −20 dBm pulsed signal makes −90 dBm of envelope at baseband, right at sensitivity.</td></tr>
+    <tr><td>IQ balance (zero-IF, low-IF)</td><td>Hybrid, mixer and baseband matching</td><td>0.25 dB / 1°: IRR 35.5 dB</td><td>A −40 dBm neighbour appears at −76.5 dBm on the wanted channel, 13.5 dB above sensitivity.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> the plan fixes the LO range, step size and how many LOs you build. A double-conversion plan needs a tuned first LO and a fixed second LO, each with its own spurs.</li>
+    <li><b>Filter designers:</b> the plan fixes which filters exist at all. Zero-IF removes the image and IF filters and moves the selectivity into baseband low-pass filters and DSP.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does low-IF remove the DC offset problem but not the image problem?</summary><p>The signal sits at +20 MHz, so a high-pass filter can remove DC without touching it. But the image is only 40 MHz away, far too close for an RF filter, so only IQ balance rejects it.</p></details>
+    <details><summary>In the double-conversion plan, why can the preselector not reject the second image?</summary><p>The second image enters at the RF as f<sub>RF</sub> + 2 × 140 MHz = 10.28 GHz, inside the 1 GHz preselector. It is only separated from the wanted signal after the first conversion, by the 3 GHz IF filter.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="fmcw">
+  <div class="secno">Step 10</div>
+  <h2>The FMCW dechirp mixer: turning range into frequency</h2>
+  <div class="know"><h4>You already know</h4><p>A chirp is a tone whose frequency rises linearly with time. Mixing two tones gives their difference frequency (Step 1). Radar range is R = c·τ/2, where τ is the round-trip delay.</p></div>
+  <div class="col">
+    <p>A frequency-modulated continuous-wave (FMCW) radar transmits a chirp of bandwidth B over a time T, continuously. The echo from a target at range R is the same chirp, delayed by τ = 2R/c. Now use the <b>transmitted chirp itself as the LO</b> of the receive mixer. At every instant the two chirps differ in frequency by the slope times the delay, S·τ, where S = B/T. So the mixer output is a steady tone, the <b>beat frequency</b>, proportional to range. An FFT of the beat signal is a range profile. This "dechirp" or "stretch" processing replaces a GHz-wide receiver with a mixer and an ADC that only needs to cover the beat frequencies, often a few MHz.</p>
+    <p><b>What the mixer specs now mean.</b></p>
+    <ul class="col">
+      <li><b>IF bandwidth and ADC rate set maximum range:</b> R<sub>max</sub> = f<sub>beat,max</sub> · c / (2S).</li>
+      <li><b>Range resolution</b> is c/(2B), set by the chirp bandwidth, not by the IF bandwidth.</li>
+      <li><b>TX-RX leakage</b> (circulator or antenna coupling, typically only 20 to 30 dB below the transmitter) is a very strong "target" at nearly zero range: a near-DC beat that the mixer's linearity must handle and the IF high-pass must suppress. It is the FMCW form of the DC offset problem.</li>
+      <li><b>LO phase noise</b> is partly cancelled for short ranges, because the echo and the LO carry the same phase noise, delayed by τ (the range-correlation effect). Leakage from long delays is not cancelled. See the <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> module.</li>
+      <li><b>Chirp linearity</b>: any non-linearity in the chirp makes the beat frequency wander, which smears the range peak. This is a synthesiser spec seen through the mixer.</li>
+    </ul>
+  </div>
+  <div class="eq">S = B/T &nbsp;&nbsp; f<sub>beat</sub> = S · 2R/c &nbsp;&nbsp; ΔR = c/(2B) &nbsp;&nbsp; R<sub>max</sub> = (f<sub>s</sub>/2) · c / (2S)<small>f<sub>s</sub> is the ADC sample rate of a real (not IQ) beat signal, so the beat must stay below f<sub>s</sub>/2. Example: B = 150 MHz, T = 100 µs, R = 1 km: S = 1.5 MHz/µs, τ = 6.67 µs, f<sub>beat</sub> = 10.0 MHz, ΔR = 1.0 m; with f<sub>s</sub> = 20 MS/s, R<sub>max</sub> = 1 km.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p><b>Receive the chirp like a pulsed radar.</b> Digitising the whole 150 MHz chirp needs at least 300 MS/s. Dechirping first turns a target at 800 m into an 8.0 MHz tone that a 20 MS/s ADC handles.</p><p><b>Pick the ADC without checking range.</b> With 5 MS/s and the same chirp, the maximum range is only 250 m: targets beyond it alias or are lost.</p></div>
+  <h3>Side by side: chirp 150 MHz in 100 µs with three ADCs, and one wider chirp</h3>
+  <div class="tw"><table class="t"><tr><th>Chirp, ADC</th><th>Range resolution</th><th>R<sub>max</sub></th></tr><tr><td>150 MHz, 5 MS/s</td><td class="n">1.0 m</td><td class="n">250 m</td></tr><tr><td>150 MHz, 20 MS/s</td><td class="n">1.0 m</td><td class="n">1.0 km</td></tr><tr><td>150 MHz, 50 MS/s</td><td class="n">1.0 m</td><td class="n">2.5 km</td></tr><tr><td>300 MHz, 20 MS/s</td><td class="n">0.5 m</td><td class="n">500 m</td></tr></table></div>
+  <h3>How to choose</h3>
+  <div class="col"><ul><li><b>Chirp bandwidth B</b> from the range resolution: ΔR = c/(2B).</li><li><b>Chirp time T and ADC rate f<sub>s</sub></b> from the maximum range: f<sub>s</sub> ≥ 2 × S × 2R<sub>max</sub>/c. A longer chirp lowers the slope and the beat frequencies.</li><li><b>Mixer and IF:</b> the IF must reach down to the shortest range's beat, and a high-pass slope flattens the R<sup>−4</sup> echo strength and suppresses the leakage line.</li></ul></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cFm" width="640" height="340" aria-label="Transmitted and received chirps against time, and the beat spectrum at the dechirp mixer output"></canvas>
+    <div class="ctrl">
+      <label for="fmB"><span>Chirp bandwidth B</span> <b id="fmBv"></b></label><input id="fmB" type="range" min="10" max="2000" step="10" value="150">
+      <label for="fmT"><span>Chirp duration T</span> <b id="fmTv"></b></label><input id="fmT" type="range" min="10" max="1000" step="5" value="100">
+      <label for="fmR"><span>Target range R</span> <b id="fmRv"></b></label><input id="fmR" type="range" min="10" max="5000" step="10" value="800">
+      <label for="fmA"><span>ADC sample rate</span></label><select id="fmA"><option value="5">5 MS/s</option><option value="20" selected>20 MS/s</option><option value="50">50 MS/s</option></select>
+      <div class="readout" id="fmOut"></div>
+    </div>
+    <p class="cap">Top: the transmitted chirp (accent) and the echo (teal), delayed by τ; the vertical gap between them is the beat frequency. Bottom: the dechirp mixer output spectrum up to beyond the ADC Nyquist limit (shaded red above f<sub>s</sub>/2). The strong line near 0 Hz is TX-RX leakage at 0.3 m; the target line moves with range. Echo strength follows R<sup>−4</sup>, which is why FMCW IF chains use a high-pass slope to flatten it.</p>
+  </div>
+  <div class="check"><h4>Things to check</h4><ul><li>Defaults (150 MHz, 100 µs, 800 m, 20 MS/s): beat 8.01 MHz, resolution 1.0 m, R max about 1 km.</li><li>Range to 1 000 m: the beat reaches 10 MHz = f<sub>s</sub>/2 and is flagged as lost.</li><li>Bandwidth to 300 MHz: resolution 0.5 m, R max halves to 500 m.</li><li>ADC to 50 MS/s: R max 2.5 km; to 5 MS/s: 250 m.</li><li>Chirp time to 1 000 µs: slope 0.15 MHz/µs, beat 0.80 MHz.</li></ul></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Mixer IF bandwidth (low end)</td><td>IF coupling, DC blocks, IF port design down to DC</td><td>IF DC–100 MHz</td><td>The lowest beat frequencies are the shortest ranges: an IF that rolls off below 100 kHz blinds the first 10 m at S = 1.5 MHz/µs.</td></tr>
+    <tr><td>Mixer P1dB and IIP3</td><td>LO drive, mixer type</td><td>P1dB +1 dBm</td><td>TX leakage at −20 dBm is fine; at +5 dBm (poor circulator) it compresses the mixer and every target is desensitised.</td></tr>
+    <tr><td>LO (= TX) chirp linearity and phase noise</td><td>Synthesiser or VCO linearisation</td><td>Chirp non-linearity 0.01 %; phase noise</td><td>Range peak smearing and a raised noise floor around the leakage line.</td></tr>
+  </table></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>B = 300 MHz, T = 50 µs. What is the beat frequency for a target at 600 m?</summary><p>S = 6 MHz/µs, τ = 4 µs, f<sub>beat</sub> = 24 MHz. Range resolution 0.5 m.</p></details>
+    <details><summary>Why is FMCW TX-RX leakage harder than pulsed-radar leakage?</summary><p>A pulsed radar's receiver is switched off (or protected) while it transmits. An FMCW radar transmits and receives at the same time, so the leakage is always present at the mixer, and the mixer must stay linear with it.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="summary">
+  <div class="secno">Step 11</div>
+  <h2>Summary: every mixer parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Conversion loss / gain</td><td>Switching sharpness (conduction angle), balun loss, diode R<sub>s</sub>; Gilbert cell load</td><td>Ideal switch 3.9 dB; level-7 ring 6.5 dB; sets the IF gain needed and the mixer NF</td></tr>
+    <tr><td>Noise figure SSB / DSB</td><td>Conversion loss plus shot noise; DSB is ≈ 3 dB lower on paper</td><td>7 dB SSB adds 11.6 K behind a 20 dB LNA; mixer-first receiver NF ≈ 9.8 dB</td></tr>
+    <tr><td>Image-band noise</td><td>Image filter between LNA and mixer, or IQ mixer</td><td>No filter: system NF 1.75 → 4.62 dB, about 15 % radar range</td></tr>
+    <tr><td>LO drive level</td><td>Diode barrier, diodes per arm, FET threshold</td><td>3 dB short: CL 6.5 → 9.2 dB; IIP3 tracks LO dB for dB</td></tr>
+    <tr><td>LO-RF isolation</td><td>Balun balance, diode matching, symmetry</td><td>LO at antenna: EIRP −22 dBm, ESM detection 190 m (−120 dBm ESM); DC offset in zero-IF</td></tr>
+    <tr><td>LO-IF isolation</td><td>Centre-tap balance, IF filtering</td><td>LO at IF port −12 dBm: IF amplifier compression; LO spur in upconverters</td></tr>
+    <tr><td>RF-IF isolation</td><td>RF balun balance</td><td>IF feedthrough response (1,0), protected by the preselector</td></tr>
+    <tr><td>IIP3</td><td>LO drive, mixer type</td><td>Behind 20 dB LNA: system IIP3 −5.1 dBm (level 7) vs +3.8 dBm (level 17); SFDR 65 vs 71 dB in 10 MHz</td></tr>
+    <tr><td>P1dB</td><td>LO drive, mixer type</td><td>Level-7 behind 20 dB gain compresses at ≈ −19 dBm at the antenna: jammer and own-ship desensitisation</td></tr>
+    <tr><td>Spur table (m, n)</td><td>Balance (even orders), LO squareness (odd LO harmonics), RF level</td><td>Half-IF (2,2) at 10.5 GHz, 64.5 dB total; spurious-response spec 60–70 dB for ESM</td></tr>
+    <tr><td>Image rejection (filter)</td><td>IF choice, filter order and bandwidth</td><td>IF 0.2 → 1 → 3 GHz: 0.4 → 56 → 99 dB; false emitters at the wrong frequency</td></tr>
+    <tr><td>IQ amplitude / phase balance</td><td>90° hybrid, mixer and baseband matching, calibration</td><td>1 dB / 1°: 24.7 dB; 0.1 dB / 1°: 39.6 dB; 0.02 dB / 0.2°: 53.6 dB</td></tr>
+    <tr><td>Frequency plan</td><td>System choice of IF(s) and LO(s)</td><td>Superhet: filters do the work. Zero-IF: small and wideband, but DC offset, 1/f noise, IIP2 and in-band LO leakage</td></tr>
+    <tr><td>DC offset, IIP2 (zero-IF)</td><td>LO-RF isolation, mixer even-order balance</td><td>−43 dBm DC with 50 dB isolation, 47 dB above sensitivity; IIP2 +50 dBm needed against blockers</td></tr>
+    <tr><td>LO phase noise and spurs</td><td>Synthesiser (separate module)</td><td>Reciprocal mixing: transferred onto every signal; FMCW range correlation</td></tr>
+    <tr><td>FMCW dechirp: IF low end, P1dB</td><td>IF coupling to DC, LO drive</td><td>Minimum range; TX leakage compression; R<sub>max</sub> = (f<sub>s</sub>/2)·c/(2S)</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M01-lna-noise.html">LNA and receiver noise</a> (Friis, IIP3, sensitivity), <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (LO purity, reciprocal mixing), the Filters and preselectors module (image and half-IF rejection by filtering), and the receiver and ESM pages, where these numbers are combined into a complete receiver.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Balun</dt><dd>A transformer or network that converts a single-ended (unbalanced) signal into a balanced pair, equal and opposite. Its balance sets mixer isolation and even-order spur suppression.</dd>
+    <dt>Baseband</dt><dd>A band starting at or near 0 Hz.</dd>
+    <dt>Beat frequency</dt><dd>The difference frequency at a mixer output; in FMCW, proportional to target range.</dd>
+    <dt>Co-site interference</dt><dd>Interference between equipment on the same platform, such as one receiver's LO leakage seen by another.</dd>
+    <dt>Commutating mixer</dt><dd>A mixer in which the LO switches the signal path, multiplying the RF by a square-like wave.</dd>
+    <dt>Conduction angle</dt><dd>The fraction of the LO cycle during which a diode pair or FET switch conducts.</dd>
+    <dt>Conversion loss / gain</dt><dd>RF input power minus wanted IF output power (loss), or its negative (gain), in dB.</dd>
+    <dt>DC offset</dt><dd>A DC voltage at a zero-IF mixer output caused by LO self-mixing or strong-signal self-mixing; it lies in the middle of the wanted channel.</dd>
+    <dt>Dechirp (stretch) processing</dt><dd>Mixing a received chirp with a replica of the transmitted chirp so that delay becomes a beat frequency.</dd>
+    <dt>Double-balanced mixer</dt><dd>A mixer balanced at both RF and LO ports (typically a four-diode ring with two baluns), giving port isolation and suppression of even-order products.</dd>
+    <dt>Double conversion</dt><dd>A receiver with two mixers: a high first IF for easy image rejection, then a low second IF for channel filtering.</dd>
+    <dt>DSB noise figure</dt><dd>Mixer noise figure measured with the signal in both the wanted and image bands; about 3 dB lower than SSB.</dd>
+    <dt>Flicker (1/f) noise</dt><dd>Device noise whose power rises as frequency falls; a problem when the signal is converted to near 0 Hz.</dd>
+    <dt>FMCW</dt><dd>Frequency-modulated continuous wave: a radar that transmits a continuous chirp and receives at the same time.</dd>
+    <dt>Frequency plan</dt><dd>The choice of IF(s) and LO frequencies for a receiver or transmitter.</dd>
+    <dt>Gilbert cell</dt><dd>An active, transistor-based double-balanced mixer with conversion gain and low LO drive.</dd>
+    <dt>Half-IF spur</dt><dd>The (2,2) spurious response at f<sub>LO</sub> ∓ f<sub>IF</sub>/2, only half an IF from the wanted signal.</dd>
+    <dt>Hartley image-reject mixer</dt><dd>An IQ mixer followed by an analogue 90° IF hybrid that cancels the image.</dd>
+    <dt>High-side / low-side LO</dt><dd>LO above or below the wanted RF.</dd>
+    <dt>IF (intermediate frequency)</dt><dd>The fixed frequency a superheterodyne receiver converts to, where filtering, gain and digitising are done.</dd>
+    <dt>IF feedthrough</dt><dd>The (1,0) response: an input at the IF frequency passing straight through the mixer, limited by RF-IF isolation.</dd>
+    <dt>IIP2</dt><dd>Input second-order intercept point: the input power at which the extrapolated second-order product equals the fundamental. Critical in zero-IF receivers.</dd>
+    <dt>IIP3</dt><dd>Input third-order intercept point; see the LNA module. For a diode mixer, roughly P<sub>LO</sub> + 8 to 10 dB.</dd>
+    <dt>Image frequency</dt><dd>The other input frequency that converts to the same IF, at 2f<sub>LO</sub> − f<sub>RF</sub>.</dd>
+    <dt>Image rejection ratio (IRR)</dt><dd>Wanted output power divided by image output power, in dB, for equal inputs.</dd>
+    <dt>IQ (quadrature) mixer</dt><dd>Two mixers driven by LOs 90° apart, giving a complex output that separates positive from negative frequencies.</dd>
+    <dt>Isolation (LO-RF, LO-IF, RF-IF)</dt><dd>Leakage between mixer ports, in dB below the driving signal.</dd>
+    <dt>LO (local oscillator)</dt><dd>The strong reference tone that drives the mixer.</dd>
+    <dt>LO drive level</dt><dd>The LO power a mixer is designed for ("level 7" = +7 dBm).</dd>
+    <dt>LO leakage</dt><dd>LO power escaping through a mixer port, and possibly out of the antenna.</dd>
+    <dt>Low-IF</dt><dd>A receiver that converts to a small IF of one or two channel widths, using an IQ mixer for image rejection.</dd>
+    <dt>P1dB</dt><dd>The input power at which gain has fallen 1 dB below its small-signal value.</dd>
+    <dt>Preselector</dt><dd>The band-pass filter at the receiver input that removes images and other out-of-band signals.</dd>
+    <dt>Range resolution</dt><dd>The smallest range separation at which two targets are resolved: c/(2B).</dd>
+    <dt>Reciprocal mixing</dt><dd>The transfer of LO phase noise onto a strong nearby signal, raising the noise around it (synthesiser module).</dd>
+    <dt>Self-mixing</dt><dd>A signal (LO or strong RF) mixing with itself through leakage, producing DC.</dd>
+    <dt>SFDR</dt><dd>Spur-free dynamic range: from the noise floor to the input at which third-order products reach the noise, (2/3)(IIP3 − N).</dd>
+    <dt>Spur chart / spur table</dt><dd>A chart of output frequencies |m f<sub>in</sub> ± n f<sub>LO</sub>| against input frequency, and the datasheet table of their levels in dBc.</dd>
+    <dt>Spurious response</dt><dd>An input frequency other than the tuned one that produces an output in the IF passband.</dd>
+    <dt>SSB noise figure</dt><dd>Mixer noise figure with the signal in one band and noise from both: the number to use for radar and ESM.</dd>
+    <dt>Superheterodyne</dt><dd>A receiver that converts to a fixed IF with a tunable LO.</dd>
+    <dt>Upconverter</dt><dd>A mixer used to move a signal up in frequency, in a transmitter.</dd>
+    <dt>Zero-IF (direct conversion)</dt><dd>A receiver whose LO equals the RF, converting straight to baseband with an IQ mixer.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Maas, <i>Microwave Mixers</i> and <i>Nonlinear Microwave and RF Circuits</i>; Razavi, <i>RF Microelectronics</i>; Pozar, <i>Microwave Engineering</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>; Skolnik, <i>Introduction to Radar Systems</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const T0=290;
+const dBs=(x,d)=>isFinite(x)?(x>=0?'+':'')+x.toFixed(d??1):'n/a';
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+function shade(g,x,y,w,h,color,a){ g.save(); g.globalAlpha=a||0.15; g.fillStyle=color; g.fillRect(x,y,w,h); g.restore(); }
+const fG=f=>f.toFixed(f<1?3:2)+' GHz';
+// Butterworth band-pass attenuation, dB, capped
+function bpA(f,f0,B,N){ if(f<=0) return 120; const W=(f/f0-f0/f)*f0/B; return Math.min(120,10*Math.log10(1+Math.pow(Math.abs(W),2*N))); }
+// IQ image rejection ratio, dB, capped at 80
+function irr(AdB,phDeg){ const g=Math.pow(10,AdB/20), c=Math.cos(phDeg*deg); const den=1-2*g*c+g*g; if(den<1e-8) return 80; return Math.min(80,db((1+2*g*c+g*g)/den)); }
+
+/* ---------- Step 1: multiplication ---------- */
+function muDraw(){
+  const fR=+$('muR').value, fL=+$('muL').value, sq=$('muW').value==='sq';
+  $('muRv').textContent=fR.toFixed(2)+' GHz'; $('muLv').textContent=fL.toFixed(2)+' GHz';
+  const c=$('cMu'), g=ctx(c), x0=56, w=c.width-x0-14, Tn=10;
+  const lo=t=>{ const v=Math.cos(TAU*fL*t); return sq?(v>=0?1:-1):v; };
+  const rows=[['RF',t=>Math.cos(TAU*fR*t),css('--trace')],['LO',lo,css('--accent')],['RF × LO',t=>Math.cos(TAU*fR*t)*lo(t),css('--trace2')]];
+  rows.forEach((r,i)=>{ const yc=30+i*50, A=17;
+    hline(g,x0,w,yc,css('--grid'),[]);
+    g.strokeStyle=r[2]; g.lineWidth=1.4; g.beginPath();
+    for(let k=0;k<=1200;k++){ const t=Tn*k/1200, y=yc-A*r[1](t), x=x0+w*k/1200; k?g.lineTo(x,y):g.moveTo(x,y); } g.stroke(); g.lineWidth=1;
+    txt(g,r[0],6,yc+4,r[2]); });
+  txt(g,'0',x0,174,css('--muted')); txt(g,'10 ns',x0+w-40,174,css('--muted'));
+  const P=plot(g,x0,196,w,110,0,10,0,0.7,[],{ny:7>0?7:7,nx:10,fy:v=>v.toFixed(1),fx:v=>v.toFixed(0),xl:'output frequency, GHz'});
+  const lines=[]; const nmax=sq?9:1;
+  for(let n=1;n<=nmax;n+=2){ const a=sq?(2/Math.PI)/n:0.5; lines.push({f:Math.abs(fR-n*fL),a,n,s:'−'}); lines.push({f:fR+n*fL,a,n,s:'+'}); }
+  lines.forEach(L=>{ if(L.f>10) return; const x=P.X(L.f); const col=(L.n===1&&L.s==='−')?css('--good'):(L.n===1?css('--trace'):css('--trace2'));
+    g.strokeStyle=col; g.lineWidth=3; g.beginPath(); g.moveTo(x,P.Y(0)); g.lineTo(x,P.Y(L.a)); g.stroke(); g.lineWidth=1;
+    if(L.n<=3){ const s=L.n===1?(L.s==='−'?'IF':'sum'):`${L.s}3LO`; txt(g,s,clamp(x-12,x0+2,x0+w-34),P.Y(L.a)-5,col); } });
+  const IF=Math.abs(fR-fL), im=2*fL-fR; const aIF=sq?2/Math.PI:0.5;
+  ro($('muOut'),[['IF |RF − LO|',IF<0.005?'0 (DC)':fG(IF)],['sum RF + LO',fG(fR+fL)],['image (same IF)',im>0.005&&Math.abs(im-fR)>0.005?fG(im):'none'],['IF amplitude',aIF.toFixed(3)+' V'],['conversion',(20*Math.log10(aIF)).toFixed(2)+' dB'],['lines shown',sq?'odd LO harmonics':'2']]);
+}
+bind(['muR','muL','muW'],muDraw);
+
+/* ---------- Step 2: switching ---------- */
+const SW={lb:{n:'low-barrier',V:0.4,fix:0.9,ip:0},mb:{n:'medium-barrier',V:0.6,fix:0.9,ip:0},hb:{n:'high-barrier',V:0.9,fix:0.9,ip:0},fet:{n:'FET',V:0.5,fix:0.6,ip:5}};
+const vpk=P=>Math.sqrt(0.1*lin(P));
+function swCL(P,t){ const r=t.V/vpk(P); if(r>=1) return NaN; return -20*Math.log10(2/Math.PI*Math.sin(Math.acos(r)))+t.fix; }
+function swDraw(){
+  const P=+$('swP').value, t=SW[$('swD').value]; $('swPv').textContent=dBs(P)+' dBm';
+  const c=$('cSw'), g=ctx(c), x0=56, w=c.width-x0-14; const A=vpk(P), r=t.V/A;
+  // top: LO waveform, scale ±4 V
+  const y0=14, h=96, yc=y0+h/2, sc=(h/2)/4;
+  g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h);
+  for(let k=0;k<w;k++){ const ph=TAU*2*k/w, v=A*Math.cos(ph); if(Math.abs(v)>t.V) shade(g,x0+k,y0,1,h,css('--trace'),0.16); }
+  hline(g,x0,w,yc-t.V*sc,css('--muted')); hline(g,x0,w,yc+t.V*sc,css('--muted'));
+  g.strokeStyle=css('--accent'); g.lineWidth=1.8; g.beginPath(); for(let k=0;k<=w;k++){ const v=A*Math.cos(TAU*2*k/w), y=yc-clamp(v,-4,4)*sc; k?g.lineTo(x0+k,y):g.moveTo(x0+k,y);} g.stroke(); g.lineWidth=1;
+  txt(g,'+4 V',x0-38,y0+10,css('--muted')); txt(g,'−4 V',x0-38,y0+h,css('--muted')); txt(g,'±Vth',x0+w-42,yc-t.V*sc-4,css('--muted'));
+  // middle: switch state
+  const y1=124, h1=40, yc1=y1+h1/2; g.strokeStyle=css('--line'); g.strokeRect(x0,y1,w,h1);
+  g.strokeStyle=css('--trace2'); g.lineWidth=1.8; g.beginPath(); for(let k=0;k<=w;k++){ const v=Math.cos(TAU*2*k/w); const s=Math.abs(v)>r?Math.sign(v):0; const y=yc1-s*(h1/2-4); k?g.lineTo(x0+k,y):g.moveTo(x0+k,y);} g.stroke(); g.lineWidth=1;
+  txt(g,'+1',x0-24,y1+10,css('--muted')); txt(g,'0',x0-18,yc1+4,css('--muted')); txt(g,'−1',x0-24,y1+h1,css('--muted'));
+  txt(g,'switch state',x0+4,y1-3,css('--muted'));
+  // bottom: CL vs P
+  const xs=[]; for(let p=-5;p<=23.001;p+=0.1) xs.push(p);
+  const curves=Object.keys(SW).map(k=>({x:xs,y:xs.map(p=>swCL(p,SW[k])),color:SW[k]===t?css('--accent'):css('--muted'),w:SW[k]===t?2.4:1,dash:SW[k]===t?[]:[3,3]}));
+  const Pp=plot(g,x0,190,w,118,-5,23,3,15,curves,{ny:4,nx:7,fx:v=>dBs(v,0),xl:'LO drive, dBm',yl:'conversion loss, dB'});
+  const cl=swCL(P,t); if(isFinite(cl)) dot(g,Pp.X(P),Pp.Y(cl),css('--accent'),5);
+  const on=r<1?2*Math.acos(r)/Math.PI:0; const sphi=r<1?Math.sin(Math.acos(r)):0;
+  const ip=P+3+6*sphi+t.ip;
+  ro($('swOut'),[['LO peak (50 Ω)',A.toFixed(3)+' V'],['threshold Vth',t.V.toFixed(2)+' V'],['on fraction',(on*100).toFixed(1)+' %'],['conversion loss',isFinite(cl)?(cl>30?'> 30 dB':cl.toFixed(2)+' dB'):'no switching'],['IIP3 (estimate)',r<1?dBs(ip)+' dBm':'n/a'],['P1dB (estimate)',r<1?dBs(ip-14)+' dBm':'n/a']]);
+}
+bind(['swP','swD'],swDraw);
+
+/* ---------- Step 3: noise ---------- */
+const NFM={pd:{Gc:-6.5,NF:7,n:'passive diode'},pf:{Gc:-6,NF:6.5,n:'passive FET'},gc:{Gc:10,NF:11,n:'Gilbert cell'}};
+function nfDraw(){
+  const G=+$('nfG').value, N=+$('nfN').value, m=NFM[$('nfM').value], R=+$('nfR').value, Fi=+$('nfI').value;
+  $('nfGv').textContent=G.toFixed(1)+' dB'; $('nfNv').textContent=N.toFixed(2)+' dB'; $('nfRv').textContent=R.toFixed(1)+' dB'; $('nfIv').textContent=Fi.toFixed(1)+' dB';
+  const F1=lin(N), g1=lin(G), gc=lin(m.Gc), fm=lin(m.NF), fi=lin(Fi), r=lin(R);
+  const t=[F1-1,(F1*g1-1)/(r*g1),(fm-1)/g1,(fi-1)/(g1*gc)].map(x=>x*T0);
+  const Te=t.reduce((a,b)=>a+b), NF=db(1+Te/T0);
+  const t0=[F1-1,(F1*g1-1)/(lin(80)*g1),(fm-1)/g1,(fi-1)/(g1*gc)].map(x=>x*T0); const NFbest=db(1+t0.reduce((a,b)=>a+b)/T0);
+  const c=$('cNf'), g=ctx(c), x0=146, w=c.width-x0-70, y0=24, bh=34, gap=18;
+  const names=['LNA','image-band noise','mixer','IF amplifier'], cols=[css('--trace'),css('--bad'),css('--trace2'),css('--muted')];
+  const mx=Math.max(50,Te)*1.08;
+  const step=mx>2000?500:mx>800?200:mx>300?100:mx>120?50:20;
+  g.strokeStyle=css('--grid'); for(let v=0;v<=mx;v+=step){ const x=x0+w*v/mx; g.beginPath(); g.moveTo(x,y0-6); g.lineTo(x,y0+4*(bh+gap)+bh+4); g.stroke(); const s=v.toFixed(0); txt(g,s,x-g.measureText(s).width/2,y0+4*(bh+gap)+bh+18,css('--muted')); }
+  txt(g,'kelvin, referred to the LNA input',x0+w-g.measureText('kelvin, referred to the LNA input').width,y0+4*(bh+gap)+bh+32,css('--muted'));
+  t.forEach((v,i)=>{ const y=y0+i*(bh+gap); g.fillStyle=cols[i]; g.fillRect(x0,y,Math.max(1,w*v/mx),bh); txt(g,names[i],8,y+bh/2+4,css('--ink')); txt(g,v.toFixed(1)+' K',x0+Math.min(w*v/mx,w-60)+6,y+bh/2+4,css('--ink')); });
+  const y=y0+4*(bh+gap); g.fillStyle=css('--accent'); g.fillRect(x0,y,Math.max(1,w*Te/mx),bh); txt(g,'total Te',8,y+bh/2+4,css('--ink')); txt(g,Te.toFixed(1)+' K  NF '+NF.toFixed(2)+' dB',x0+Math.min(w*Te/mx,w-170)+6,y+bh/2+4,css('--ink'));
+  const sens=-174+NF+70+10;
+  ro($('nfOut'),[['system NF',NF.toFixed(2)+' dB'],['system Te',Te.toFixed(1)+' K'],['mixer NF SSB',m.NF.toFixed(1)+' dB'],['mixer NF DSB',(m.NF-3).toFixed(1)+' dB'],['image-noise penalty',sdb(NF-NFbest)],['sensitivity 10 MHz',sens.toFixed(1)+' dBm']]);
+}
+bind(['nfG','nfN','nfM','nfR','nfI'],nfDraw);
+
+/* ---------- Step 4: isolation ---------- */
+function isDraw(){
+  const P=+$('isP').value, I=+$('isI').value, L=+$('isL').value, F=+$('isF').value, S=+$('isE').value, Ga=15, f=10e9;
+  $('isPv').textContent=dBs(P)+' dBm'; $('isIv').textContent=I.toFixed(1)+' dB'; $('isLv').textContent=L.toFixed(1)+' dB'; $('isFv').textContent=F.toFixed(1)+' dB';
+  const atRF=P-I, atAnt=atRF-L-F, eirp=atAnt+Ga; const k=20*Math.log10(4*Math.PI*f/c0);
+  const Rx=R=>eirp-(20*Math.log10(R)+k);
+  const Rd=Math.pow(10,(eirp-S-k)/20);
+  const c=$('cIso'), g=ctx(c), x0=60, w=c.width-x0-16, xs=[], ys=[];
+  for(let u=0;u<=5.0001;u+=0.02){ xs.push(u); ys.push(Rx(Math.pow(10,u))); }
+  const Pp=plot(g,x0,22,w,250,0,5,-170,0,[{x:xs,y:ys,color:css('--accent'),w:2.2}],{ny:17>0?17:17,nx:5,fy:v=>(Math.round(v)%20===0)?v.toFixed(0):'',fx:v=>['1 m','10 m','100 m','1 km','10 km','100 km'][Math.round(v)],xl:'distance from the antenna',yl:'LO power received by ESM, dBm'});
+  hline(g,x0,w,Pp.Y(S),css('--bad')); txt(g,'ESM sensitivity '+S+' dBm',x0+w-180,Pp.Y(S)-5,css('--bad'));
+  const u=Math.log10(Rd); if(u>=0&&u<=5){ vline(g,Pp.X(u),22,250,css('--bad')); dot(g,Pp.X(u),Pp.Y(S),css('--bad'),5); txt(g,'detected up to '+fmt(Rd,'m',Rd<10?1:0),clamp(Pp.X(u)+6,x0+4,x0+w-190),40,css('--bad')); }
+  dot(g,Pp.X(1),Pp.Y(Rx(10)),css('--trace2'),5); txt(g,'co-site 10 m',Pp.X(1)+8,Pp.Y(Rx(10))-6,css('--trace2'));
+  txt(g,'EIRP '+dBs(eirp)+' dBm at 15 dBi, f = 10 GHz',x0+8,38,css('--accent'));
+  ro($('isOut'),[['LO at mixer RF port',dBs(atRF)+' dBm'],['LO at antenna port',dBs(atAnt)+' dBm'],['EIRP (15 dBi)',dBs(eirp)+' dBm'],['co-site at 10 m',dBs(Rx(10))+' dBm'],['ESM detection range',Rd<1?'< 1 m':fmt(Rd,'m',Rd<10?1:0)],['range × per +6 dB iso','÷ 2']]);
+}
+bind(['isP','isI','isL','isF','isE'],isDraw);
+
+/* ---------- Step 5: linearity ---------- */
+const LIM={l7:{ip:15,p1:1,Gc:-6.5,NF:7},l13:{ip:20,p1:7,Gc:-6.5,NF:7},l17:{ip:25,p1:11,Gc:-7,NF:7.5},gil:{ip:5,p1:-8,Gc:10,NF:11}};
+function liDraw(){
+  const m=LIM[$('liM').value], G=+$('liG').value, IL=+$('liI').value, lb=+$('liB').value, B=Math.pow(10,lb);
+  $('liGv').textContent=G.toFixed(1)+' dB'; $('liIv').textContent=dBs(IL)+' dBm'; $('liBv').textContent=fmt(B,'Hz',B<1e6?0:1);
+  const ipS=db(1/(1/lin(IL)+lin(G)/lin(m.ip))), p1S=db(1/(1/lin(IL-10)+lin(G)/lin(m.p1)));
+  const F1=lin(1.5), g1=lin(G), Fs=F1+(lin(m.NF)-1)/g1+(lin(3)-1)/(g1*lin(m.Gc)), NF=db(Fs);
+  const N=-174+NF+10*Math.log10(B), sfdr=2/3*(ipS-N);
+  const c=$('cLi'), g=ctx(c), x0=60, w=c.width-x0-16; const xs=[]; for(let x=-140;x<=30.001;x+=0.5) xs.push(x);
+  const fund=xs.map(x=>x-10*Math.log10(1+Math.pow(10,(x-p1S-5.87)/10)));
+  const im3=xs.map(x=>{const v=3*x-2*ipS; return v<N-25?NaN:v;});
+  const ext=xs.map(x=>x>p1S-10?x:NaN);
+  const P=plot(g,x0,22,w,270,-140,30,-140,30,[{x:xs,y:ext,color:css('--muted'),dash:[3,3],w:1},{x:xs,y:fund,color:css('--trace'),w:2.2},{x:xs,y:im3,color:css('--trace2'),w:2.2}],{ny:17,nx:17,fy:v=>(Math.round(v)%20===0)?v.toFixed(0):'',fx:v=>(Math.round(v)%20===0)?v.toFixed(0):'',xl:'input power at LNA input, dBm',yl:'output referred to input, dBm'});
+  hline(g,x0,w,P.Y(N),css('--muted')); txt(g,'noise floor '+N.toFixed(1)+' dBm',x0+6,P.Y(N)+14,css('--muted'));
+  if(ipS<=30){ dot(g,P.X(ipS),P.Y(ipS),css('--accent'),5); txt(g,'IIP3 '+dBs(ipS)+' dBm',clamp(P.X(ipS)-120,x0+4,x0+w-130),P.Y(ipS)-8,css('--accent')); }
+  const pf=p1S-1; dot(g,P.X(p1S),P.Y(pf),css('--bad'),4); txt(g,'P1dB',P.X(p1S)+6,P.Y(pf)+14,css('--bad'));
+  const xsf=(N+2*ipS)/3; if(xsf>-140&&xsf<30){ const X=P.X(xsf); g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(X,P.Y(N)); g.lineTo(X,P.Y(xsf)); g.stroke(); g.lineWidth=1; txt(g,'SFDR '+sfdr.toFixed(1)+' dB',X-g.measureText('SFDR '+sfdr.toFixed(1)+' dB').width-8,(P.Y(N)+P.Y(xsf))/2,css('--accent')); }
+  txt(g,'signal',P.X(-60)+4,P.Y(-60)-6,css('--trace')); txt(g,'IM3',P.X(Math.min(20,(N-10+2*ipS)/3+8)),P.Y(Math.min(25,3*Math.min(20,(N-10+2*ipS)/3+8)-2*ipS))+14,css('--trace2'));
+  ro($('liOut'),[['system IIP3',dBs(ipS)+' dBm'],['system P1dB',dBs(p1S)+' dBm'],['system NF',NF.toFixed(2)+' dB'],['noise floor',N.toFixed(1)+' dBm'],['SFDR',sfdr.toFixed(1)+' dB'],['gain before mixer',G.toFixed(1)+' dB']]);
+}
+bind(['liM','liG','liI','liB'],liDraw);
+
+/* ---------- Step 6: spur chart ---------- */
+function spurRej(m,n,P){ let b=25*(m-1)+(n>=1?12*(n-1):25)+(m%2===0?10:0)+(n>0&&n%2===0?15:0); return b+(m-1)*(-10-P); }
+function spDraw(){
+  const fR=+$('spR').value, fI=+$('spI').value, hi=$('spS').value==='hi', Bp=+$('spB').value, P=+$('spP').value, N=+$('spN').value, zoom=$('spZ').value==='zoom';
+  $('spRv').textContent=fR.toFixed(2)+' GHz'; $('spIv').textContent=fG(fI); $('spBv').textContent=Bp.toFixed(2)+' GHz'; $('spPv').textContent=dBs(P,0)+' dBm';
+  const L=hi?fR+fI:fR-fI, img=hi?fR+2*fI:fR-2*fI;
+  const resp=[];
+  for(let m=1;m<=N;m++) for(let n=0;n<=N-m;n++) for(const s of [1,-1]){ const x=(n*L+s*fI)/m; if(x<=0.01) continue;
+    if(resp.some(q=>q.m===m&&q.n===n&&Math.abs(q.x-x)<1e-9)) continue;
+    const wanted=(m===1&&n===1&&Math.abs(x-fR)<1e-6); const isImg=(m===1&&n===1&&!wanted);
+    const rj=wanted?0:spurRej(m,n,P)+bpA(x,fR,Bp,5); resp.push({m,n,x,wanted,isImg,rj:Math.min(rj,160)}); }
+  const xa=zoom?Math.max(0,Math.min(fR,img,fR-1.5*Bp)-0.3*fI):0, xb=zoom?Math.max(fR,img,fR+1.5*Bp)+0.3*fI:Math.max(2.2*L,img+1,fR+Bp);
+  const ya=0, yb=3*fI;
+  const c=$('cSp'), g=ctx(c), x0=60, y0=22, w=c.width-x0-16, h=290;
+  const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-v)/(yb-ya);
+  frame(g,x0,y0,w,h,6);
+  shade(g,X(fR-Bp/2),y0,X(fR+Bp/2)-X(fR-Bp/2),h,css('--good'),0.12);
+  shade(g,x0,Y(fI*1.05),w,Y(fI*0.95)-Y(fI*1.05),css('--accent'),0.22);
+  g.save(); g.beginPath(); g.rect(x0,y0,w,h); g.clip();
+  const ocol=o=>o<=2?css('--accent'):o===3?css('--trace'):o<=5?css('--trace2'):css('--muted');
+  for(let m=1;m<=N;m++) for(let n=0;n<=N-m;n++){ const o=m+n; g.strokeStyle=ocol(o); g.lineWidth=(m===1&&n===1)?2.2:1; g.setLineDash(o>5?[3,3]:[]);
+    g.beginPath(); const K=600; for(let k=0;k<=K;k++){ const x=xa+(xb-xa)*k/K, y=Math.abs(m*x-n*L); const px=X(x), py=Y(y); k?g.lineTo(px,py):g.moveTo(px,py);} g.stroke();
+    if(n>0){ g.beginPath(); for(let k=0;k<=60;k++){ const x=xa+(xb-xa)*k/60, y=m*x+n*L; const px=X(x),py=Y(y); k?g.lineTo(px,py):g.moveTo(px,py);} g.stroke(); } }
+  g.setLineDash([]); g.lineWidth=1; g.restore();
+  // axes labels
+  g.fillStyle=css('--muted'); for(let k=0;k<=6;k++){ const v=yb*k/6, s=v.toFixed(2); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  for(let k=0;k<=5;k++){ const v=xa+(xb-xa)*k/5, s=v.toFixed(xb-xa<4?2:1); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width),y0+h+15); }
+  txt(g,'input frequency at mixer, GHz',x0+w-218,y0+h+29,css('--muted')); txt(g,'output frequency, GHz',x0,y0-7,css('--muted'));
+  txt(g,'IF band',x0+4,Y(fI*1.05)-4,css('--accent')); txt(g,'preselector',clamp(X(fR+Bp/2)+4,x0+4,x0+w-84),y0+14,css('--good'));
+  const vis=resp.filter(q=>q.x>=xa&&q.x<=xb);
+  vis.forEach(q=>{ const col=q.wanted?css('--good'):q.isImg?css('--bad'):css('--ink'); const rad=q.wanted?6:2+5*clamp((90-q.rj)/90,0,1); dot(g,X(q.x),Y(fI),col,rad); });
+  const others=resp.filter(q=>!q.wanted&&!q.isImg).sort((a,b)=>a.rj-b.rj);
+  const lab=[resp.find(q=>q.wanted),resp.find(q=>q.isImg),...others.slice(0,3)].filter(Boolean);
+  lab.forEach((q,i)=>{ if(q.x<xa||q.x>xb) return; const s=q.wanted?'wanted':q.isImg?'image':`${q.m}×${q.n}`; const yy=Y(fI)+(i%2?22:-12)+(i>2?(i%2?12:-12):0); txt(g,s,clamp(X(q.x)-g.measureText(s).width/2,x0+2,x0+w-g.measureText(s).width-2),yy,q.wanted?css('--good'):q.isImg?css('--bad'):css('--ink')); });
+  const hIF=resp.find(q=>q.m===2&&q.n===2&&Math.abs(q.x-(hi?L-fI/2:L+fI/2))<1e-6);
+  const inPre=resp.filter(q=>!q.wanted&&Math.abs(q.x-fR)<=Bp/2).length;
+  const wst=others[0]; const imq=resp.find(q=>q.isImg);
+  ro($('spOut'),[['LO',fG(L)],['image',imq?imq.x.toFixed(2)+' · '+imq.rj.toFixed(0)+' dB':'n/a'],['half-IF 2×2',hIF?hIF.x.toFixed(2)+' · '+hIF.rj.toFixed(0)+' dB':(N<4?'order > N':'n/a')],['responses, m+n ≤ '+N,String(resp.length-1)],['inside preselector',String(inPre)],['worst spur',wst?`${wst.m}×${wst.n} at ${wst.x.toFixed(2)}`:'n/a'],['its rejection',wst?wst.rj.toFixed(0)+' dB':'n/a'],['view (GHz)',zoom?`${xa.toFixed(1)}–${xb.toFixed(1)}`:'0–'+xb.toFixed(1)]]);
+}
+bind(['spR','spI','spS','spB','spP','spN','spZ'],spDraw);
+
+/* ---------- Step 7: image filter ---------- */
+function imDraw(){
+  const fR=+$('imR').value, fI=+$('imI').value, bf=+$('imB').value, N=+$('imN').value, B=fR*bf/100;
+  $('imRv').textContent=fR.toFixed(1)+' GHz'; $('imIv').textContent=fG(fI); $('imBv').textContent=bf.toFixed(1)+' %, '+B.toFixed(2)+' GHz';
+  const LO=fR+fI, im=fR+2*fI; const Ai=bpA(im,fR,B,N), Al=bpA(LO,fR,B,N);
+  const xa=Math.max(0.02,fR-B-0.6*fI), xb=im+0.8*B+0.4*fI; const xs=[],ys=[]; for(let k=0;k<=500;k++){ const f=xa+(xb-xa)*k/500; xs.push(f); ys.push(-bpA(f,fR,B,N)); }
+  const c=$('cIm'), g=ctx(c), x0=60, w=c.width-x0-16;
+  const P=plot(g,x0,22,w,250,xa,xb,-120,5,[{x:xs,y:ys,color:css('--trace'),w:2.2}],{ny:5,nx:5,fx:v=>v.toFixed(xb-xa<2?2:1),fy:v=>v.toFixed(0),xl:'frequency, GHz',yl:'filter response, dB'});
+  vline(g,P.X(fR),22,250,css('--good'),[]); txt(g,'wanted',clamp(P.X(fR)-60,x0+2,x0+w-60),40,css('--good'));
+  vline(g,P.X(LO),22,250,css('--accent')); txt(g,'LO',P.X(LO)+4,56,css('--accent'));
+  vline(g,P.X(im),22,250,css('--bad'),[]); dot(g,P.X(im),P.Y(-Ai),css('--bad'),5); txt(g,'image −'+Ai.toFixed(1)+' dB',clamp(P.X(im)-50,x0+2,x0+w-120),P.Y(-Ai)-10<30?P.Y(-Ai)+18:P.Y(-Ai)-10,css('--bad'));
+  hline(g,x0,w,P.Y(-60),css('--muted')); txt(g,'60 dB goal',x0+4,P.Y(-60)-4,css('--muted'));
+  // lowest IF for 60 dB
+  let lo=0.001, hiF=50; if(bpA(fR+2*hiF,fR,B,N)<60) lo=NaN; else for(let i=0;i<60;i++){ const mid=(lo+hiF)/2; if(bpA(fR+2*mid,fR,B,N)>=60) hiF=mid; else lo=mid; }
+  ro($('imOut'),[['LO (high-side)',fG(LO)],['image',fG(im)],['image rejection',Ai.toFixed(1)+' dB'],['rejection at LO',Al.toFixed(1)+' dB'],['−30 dBm at image →',(-30-Ai).toFixed(1)+' dBm'],['IF for 60 dB',isFinite(lo)?fG(hiF):'> 50 GHz']]);
+}
+bind(['imR','imI','imB','imN'],imDraw);
+
+/* ---------- Step 8: IQ ---------- */
+function iqDraw(){
+  const A=+$('iqA').value, Pd=+$('iqP').value, k=+$('iqC').value; $('iqAv').textContent=A.toFixed(2)+' dB'; $('iqPv').textContent=Pd.toFixed(2)+'°';
+  const R0=irr(A,Pd), Ae=A*k, Pe=Pd*k, R1=irr(Ae,Pe);
+  const c=$('cIq'), g=ctx(c), x0=56, y0=22, w=330, h=262;
+  const X=a=>x0+w*a/2, Y=p=>y0+h*(1-p/10);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted');
+  for(let i=0;i<=5;i++){ const s=(2*i).toFixed(0)+'°'; g.fillText(s,x0-6-g.measureText(s).width,Y(2*i)+4); }
+  for(let i=0;i<=4;i++){ const s=(0.5*i).toFixed(1); g.fillText(s,clamp(X(0.5*i)-g.measureText(s).width/2,x0,x0+w-20),y0+h+15); }
+  txt(g,'amplitude imbalance, dB',x0+w-170,y0+h+29,css('--muted')); txt(g,'phase error',x0,y0-7,css('--muted'));
+  [20,25,30,35,40,50].forEach((L,j)=>{ g.strokeStyle=j%2?css('--trace2'):css('--trace'); g.lineWidth=1.4; g.beginPath(); let st=false; const pts=[];
+    for(let a=0;a<=2.0001;a+=0.01){ if(irr(a,0)<L){ continue; } let lo=0, hi=10; if(irr(a,10)>=L){ continue; } for(let i=0;i<40;i++){ const mid=(lo+hi)/2; if(irr(a,mid)>=L) lo=mid; else hi=mid; } const px=X(a), py=Y(lo); st?g.lineTo(px,py):g.moveTo(px,py); st=true; pts.push([px,py]); }
+    g.stroke(); g.lineWidth=1; if(pts.length){ const q=pts[Math.floor(pts.length*0.55)]; txt(g,L+' dB',q[0]+5,q[1]-4,g.strokeStyle); } });
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.arc(X(A),Y(Pd),6,0,TAU); g.stroke(); g.lineWidth=1;
+  dot(g,X(Ae),Y(Pe),css('--accent'),4);
+  // right spectrum
+  const sx=x0+w+56, sw=c.width-sx-14; const SY=v=>y0+h*(-v)/80;
+  frame(g,sx,y0,sw,h,4); g.fillStyle=css('--muted'); for(let i=0;i<=4;i++){ const s=(-20*i).toFixed(0); g.fillText(s,sx-6-g.measureText(s).width,SY(-20*i)+4); }
+  txt(g,'dB',sx,y0-7,css('--muted')); txt(g,'−fIF',sx+sw*0.25-14,y0+h+15,css('--muted')); txt(g,'0',sx+sw*0.5-4,y0+h+15,css('--muted')); txt(g,'+fIF',sx+sw*0.75-14,y0+h+15,css('--muted'));
+  const bar=(x,v,col)=>{ g.strokeStyle=col; g.lineWidth=4; g.beginPath(); g.moveTo(x,SY(-80)); g.lineTo(x,SY(Math.max(-80,v))); g.stroke(); g.lineWidth=1; };
+  bar(sx+sw*0.75,0,css('--good')); bar(sx+sw*0.25-6,-R0,css('--muted')); bar(sx+sw*0.25+6,-R1,css('--bad'));
+  txt(g,'wanted',sx+sw*0.75-22,SY(0)+14,css('--good')); txt(g,'image',sx+sw*0.25-18,SY(-Math.min(R0,R1))-6<y0+12?y0+28:SY(-Math.min(R0,R1))-6,css('--bad'));
+  const q=v=>v>=80?'> 80 dB':v.toFixed(1)+' dB';
+  ro($('iqOut'),[['IRR hardware',q(R0)],['IRR corrected',q(R1)],['residual',Ae.toFixed(2)+' dB/'+Pe.toFixed(2)+'°'],['−30 dBm mirror →',R1>=80?'< −110 dBm':(-30-R1).toFixed(1)+' dBm'],['vs −90 dBm floor',R1>=80?'below':sdb(-30-R1+90)]]);
+}
+bind(['iqA','iqP','iqC'],iqDraw);
+
+/* ---------- Step 9: frequency plans ---------- */
+function plDraw(){
+  const a=$('plA').value, fR=+$('plR').value, iso=+$('plI').value, qa=+$('plQ').value;
+  $('plRv').textContent=fR.toFixed(1)+' GHz'; $('plIv').textContent=iso.toFixed(1)+' dB'; $('plQv').textContent=qa.toFixed(2)+' dB';
+  const PLO=7, leak=PLO-iso, sens=-90, Ps=-80, Pi=-40, IR=irr(qa,1), Bp=0.1*fR;
+  const c=$('cPl'), g=ctx(c), x0=60, w=c.width-x0-16;
+  const rows=[]; let out=[];
+  const LV=(y,h,v)=>y+h*(10-clamp(v,-130,10))/140;
+  if(a==='sh'){ const IF=1, LO=fR+IF, im=fR+2*IF, Af=bpA(im,fR,Bp,5), rej=Af+IR, loA=leak-bpA(LO,fR,Bp,5);
+    rows.push({t:'RF input (GHz)',fa:fR-1.5,fb:fR+3,sh:[[fR-Bp/2,fR+Bp/2,'--good']],it:[[fR,Ps,'--good','wanted'],[im,Pi,'--bad','emitter on image'],[LO,leak,'--accent','LO leak']]});
+    rows.push({t:'IF output (GHz)',fa:0,fb:2,sh:[[0.99,1.01,'--accent']],it:[[1,Ps,'--good','wanted'],[1.04,Pi-rej,'--bad','image residue']]});
+    out=[['IF','1.00 GHz'],['LO',fG(LO)],['image',fG(im)],['image rej.',Af.toFixed(1)+'+'+IR.toFixed(1)+' dB'],['image emitter →',(Pi-rej).toFixed(1)+' dBm'],['LO leak, RF port',dBs(leak)+' dBm'],['LO at antenna',dBs(loA)+' dBm'],['DC offset','none']]; }
+  else if(a==='dc'){ const IF1=3, IF2=0.14, LO1=fR+IF1, LO2=IF1-IF2, im1=fR+2*IF1, im2=IF1-2*IF2, rf2=LO1-im2; const A1=bpA(im1,fR,Bp,5)+IR, A2=bpA(im2,IF1,0.2,5); const loA=leak-bpA(LO1,fR,Bp,5);
+    rows.push({t:'RF input (GHz)',fa:fR-1.5,fb:fR+7,sh:[[fR-Bp/2,fR+Bp/2,'--good']],it:[[fR,Ps,'--good','wanted'],[rf2,Pi,'--bad','2nd-image emitter'],[im1,Pi,'--bad','1st image'],[LO1,leak,'--accent','LO1 leak']]});
+    rows.push({t:'1st IF (GHz)',fa:2.4,fb:3.4,sh:[[2.9,3.1,'--accent']],it:[[3,Ps,'--good','wanted'],[im2,Pi,'--bad','2nd image'],[3.02,Pi-A1,'--bad','1st residue']]});
+    rows.push({t:'2nd IF (MHz)',fa:0,fb:300,sh:[[135,145,'--accent']],it:[[140,Ps,'--good','wanted'],[146,Pi-A2,'--bad','2nd residue'],[152,Pi-A1,'--bad','']]});
+    out=[['IF1, IF2','3 GHz, 140 MHz'],['LO1',fG(LO1)],['LO2',fG(LO2)],['1st image',im1.toFixed(2)+' · '+A1.toFixed(0)+' dB'],['2nd image',rf2.toFixed(2)+' · '+A2.toFixed(0)+' dB'],['worst residue',(Pi-Math.min(A1,A2)).toFixed(1)+' dBm'],['LO1 leak, RF port',dBs(leak)+' dBm'],['LO1 at antenna',dBs(loA)+' dBm']]; }
+  else if(a==='zif'){ const d=3;
+    rows.push({t:'RF input (MHz from LO)',fa:-60,fb:60,sh:[[-5,5,'--good']],it:[[d,Ps,'--good','wanted'],[-d,Pi,'--bad','strong, mirror'],[0,leak,'--accent','LO leak']]});
+    rows.push({t:'baseband I+jQ (MHz)',fa:-10,fb:10,sh:[[-5,5,'--accent']],it:[[d,Ps,'--good','wanted'],[-d,Pi,'--bad','strong'],[d+0.5,Pi-IR,'--bad','mirror residue'],[0,leak,'--accent','DC offset']]});
+    out=[['LO',fG(fR)+' = RF'],['image','own mirror'],['image rej. (IQ)',IR.toFixed(1)+' dB'],['mirror →',(Pi-IR).toFixed(1)+' dBm'],['DC offset (in band)',dBs(leak)+' dBm'],['DC vs sensitivity',sdb(leak-sens)],['LO at antenna','≈ '+dBs(leak-20)+' dBm']]; }
+  else { const IF=0.02, LO=fR-IF;
+    rows.push({t:'RF input (MHz from RF)',fa:-70,fb:30,sh:[[-5,5,'--good']],it:[[0,Ps,'--good','wanted'],[-40,Pi,'--bad','adjacent = image'],[-20,leak,'--accent','LO leak']]});
+    rows.push({t:'baseband I+jQ (MHz)',fa:-40,fb:40,sh:[[15,25,'--accent']],it:[[20,Ps,'--good','wanted'],[-20,Pi,'--bad','image'],[21.5,Pi-IR,'--bad','residue'],[0,leak,'--accent','DC (high-passed)']]});
+    out=[['IF','20 MHz'],['LO',fG(LO)],['image (adjacent)',fG(fR-2*IF)],['image rej. (IQ)',IR.toFixed(1)+' dB'],['image emitter →',(Pi-IR).toFixed(1)+' dBm'],['DC (high-passed)',dBs(leak)+' dBm'],['DC vs sensitivity',sdb(leak-sens)],['LO at antenna','≈ '+dBs(leak-20)+' dBm']]; }
+  const n=rows.length, rh=(c.height-20)/n;
+  rows.forEach((r,i)=>{ const y=10+i*rh+16, h=rh-44; const X=f=>x0+w*(f-r.fa)/(r.fb-r.fa);
+    g.strokeStyle=css('--line'); g.strokeRect(x0,y,w,h);
+    hline(g,x0,w,LV(y,h,sens),css('--muted'),[2,3]);
+    r.sh.forEach(s=>shade(g,X(s[0]),y,X(s[1])-X(s[0]),h,css(s[2]),0.16));
+    txt(g,r.t,x0,y-4,css('--muted'));
+    [10,-60,-130].forEach(v=>{ const s=String(v); txt(g,s,x0-6-g.measureText(s).width,LV(y,h,v)+4,css('--muted')); });
+    for(let k=0;k<=4;k++){ const f=r.fa+(r.fb-r.fa)*k/4; const s=Math.abs(r.fb-r.fa)>20?f.toFixed(0):f.toFixed(1); txt(g,s,clamp(X(f)-g.measureText(s).width/2,x0-8,x0+w-g.measureText(s).width),y+h+14,css('--muted')); }
+    r.it.forEach((q,j)=>{ if(q[0]<r.fa||q[0]>r.fb) return; const x=X(q[0]); g.strokeStyle=css(q[2]); g.lineWidth=3; g.beginPath(); g.moveTo(x,y+h); g.lineTo(x,LV(y,h,q[1])); g.stroke(); g.lineWidth=1;
+      if(q[3]){ const s=q[3]; const ty=Math.max(y+11,LV(y,h,q[1])-4-(j%2)*12); txt(g,s,clamp(x-g.measureText(s).width/2,x0+2,x0+w-g.measureText(s).width-2),ty,css(q[2])); } });
+  });
+  ro($('plOut'),out);
+}
+bind(['plA','plR','plI','plQ'],plDraw);
+
+/* ---------- Step 10: FMCW ---------- */
+function fmDraw(){
+  const B=+$("fmB").value*1e6, T=+$('fmT').value*1e-6, R=+$('fmR').value, fs=+$('fmA').value*1e6;
+  $('fmBv').textContent=fmt(B,'Hz',0); $('fmTv').textContent=fmt(T,'s',0); $('fmRv').textContent=fmt(R,'m',R<1000?0:2);
+  const S=B/T, tau=2*R/c0, fb=S*tau, dR=c0/(2*B), Rmax=(fs/2)*c0/(2*S), fl=S*2*0.3/c0;
+  const c=$('cFm'), g=ctx(c), x0=60, w=c.width-x0-16;
+  const P=plot(g,x0,22,w,120,0,2*T*1e6,0,B*1.1/1e6,[],{ny:4,nx:4,fy:v=>v.toFixed(0),fx:v=>v.toFixed(0),xl:'time, µs',yl:'frequency offset, MHz'});
+  const saw=(t)=>{ const u=((t%T)+T)%T; return B*u/T; };
+  [[0,css('--accent')],[tau,css('--trace')]].forEach(([d,col])=>{ g.strokeStyle=col; g.lineWidth=2; g.beginPath(); let prev=null;
+    for(let k=0;k<=800;k++){ const t=2*T*k/800; if(t<d){ prev=null; continue; } const f=saw(t-d); const px=P.X(t*1e6), py=P.Y(f/1e6); if(prev!==null&&f<prev) g.moveTo(px,py); else (prev===null?g.moveTo(px,py):g.lineTo(px,py)); prev=f; } g.stroke(); g.lineWidth=1; });
+  const tm=Math.min(2*T-1e-9, tau+0.6*T); if(tau<T){ const ft=saw(tm), fr=saw(tm-tau); if(ft>fr){ const X=P.X(tm*1e6); g.strokeStyle=css('--trace2'); g.lineWidth=2; g.beginPath(); g.moveTo(X,P.Y(ft/1e6)); g.lineTo(X,P.Y(fr/1e6)); g.stroke(); g.lineWidth=1; txt(g,'f beat',X+6,(P.Y(ft/1e6)+P.Y(fr/1e6))/2+4,css('--trace2')); } }
+  txt(g,'TX (LO)',x0+6,40,css('--accent')); txt(g,'echo',x0+70,40,css('--trace'));
+  // spectrum
+  const fmax=Math.max(fs/2*1.4, Math.min(fb*1.15, fs*3)); const Q=plot(g,x0,190,w,110,0,fmax/1e6,-100,0,[],{ny:5,nx:5,fy:v=>v.toFixed(0),fx:v=>v.toFixed(1),xl:'beat frequency, MHz',yl:'dechirp output, dB'});
+  shade(g,Q.X(fs/2/1e6),190,x0+w-Q.X(fs/2/1e6),110,css('--bad'),0.14); txt(g,'> fs/2',Math.min(Q.X(fs/2/1e6)+4,x0+w-50),206,css('--bad'));
+  hline(g,x0,w,Q.Y(-90),css('--muted'),[2,3]);
+  const lv=clamp(-40-40*Math.log10(R/1000),-88,-5);
+  const stem=(f,v,col,lab)=>{ const inR=f<=fmax; const X=inR?Q.X(f/1e6):x0+w-3; g.strokeStyle=col; g.lineWidth=3; g.beginPath(); g.moveTo(X,Q.Y(-100)); g.lineTo(X,Q.Y(v)); g.stroke(); g.lineWidth=1; txt(g,lab+(inR?'':' →'),clamp(X+6,x0+2,x0+w-80),Q.Y(v)+14,col); };
+  stem(fl,-3,css('--accent'),'TX leak'); stem(fb,lv,css('--trace'),'target');
+  const ok=fb<fs/2;
+  ro($('fmOut'),[['delay τ',fmt(tau,'s',2)],['slope S',(S/1e12).toFixed(3)+' MHz/µs'],['beat f_b',fmt(fb,'Hz',2)],['range resolution',fmt(dR,'m',2)],['R max for ADC',fmt(Rmax,'m',Rmax<1000?0:2)],['target',tau>=T?'τ > T: ambiguous':(ok?'inside ADC band':'beyond fs/2: lost')],['TX leak beat',fmt(fl,'Hz',1)]]);
+}
+bind(['fmB','fmT','fmR','fmA'],fmDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

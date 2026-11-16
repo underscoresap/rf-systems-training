@@ -1,0 +1,577 @@
+<title>The Radar Echo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a teaching column (~720px). Each step: "you already know" box → explanation → worked example table → live demo bench → component box → check-yourself questions. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul,.check ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:640px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Radar Basics · R1 of 6 · RF Systems for Component Engineers</div>
+  <h1>The radar echo: how much comes back</h1>
+  <p class="lede">This page assumes you know RF (dBm, antenna gain, link budgets, noise figure) and nothing about radar. We start from the definition of a radar and build, one step at a time, to the single equation that tells you whether a radar can see a target at all. Every formula comes with a worked example in dB, the way you would do a link budget.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#what">0 What a radar is</a><a href="#out">1 Going out</a><a href="#rcs">2 The target (RCS)</a><a href="#back">3 Coming back</a><a href="#r4">4 Why R⁴ hurts</a><a href="#noise">5 Noise and SNR</a><a href="#pulse">6 Pulses and duty cycle</a><a href="#integ">7 Adding echoes</a><a href="#energy">8 The whole equation</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="what">
+  <div class="secno">Step 0</div>
+  <h2>What a radar is</h2>
+  <div class="know"><h4>You already know</h4>A TDR or a VNA in time-domain mode: send a signal down a cable, a mismatch reflects part of it, and the delay of the reflection tells you where the mismatch is. A radar does the same thing, but the "cable" is free space and the "mismatch" is an aircraft, a car or a drone.</div>
+  <div class="col">
+    <p>A <b>radar</b> (RAdio Detection And Ranging) transmits radio energy, waits for a small part of it to reflect off an object, and then measures that reflection. Every radar, however complex, answers some of these questions:</p>
+    <ol>
+      <li><b>Is something there?</b> (detection: is the echo stronger than the noise?)</li>
+      <li><b>How far away is it?</b> (range: from the round-trip delay)</li>
+      <li><b>How fast is it coming toward or going away?</b> (radial velocity: from the Doppler shift)</li>
+      <li><b>In which direction?</b> (angle: from where the antenna was pointing, or from comparing antennas)</li>
+      <li><b>What is it?</b> (classification: from its size, motion and fine detail in the echo)</li>
+    </ol>
+    <p>This page is entirely about question 1, because nothing else is possible until the echo rises above the noise. To answer it we follow the energy along its path: out from the antenna, onto the target, back to the antenna, and into the receiver. It is a link budget with a reflection in the middle.</p>
+  </div>
+  <div class="diag" aria-label="Energy path of a radar">
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace" font-size="12">
+      <defs><marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--accent)"/></marker><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--trace)"/></marker></defs>
+      <rect x="10" y="55" width="120" height="60" rx="4" fill="var(--panel)" stroke="var(--ink)"/><text x="70" y="82" text-anchor="middle" fill="var(--ink)">Radar</text><text x="70" y="99" text-anchor="middle" fill="var(--muted)">TX + RX</text>
+      <path d="M135 70 H700" stroke="var(--accent)" stroke-width="2" marker-end="url(#m1)"/>
+      <path d="M700 100 H140" stroke="var(--trace)" stroke-width="2" marker-end="url(#m2)"/>
+      <circle cx="740" cy="85" r="26" fill="var(--panel)" stroke="var(--ink)"/><text x="740" y="89" text-anchor="middle" fill="var(--ink)">target</text>
+      <text x="200" y="58" fill="var(--accent)">① spreads out: 1/(4πR²)</text>
+      <text x="610" y="40" fill="var(--ink)">② target reradiates: σ</text>
+      <text x="200" y="125" fill="var(--trace)">③ spreads again: 1/(4πR²)</text>
+      <text x="10" y="150" fill="var(--muted)">④ antenna captures a small piece: effective area A_e  →  ⑤ compared with receiver noise</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="out">
+  <div class="secno">Step 1</div>
+  <h2>Going out: how much power reaches the target</h2>
+  <div class="know"><h4>You already know</h4>The first half of a Friis link budget: transmit power plus antenna gain, then free-space loss. Radar people use the same physics but stop at <i>power density</i> (W/m²) at the target instead of received power, because the target is not an antenna with a gain figure.</div>
+  <div class="col">
+    <p>Picture an antenna radiating equally in all directions (isotropic). At distance R, its power P<sub>t</sub> is spread evenly over the surface of a sphere of area 4πR². Every square metre of that sphere gets P<sub>t</sub>/(4πR²) watts. A real antenna focuses the power into a beam, and in the beam direction the density is G times higher.</p>
+  </div>
+  <div class="eq">S<sub>target</sub> = P<sub>t</sub> · G / (4π R²) &nbsp;&nbsp; [W/m²]<small>In dB: S [dBm/m²] = P<sub>t</sub> [dBm] + G [dBi] − 10·log₁₀(4πR²). At 10 km, 10·log₁₀(4π·10⁸) = 91.0 dB(m²).</small></div>
+  <h3>Worked example (used all the way down this page)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Item</th><th>Value</th><th>dB</th></tr>
+    <tr><td>Transmit power P<sub>t</sub> (during the pulse)</td><td>1 kW</td><td class="n">+60.0 dBm</td></tr>
+    <tr><td>Antenna gain G</td><td>1000</td><td class="n">+30.0 dBi</td></tr>
+    <tr><td>Spreading to 10 km: 1/(4πR²)</td><td>1/1.257·10⁹ m²</td><td class="n">−91.0 dB(m²)</td></tr>
+    <tr class="sum"><td>Power density at the target S</td><td>0.80 mW/m²</td><td class="n">−1.0 dBm/m²</td></tr>
+  </table></div>
+  <div class="col"><p>So a 1 kW radar with a 30 dBi antenna puts less than one milliwatt on each square metre of an aircraft 10 km away. Keep that number in mind.</p></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The range doubles to 20 km. What is S now?</summary><p>Spreading loss grows by 10·log₁₀(4) = 6 dB, so S = −7.0 dBm/m². One way is a 1/R² law.</p></details>
+    <details><summary>Why use power density instead of received power at the target?</summary><p>Because the target is not an antenna with a known gain. What it reflects depends on its size, shape and material, which we capture separately with RCS in the next step.</p></details>
+  </div>
+</section>
+
+<!-- 2 RCS -->
+<section id="rcs">
+  <div class="secno">Step 2</div>
+  <h2>The target: radar cross-section (RCS)</h2>
+  <div class="know"><h4>You already know</h4>A mismatched load reflects part of the incident power, and the reflection depends on frequency. A target is a "load" in free space. Its "reflection coefficient" is called radar cross-section, and it also depends strongly on frequency and on the angle you look from.</div>
+  <div class="col">
+    <p>The target intercepts some of the incident power density S and scatters it in many directions. The radar only cares about the part that goes <i>back toward the radar</i>. To describe that with one number, radar engineers invent an equivalent object:</p>
+  </div>
+  <div class="term"><h4>Definition: radar cross-section σ (sigma), unit m², or dBsm = dB relative to 1 m²</h4><p>The area of an imaginary object that would catch the incident power density S over σ square metres and reradiate all of it equally in all directions, producing the same echo strength back at the radar as the real target does.</p></div>
+  <div class="col">
+    <p>So the target behaves like an isotropic transmitter of power <b>S · σ</b>. RCS is <b>not</b> the physical size. A flat metal plate seen face-on has an RCS far larger than its area, because it reflects like a mirror straight back. The same plate seen edge-on has almost none. A stealth aircraft is large but shaped to send the energy elsewhere.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Object (typical, microwave bands)</th><th>RCS</th><th>dBsm</th></tr>
+    <tr><td>Insect</td><td class="n">0.00001 m²</td><td class="n">−50</td></tr>
+    <tr><td>Bird, small drone (quadcopter)</td><td class="n">0.01 m²</td><td class="n">−20</td></tr>
+    <tr><td>Larger drone / small UAV</td><td class="n">0.1 m²</td><td class="n">−10</td></tr>
+    <tr><td>Person</td><td class="n">1 m²</td><td class="n">0</td></tr>
+    <tr><td>Small aircraft, fighter from the front</td><td class="n">1–5 m²</td><td class="n">0 to +7</td></tr>
+    <tr><td>Car</td><td class="n">10–100 m²</td><td class="n">+10 to +20</td></tr>
+    <tr><td>Airliner, truck</td><td class="n">100 m²</td><td class="n">+20</td></tr>
+    <tr><td>Ship</td><td class="n">10 000 m² and more</td><td class="n">+40 and more</td></tr>
+  </table></div>
+  <h3>Why RCS changes with angle and frequency</h3>
+  <div class="col">
+    <p>A real target is many small reflectors: edges, joints, engine inlets, cockpit, wing roots. Their echoes add with phases that depend on their path differences, measured in wavelengths. Turn the target by a fraction of a degree and some path differences change by half a wavelength, so echoes that were adding now cancel. That is why RCS jumps up and down by 10–20 dB as a target manoeuvres, and why it changes when you change frequency. Radars plan for this <b>fluctuation</b> by adding a few dB of margin; the standard statistical models are called <i>Swerling cases</i>.</p>
+    <p>Three simple shapes show the main behaviours:</p>
+    <ul>
+      <li><b>Sphere</b> (radius r ≫ λ): σ = πr², the same from every angle. Used to calibrate radars.</li>
+      <li><b>Flat plate</b> (area A): σ = 4πA²/λ² face-on. A 1 m² plate at 10 GHz gives 14 000 m² (+41 dBsm). It falls off very fast away from face-on.</li>
+      <li><b>Several scatterers</b> (any real target): a spiky pattern that changes faster with angle at higher frequency or for larger targets.</li>
+    </ul>
+  </div>
+  <div class="bench">
+    <canvas id="cRcs" width="640" height="320" aria-label="RCS against aspect angle"></canvas>
+    <div class="ctrl">
+      <label for="rcsT">Target model</label>
+      <select id="rcsT"><option value="sphere">Sphere, r = 0.5 m</option><option value="plate">Flat plate 0.3 m × 0.3 m</option><option value="two">Two point scatterers</option><option value="many" selected>Complex target (8 scatterers)</option></select>
+      <label for="rcsF">Frequency <b id="rcsFv"></b></label><input id="rcsF" type="range" min="1" max="35" step="0.5" value="10">
+      <label for="rcsS">Target size / spacing <b id="rcsSv"></b></label><input id="rcsS" type="range" min="0.2" max="5" step="0.1" value="1.5">
+      <div class="row"><button id="rcsNew">New random target</button></div>
+      <div class="readout" id="rcsOut"></div>
+    </div>
+    <p class="cap">RCS in dBsm against the angle from which the radar looks at the target. Increase the frequency or the size and watch the lobes get narrower and more numerous.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 1 m² flat plate gives +41 dBsm face-on at 10 GHz. What does it give at 20 GHz?</summary><p>σ ∝ 1/λ², and λ halves, so σ goes up 4× = +6 dB, to about +47 dBsm. That is why corner reflectors (three plates) make good calibration targets.</p></details>
+    <details><summary>Why does a small drone have an RCS similar to a bird?</summary><p>Both are small compared with most radar wavelengths and made largely of low-reflectivity material (plastic, carbon, flesh). Only motors, batteries and wiring reflect strongly.</p></details>
+  </div>
+</section>
+
+<!-- 3 BACK -->
+<section id="back">
+  <div class="secno">Step 3</div>
+  <h2>Coming back: the received echo power</h2>
+  <div class="know"><h4>You already know</h4>Effective aperture: a receive antenna with gain G collects power as if it were an area A<sub>e</sub> = Gλ²/(4π) catching the incoming power density. This is the second half of Friis.</div>
+  <div class="col">
+    <p>The target now acts as a tiny isotropic transmitter of power S·σ. That power spreads over a sphere again on the way back: one more factor 1/(4πR²). The radar antenna catches the part that lands on its effective area A<sub>e</sub>.</p>
+  </div>
+  <div class="eq">P<sub>r</sub> = [P<sub>t</sub>G / 4πR²] · σ · [1 / 4πR²] · [Gλ²/4π] &nbsp;=&nbsp; P<sub>t</sub> G² λ² σ / ((4π)³ R⁴)<small>This is <b>the radar equation</b>. Read it as a link budget: out, reflect, back, capture. G appears twice because the same antenna transmits and receives.</small></div>
+  <h3>Worked example, continued (X-band, 10 GHz, λ = 3 cm)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Step</th><th>Calculation</th><th>Running level</th></tr>
+    <tr><td>Power density at the target</td><td>from step 1</td><td class="n">−1.0 dBm/m²</td></tr>
+    <tr><td>× RCS σ = 1 m²</td><td>+0 dBsm</td><td class="n">−1.0 dBm reradiated</td></tr>
+    <tr><td>Spreading back to the radar, 1/(4πR²)</td><td>−91.0 dB(m²)</td><td class="n">−92.0 dBm/m²</td></tr>
+    <tr><td>× effective area A<sub>e</sub> = Gλ²/4π = 1000 × 0.0009 / 12.57</td><td>0.0716 m² = −11.4 dBsm</td><td class="n"></td></tr>
+    <tr class="sum"><td>Received echo P<sub>r</sub></td><td></td><td class="n">−103.4 dBm</td></tr>
+  </table></div>
+  <div class="col"><p>We sent +60 dBm and got back −103.4 dBm: <b>163 dB of loss</b>. Below, the same budget is drawn as a level diagram. Change any value and watch the received level move.</p></div>
+  <div class="bench">
+    <canvas id="cBud" width="640" height="340" aria-label="Radar link budget level diagram"></canvas>
+    <div class="ctrl">
+      <label for="bPt">Transmit power P<sub>t</sub> <b id="bPtv"></b></label><input id="bPt" type="range" min="0" max="90" step="1" value="60">
+      <label for="bG">Antenna gain G <b id="bGv"></b></label><input id="bG" type="range" min="10" max="45" step="0.5" value="30">
+      <label for="bF">Frequency <b id="bFv"></b></label><input id="bF" type="range" min="1" max="80" step="0.5" value="10">
+      <label for="bR">Range R <b id="bRv"></b></label><input id="bR" type="range" min="0.1" max="200" step="0.1" value="10">
+      <label for="bS">RCS σ <b id="bSv"></b></label><input id="bS" type="range" min="-30" max="40" step="1" value="0">
+      <label for="bN">Receiver NF <b id="bNv"></b></label><input id="bN" type="range" min="1" max="12" step="0.1" value="4">
+      <label for="bB">Receiver bandwidth <b id="bBv"></b></label><input id="bB" type="range" min="0.01" max="100" step="0.01" value="1">
+      <div class="readout" id="bOut"></div>
+    </div>
+    <p class="cap">Each bar is the power level after that step. The grey dashed line is the receiver noise floor (step 5). The gap between the last bar and the noise line is the signal-to-noise ratio.</p>
+  </div>
+  <div class="col"><p><b>A note on frequency.</b> Written with gain, the equation seems to favour long wavelengths (λ² on top). But for a fixed antenna <i>size</i>, gain rises as 1/λ². Put that in and, for a given dish, higher frequency gives a stronger echo. Which form you use depends on what you hold constant: the gain or the physical aperture.</p></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The antenna gain rises from 30 to 33 dBi. How much does P<sub>r</sub> change?</summary><p>+6 dB. Gain appears twice (transmit and receive). For a monostatic radar, antenna gain is the most valuable dB you can buy.</p></details>
+    <details><summary>Where in the budget would you put cable, radome and duplexer losses?</summary><p>As extra loss terms L, once on transmit and once on receive. Engineers usually lump them into one system loss L in the denominator of the radar equation.</p></details>
+  </div>
+</section>
+
+<!-- 4 R4 -->
+<section id="r4">
+  <div class="secno">Step 4</div>
+  <h2>Why R⁴ hurts, and why it helps the listener</h2>
+  <div class="col">
+    <p>A communications link loses power as 1/R² (spreading once). A radar spreads twice, so it loses power as <b>1/R⁴</b>:</p>
+    <ul>
+      <li>Double the range → the echo drops by 12 dB (not 6).</li>
+      <li>Ten times the range → 40 dB weaker.</li>
+      <li>To double the detection range you need 16× (12 dB) more of something: transmit power, G², RCS, or integration time.</li>
+    </ul>
+    <p>There is a second, very important consequence. Anyone else's receiver near the target hears the radar's transmission <b>one-way</b> (1/R²), while the radar has to wait for the weak <b>two-way</b> echo (1/R⁴). A listening receiver therefore usually hears the radar long before the radar sees it. This is the basic physics behind radar warning receivers and all the intercept work in Parts 4–6.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cR4" width="640" height="320" aria-label="One-way intercepted power and two-way echo against range"></canvas>
+    <div class="ctrl">
+      <label for="wG">Listener antenna gain <b id="wGv"></b></label><input id="wG" type="range" min="-5" max="25" step="1" value="0">
+      <label for="wS">Listener sensitivity <b id="wSv"></b></label><input id="wS" type="range" min="-110" max="-40" step="1" value="-70">
+      <div class="readout" id="wOut"></div>
+    </div>
+    <p class="cap">Same radar as the worked example (1 kW, 30 dBi, 10 GHz) and a 1 m² target. <span class="legend"><i style="background:var(--trace)"></i>echo at the radar (1/R⁴) <i style="background:var(--trace2)"></i>radar signal at a listener on the target (1/R²) <i style="background:var(--muted)"></i>sensitivities</span></p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>At 10 km, how much stronger is the radar signal at a 0 dBi listener than the echo at the radar?</summary><p>The listener gets P<sub>t</sub>G·(λ/4πR)² = 60 + 30 − 132.4 = −42.4 dBm. The echo is −103.4 dBm. The listener is about 61 dB ahead, even with a much worse antenna and receiver.</p></details>
+  </div>
+</section>
+
+<!-- 5 NOISE -->
+<section id="noise">
+  <div class="secno">Step 5</div>
+  <h2>Noise and the SNR a radar needs</h2>
+  <div class="know"><h4>You already know</h4>Thermal noise: kT₀ = −174 dBm/Hz at 290 K. The receiver adds its noise figure. Noise power = −174 + 10·log₁₀(B) + NF.</div>
+  <div class="col">
+    <p>The only open question is: <b>what bandwidth B?</b> For a simple pulse radar the receiver bandwidth is matched to the pulse. A pulse of length τ has a spectrum about 1/τ wide, so a 1 µs pulse needs about 1 MHz of bandwidth. A wider receiver only lets in more noise. A narrower one smears the pulse.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked example</th><th></th><th>dB</th></tr>
+    <tr><td>Thermal noise density kT₀</td><td></td><td class="n">−174.0 dBm/Hz</td></tr>
+    <tr><td>Bandwidth B = 1/τ = 1 MHz (τ = 1 µs)</td><td></td><td class="n">+60.0 dB(Hz)</td></tr>
+    <tr><td>Noise figure</td><td></td><td class="n">+4.0 dB</td></tr>
+    <tr class="sum"><td>Noise floor N</td><td></td><td class="n">−110.0 dBm</td></tr>
+    <tr><td>Echo P<sub>r</sub> (step 3)</td><td></td><td class="n">−103.4 dBm</td></tr>
+    <tr class="sum"><td>Signal-to-noise ratio, one pulse</td><td></td><td class="n">6.6 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Is 6.6 dB enough? No. To decide "target present" reliably, with few false alarms, a radar typically needs <b>about 13 dB</b> of SNR (for 90 % detection probability and a false alarm probability of one in a million; R3 shows exactly where that number comes from). Our single pulse is about 6 dB short. The next three steps show how radars close that gap.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>If we make the pulse 10 µs long at the same 1 kW, what happens to the SNR?</summary><p>Echo energy goes up 10× (+10 dB) and the matched bandwidth drops to 100 kHz, so noise drops 10 dB. Echo <i>power</i> stays −103.4 dBm, but noise falls to −120 dBm: SNR = 16.6 dB. Longer pulses mean more energy. The cost is coarser range resolution (step 6).</p></details>
+  </div>
+</section>
+
+<!-- 6 PULSE -->
+<section id="pulse">
+  <div class="secno">Step 6</div>
+  <h2>Pulses, PRF and duty cycle: why radars pulse at all</h2>
+  <div class="col">
+    <p>The simplest radar uses one antenna for both transmitting and receiving. It cannot listen to a −103 dBm echo while +60 dBm is going out through the same antenna, so it transmits a short burst, then switches to listening. This is a <b>pulse radar</b>. The second reason to pulse: the delay of the echo after the pulse gives the range.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Pulse width τ</b>: how long each burst lasts (typically 0.1–100 µs).<br><b>PRI</b> (pulse repetition interval): the time from the start of one pulse to the start of the next.<br><b>PRF</b> (pulse repetition frequency) = 1/PRI: pulses per second (typically 300 Hz to 300 kHz).<br><b>Duty cycle d</b> = τ / PRI = τ · PRF: the fraction of time spent transmitting.<br><b>Peak power</b> P<sub>peak</sub>: the power during the pulse. <b>Average power</b> P<sub>avg</sub> = P<sub>peak</sub> · d.</p></div>
+  <div class="col">
+    <p>The radar equation in step 3 used peak power, because it described one pulse. The <b>energy</b> in one pulse is P<sub>peak</sub> · τ. With a matched receiver, SNR depends only on that energy (step 5 showed this: longer pulse, same SNR improvement as more power).</p>
+    <p>Range is found from the delay: an echo arriving t seconds after the pulse left came from R = c·t/2 (divided by 2 for the round trip). Two targets can be separated only if their echoes do not overlap, so with a plain pulse the <b>range resolution</b> is c·τ/2. A 1 µs pulse gives 150 m. Here is the conflict: long pulses give energy, short pulses give resolution. <i>Pulse compression</i> (R6) solves it by sending a long pulse with a frequency sweep inside it.</p>
+    <p>An <b>FMCW</b> radar takes the other route. It uses separate transmit and receive antennas, transmits all the time (duty cycle 100 %, so peak = average), and gets range from a frequency difference instead of a time delay (R5 covers this). Because it never stops, it builds up energy from a low, steady power.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cTx" width="640" height="300" aria-label="Pulse train and continuous wave with equal average power"></canvas>
+    <div class="ctrl">
+      <label for="tP">Peak power <b id="tPv"></b></label><input id="tP" type="range" min="1" max="1000000" step="1" value="1000">
+      <label for="tT">Pulse width τ <b id="tTv"></b></label><input id="tT" type="range" min="0.1" max="100" step="0.1" value="1">
+      <label for="tF">PRF <b id="tFv"></b></label><input id="tF" type="range" min="100" max="100000" step="100" value="1000">
+      <div class="readout" id="tOut"></div>
+    </div>
+    <p class="cap"><span class="legend"><i style="background:var(--accent)"></i>pulse radar power vs time (3 PRIs) <i style="background:var(--trace2)"></i>an FMCW radar with the same average power, for comparison <i style="background:var(--muted)"></i>dashed: average</span></p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Pulsed PA:</b> specified by peak power, maximum pulse width and maximum duty cycle. A GaN device rated 100 W CW can often deliver several hundred watts at 10 % duty, because the heat is the average.</li>
+    <li><b>Power supply:</b> stores energy in capacitors between pulses. Supply droop during the pulse becomes amplitude and phase droop across the pulse.</li>
+    <li><b>Switching edges:</b> the pulse rise and fall time sets how wide the transmitted spectrum is.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>1 kW peak, τ = 1 µs, PRF = 1 kHz. What are the duty cycle, average power and range resolution?</summary><p>d = 1 µs × 1000 = 0.1 %. P<sub>avg</sub> = 1 W. Resolution = c·τ/2 = 150 m.</p></details>
+    <details><summary>Why does the pulse radar need to wait a whole PRI before the next pulse?</summary><p>So that echoes from the farthest targets of interest arrive before the next pulse leaves. Otherwise a far echo shows up after the next pulse and looks like a near target (range ambiguity, covered in R4).</p></details>
+  </div>
+</section>
+
+<!-- 7 INTEGRATION -->
+<section id="integ">
+  <div class="secno">Step 7</div>
+  <h2>Adding many echoes together (integration)</h2>
+  <div class="know"><h4>You already know</h4>Averaging on a spectrum analyser or scope: a repeating signal stays the same while random noise averages down. Narrowing the resolution bandwidth does the same thing in frequency.</div>
+  <div class="col">
+    <p>The radar sends many pulses while its beam is on the target, perhaps 10 or 1000 (R2 explains how many). Each echo is weak, but they can be added.</p>
+    <ul>
+      <li><b>Coherent integration:</b> add the echoes as complex voltages (amplitude <i>and</i> phase). If the echoes arrive with the same phase, N echoes add up to N times the voltage, which is N² times the power. Noise is random, so N noise samples add up to only N times the power. <b>SNR improves by N</b> (10·log₁₀N dB). This needs a radar that keeps track of phase from pulse to pulse, called a <i>coherent</i> radar. FFT processing, Doppler filtering and FMCW all do this.</li>
+      <li><b>Non-coherent integration:</b> detect each echo's amplitude first (phase thrown away), then add. Easier, but noise is no longer zero-mean after detection, so the gain is less than N (roughly N<sup>0.7–0.8</sup> for small N).</li>
+    </ul>
+    <p>In the worked example we were 6.4 dB short. Coherently adding <b>10 pulses</b> gives +10 dB: SNR = 16.6 dB, and the target is detected.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cInt" width="640" height="320" aria-label="Range trace after integrating N pulses"></canvas>
+    <div class="ctrl">
+      <label for="iS">Single-pulse SNR <b id="iSv"></b></label><input id="iS" type="range" min="-15" max="15" step="0.5" value="-3">
+      <label for="iN">Pulses integrated N <b id="iNv"></b></label><input id="iN" type="range" min="1" max="256" step="1" value="1">
+      <div class="row" role="group" aria-label="Integration type"><button id="iCoh" aria-pressed="true">Coherent</button><button id="iNon" aria-pressed="false">Non-coherent</button><button id="iNew">New noise</button></div>
+      <div class="readout" id="iOut"></div>
+    </div>
+    <p class="cap">The trace is the receiver output across 120 range cells, in dB above the average noise. A target sits in cell 80 (marked). Start at N = 1, where it is hidden, then raise N. In coherent mode the target climbs out of the noise. In non-coherent mode the target barely rises, but the noise becomes smoother, so a threshold can be set closer to it: that is a smaller gain, but still a gain.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Integrating 100 pulses coherently gives how many dB?</summary><p>20 dB. Each factor of 10 in pulses is 10 dB.</p></details>
+    <details><summary>What breaks coherent integration in hardware?</summary><p>Anything that changes the echo phase from pulse to pulse other than the target itself: transmitter phase jitter, LO phase noise, clock jitter, and supply ripple modulating the PA. Also target motion, which is not a fault: it is the Doppler shift that R6 measures.</p></details>
+  </div>
+</section>
+
+<!-- 8 ENERGY -->
+<section id="energy">
+  <div class="secno">Step 8</div>
+  <h2>The whole equation, in its most useful form</h2>
+  <div class="col">
+    <p>Steps 5–7 all say the same thing: what matters is the <b>total energy</b> delivered to the target during the time the radar looks at it (the <b>dwell time</b>), not how that energy was packaged. Energy = average power × dwell time. Putting that into the radar equation with noise kT₀F per hertz and a system loss L:</p>
+  </div>
+  <div class="eq">SNR = P<sub>avg</sub> · T<sub>dwell</sub> · G² · λ² · σ / ( (4π)³ · R⁴ · k · T₀ · F · L )<small>Valid for a pulse radar with coherent integration and for an FMCW radar alike. Solve it for R at the SNR you need and you have the maximum detection range: R<sub>max</sub> = [ P<sub>avg</sub>·T<sub>dwell</sub>·G²λ²σ / ((4π)³·kT₀·F·L·SNR<sub>req</sub>) ]<sup>1/4</sup>.</small></div>
+  <div class="bench">
+    <canvas id="cEq" width="640" height="330" aria-label="SNR against range"></canvas>
+    <div class="ctrl">
+      <label for="eP">Average power <b id="ePv"></b></label><input id="eP" type="range" min="0.01" max="1000" step="0.01" value="1">
+      <label for="eT">Dwell time <b id="eTv"></b></label><input id="eT" type="range" min="0.1" max="200" step="0.1" value="10">
+      <label for="eG">Antenna gain <b id="eGv"></b></label><input id="eG" type="range" min="10" max="45" step="0.5" value="30">
+      <label for="eF">Frequency <b id="eFv"></b></label><input id="eF" type="range" min="1" max="80" step="0.5" value="10">
+      <label for="eS">Target</label>
+      <select id="eS"><option value="0.01">Small drone 0.01 m²</option><option value="0.1">Larger drone 0.1 m²</option><option value="1" selected>Person 1 m²</option><option value="10">Car 10 m²</option><option value="100">Airliner 100 m²</option></select>
+      <label for="eN">Noise figure <b id="eNv"></b></label><input id="eN" type="range" min="1" max="12" step="0.1" value="4">
+      <label for="eL">System losses <b id="eLv"></b></label><input id="eL" type="range" min="0" max="15" step="0.5" value="0">
+      <label for="eQ">Required SNR <b id="eQv"></b></label><input id="eQ" type="range" min="6" max="20" step="0.5" value="13">
+      <div class="readout" id="eOut"></div>
+    </div>
+    <p class="cap">Defaults match the worked example: 1 W average (1 kW × 0.1 %), 10 ms dwell (10 pulses at 1 kHz). Note what is <i>not</i> an input: peak power and bandwidth.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Noise figure and losses before the LNA</b> (radome, cable, circulator, limiter, T/R switch): every dB costs the same as a dB of average transmit power, and 4 dB costs about 20 % of detection range.</li>
+    <li><b>Antenna gain</b> counts twice: 1 dB of gain = 2 dB of PA power.</li>
+    <li><b>Phase stability</b> of the transmitter and LO decides whether integration gives the full N or less.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Detection range is 15 km. How much more average power gives 30 km?</summary><p>R ∝ (power)<sup>1/4</sup>, so twice the range needs 2⁴ = 16× the power (+12 dB).</p></details>
+    <details><summary>Two radars: 100 kW pulse at 0.1 % duty, and 100 W FMCW. Same antenna and dwell. Which detects farther?</summary><p>Same: both have 100 W average power. The FMCW radar is far harder for a listener to notice, because its instantaneous power is 30 dB lower.</p></details>
+  </div>
+</section>
+
+<!-- GLOSSARY -->
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Radar</dt><dd>A system that transmits RF and measures its reflections to detect objects and find their range, speed and direction.</dd>
+    <dt>Echo / return</dt><dd>The part of the transmitted signal that comes back to the radar from a target.</dd>
+    <dt>Monostatic</dt><dd>Transmitter and receiver at the same place, often sharing one antenna. (Bistatic: far apart.)</dd>
+    <dt>Power density S</dt><dd>Power per square metre arriving at a point, W/m².</dd>
+    <dt>RCS σ, dBsm</dt><dd>Radar cross-section: the equivalent area that would intercept and isotropically reradiate enough power to give the observed echo. dBsm is dB relative to 1 m².</dd>
+    <dt>Swerling cases</dt><dd>Standard statistical models of how RCS fluctuates from look to look or pulse to pulse.</dd>
+    <dt>Effective aperture A<sub>e</sub></dt><dd>Gλ²/4π: the area over which a receiving antenna collects incident power.</dd>
+    <dt>Radar equation</dt><dd>P<sub>r</sub> = P<sub>t</sub>G²λ²σ / ((4π)³R⁴): received echo power. In energy form it gives SNR and maximum range.</dd>
+    <dt>SNR</dt><dd>Signal-to-noise ratio of the echo after processing. About 13 dB is a common requirement for reliable detection.</dd>
+    <dt>Pulse width τ</dt><dd>Duration of one transmitted pulse.</dd>
+    <dt>PRI / PRF</dt><dd>Pulse repetition interval (time between pulses) and its inverse, pulse repetition frequency.</dd>
+    <dt>Duty cycle</dt><dd>τ · PRF: fraction of time transmitting. Average power = peak power × duty cycle.</dd>
+    <dt>Range resolution</dt><dd>Smallest range separation at which two targets appear as two. c·τ/2 for a plain pulse.</dd>
+    <dt>Matched filter</dt><dd>A receiver filter shaped to the transmitted pulse, giving the best possible SNR. Its bandwidth is about 1/τ for a plain pulse.</dd>
+    <dt>Coherent radar</dt><dd>A radar that keeps a stable phase reference from pulse to pulse, so echoes can be added with their phase.</dd>
+    <dt>Integration (coherent / non-coherent)</dt><dd>Adding many echoes to improve SNR: by N with phase (coherent), by less without phase (non-coherent).</dd>
+    <dt>Dwell time</dt><dd>How long the beam stays on the target in one look. Energy on target = average power × dwell time.</dd>
+    <dt>FMCW</dt><dd>Frequency-modulated continuous wave: a radar that transmits continuously with a frequency ramp and measures range as a frequency difference.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, <a href="R2-antenna-beam.html">R2 · The antenna and the beam</a>:</b> why a radar needs a narrow beam, how phased arrays steer it, scan patterns, dwell time and hits per scan, and what a scanning radar looks like from outside.</p>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>; Knott, <i>Radar Cross Section</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, kB=1.380649e-23, T0=290, deg=Math.PI/180;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??1)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??1)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??1)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  if(u==='W'){ if(a>=1e6) return (x/1e6).toFixed(d??2)+' MW'; if(a>=1e3) return (x/1e3).toFixed(d??1)+' kW'; if(a<1) return (x*1e3).toFixed(d??1)+' mW'; return x.toFixed(d??1)+' W'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+const sgn=x=>(x>=0?'+':'')+x.toFixed(1);
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+/* RCS */
+let scat=[];
+function newScat(){ scat=[]; for(let i=0;i<8;i++) scat.push({x:(Math.random()-.5),y:(Math.random()-.5)*.3,a:0.3+Math.random()}); }
+newScat();
+function rcsDraw(){
+  const type=$('rcsT').value, f=+$('rcsF').value*1e9, L=+$('rcsS').value, lam=c0/f, k=2*Math.PI/lam;
+  $('rcsFv').textContent=(f/1e9).toFixed(1)+' GHz'; $('rcsSv').textContent=L.toFixed(1)+' m';
+  const N=721, vals=[];
+  for(let i=0;i<N;i++){ const th=(-90+180*i/(N-1))*deg; let s;
+    if(type==='sphere') s=Math.PI*0.25;
+    else if(type==='plate'){ const A=0.09, a=0.3, u=k*a*Math.sin(th); const sn=Math.abs(u)<1e-9?1:Math.sin(u)/u; s=4*Math.PI*A*A/(lam*lam)*sn*sn*Math.pow(Math.cos(th),2); }
+    else if(type==='two'){ const d=L; const ph=2*k*d/2*Math.sin(th); const re=1+Math.cos(2*ph), im=Math.sin(2*ph); s=(re*re+im*im)*0.5; }
+    else { let re=0,im=0; for(const p of scat){ const ph=2*k*L*(p.x*Math.sin(th)+p.y*Math.cos(th)); re+=Math.sqrt(p.a)*Math.cos(ph); im+=Math.sqrt(p.a)*Math.sin(ph);} s=re*re+im*im; }
+    vals.push(Math.max(db(s+1e-12),-40)); }
+  const c=$('cRcs'), g=ctx(c), x0=56, y0=14, w=c.width-72, h=c.height-52; const lo=-40, hi=Math.max(20,Math.ceil(Math.max(...vals)/10)*10);
+  const Y=v=>y0+h*(hi-v)/(hi-lo);
+  frame(g,x0,y0,w,h,6); g.fillStyle=css('--muted');
+  for(let k2=0;k2<=6;k2++){ const v=hi-(hi-lo)*k2/6; g.fillText(v.toFixed(0),20,Y(v)+4); }
+  g.fillText('dBsm',14,y0-2>8?y0-2:10);
+  [-90,-45,0,45,90].forEach(a=>{ g.fillText(a+'°',x0+w*(a+90)/180-10,y0+h+16); });
+  g.fillText('aspect angle (0° = face-on / broadside)',x0+w/2-130,y0+h+32);
+  g.strokeStyle=css('--accent'); g.lineWidth=1.6; g.beginPath(); vals.forEach((v,i)=>{ const X=x0+w*i/(N-1); i?g.lineTo(X,Y(v)):g.moveTo(X,Y(v)); }); g.stroke(); g.lineWidth=1;
+  const lv=vals.map(lin), mean=lv.reduce((a,b)=>a+b,0)/N;
+  ro($('rcsOut'),[['Wavelength λ',fmt(lam,'m')],['Peak RCS',Math.max(...vals).toFixed(1)+' dBsm'],['Mean RCS',db(mean).toFixed(1)+' dBsm'],['Peak-to-mean',(Math.max(...vals)-db(mean)).toFixed(1)+' dB']]);
+  $('rcsS').disabled=(type==='sphere'||type==='plate');
+}
+['rcsT','rcsF','rcsS'].forEach(i=>$(i).addEventListener('input',rcsDraw)); redraws.push(rcsDraw); rcsDraw();
+$('rcsNew').addEventListener('click',()=>{newScat();rcsDraw();});
+
+/* BUDGET */
+bind(['bPt','bG','bF','bR','bS','bN','bB'],function(){
+  const Pt=+$('bPt').value, G=+$('bG').value, f=+$('bF').value*1e9, R=+$('bR').value*1000, s=+$('bS').value, NF=+$('bN').value, B=+$('bB').value*1e6, lam=c0/f;
+  $('bPtv').textContent=Pt+' dBm ('+fmt(lin(Pt)/1000,'W')+')'; $('bGv').textContent=G+' dBi'; $('bFv').textContent=(f/1e9).toFixed(1)+' GHz'; $('bRv').textContent=fmt(R,'m'); $('bSv').textContent=s+' dBsm ('+(lin(s)<0.1?lin(s).toFixed(3):lin(s).toFixed(1))+' m²)'; $('bNv').textContent=NF+' dB'; $('bBv').textContent=fmt(B,'Hz');
+  const spread=db(4*Math.PI*R*R), Ae=G+db(lam*lam/(4*Math.PI));
+  const steps=[['P_t',Pt],['+G',Pt+G],['spread out',Pt+G-spread],['× σ',Pt+G-spread+s],['spread back',Pt+G-2*spread+s],['× A_e',Pt+G-2*spread+s+Ae]];
+  const N=-174+db(B)+NF, Pr=steps[5][1], snr=Pr-N;
+  ro($('bOut'),[['Spreading each way','−'+spread.toFixed(1)+' dB(m²)'],['Effective area A_e',Ae.toFixed(1)+' dBsm'],['Received echo P_r',Pr.toFixed(1)+' dBm'],['Total path loss',(Pt-Pr).toFixed(1)+' dB'],['Noise floor',N.toFixed(1)+' dBm'],['SNR (one pulse)',snr.toFixed(1)+' dB']]);
+  const c=$('cBud'), g=ctx(c), x0=60, y0=14, w=c.width-76, h=c.height-54;
+  const vals=steps.map(s=>s[1]).concat([N]); const hi=Math.ceil(Math.max(...vals)/20)*20, lo=Math.floor(Math.min(...vals)/20)*20-10;
+  const Y=v=>y0+h*(hi-v)/(hi-lo);
+  frame(g,x0,y0,w,h,1); g.fillStyle=css('--muted');
+  for(let v=hi; v>=lo; v-=20){ g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,Y(v)); g.lineTo(x0+w,Y(v)); g.stroke(); g.fillText(v+'',22,Y(v)+4); }
+  g.fillText('dBm',22,y0+h+16);
+  const bw=w/steps.length;
+  steps.forEach((s,i)=>{ const X=x0+bw*i+bw*0.18, Wd=bw*0.64; const top=Y(s[1]), base=Y(lo);
+    g.fillStyle=i===5?css('--trace'):css('--accent'); g.globalAlpha=i===5?0.85:0.55; g.fillRect(X,Math.min(top,base),Wd,Math.abs(base-top)); g.globalAlpha=1;
+    g.fillStyle=css('--ink'); g.fillText(s[1].toFixed(1),X,top-5); g.fillStyle=css('--muted'); g.fillText(s[0],X,y0+h+16);
+    if(i>0){ g.strokeStyle=css('--muted'); g.setLineDash([2,3]); g.beginPath(); g.moveTo(X-bw*0.36,Y(steps[i-1][1])); g.lineTo(X,Y(steps[i-1][1])); g.stroke(); g.setLineDash([]); } });
+  g.strokeStyle=css('--muted'); g.setLineDash([6,4]); g.beginPath(); g.moveTo(x0,Y(N)); g.lineTo(x0+w,Y(N)); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--muted'); g.fillText('noise floor '+N.toFixed(1)+' dBm',x0+w-170,Y(N)+16);
+  g.fillStyle=snr>=13?css('--good'):css('--bad'); g.fillText('SNR '+snr.toFixed(1)+' dB '+(snr>=13?'(enough for one pulse)':'(below ~13 dB: needs integration)'),x0+8,y0+h+34);
+});
+
+/* R4 */
+bind(['wG','wS'],function(){
+  const Gw=+$('wG').value, Sw=+$('wS').value; $('wGv').textContent=Gw+' dBi'; $('wSv').textContent=Sw+' dBm';
+  const Pt=60, G=30, lam=0.03, Nr=-110;
+  const echo=R=>Pt+2*G+db(lam*lam)-db(Math.pow(4*Math.PI,3))-40*Math.log10(R);
+  const one=R=>Pt+G+Gw+20*Math.log10(lam/(4*Math.PI*R));
+  const c=$('cR4'), g=ctx(c), x0=60, y0=14, w=c.width-76, h=c.height-54, Rlo=100, Rhi=1e6, lo=-160, hi=0;
+  const X=R=>x0+w*(Math.log10(R)-2)/4, Y=v=>y0+h*(hi-Math.min(Math.max(v,lo),hi))/(hi-lo);
+  frame(g,x0,y0,w,h,8); g.fillStyle=css('--muted'); for(let v=hi; v>=lo; v-=40) g.fillText(v+'',24,Y(v)+4); g.fillText('dBm',24,y0+h+16);
+  [100,1e3,1e4,1e5,1e6].forEach(R=>g.fillText(fmt(R,'m',0),X(R)-14,y0+h+16)); g.fillText('range (log)',x0+w/2-30,y0+h+32);
+  [[echo,css('--trace')],[one,css('--trace2')]].forEach(p=>{ g.strokeStyle=p[1]; g.lineWidth=2; g.beginPath(); for(let i=0;i<=100;i++){ const R=Rlo*Math.pow(Rhi/Rlo,i/100); i?g.lineTo(X(R),Y(p[0](R))):g.moveTo(X(R),Y(p[0](R))); } g.stroke(); }); g.lineWidth=1;
+  g.setLineDash([5,4]); g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(x0,Y(Nr+13)); g.lineTo(x0+w,Y(Nr+13)); g.stroke(); g.strokeStyle=css('--trace2'); g.beginPath(); g.moveTo(x0,Y(Sw)); g.lineTo(x0+w,Y(Sw)); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--trace'); g.fillText('radar needs '+(Nr+13)+' dBm (1 pulse)',x0+6,Y(Nr+13)-5); g.fillStyle=css('--trace2'); g.fillText('listener sensitivity',x0+6,Y(Sw)-5);
+  const Rr=Math.pow(10,(Pt+2*G+db(lam*lam)-db(Math.pow(4*Math.PI,3))-(Nr+13))/40);
+  const Rw=Math.pow(10,(Pt+G+Gw+20*Math.log10(lam/(4*Math.PI))-Sw)/20);
+  ro($('wOut'),[['Radar detects to',fmt(Rr,'m')],['Listener hears to',fmt(Rw,'m')],['Ratio',(Rw/Rr).toFixed(0)+'×'],['Gap at 10 km',(one(1e4)-echo(1e4)).toFixed(1)+' dB']]);
+});
+
+/* TX pulse */
+bind(['tP','tT','tF'],function(){
+  const Pp=+$('tP').value, tau=+$('tT').value*1e-6, prf=+$('tF').value; let d=tau*prf; const over=d>1; d=Math.min(d,1);
+  $('tPv').textContent=fmt(Pp,'W'); $('tTv').textContent=fmt(tau,'s'); $('tFv').textContent=fmt(prf,'Hz');
+  const Pa=Pp*d;
+  ro($('tOut'),[['PRI',fmt(1/prf,'s')],['Duty cycle',over?'>100 % (invalid)':(d*100).toFixed(3)+' %'],['Average power',fmt(Pa,'W')],['Energy per pulse',(Pp*tau*1e3).toPrecision(3)+' mJ'],['Range resolution c·τ/2',fmt(c0*tau/2,'m')],['Max unambiguous range',fmt(c0/(2*prf),'m')]]);
+  const c=$('cTx'), g=ctx(c), x0=70, y0=20, w=c.width-90, h=c.height-60;
+  const pmax=Pp, pmin=Math.max(Pa/100,Pp/1e6); const Y=p=>y0+h-h*(db(Math.max(p,pmin))-db(pmin))/(db(pmax)-db(pmin)+1e-9);
+  frame(g,x0,y0,w,h,4); g.fillStyle=css('--muted'); g.fillText(fmt(pmax,'W'),4,y0+10); g.fillText(fmt(pmin,'W'),4,y0+h); g.fillText('(log)',4,y0+h/2);
+  const span=3/prf; g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath();
+  for(let k=0;k<3;k++){ const xa=x0+w*k/3, xb=xa+Math.max(2,w*tau/span); g.moveTo(xa,y0+h); g.lineTo(xa,Y(Pp)); g.lineTo(xb,Y(Pp)); g.lineTo(xb,y0+h); g.lineTo(x0+w*(k+1)/3,y0+h); } g.stroke();
+  g.strokeStyle=css('--trace2'); g.beginPath(); g.moveTo(x0,Y(Pa)); g.lineTo(x0+w,Y(Pa)); g.stroke(); g.lineWidth=1;
+  g.setLineDash([4,4]); g.strokeStyle=css('--muted'); g.beginPath(); g.moveTo(x0,Y(Pa)+4); g.lineTo(x0+w,Y(Pa)+4); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--muted'); g.fillText('time → (3 PRIs = '+fmt(span,'s')+')',x0,y0+h+18);
+  g.fillStyle=css('--trace2'); g.fillText('FMCW / average: '+fmt(Pa,'W'),x0+w-200,Y(Pa)-6);
+  g.fillStyle=css('--accent'); g.fillText('pulse: '+fmt(Pp,'W')+' for '+fmt(tau,'s'),x0+8,Y(Pp)+16>y0+h?Y(Pp)-6:Y(Pp)+16);
+});
+
+/* INTEGRATION */
+const NB=120, TC=80, MAXN=256; let nre=[], nim=[], coh=true;
+function newN(){ nre=[]; nim=[]; for(let p=0;p<MAXN;p++){ const r=[],q=[]; for(let i=0;i<NB;i++){ const u=Math.random()||1e-9, v=Math.random(); const m=Math.sqrt(-Math.log(u)); r.push(m*Math.cos(2*Math.PI*v)); q.push(m*Math.sin(2*Math.PI*v)); } nre.push(r); nim.push(q);} }
+newN();
+function intDraw(){
+  const s=+$('iS').value, N=+$('iN').value; $('iSv').textContent=s+' dB'; $('iNv').textContent=N;
+  const A=Math.sqrt(lin(s)); const out=[];
+  for(let i=0;i<NB;i++){ if(coh){ let re=0,im=0; for(let p=0;p<N;p++){ re+=nre[p][i]+(i===TC?A:0); im+=nim[p][i]; } out.push((re*re+im*im)/N); }
+    else { let sm=0; for(let p=0;p<N;p++){ const re=nre[p][i]+(i===TC?A:0), im=nim[p][i]; sm+=re*re+im*im;} out.push(sm/N); } }
+  const noiseMean=out.filter((v,i)=>i!==TC).reduce((a,b)=>a+b,0)/(NB-1);
+  const c=$('cInt'), g=ctx(c), x0=56, y0=14, w=c.width-72, h=c.height-50; const lo=-15, hi=30;
+  const Y=v=>y0+h*(hi-Math.min(Math.max(db(v/noiseMean),lo),hi))/(hi-lo);
+  frame(g,x0,y0,w,h,9); g.fillStyle=css('--muted'); for(let v=lo; v<=hi; v+=15) g.fillText(v+' dB',8,y0+h*(hi-v)/(hi-lo)+4);
+  g.strokeStyle=css('--muted'); g.setLineDash([4,4]); g.beginPath(); g.moveTo(x0,Y(noiseMean)); g.lineTo(x0+w,Y(noiseMean)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.6; g.beginPath(); out.forEach((v,i)=>{ const X=x0+w*(i+.5)/NB; i?g.lineTo(X,Y(v)):g.moveTo(X,Y(v)); }); g.stroke(); g.lineWidth=1;
+  const X=x0+w*(TC+.5)/NB; g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(X,y0+h+2); g.lineTo(X-6,y0+h+12); g.lineTo(X+6,y0+h+12); g.closePath(); g.fill();
+  g.fillStyle=css('--muted'); g.fillText('range cell →   (power in dB relative to the mean noise, dashed = 0 dB)',x0,y0+h+28); g.fillText('target',X+8,y0+h+12);
+  const gain=coh?db(N):db(Math.pow(N,0.75));
+  const peakOther=Math.max(...out.filter((v,i)=>i!==TC));
+  ro($('iOut'),[['Integration gain',(coh?'':'≈ ')+gain.toFixed(1)+' dB'],['Expected SNR after',(s+gain).toFixed(1)+' dB'],['Target cell / mean noise',db(out[TC]/noiseMean).toFixed(1)+' dB'],['Target is highest peak?',out[TC]>=peakOther?'yes':'no']]);
+}
+['iS','iN'].forEach(i=>$(i).addEventListener('input',intDraw)); redraws.push(intDraw); intDraw();
+$('iCoh').addEventListener('click',()=>{coh=true;$('iCoh').setAttribute('aria-pressed',true);$('iNon').setAttribute('aria-pressed',false);intDraw();});
+$('iNon').addEventListener('click',()=>{coh=false;$('iNon').setAttribute('aria-pressed',true);$('iCoh').setAttribute('aria-pressed',false);intDraw();});
+$('iNew').addEventListener('click',()=>{newN();intDraw();});
+
+/* ENERGY EQUATION */
+bind(['eP','eT','eG','eF','eS','eN','eL','eQ'],function(){
+  const P=+$('eP').value, Td=+$('eT').value*1e-3, G=lin(+$('eG').value), f=+$('eF').value*1e9, sig=+$('eS').value, F=lin(+$('eN').value), L=lin(+$('eL').value), req=+$('eQ').value;
+  $('ePv').textContent=fmt(P,'W'); $('eTv').textContent=fmt(Td,'s'); $('eGv').textContent=$('eG').value+' dBi'; $('eFv').textContent=(f/1e9).toFixed(1)+' GHz'; $('eNv').textContent=$('eN').value+' dB'; $('eLv').textContent=$('eL').value+' dB'; $('eQv').textContent=req+' dB';
+  const lam=c0/f; const K=P*Td*G*G*lam*lam*sig/(Math.pow(4*Math.PI,3)*kB*T0*F*L);
+  const snr=R=>db(K/Math.pow(R,4)); const Rmax=Math.pow(K/lin(req),0.25);
+  ro($('eOut'),[['Energy on target',(P*Td*1e3).toPrecision(3)+' mJ'],['SNR at 10 km',snr(1e4).toFixed(1)+' dB'],['Max detection range',fmt(Rmax,'m')],['Pulse radar equivalent','1 µs pulses @ 1 kHz, '+fmt(P*1000,'W')+' peak'],['FMCW equivalent',fmt(P,'W')+' CW']]);
+  const c=$('cEq'), g=ctx(c), x0=60, y0=14, w=c.width-76, h=c.height-54;
+  const Rlo=100, Rhi=200e3, lo=-20, hi=80; const X=R=>x0+w*(Math.log10(R)-Math.log10(Rlo))/(Math.log10(Rhi)-Math.log10(Rlo)); const Y=s=>y0+h*(hi-Math.min(Math.max(s,lo),hi))/(hi-lo);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted'); for(let s=lo;s<=hi;s+=20) g.fillText(s+' dB',10,Y(s)+4);
+  [100,1e3,1e4,1e5].forEach(R=>g.fillText(fmt(R,'m',0),X(R)-14,y0+h+16)); g.fillText('range (log): each decade costs 40 dB',x0+w/2-120,y0+h+32);
+  g.strokeStyle=css('--trace'); g.lineWidth=2; g.beginPath(); for(let i=0;i<=200;i++){ const R=Rlo*Math.pow(Rhi/Rlo,i/200); i?g.lineTo(X(R),Y(snr(R))):g.moveTo(X(R),Y(snr(R))); } g.stroke(); g.lineWidth=1;
+  g.strokeStyle=css('--accent'); g.setLineDash([5,4]); g.beginPath(); g.moveTo(x0,Y(req)); g.lineTo(x0+w,Y(req)); g.stroke(); g.setLineDash([]);
+  if(Rmax>Rlo&&Rmax<Rhi){ g.fillStyle=css('--accent'); g.beginPath(); g.arc(X(Rmax),Y(req),5,0,7); g.fill(); g.fillText('R_max '+fmt(Rmax,'m'),Math.min(X(Rmax)+8,x0+w-120),Y(req)-8); }
+});
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

@@ -1,0 +1,391 @@
+<title>Radar Measurement</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Radar Basics · R6 of 6 · RF Systems for Component Engineers</div>
+  <h1>Measuring range, speed and angle</h1>
+  <p class="lede">R1 to R5 explained how a radar detects a target. This last page is about measuring it well. For each quantity (range, speed, angle) there are three different questions, and they are often confused: how close can two targets be and still be told apart, how precisely can one target be located, and is the answer unique? The page answers each, and shows the techniques radars use when the simple approach fails: pulse compression, multiple PRFs, MTI cancellers and monopulse.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#three">0 Resolution, accuracy, ambiguity</a><a href="#pc">1 Pulse compression</a><a href="#mprf">2 Multiple PRFs</a><a href="#mti">3 MTI cancellers</a><a href="#mono">4 Monopulse angle</a><a href="#comp">5 Your components</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="three">
+  <div class="secno">Step 0</div>
+  <h2>Three different questions: resolution, accuracy, ambiguity</h2>
+  <div class="know"><h4>You already know</h4>Range resolution c/2B (R1, R5), beamwidth (R2), Doppler bins and blind speeds (R4), and that angle accuracy can be much finer than the beamwidth (R2 Step 3).</div>
+  <div class="col">
+    <ul>
+      <li><b>Resolution</b>: the smallest separation at which <i>two</i> targets appear as two. It is set by the "width" of the measurement: the compressed pulse, the beam, the Doppler bin. More SNR does not improve it.</li>
+      <li><b>Accuracy</b>: how precisely the position of <i>one</i> target can be measured. It is the resolution divided by roughly √(2·SNR): a strong echo's peak can be located to a small fraction of its width. More SNR helps directly.</li>
+      <li><b>Ambiguity</b>: whether the measured value is unique. Range repeats every R<sub>ua</sub>, speed every λ·PRF/2 (R4). A measurement can be perfectly resolved and accurate and still be wrong by a whole number of R<sub>ua</sub>.</li>
+    </ul>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th></th><th>Resolution</th><th>Accuracy (one target)</th><th>Ambiguity</th></tr>
+    <tr><td>Range</td><td class="n">c / 2B</td><td class="n">≈ (c/2B) / √(2·SNR)</td><td class="n">R<sub>ua</sub> = c / 2·PRF</td></tr>
+    <tr><td>Speed</td><td class="n">λ / (2·N·PRI)</td><td class="n">≈ resolution / √(2·SNR)</td><td class="n">± λ·PRF / 4</td></tr>
+    <tr><td>Angle</td><td class="n">≈ θ<sub>3</sub></td><td class="n">≈ θ<sub>3</sub> / (1.6·√(2·SNR))</td><td class="n">grating lobes, sidelobes</td></tr>
+  </table></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: B = 5 MHz, θ<sub>3</sub> = 2°, SNR = 20 dB (100)</th><th>Resolution</th><th>Accuracy</th></tr>
+    <tr><td>Range</td><td class="n">30 m</td><td class="n">30 / √200 ≈ 2.1 m</td></tr>
+    <tr><td>Angle</td><td class="n">2°</td><td class="n">2 / (1.6 × 14.1) ≈ 0.09°</td></tr>
+  </table></div>
+  <div class="col"><p>The rest of the page takes the main limitation in each: range resolution needs bandwidth but energy needs a long pulse (Step 1); range and speed ambiguity pull the PRF in opposite directions (Step 2); clutter must be removed before speed can be used (Step 3); angle must be measured on every pulse, not by scanning (Step 4).</p></div>
+</section>
+
+<!-- 1 -->
+<section id="pc">
+  <div class="secno">Step 1</div>
+  <h2>Range: pulse compression</h2>
+  <div class="col">
+    <p><b>The conflict.</b> Detection needs energy: peak power × pulse length (R1). Range resolution needs a short pulse: c·τ/2 (R4). A 50 µs pulse carries 50 times the energy of a 1 µs pulse at the same peak power, but its resolution is 7.5 km instead of 150 m, and its blind range grows to 7.5 km (R4 Step 3). Raising the peak power instead is expensive (solid-state amplifiers are peak-power limited) and makes the radar easy to detect.</p>
+    <p><b>The way out.</b> Resolution is really set by <b>bandwidth</b>, not by duration: c/2B. A short pulse happens to have a wide bandwidth (about 1/τ). But a long pulse can also have a wide bandwidth if its frequency changes during the pulse: a <b>chirped pulse</b> (linear FM, like one FMCW ramp) or a <b>phase-coded pulse</b> (e.g. Barker or polyphase codes).</p>
+    <p><b>How it is compressed.</b> The receiver's matched filter is the time-reversed copy of the transmitted chirp. In the filter, the early (low-frequency) part of the echo is delayed more than the late (high-frequency) part, so all of the echo's energy comes out at the same instant: a narrow peak of width about 1/B. The pulse is long on transmit and short after the filter.</p>
+  </div>
+  <div class="eq">compressed width ≈ 1/B &nbsp;&nbsp; resolution = c/2B &nbsp;&nbsp; compression ratio = τ·B (time-bandwidth product)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: 50 µs pulse, chirp B = 5 MHz</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Uncompressed resolution</td><td>c × 50 µs / 2</td><td class="n">7.5 km</td></tr>
+    <tr><td>Compressed resolution</td><td>c / (2 × 5 MHz)</td><td class="n">30 m</td></tr>
+    <tr><td>Compression ratio</td><td>50 µs × 5 MHz</td><td class="n">250 = 24 dB</td></tr>
+    <tr><td>Energy</td><td>of the full 50 µs pulse</td><td class="n">kept</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>The price: range sidelobes.</b> A plain linear-FM chirp compresses to a sinc-shaped peak with sidelobes at about −13 dB. A strong target's sidelobes, a few cells either side, can hide a weak target next to it (the same problem as antenna sidelobes in R2 and FFT sidelobes in R5). The fix is the same: a <b>window</b> (amplitude weighting, e.g. Hamming) on the matched filter, which drops the sidelobes to about −40 dB, at the cost of a peak about 1.5 times wider and about 1.3 dB of SNR.</p>
+    <p><b>Choosing.</b> B from the range resolution wanted; τ from the energy wanted (and limited by the blind range, which is still τ long: radars often add a short "fill" pulse for close range); the window from how strong neighbouring targets and clutter can be.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPc" width="640" height="320" aria-label="Matched filter output of a chirped pulse"></canvas>
+    <div class="ctrl">
+      <label for="pcT">Pulse length τ <b id="pcTv"></b></label><input id="pcT" type="range" min="5" max="100" step="5" value="50">
+      <label for="pcB">Chirp bandwidth B <b id="pcBv"></b></label><input id="pcB" type="range" min="0.5" max="20" step="0.5" value="5">
+      <label for="pcW">Window</label><select id="pcW"><option value="none">None (sidelobes −13 dB)</option><option value="ham" selected>Hamming (−40 dB)</option></select>
+      <label for="pcD">Second target behind by <b id="pcDv"></b></label><input id="pcD" type="range" min="10" max="400" step="5" value="120">
+      <label for="pcA">Second target weaker by <b id="pcAv"></b></label><input id="pcA" type="range" min="0" max="45" step="1" value="30">
+      <div class="readout" id="pcOut"></div>
+    </div>
+    <p class="cap">Try it: the matched-filter output, in dB, around a strong target (orange). The grey band shows how wide the echo would be without compression (cτ/2). Things to check: (1) default: the weak target 120 m behind stands clear; (2) remove the window: the strong target's −13 dB sidelobes cover it; (3) cut B to 1 MHz: resolution 150 m, the two merge; (4) shorten τ with B fixed: the resolution does not change, only the compression ratio (energy) does.</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="mprf">
+  <div class="secno">Step 2</div>
+  <h2>Range and speed ambiguity: multiple PRFs</h2>
+  <div class="col">
+    <p><b>The conflict.</b> R4 showed that range is unambiguous only up to R<sub>ua</sub> = c/(2·PRF), so long range wants a low PRF; and speed is unambiguous only within ±λ·PRF/4, so fast targets want a high PRF. At 10 GHz, unambiguous ±300 m/s needs PRF ≥ 40 kHz, which gives R<sub>ua</sub> = 3.75 km. No single PRF gives both.</p>
+    <p><b>The three PRF regimes</b> radars choose between:</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Regime</th><th>Range</th><th>Speed</th><th>Typical use</th></tr>
+    <tr><td>Low PRF (≈ 0.25–4 kHz)</td><td>Unambiguous</td><td>Highly ambiguous, many blind speeds</td><td>Long-range surveillance, ground-based search</td></tr>
+    <tr><td>Medium PRF (≈ 10–30 kHz)</td><td>Ambiguous</td><td>Ambiguous</td><td>Airborne radars looking down: a compromise, resolved with several PRFs</td></tr>
+    <tr><td>High PRF (≈ 100–300 kHz)</td><td>Highly ambiguous</td><td>Unambiguous</td><td>Detecting fast closing targets at long range, missile seekers</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Resolving ambiguity with several PRFs.</b> With one PRF, a target reported at 10 km could really be at 10, 25, 40, 55 … km (adding R<sub>ua</sub> = 15 km each time). Switch to a second PRF with R<sub>ua</sub> = 13 km and the same target is reported at 1 km, so it could be at 1, 14, 27, 40 … km. Only one range appears in both lists: <b>40 km</b>. That is the true range. (The arithmetic rule behind it is the Chinese remainder theorem.) Two PRFs with R<sub>ua</sub> of 15 and 13 km resolve unambiguously out to their least common multiple, 195 km.</p>
+    <p><b>Why real radars use 3 or more.</b> With several targets, coincidences can occur by chance between one target's candidates in one PRF and another target's in the other: <b>ghosts</b>. Medium-PRF radars typically use 8 PRFs per dwell and require a target to appear consistently in at least 3 of them ("3 of 8"), which also handles targets that fall in a blind range or blind speed in some PRFs. The same coincidence method resolves speed ambiguity and fills in blind speeds.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cMp" width="640" height="300" aria-label="Candidate ranges from several PRFs and their coincidence"></canvas>
+    <div class="ctrl">
+      <label for="mpA">PRF 1: R<sub>ua</sub> <b id="mpAv"></b></label><input id="mpA" type="range" min="5" max="30" step="1" value="15">
+      <label for="mpB">PRF 2: R<sub>ua</sub> <b id="mpBv"></b></label><input id="mpB" type="range" min="5" max="30" step="1" value="13">
+      <label for="mpC">PRF 3: R<sub>ua</sub> <b id="mpCv"></b></label><input id="mpC" type="range" min="0" max="30" step="1" value="0">
+      <label for="mpR">Target 1 range <b id="mpRv"></b></label><input id="mpR" type="range" min="1" max="190" step="1" value="40">
+      <label for="mpS">Target 2 range <b id="mpSv"></b></label><input id="mpS" type="range" min="0" max="190" step="1" value="0">
+      <div class="readout" id="mpOut"></div>
+    </div>
+    <p class="cap">Try it: each row is one PRF. The radar measures only the apparent range (filled dot); the open ticks are all the ranges that apparent value could mean. Columns where every active PRF has a tick are coincidences (orange). Things to check: (1) default: one coincidence, at 40 km; (2) set both R<sub>ua</sub> to 15 km: coincidences every 15 km, no help; (3) add target 2 at 72 km: ghosts appear where one target's candidates meet the other's; (4) switch on PRF 3 (R<sub>ua</sub> 11 km): the ghosts disappear.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="mti">
+  <div class="secno">Step 3</div>
+  <h2>Speed before the FFT: MTI cancellers</h2>
+  <div class="col">
+    <p><b>The problem.</b> R4 Step 7 separated moving targets from clutter with an FFT over N pulses. A simpler and older method, still used as a first stage in front of the FFT, is <b>MTI</b> (moving-target indication): remove everything that does not change from pulse to pulse.</p>
+    <p><b>The two-pulse canceller.</b> In each range cell, subtract the previous pulse's I/Q sample from the current one. A stationary echo has the same phasor on both pulses (R4 Step 6), so it cancels to zero. A moving target's phasor has turned by Δφ, so the difference is not zero. Its size is |2·sin(Δφ/2)| times the echo: zero at zero speed, maximum (×2) when Δφ = 180°, and zero again at Δφ = 360° (the blind speed).</p>
+    <p><b>The three-pulse canceller</b> applies it twice (weights 1, −2, 1). Its notch around zero speed is wider and deeper, so it removes clutter that is spread out in speed (trees and sea moving in the wind), at the cost of attenuating slow targets more.</p>
+  </div>
+  <div class="eq">two-pulse: |H|² = 4·sin²(π·f<sub>d</sub>/PRF) &nbsp;&nbsp; three-pulse: |H|² = 16·sin⁴(π·f<sub>d</sub>/PRF) &nbsp;&nbsp; improvement factor I = (signal gain, averaged over speed) / (clutter residue)</div>
+  <div class="col">
+    <p><b>What limits it: your components.</b> The cancellation assumes the clutter phasor is identical on every pulse. Any pulse-to-pulse change in the transmitter's phase, the STALO's phase, or the timing makes clutter look like it moved. With a random phase error of φ rms (radians) from pulse to pulse, the improvement factor cannot exceed about 1/φ². For 1° rms (0.0175 rad) that is 35 dB. If the clutter is 50 dB above noise, 15 dB of it survives. This is how STALO phase noise and PA phase stability (Modules 02, 03) set a limit on finding small moving targets in clutter.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cMti" width="640" height="300" aria-label="MTI canceller response against speed with clutter spectrum"></canvas>
+    <div class="ctrl">
+      <label for="mtK">Canceller</label><select id="mtK"><option value="0">None</option><option value="1" selected>Two-pulse</option><option value="2">Three-pulse</option></select>
+      <label for="mtP">PRF <b id="mtPv"></b></label><input id="mtP" type="range" min="1" max="10" step="0.5" value="2">
+      <label for="mtW">Clutter spread (wind) <b id="mtWv"></b></label><input id="mtW" type="range" min="0.05" max="2" step="0.05" value="0.3">
+      <label for="mtJ">Pulse-to-pulse phase error <b id="mtJv"></b></label><input id="mtJ" type="range" min="0" max="5" step="0.1" value="0.5">
+      <div class="readout" id="mtOut"></div>
+    </div>
+    <p class="cap">Try it: 10 GHz. Orange: the canceller's response against target speed. Purple shaded: the clutter's spread in speed around zero. Dashed: the blind speeds. Things to check: (1) two-pulse vs three-pulse: the notch widens and the improvement factor rises for windy clutter; (2) raise the phase error to 2°: the improvement factor drops to about 29 dB whatever canceller is used; (3) raise the PRF: blind speeds move out, but R<sub>ua</sub> shrinks (Step 2).</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="mono">
+  <div class="secno">Step 4</div>
+  <h2>Angle: monopulse</h2>
+  <div class="col">
+    <p><b>The naive approach.</b> Sweep the beam across the target and note where the echo is strongest. This needs many pulses, and if the target's echo fluctuates from pulse to pulse (R1 Step 2, R3 Step 4), or a jammer modulates its signal in step with the scan, the peak appears in the wrong place. <b>Conical scan</b> (spinning the beam slightly around the target and reading the modulation) has the same weakness, and it is easily fooled by a jammer that imitates the modulation.</p>
+    <p><b>The idea of monopulse: measure angle on every single pulse.</b> The antenna forms two beams at once, squinted slightly left and right of boresight (in practice four, for azimuth and elevation). A target exactly on boresight gives equal echoes in both. A target to one side gives a stronger echo in the beam on that side. A <b>comparator</b> (a hybrid network) forms:</p>
+    <ul>
+      <li><b>Σ (sum)</b> = left + right: a normal beam, used for detection and range.</li>
+      <li><b>Δ (difference)</b> = left − right: zero on boresight, growing with the off-axis angle, with a sign that says which side.</li>
+    </ul>
+    <p>The ratio Δ/Σ, measured on one pulse, is close to proportional to the angle off boresight. Because both channels see the same pulse, fluctuations of the echo cancel in the ratio.</p>
+  </div>
+  <div class="eq">angle off boresight ≈ (Δ / Σ) / k<sub>m</sub> &nbsp;&nbsp; k<sub>m</sub> ≈ 1.6 / θ<sub>3</sub> (monopulse slope) &nbsp;&nbsp; σ<sub>θ</sub> ≈ θ<sub>3</sub> / (k<sub>m</sub>θ<sub>3</sub> · √(2·SNR))</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: θ<sub>3</sub> = 2°, one pulse</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Slope k<sub>m</sub></td><td>1.6 / 2°</td><td class="n">0.8 per degree</td></tr>
+    <tr><td>Measured Δ/Σ</td><td>given</td><td class="n">0.20</td></tr>
+    <tr><td>Angle off boresight</td><td>0.20 / 0.8</td><td class="n">0.25°</td></tr>
+    <tr><td>Noise error at SNR 20 dB</td><td>2° / (1.6 × √200)</td><td class="n">≈ 0.09° rms</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>What limits it: channel matching.</b> After the comparator, Σ and Δ go through separate receiver channels (LNA, mixer, IF, ADC). If the two channels differ in gain or phase, the measured ratio is wrong. A gain error scales every reading (the slope is wrong); a phase difference φ between the channels multiplies the useful part of the ratio by cos φ and leaks the rest into the quadrature component. In addition, any imbalance inside the comparator or antenna feed shifts the null away from boresight (boresight error). That is why monopulse receivers specify channel-to-channel gain and phase tracking over frequency and temperature, and calibrate it.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cMo" width="640" height="320" aria-label="Monopulse sum and difference patterns and the measured angle"></canvas>
+    <div class="ctrl">
+      <label for="moA">Target angle <b id="moAv"></b></label><input id="moA" type="range" min="-1.5" max="1.5" step="0.01" value="0.5">
+      <label for="moG">Δ channel gain error <b id="moGv"></b></label><input id="moG" type="range" min="-3" max="3" step="0.1" value="0">
+      <label for="moP">Σ–Δ channel phase error <b id="moPv"></b></label><input id="moP" type="range" min="0" max="60" step="1" value="0">
+      <label for="moS">SNR <b id="moSv"></b></label><input id="moS" type="range" min="5" max="40" step="1" value="20">
+      <label for="moX">Show</label><select id="moX"><option value="1" selected>One pulse (with noise)</option><option value="0">Noise-free</option></select>
+      <div class="readout" id="moOut"></div>
+    </div>
+    <p class="cap">Try it: 2° beam. Top: the Σ (teal) and |Δ| (purple) patterns in dB against angle; the orange line marks the target. Bottom: Δ/Σ against angle (the monopulse curve), and the reading this pulse gives. Things to check: (1) the Δ/Σ curve is nearly a straight line within the beam; (2) add 2 dB of Δ gain error: angles near boresight read about 26 % too large; (3) add 40° of phase error: readings shrink by cos 40° ≈ 0.77; (4) lower the SNR to 10 dB and move the target slider a little at a time: each pulse's reading now scatters by roughly 0.3° rms around the true angle. (The reading uses the straight-line approximation Δ/Σ ÷ k<sub>m</sub>, so far from boresight it reads slightly low even without noise.)</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="comp">
+  <div class="secno">Step 5</div>
+  <h2>Where your components show up in measurement</h2>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Exciter / DAC (pulse compression):</b> chirp linearity and amplitude flatness set the range sidelobes after compression; a sidelobe that should be −40 dB can rise to −25 dB with a little ripple across the pulse.</li>
+    <li><b>PA:</b> amplitude droop and phase change across a long pulse distort the chirp and raise range sidelobes; pulse-to-pulse phase stability sets the MTI and Doppler clutter limit.</li>
+    <li><b>STALO / synthesiser:</b> phase noise and pulse-to-pulse phase stability cap the MTI improvement factor (about 1/φ²); switching speed decides how quickly the radar can change PRF or frequency between dwells.</li>
+    <li><b>Timing generator:</b> PRF switching and stagger patterns must be exact, or the coincidence method of Step 2 fails.</li>
+    <li><b>Monopulse comparator and receiver channels:</b> gain and phase tracking between Σ and Δ channels across frequency and temperature set angle accuracy and boresight error.</li>
+    <li><b>Filters:</b> group-delay variation across the band distorts a chirp just as a nonlinear exciter does.</li>
+  </ul></div>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Resolution / accuracy / ambiguity</dt><dd>Separating two targets / locating one precisely / getting a unique answer.</dd>
+    <dt>Pulse compression</dt><dd>Transmitting a long, frequency- or phase-coded pulse and compressing it in the matched filter to width 1/B.</dd>
+    <dt>Time-bandwidth product, compression ratio</dt><dd>τ·B: how many times the pulse is shortened.</dd>
+    <dt>Range sidelobes</dt><dd>Smaller peaks either side of a compressed pulse; reduced by windowing.</dd>
+    <dt>Low / medium / high PRF</dt><dd>Regimes that trade range ambiguity against speed ambiguity.</dd>
+    <dt>Chinese remainder method, ghosts</dt><dd>Finding the one true range consistent with several PRFs / false coincidences between different targets.</dd>
+    <dt>MTI, canceller</dt><dd>Moving-target indication: subtracting successive pulses to remove stationary echoes.</dd>
+    <dt>Improvement factor</dt><dd>Signal-to-clutter ratio after MTI divided by before.</dd>
+    <dt>Monopulse, Σ and Δ</dt><dd>Measuring angle on one pulse from the ratio of difference and sum beams.</dd>
+    <dt>Monopulse slope k<sub>m</sub></dt><dd>How fast Δ/Σ changes with angle, about 1.6 per beamwidth.</dd>
+    <dt>Boresight error, channel tracking</dt><dd>Offset of the Δ null from the antenna axis / how well the Σ and Δ receiver channels match.</dd>
+    <dt>Conical scan</dt><dd>Older tracking method that spins a squinted beam around the target.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>This completes Radar Basics.</b> Next in the series: SAR imaging (Part 3), then the receiver that listens to radars (Part 4), signal identification (Part 5) and transmission and jamming principles (Part 6). The component modules on the hub go deeper into each block.</p>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>; Stimson, <i>Introduction to Airborne Radar</i>; Sherman, <i>Monopulse Principles and Techniques</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const LAM=0.0299792458;
+
+/* 1 PULSE COMPRESSION */
+bind(['pcT','pcB','pcW','pcD','pcA'],function(){
+  const tau=+$('pcT').value*1e-6, B=+$('pcB').value*1e6, win=$('pcW').value, D=+$('pcD').value, A=+$('pcA').value;
+  $('pcTv').textContent=fmt(tau,'s',0); $('pcBv').textContent=fmt(B,'Hz',1); $('pcDv').textContent=D+' m'; $('pcAv').textContent=A+' dB';
+  const fs=4*B, N=Math.round(tau*fs), S=B/tau, dr=c0/(2*fs), s=[]; for(let n=0;n<N;n++){ const t=n/fs-tau/2, p=Math.PI*S*t*t; s.push([Math.cos(p),Math.sin(p)]); }
+  const w=s.map((_,n)=>win==='ham'?0.54-0.46*Math.cos(2*Math.PI*n/Math.max(1,N-1)):1);
+  const res=c0/(2*B), span=Math.max(10*res,D+6*res), L=Math.ceil(span/dr), d2=Math.round(D/dr), a2=Math.pow(10,-A/20);
+  // received: s(n) + a2*s(n-d2); output y(l)=sum_n w(n) conj(s(n)) r(n+l)
+  const rx=n=>{ let re=0,im=0; if(n>=0&&n<N){ re+=s[n][0]; im+=s[n][1]; } const m=n-d2; if(m>=0&&m<N){ re+=a2*s[m][0]; im+=a2*s[m][1]; } return [re,im]; };
+  const out=[], lags=[]; for(let l=-L;l<=L;l++){ let re=0,im=0; for(let n=0;n<N;n++){ const r=rx(n+l); const a=s[n]; re+=w[n]*(r[0]*a[0]+r[1]*a[1]); im+=w[n]*(r[1]*a[0]-r[0]*a[1]); } out.push(re*re+im*im); lags.push(l*dr); }
+  const pk=out[L], pd=out.map(v=>db(v/pk+1e-12));
+  const c=$('cPc'), g=ctx(c), x0=50, y0=12, gw=c.width-64, gh=c.height-46, lo=-60, X=r=>x0+gw*(r+span)/(2*span), Y=v=>y0+gh*(-Math.max(lo,Math.min(0,v)))/(-lo);
+  const unc=c0*tau/2; g.fillStyle=css('--muted'); g.globalAlpha=.10; g.fillRect(Math.max(x0,X(-unc/2)),y0,Math.min(x0+gw,X(unc/2))-Math.max(x0,X(-unc/2)),gh); g.globalAlpha=1;
+  frame(g,x0,y0,gw,gh,6); g.fillStyle=css('--muted'); for(let v=0;v>=lo;v-=20) g.fillText(v+' dB',x0-46,Y(v)+4); [-span,-span/2,0,span/2,span].forEach(r=>g.fillText(r===0?'0 m':fmt(r,'m',0),X(r)-12,y0+gh+16));
+  g.fillText('uncompressed echo width '+fmt(unc,'m',1)+(unc>2*span?' (wider than the plot)':''),x0+6,y0+14);
+  g.strokeStyle=css('--accent'); g.lineWidth=1.6; g.beginPath(); pd.forEach((v,i)=>{ i?g.lineTo(X(lags[i]),Y(v)):g.moveTo(X(lags[i]),Y(v)); }); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--trace'); g.fillText('T2',X(D)-6,Y(-A)-8);
+  // T2 visible? compare level at D with single target
+  const outSingle=(l)=>{ let re=0,im=0; for(let n=0;n<N;n++){ const m=n+l; if(m<0||m>=N) continue; const a=s[n]; re+=w[n]*(s[m][0]*a[0]+s[m][1]*a[1]); im+=w[n]*(s[m][1]*a[0]-s[m][0]*a[1]); } return re*re+im*im; };
+  const only=db(outSingle(d2)/pk+1e-12), both=pd[L+d2]; let ps=-99, i=L; while(i<out.length-1&&pd[i+1]<pd[i]) i++; for(let j=i;j<out.length;j++){ if(Math.abs(j-L-d2)>2) ps=Math.max(ps,db(outSingle(j-L)/pk+1e-12)); }
+  ro($('pcOut'),[['Resolution c/2B',fmt(res,'m',1)],['Without compression',fmt(unc,'m',1)],['Compression ratio τB',(tau*B).toFixed(0)+' = '+db(tau*B).toFixed(1)+' dB'],['Highest range sidelobe',ps.toFixed(1)+' dB'],['Target 2 visible?',(both-only>6&&D>1.5*res)?'yes':'no']]);
+});
+
+/* 2 MULTIPLE PRF */
+bind(['mpA','mpB','mpC','mpR','mpS'],function(){
+  const ua=[+$('mpA').value,+$('mpB').value,+$('mpC').value].filter(x=>x>0), R=+$('mpR').value, S2=+$('mpS').value, Rmax=200;
+  $('mpAv').textContent=$('mpA').value+' km'; $('mpBv').textContent=$('mpB').value+' km'; $('mpCv').textContent=+$('mpC').value?$('mpC').value+' km':'off'; $('mpRv').textContent=R+' km'; $('mpSv').textContent=S2?S2+' km':'none';
+  const tg=[R].concat(S2?[S2]:[]), c=$('cMp'), g=ctx(c), x0=70, y0=16, gw=c.width-84, rh=(c.height-60)/3, X=r=>x0+gw*r/Rmax;
+  const cand=ua.map(u=>{ const set=new Set(); tg.forEach(t=>{ const a=t%u; for(let r=a;r<=Rmax;r+=u) set.add(r); }); return set; });
+  ua.forEach((u,i)=>{ const y=y0+i*rh+rh/2; g.fillStyle=css('--muted'); g.fillText('PRF '+(i+1),8,y-2); g.fillText('R_ua '+u+' km',8,y+12); g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+gw,y); g.stroke();
+    cand[i].forEach(r=>{ g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(X(r),y-8); g.lineTo(X(r),y+8); g.stroke(); });
+    tg.forEach(t=>{ g.fillStyle=css('--trace'); g.beginPath(); g.arc(X(t%u),y,5,0,7); g.fill(); }); });
+  const co=[]; for(let r=0;r<=Rmax;r++) if(ua.length&&cand.every(s=>s.has(r))) co.push(r);
+  const by=y0+ua.length*rh+6; co.forEach(r=>{ g.fillStyle=css('--accent'); g.globalAlpha=.25; g.fillRect(X(r)-3,y0,6,by-y0); g.globalAlpha=1; g.fillStyle=css('--accent'); g.fillText(r,X(r)-6,by+12); });
+  g.fillStyle=css('--muted'); [0,50,100,150,200].forEach(r=>g.fillText(r+' km',X(r)-12,c.height-6));
+  const gcd=(a,b)=>b?gcd(b,a%b):a, lcm=ua.reduce((a,b)=>a*b/gcd(a,b),1), ghosts=co.filter(r=>!tg.includes(r));
+  ro($('mpOut'),[['Apparent ranges',ua.map(u=>tg.map(t=>t%u).join('/')).join(' · ')+' km'],['Coincidences (0–200 km)',co.length?co.join(', ')+' km':'none'],['Unambiguous out to',lcm+' km'],['Ghosts',ghosts.length?ghosts.join(', ')+' km':'none']]);
+});
+
+/* 3 MTI */
+bind(['mtK','mtP','mtW','mtJ'],function(){
+  const K=+$('mtK').value, prf=+$('mtP').value*1e3, sw=+$('mtW').value, jit=+$('mtJ').value*deg;
+  $('mtPv').textContent=fmt(prf,'Hz',1); $('mtWv').textContent=sw.toFixed(2)+' m/s rms'; $('mtJv').textContent=(jit/deg).toFixed(1)+'° rms';
+  const vb=LAM*prf/2, Hs=v=>K===0?1:Math.pow(4*Math.pow(Math.sin(Math.PI*(2*v/LAM)/prf),2),K), wsum=K===0?1:K===1?2:6;
+  let num=0,den=0; for(let i=-400;i<=400;i++){ const v=i/400*6*sw, p=Math.exp(-v*v/(2*sw*sw)); num+=p*Hs(v); den+=p; }
+  const resid=num/den+(K?wsum*jit*jit:0), I=K?wsum/resid:1;
+  const c=$('cMti'), g=ctx(c), x0=50, y0=12, gw=c.width-64, gh=c.height-46, vmax=2.2*vb, lo=-40, X=v=>x0+gw*v/vmax, Y=d=>y0+gh*(10-Math.max(lo,Math.min(10,d)))/(10-lo);
+  frame(g,x0,y0,gw,gh,5); g.fillStyle=css('--muted'); for(let d=10;d>=lo;d-=10) g.fillText(d+' dB',x0-46,Y(d)+4); for(let k=0;k<=4;k++){ const v=vmax*k/4; g.fillText(v.toFixed(0)+' m/s',X(v)-14,y0+gh+16); }
+  g.fillStyle=css('--trace2'); g.globalAlpha=.3; g.beginPath(); g.moveTo(X(0),Y(lo)); for(let i=0;i<=100;i++){ const v=i/100*4*sw; g.lineTo(X(v),Y(10+db(Math.exp(-v*v/(2*sw*sw))))); } g.lineTo(X(4*sw),Y(lo)); g.fill(); g.globalAlpha=1;
+  [vb,2*vb].forEach(v=>{ g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(X(v),y0); g.lineTo(X(v),y0+gh); g.stroke(); g.setLineDash([]); g.fillStyle=css('--muted'); g.fillText('blind',X(v)+3,y0+12); });
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); for(let i=0;i<=400;i++){ const v=vmax*i/400, d=db(Hs(v)+1e-9); i?g.lineTo(X(v),Y(d)):g.moveTo(X(v),Y(d)); } g.stroke(); g.lineWidth=1;
+  ro($('mtOut'),[['First blind speed',vb.toFixed(1)+' m/s'],['R<sub>ua</sub> at this PRF',fmt(c0/(2*prf),'m',1)],['Clutter residue (spread only)',K?db(num/den/wsum).toFixed(1)+' dB':'—'],['Limit from phase error 1/φ²',jit>0?db(1/(jit*jit)).toFixed(1)+' dB':'none'],['Improvement factor',db(I).toFixed(1)+' dB']]);
+});
+
+/* 4 MONOPULSE */
+let moSeed=1;
+bind(['moA','moG','moP','moS','moX'],function(){
+  const th=+$('moA').value, gE=+$('moG').value, pE=+$('moP').value*deg, snr=lin(+$('moS').value), noisy=$('moX').value==='1', th3=2, ts=0.577*th3;
+  $('moAv').textContent=th.toFixed(2)+'°'; $('moGv').textContent=gE.toFixed(1)+' dB'; $('moPv').textContent=(pE/deg).toFixed(0)+'°'; $('moSv').textContent=$('moS').value+' dB';
+  const b=t=>Math.exp(-2*Math.LN2*t*t/(th3*th3)), Sg=t=>b(t-ts)+b(t+ts), Dg=t=>b(t-ts)-b(t+ts), k=1.6/th3, S0=Sg(0);
+  const r=rng(++moSeed), gn=()=>Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r());
+  const sig=Math.sqrt(1/(2*snr))*S0, Sre=Sg(th)+(noisy?sig*gn():0), Sim=(noisy?sig*gn():0), ga=Math.pow(10,gE/20), Dre0=Dg(th)+(noisy?sig*gn():0), Dim0=(noisy?sig*gn():0);
+  const Dre=ga*(Dre0*Math.cos(pE)-Dim0*Math.sin(pE)), Dim=ga*(Dre0*Math.sin(pE)+Dim0*Math.cos(pE));
+  const ratio=(Dre*Sre+Dim*Sim)/(Sre*Sre+Sim*Sim), est=ratio/k, sd=th3/(1.6*Math.sqrt(2*snr));
+  const c=$('cMo'), g=ctx(c), x0=50, w=c.width-64, ty=12, th1=150, by=ty+th1+30, bh=c.height-by-24, span=3, X=t=>x0+w*(t+span)/(2*span), Yt=d=>ty+th1*(-Math.max(-40,d))/40, Yb=v=>by+bh/2-bh/2*v;
+  frame(g,x0,ty,w,th1,4); frame(g,x0,by,w,bh,2); g.fillStyle=css('--muted'); [0,-20,-40].forEach(d=>g.fillText(d+' dB',x0-46,Yt(d)+4)); ['+1','0','−1'].forEach((t,i)=>g.fillText(t,x0-20,by+bh*i/2+4)); [-3,-1.5,0,1.5,3].forEach(t=>g.fillText(t+'°',X(t)-8,by+bh+16));
+  g.fillText('Σ and |Δ| patterns',x0+6,ty+12); g.fillText('Δ/Σ (the monopulse curve)',x0+6,by+12);
+  const line=(f,Y,col)=>{ g.strokeStyle=col; g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=300;i++){ const t=-span+2*span*i/300, v=f(t); i?g.lineTo(X(t),Y(v)):g.moveTo(X(t),Y(v)); } g.stroke(); g.lineWidth=1; };
+  line(t=>20*Math.log10(Sg(t)/S0+1e-9),Yt,css('--trace')); line(t=>20*Math.log10(Math.abs(Dg(t))/S0+1e-9),Yt,css('--trace2'));
+  line(t=>Dg(t)/Sg(t),Yb,css('--trace')); line(t=>ga*Math.cos(pE)*Dg(t)/Sg(t),Yb,css('--trace2'));
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(X(th),ty); g.lineTo(X(th),ty+th1); g.moveTo(X(th),by); g.lineTo(X(th),by+bh); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--accent'); g.beginPath(); g.arc(X(est),Yb(ratio),5,0,7); g.fill();
+  ro($('moOut'),[['Δ/Σ measured',ratio.toFixed(3)],['Angle read',est.toFixed(3)+'°'],['True angle',th.toFixed(3)+'°'],['Error this pulse',(est-th).toFixed(3)+'°'],['Expected noise error (rms)',sd.toFixed(3)+'°'],['Scale from channel errors',(ga*Math.cos(pE)).toFixed(2)+' ×']]);
+});
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

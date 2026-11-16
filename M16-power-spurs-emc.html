@@ -1,0 +1,1296 @@
+<meta charset="utf-8">
+<title>Power, Spurs and EMC</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Power, Grounding, Spurs and EMC · RF Systems for Component Engineers</div>
+  <h1>Power, grounding, spurs and EMC: how the supply becomes a signal</h1>
+  <p class="lede">Every RF part on a board runs from a DC rail, returns its current through a ground, and sits in a metal box next to other parts and other antennas. None of these is ideal. The rail carries ripple and noise, the ground has inductance, the box has slots and resonances, and the platform carries its own transmitters. Each imperfection reaches the RF path through a component property you already know from datasheets: PSRR, VCO pushing, gain and phase sensitivity to drain voltage, isolation. This page follows each one from the rail to the radar or ESM display, where it turns up as a spur, extra phase noise, a pulse-to-pulse error, a false target or a false emitter. Every term is defined before it is used, every step has worked numbers, and every control in a demo is explained before you can move it.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 Where power and ground enter</a><a href="#psrr">1 Ripple, noise and PSRR</a><a href="#push">2 VCO pushing</a><a href="#sw">3 Switching-regulator spurs</a><a href="#post">4 LDO and LC/ferrite filtering</a><a href="#pulse">5 Pulsed loads and hold-up</a><a href="#mod">6 PA modulators</a><a href="#gnd">7 Grounding and return current</a><a href="#shield">8 Shielding, cavities, EMC</a><a href="#cosite">9 Co-site interference</a><a href="#false">10 Spur to false target</a><a href="#summary">11 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>Where power, ground and shielding enter an RF system</h2>
+  <div class="know"><h4>You already know</h4><p>A datasheet gives a supply voltage range, a supply current and sometimes a PSRR or "supply sensitivity" line. You decouple every pin with a capacitor and connect the ground pads to a plane through vias. You have seen a spur on a spectrum analyser that moved when you touched a cable or swapped a bench supply.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Rail:</b> one regulated DC supply net, for example "+5 V VCO". <b>Bus:</b> the raw platform supply that feeds the regulators, here 28 V.</p>
+    <p><b>Ripple:</b> the periodic part of the rail voltage, at the switching frequency of a regulator and its harmonics, given in mV peak-to-peak (mV p-p). <b>Noise:</b> the random part, given as a density in nV/√Hz or as µV rms over a band.</p>
+    <p><b>Spur (spurious signal):</b> a discrete, unwanted spectral line. It is given in dBc (dB relative to the carrier it sits beside) or in dBm (absolute power). <b>Sideband:</b> a spur pair at carrier ± modulating frequency, produced when something modulates the carrier.</p>
+    <p><b>Coupling path:</b> the route by which an unwanted voltage or current gets from its source to the RF signal: <i>conducted</i> (along a wire or rail), <i>common impedance</i> (through a shared ground), <i>near-field</i> (magnetic or electric coupling between nearby loops or nodes) or <i>radiated</i> (as a wave, through apertures or between antennas).</p>
+    <p><b>EMC (electromagnetic compatibility):</b> the property that a unit neither disturbs other units (emissions) nor is disturbed by them (susceptibility). <b>Co-site interference:</b> the EMC problem between transmitters and receivers on the same platform.</p>
+  </div>
+  <div class="col">
+    <p>An RF engineer usually treats the supply as "DC" and the ground as "zero volts". At system level both are signals. A rail with 20 mV of ripple at 500 kHz is a 500 kHz signal applied to every pin it feeds. A ground connection with 20 nH of inductance turns a 1 A current step into a 0.4 V spike. The RF part does not know that these voltages are not wanted: it converts them into amplitude modulation, phase modulation, frequency modulation or an extra input signal, exactly as its datasheet sensitivities say.</p>
+    <p>The diagram shows one receiver and transmitter channel and the nine places where power, ground and the enclosure enter the RF path. The table under it is the naive design, the one that is drawn first: one switching regulator for everything, no post-regulation, a thin shared ground track and an unpartitioned box. The numbers are worked out in the step named in the last column.</p>
+  </div>
+  <div class="diag"><svg viewBox="0 0 860 344" role="img" aria-label="Block diagram: 28 V bus, buck regulator, filter and LDO feeding VCO, LNA, ADC and PA; hold-up capacitor and modulator on the PA; ground plane; shield box with slot; transmit and receive antennas on the same platform">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker></defs>
+    <rect x="6" y="20" width="620" height="236" rx="8" fill="none" stroke="var(--line)" stroke-dasharray="6 4"/>
+    <text x="16" y="38" class="mut">shielded enclosure (lid seam, connector holes: step 8)</text>
+    <rect x="20" y="60" width="70" height="40" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="30" y="85">28 V bus</text>
+    <rect x="120" y="60" width="90" height="40" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="130" y="78">buck DC-DC</text><text x="130" y="93" class="mut">fsw 500 kHz</text>
+    <rect x="240" y="60" width="80" height="40" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="250" y="78">LC / bead</text><text x="250" y="93" class="mut">step 4</text>
+    <rect x="350" y="60" width="70" height="40" rx="4" fill="var(--chip)" stroke="var(--line)"/><text x="365" y="85">LDO</text>
+    <path d="M90,80H118M210,80H238M320,80H348" stroke="var(--muted)" marker-end="url(#ar)"/>
+    <rect x="470" y="40" width="110" height="34" rx="4" fill="var(--chip)" stroke="var(--trace)"/><text x="480" y="62">VCO / PLL</text>
+    <rect x="470" y="86" width="110" height="34" rx="4" fill="var(--chip)" stroke="var(--trace)"/><text x="480" y="108">LNA, mixer</text>
+    <rect x="470" y="132" width="110" height="34" rx="4" fill="var(--chip)" stroke="var(--trace)"/><text x="480" y="154">ADC</text>
+    <path d="M420,80H445V57H468M445,80V103H468M445,103V149H468" stroke="var(--muted)" fill="none" marker-end="url(#ar)"/>
+    <rect x="120" y="150" width="90" height="40" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="130" y="168">hold-up C</text><text x="130" y="183" class="mut">step 5</text>
+    <rect x="240" y="150" width="90" height="40" rx="4" fill="var(--chip)" stroke="var(--accent)"/><text x="250" y="168">modulator</text><text x="250" y="183" class="mut">step 6</text>
+    <rect x="360" y="150" width="70" height="40" rx="4" fill="var(--chip)" stroke="var(--trace)"/><text x="380" y="175">PA</text>
+    <path d="M55,100V170H118M210,170H238M330,170H358" stroke="var(--muted)" fill="none" marker-end="url(#ar)"/>
+    <line x1="20" y1="226" x2="616" y2="226" stroke="var(--trace2)" stroke-width="3"/><text x="380" y="218" class="mut">ground plane / return path (step 7)</text>
+    <rect x="586" y="14" width="34" height="12" fill="var(--bg)" stroke="var(--bad)"/><text x="636" y="24" class="mut">lid slot: leaks,</text><text x="636" y="38" class="mut">cavity modes (step 8)</text>
+    <path d="M660,286l14,-26l14,26z" fill="none" stroke="var(--accent)"/><text x="640" y="302">Tx antenna</text>
+    <path d="M770,286l14,-26l14,26z" fill="none" stroke="var(--trace)"/><text x="736" y="302">Rx / ESM</text>
+    <path d="M690,266Q728,240 768,266" stroke="var(--bad)" fill="none" stroke-dasharray="4 3" marker-end="url(#ar)"/><text x="740" y="246" class="mut">co-site (step 9)</text>
+    <g style="font-family:var(--f-body);font-size:15px;font-weight:600"><circle cx="221" cy="51" r="8.5" fill="var(--bad)"/><text x="221" y="55" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">1</text><circle cx="435" cy="47" r="8.5" fill="var(--bad)"/><text x="435" y="51" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">2</text><circle cx="435" cy="119" r="8.5" fill="var(--bad)"/><text x="435" y="123" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">3</text><circle cx="441" cy="163" r="8.5" fill="var(--bad)"/><text x="441" y="167" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">4</text>
+    <circle cx="105" cy="141" r="8.5" fill="var(--bad)"/><text x="105" y="145" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">5</text><circle cx="341" cy="141" r="8.5" fill="var(--bad)"/><text x="341" y="145" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">6</text><circle cx="307" cy="241" r="8.5" fill="var(--bad)"/><text x="307" y="245" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">7</text><circle cx="573" cy="29" r="8.5" fill="var(--bad)"/><text x="573" y="33" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">8</text><circle cx="723" cy="253" r="8.5" fill="var(--bad)"/><text x="723" y="257" text-anchor="middle" style="font-family:var(--f-body);font-size:12px;font-weight:700;fill:var(--panel)">9</text></g>
+    <text x="20" y="318" class="mut">red numbers: 1 ripple and edges leave the regulator, 2–4 rails feed VCO, LNA and ADC, 5–6 pulsed drain current,</text>
+    <text x="20" y="334" class="mut">7 shared return path, 8 enclosure leakage and cavity modes, 9 own transmitter into own receiver</text>
+  </svg></div>
+  <h3>What goes wrong with the naive design</h3>
+  <div class="col"><p>The naive design feeds a 5 V rail from one 500 kHz buck regulator with 20 mV p-p ripple, straight to the VCO, the LNA and the ADC. The PA hangs on a 1 000 µF bank behind a slow charger, its return current shares 20 mm of ground track with the ADC, and the box is one open cavity with a 30 mm lid gap. Every one of these choices passes a bench test of the single part. The table shows what each does to the system.</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>#</th><th>Entry point</th><th>Mechanism (component property)</th><th>Naive result</th><th>Step</th></tr>
+    <tr><td>①</td><td>Rail ripple into an amplifier</td><td>Gain and phase sensitivity to supply (dB/V, °/V)</td><td>Sidebands −65.6 dBc at ±500 kHz on every signal</td><td>1</td></tr>
+    <tr><td>②</td><td>Rail ripple and noise into the VCO</td><td>Pushing, 2 MHz/V</td><td>LO spurs −34.0 dBc at ±500 kHz; phase noise −83 dBc/Hz at 10 kHz</td><td>2</td></tr>
+    <tr><td>③</td><td>Regulator harmonics into the IF</td><td>Switch-node edges, coupling isolation</td><td>Harmonic 140 at 70 MHz sits 8.6 dB above the IF noise</td><td>3</td></tr>
+    <tr><td>④</td><td>No post-regulation</td><td>PSRR of nothing is 0 dB</td><td>Every number above passes straight through</td><td>4</td></tr>
+    <tr><td>⑤</td><td>PA drain droop and recharge</td><td>Phase sensitivity to drain voltage, °/V</td><td>2° phase ramp in each pulse; MTI limit 53.5 dB with stagger</td><td>5</td></tr>
+    <tr><td>⑥</td><td>Gate-pulsed PA, wiring inductance</td><td>L·di/dt on the drain node</td><td>4.4 V ringing dip at the pulse front, still ringing after 10 µs</td><td>6</td></tr>
+    <tr><td>⑦</td><td>Shared 20 mm ground track</td><td>Common impedance, 20 nH</td><td>0.4 V spike on the ADC reference (−8 dBFS)</td><td>7</td></tr>
+    <tr><td>⑧</td><td>30 mm lid gap, open cavity</td><td>Aperture leakage, box resonance</td><td>No shielding left at 10 GHz; isolation collapses at 4.5 GHz</td><td>8</td></tr>
+    <tr><td>⑨</td><td>Own 1 kW transmitter 2 m away</td><td>Antenna isolation, transmitter noise</td><td>−18 dBm into the ESM, noise floor 7 dB higher</td><td>9</td></tr>
+  </table></div>
+  <div class="col"><p>Step 10 then shows how any of these lines, once inside the receiver, can pass the detection threshold and be reported as a target or an emitter. The rest of the page takes the rows in order. Three neighbouring modules hold detail that is not repeated here: <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (PLL loop filtering, reciprocal mixing), <a href="M03-power-amplifier.html">Power amplifier</a> (pulsed droop from the PA side, efficiency), <a href="M07-adc-dac-sampling.html">ADC, DAC and sampling</a> (SFDR, clock jitter) and <a href="M14-reference-timing.html">References, clocks and timing</a> (reference spurs, vibration).</p></div>
+</section>
+
+<!-- 1 -->
+<section id="psrr">
+  <div class="secno">Step 1</div>
+  <h2>Supply ripple and noise, and how they reach the RF path: PSRR</h2>
+  <div class="know"><h4>You already know</h4><p>An amplifier's gain and phase change a little when you change its drain or collector voltage: you see it when you sweep V<sub>DD</sub> on a network analyser. An LDO datasheet has a PSRR plot that is high at low frequency and falls off above some tens of kHz.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>PSRR (power-supply rejection ratio):</b> how much a circuit attenuates a disturbance on its input supply before it appears at its output. For a regulator, PSRR = 20·log<sub>10</sub>(V<sub>ripple,in</sub> / V<sub>ripple,out</sub>) dB. It is a function of frequency, not one number.</p>
+    <p><b>Gain sensitivity k<sub>G</sub>:</b> change of an amplifier's gain per volt of supply, in dB/V. <b>Phase sensitivity k<sub>φ</sub>:</b> change of its insertion phase per volt, in °/V. Typical small-signal values: 0.2 to 1 dB/V and 2 to 10 °/V.</p>
+    <p><b>AM index m:</b> the peak fractional change of carrier amplitude. <b>PM index β:</b> the peak phase change in radians. Each produces a sideband pair at ± the ripple frequency.</p>
+    <p><b>Error-amplifier bandwidth:</b> an LDO regulates by comparing its output with a reference in a feedback loop. Above that loop's bandwidth the loop cannot correct, PSRR falls, and only the output capacitor helps.</p>
+  </div>
+  <div class="col">
+    <p>A ripple of peak amplitude a (half the p-p value) on an amplifier's supply changes its gain by k<sub>G</sub>·a dB and its phase by k<sub>φ</sub>·a degrees, at the ripple frequency. A small amplitude change of x dB is a fractional change of x/8.686 in voltage, so the AM index is m = k<sub>G</sub>·a/8.686. The phase change in radians is β = k<sub>φ</sub>·a·π/180. AM sidebands sit in phase with the carrier and PM sidebands in quadrature, so their powers add:</p>
+  </div>
+  <div class="eq">sideband (each side) = 20·log<sub>10</sub>( ½·√(m² + β²) ) dBc &nbsp;&nbsp; m = k<sub>G</sub>·a/8.686 &nbsp;&nbsp; β = k<sub>φ</sub>·a·π/180 &nbsp;&nbsp; a<sub>out</sub> = a<sub>in</sub>·10<sup>−PSRR/20</sup><small>a is the peak ripple on the pin, in volts. The sideband is the same in dBc for every signal passing through the stage: a strong signal and a weak one both get copies at ± the ripple frequency, at the same relative level.</small></div>
+  <div class="col"><p>Worked number: an LNA with k<sub>G</sub> = 0.5 dB/V and k<sub>φ</sub> = 5 °/V on a rail with 20 mV p-p at 500 kHz (a = 10 mV). m = 0.5 × 0.01/8.686 = 5.8×10<sup>−4</sup> (AM sideband −70.8 dBc), β = 5 × 0.01 × π/180 = 8.7×10<sup>−4</sup> rad (PM sideband −67.2 dBc), together −65.6 dBc on each side.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach connects the LNA directly to the buck output because "it is only an LNA, it has no oscillator". −65.6 dBc looks small. But it is applied to every signal, including a strong clutter return or a nearby emitter. A clutter return 60 dB above noise gets sidebands at −5.6 dB relative to noise, 500 kHz away, which in a pulse-Doppler or a channelised ESM receiver is a new signal in a different bin (Step 10). The PSRR of a wire is 0 dB.</p></div>
+  <h3>Side by side on one example: 20 mV p-p at 500 kHz, LNA 0.5 dB/V and 5 °/V</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Regulator between buck and LNA</th><th>PSRR at 500 kHz</th><th>Ripple on the LNA pin</th><th>Sideband each side</th></tr>
+    <tr><td>None (direct)</td><td class="n">0 dB</td><td class="n">20 mV p-p</td><td class="n">−65.6 dBc</td></tr>
+    <tr><td>Basic LDO (loop bandwidth about 2 kHz)</td><td class="n">20.1 dB</td><td class="n">1.97 mV p-p</td><td class="n">−85.8 dBc</td></tr>
+    <tr><td>Low-noise, high-PSRR LDO (about 50 kHz)</td><td class="n">50.1 dB</td><td class="n">0.063 mV p-p</td><td class="n">−115.7 dBc</td></tr>
+    <tr><td>Low-noise LDO + RC filter after it</td><td class="n">80.0 dB (layout limit)</td><td class="n">0.002 mV p-p</td><td class="n">−145.6 dBc</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Two lessons sit in the table. First, the sideband falls dB for dB with PSRR, so the rail requirement can be written straight from the system spur requirement. Second, a basic LDO that shows 60 dB PSRR on page one of its datasheet gives only 20 dB at 500 kHz, because its error amplifier has run out of bandwidth. The last row stops at 80 dB because beyond that the ripple finds a way round the regulator: through the ground, through stray capacitance from the switch node, or through the air. This page uses 80 dB as the practical layout limit.</p>
+  </div>
+  <h3>How to choose the regulator and the part</h3>
+  <div class="col"><p>(1) Start from the system: which sideband level is allowed? For a radar with 60 dB clutter-to-noise, sidebands must be about −75 dBc or lower to stay 15 dB under noise. (2) From k<sub>G</sub> and k<sub>φ</sub>, find the largest allowed ripple on the pin: here −75 dBc needs a ≤ 3.4 mV peak. (3) Divide the regulator ripple by that to get the PSRR needed <i>at the switching frequency and its harmonics</i>, read off the PSRR curve, not the DC number: 20 mV p-p down to 6.8 mV p-p is 9.4 dB, so even the basic LDO passes here, with 10.7 dB to spare. (4) If you design the amplifier, a lower k<sub>φ</sub> (a bias point where phase varies less with V<sub>DD</sub>, an on-chip regulator, a cascode) relaxes everything upstream by the same number of dB.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPs" width="640" height="380" aria-label="Top: PSRR versus frequency for three regulators with the ripple frequency marked. Bottom: amplifier output spectrum with ripple sidebands"></canvas>
+    <div class="ctrl">
+      <label for="psR"><span>Ripple on the rail, p-p</span> <b id="psRv"></b></label><input id="psR" type="range" min="1" max="100" step="1" value="20">
+      <label for="psF"><span>Ripple frequency</span> <b id="psFv"></b></label><input id="psF" type="range" min="0" max="14" step="1" value="11">
+      <label for="psK"><span>Regulator</span></label><select id="psK"><option value="none">None (direct)</option><option value="basic">Basic LDO</option><option value="lownoise">Low-noise LDO</option><option value="rc">Low-noise LDO + RC</option></select>
+      <label for="psG"><span>Gain sensitivity k<sub>G</sub></span> <b id="psGv"></b></label><input id="psG" type="range" min="0" max="2" step="0.05" value="0.5">
+      <label for="psP"><span>Phase sensitivity k<sub>φ</sub></span> <b id="psPv"></b></label><input id="psP" type="range" min="0" max="20" step="0.5" value="5">
+      <div class="readout" id="psOut"></div>
+    </div>
+    <p class="cap">Top: PSRR of the three regulators against frequency (the selected one is solid). The orange line marks the ripple frequency. Bottom: the amplifier output around the carrier; the carrier is at 0 dBc and the sideband pair sits at ± the ripple frequency. The frequency slider steps through 100 Hz, 200 Hz, 500 Hz and so on up to 3 MHz.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (20 mV, 500 kHz, no regulator, 0.5 dB/V, 5 °/V): sideband −65.6 dBc, the first row of the table.</li>
+    <li>Select the basic LDO: PSRR 20.1 dB and sideband −85.8 dBc. Then lower the ripple frequency to 1 kHz: the same LDO gives about 59 dB, the number on the front page of its datasheet.</li>
+    <li>Select the low-noise LDO + RC: the PSRR stops at 80.0 dB at every frequency above a few kHz; that is the layout limit, not the regulator.</li>
+    <li>Set k<sub>φ</sub> to 0: the sideband falls to the AM part alone, −70.8 dBc. Set k<sub>G</sub> to 0 instead: −67.2 dBc. Phase sensitivity is usually the bigger term.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>PSRR at f<sub>sw</sub></td><td>Regulator type, its loop bandwidth, output capacitor</td><td>PSRR curve, dB vs frequency</td><td>Every dB of PSRR lowers the ripple sidebands by 1 dB: 0 → 50 dB moves −65.6 to −115.7 dBc</td></tr>
+    <tr><td>k<sub>G</sub>, k<sub>φ</sub></td><td>Bias point, topology, on-chip regulation</td><td>"Supply sensitivity" or gain/phase vs V<sub>DD</sub> plot</td><td>Halving k<sub>φ</sub> lowers the PM sideband by 6 dB and relaxes the PSRR needed by up to 6 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Amplifier designers:</b> publish gain and phase versus supply as a plot. A system engineer cannot budget spurs from "V<sub>DD</sub> = 5 V ± 5 %".</li>
+    <li><b>Power designers:</b> quote PSRR at the actual switching frequency and its first harmonics, at the actual load current and headroom; PSRR falls as the dropout headroom shrinks.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A mixer LO buffer has k<sub>φ</sub> = 10 °/V and no gain sensitivity. The rail has 5 mV p-p at 1 MHz. What is the sideband, and what PSRR is needed for −100 dBc?</summary><p>a = 2.5 mV, β = 10 × 0.0025 × π/180 = 4.4×10<sup>−4</sup> rad, sideband 20·log(2.2×10<sup>−4</sup>) = −73.2 dBc. For −100 dBc another 26.8 dB is needed: a regulator with at least 27 dB PSRR at 1 MHz, which rules out most basic LDOs.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="push">
+  <div class="secno">Step 2</div>
+  <h2>VCO pushing: ripple becomes FM sidebands, and supply noise becomes phase noise</h2>
+  <div class="know"><h4>You already know</h4><p>A VCO has a tuning sensitivity K<sub>V</sub> in MHz/V on its tune pin. Its datasheet also lists "pushing" in MHz/V: how far the frequency moves when the supply changes. You know from the <a href="M02-synthesiser-phase-noise.html">synthesiser module</a> that a PLL corrects slow VCO errors inside its loop bandwidth and cannot correct fast ones.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Pushing K<sub>P</sub>:</b> change of VCO frequency per volt of supply, in MHz/V. The supply pin acts as a second, unwanted tuning port. Typical values: 0.5 to 5 MHz/V for microwave VCOs, below 0.1 MHz/V for well-regulated integrated ones.</p>
+    <p><b>Frequency deviation Δf:</b> the peak frequency change, Δf = K<sub>P</sub>·a. <b>FM index β:</b> Δf/f<sub>m</sub>, where f<sub>m</sub> is the ripple frequency. For β ≪ 1 each sideband is β/2.</p>
+    <p><b>Phase noise L(f):</b> noise power in 1 Hz at offset f from the carrier, relative to the carrier, in dBc/Hz (defined in the synthesiser module). <b>Supply noise density e<sub>n</sub>:</b> the regulator's output noise in V/√Hz.</p>
+    <p><b>Loop bandwidth f<sub>L</sub>:</b> the offset below which the PLL removes VCO frequency errors. Inside it a pushing error is reduced by about 40 dB per decade; outside it passes untouched.</p>
+  </div>
+  <div class="col">
+    <p>Pushing is the most powerful way a supply gets into an RF system, because a VCO <i>integrates</i>: a frequency error becomes a phase error that grows for as long as the error lasts. A slow ripple therefore produces a large phase swing. The FM index divides by the ripple frequency, so the same ripple at a lower frequency gives larger sidebands. Random supply noise works the same way: each 1 Hz slice of noise at offset f produces phase noise at that offset.</p>
+  </div>
+  <div class="eq">sideband = 20·log<sub>10</sub>( K<sub>P</sub>·a / (2·f<sub>m</sub>) ) dBc &nbsp;&nbsp; L<sub>supply</sub>(f) = 20·log<sub>10</sub>( K<sub>P</sub>·e<sub>n</sub>(f) / (√2·f) ) dBc/Hz<small>K<sub>P</sub> in Hz/V, a in volts peak, e<sub>n</sub> in V/√Hz, f<sub>m</sub> and f in Hz. Both terms are then reduced by the PLL inside its loop bandwidth. A multiplier after the VCO raises both by 20·log<sub>10</sub>(N), as explained in the synthesiser module.</small></div>
+  <div class="col"><p>Worked number: K<sub>P</sub> = 2 MHz/V, 20 mV p-p (a = 10 mV) at 500 kHz. Δf = 2×10<sup>6</sup> × 0.01 = 20 kHz peak, β = 20 kHz/500 kHz = 0.04, sideband 20·log(0.02) = <b>−34.0 dBc</b>. The same ripple on the LNA in Step 1 gave −65.6 dBc: the VCO is 31.6 dB more sensitive to the same rail.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design runs the VCO from the switching regulator, trusting the PLL to "clean it up". At 500 kHz the PLL (loop bandwidth 100 kHz) is five times too slow to help, so the −34 dBc spurs appear on the LO and are copied onto every received signal by the mixer: a target return gets two ghost copies 500 kHz away only 34 dB below it, and a strong clutter return produces ghosts far above noise. The noise is as bad: a buck output with 500 nV/√Hz gives L = −83.0 dBc/Hz at 10 kHz, 4 dB worse than the free-running VCO's own −87 dBc/Hz there; inside the loop the PLL fixes that, but at 100 kHz the supply term (−103.0 dBc/Hz) is 7 dB above the VCO (−110 dBc/Hz), and there the PLL can no longer help.</p></div>
+  <h3>Side by side on one example: 10 GHz VCO, K<sub>P</sub> = 2 MHz/V, 20 mV p-p at 500 kHz, PLL bandwidth 100 kHz</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>VCO supply</th><th>Peak deviation</th><th>Spur at ±500 kHz</th><th>Supply phase noise at 10 kHz (before PLL)</th><th>rms phase 1 kHz–10 MHz</th></tr>
+    <tr><td>Direct from buck</td><td class="n">20 kHz</td><td class="n">−34.0 dBc</td><td class="n">−83.0 dBc/Hz</td><td class="n">1.67°</td></tr>
+    <tr><td>Basic LDO</td><td class="n">1.97 kHz</td><td class="n">−54.1 dBc</td><td class="n">−90.6 dBc/Hz</td><td class="n">0.33°</td></tr>
+    <tr><td>Low-noise LDO</td><td class="n">63 Hz</td><td class="n">−84.1 dBc</td><td class="n">−116.9 dBc/Hz</td><td class="n">0.28°</td></tr>
+    <tr><td>Low-noise LDO + RC</td><td class="n">2 Hz</td><td class="n">−114.0 dBc</td><td class="n">−133.0 dBc/Hz</td><td class="n">0.28°</td></tr>
+  </table></div>
+  <div class="col"><p>The spur column falls dB for dB with PSRR, as in Step 1, but from a level 31.6 dB higher. The rms phase column stops improving at 0.28° once the supply is below the VCO's own noise and the PLL floor: from that point a better regulator buys spur level only. The basic LDO already fixes most of the phase noise (its 200 nV/√Hz is 8 dB under the buck), yet still leaves −54.1 dBc spurs, which is usually not enough for a radar LO.</p></div>
+  <h3>How to choose the VCO supply</h3>
+  <div class="col"><p>(1) Take the spur limit for the LO, for example −80 dBc. (2) The allowed ripple on the VCO pin is a ≤ 2·f<sub>m</sub>·10<sup>spur/20</sup>/K<sub>P</sub>: at 500 kHz and 2 MHz/V that is 50 µV peak. (3) The PSRR needed is 20·log(10 mV / 50 µV) = 46 dB at 500 kHz, which only the low-noise LDO meets. (4) For noise, require L<sub>supply</sub> to be at least 6 dB below the VCO's own L(f) at every offset outside the loop bandwidth; that sets the e<sub>n</sub> needed: at 100 kHz, −116 dBc/Hz needs e<sub>n</sub> ≤ 110 nV/√Hz. (5) A VCO with lower K<sub>P</sub> relaxes both: every halving gives 6 dB. (6) A wider loop bandwidth suppresses more of both terms, but only if the reference and PLL floor allow it (synthesiser module).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPu" width="640" height="360" aria-label="Phase noise of the locked VCO versus offset, showing the VCO's own noise, the supply-noise contribution and the ripple spurs"></canvas>
+    <div class="ctrl">
+      <label for="puK"><span>Pushing K<sub>P</sub></span> <b id="puKv"></b></label><input id="puK" type="range" min="0.1" max="10" step="0.1" value="2">
+      <label for="puS"><span>VCO supply</span></label><select id="puS"><option value="none">Direct from buck</option><option value="basic">Basic LDO</option><option value="lownoise">Low-noise LDO</option><option value="rc">Low-noise LDO + RC</option></select>
+      <label for="puR"><span>Buck ripple, p-p</span> <b id="puRv"></b></label><input id="puR" type="range" min="1" max="50" step="1" value="20">
+      <label for="puF"><span>Switching frequency</span> <b id="puFv"></b></label><input id="puF" type="range" min="100" max="3000" step="50" value="500">
+      <label for="puL"><span>PLL loop bandwidth</span> <b id="puLv"></b></label><input id="puL" type="range" min="4" max="6" step="0.05" value="5">
+      <div class="readout" id="puOut"></div>
+    </div>
+    <p class="cap">Solid: total phase noise of the locked LO. Dashed: supply-noise contribution after the PLL. Dotted: the free-running VCO. Vertical bars: the ripple spurs at f<sub>sw</sub> and 2·f<sub>sw</sub> (the second harmonic of the ripple is taken as a quarter of the fundamental), plotted in dBc on the same axis. The loop-bandwidth slider is logarithmic (10 kHz to 1 MHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (direct from buck): spur −34.0 dBc and rms phase 1.67°, the first row of the table. The dashed supply curve rises above the dotted free-running VCO curve from about 100 kHz upward: outside the loop the supply, not the VCO, sets the phase noise.</li>
+    <li>Select the low-noise LDO: the spur drops to −84.1 dBc and rms phase to 0.28°; the dashed curve falls below the solid one everywhere.</li>
+    <li>Back on the buck, raise the switching frequency to 2 MHz: the spur improves to −46.0 dBc (12 dB, because β falls as 1/f<sub>m</sub>). Faster switching is a real fix for pushing spurs.</li>
+    <li>Set the loop bandwidth to 1 MHz with a 500 kHz switcher: the spur is now inside the loop and falls by about 12 dB, to −46.3 dBc. Compare the low-noise LDO with the original 100 kHz loop: −84.1 dBc, 50 dB better. A regulator beats a wider loop.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Pushing K<sub>P</sub></td><td>Varactor bias, active-device bias, on-chip regulation</td><td>Pushing, MHz/V</td><td>Spur = 20·log(K<sub>P</sub>·a/2f<sub>m</sub>): 2 MHz/V and 10 mV at 500 kHz give −34 dBc LO spurs, copied onto every echo</td></tr>
+    <tr><td>Regulator noise e<sub>n</sub></td><td>LDO type, reference filter capacitor</td><td>Output noise, nV/√Hz or µV rms</td><td>500 → 10 nV/√Hz takes supply phase noise from −83 to −117 dBc/Hz at 10 kHz</td></tr>
+    <tr><td>Switching frequency</td><td>Regulator choice and inductor size</td><td>f<sub>sw</sub></td><td>Each doubling lowers the pushing spur by 6 dB and moves it further from the loop bandwidth</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>VCO and synthesiser designers:</b> pushing belongs on the front page with K<sub>V</sub>. A VCO with an internal regulator should quote its pushing with the regulator in place.</li>
+    <li><b>Power designers:</b> the VCO rail is the hardest rail on the board. Give it its own low-noise LDO, the last regulator before the pin, and keep the switcher's frequency well above the PLL loop bandwidth.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A VCO has K<sub>P</sub> = 0.5 MHz/V and sits on a rail with 1 mV p-p at 2 MHz. What is the spur, and does it meet −80 dBc?</summary><p>a = 0.5 mV, Δf = 0.5×10<sup>6</sup> × 0.0005 = 250 Hz, β = 250/2×10<sup>6</sup> = 1.25×10<sup>−4</sup>, spur 20·log(6.25×10<sup>−5</sup>) = −84.1 dBc. It meets −80 dBc with 4.1 dB to spare, before any PLL suppression.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="sw">
+  <div class="secno">Step 3</div>
+  <h2>Switching-regulator spurs: frequency, harmonics, and how they land on carriers and in the IF</h2>
+  <div class="know"><h4>You already know</h4><p>A buck regulator chops its input with a switch at a fixed frequency f<sub>sw</sub> and smooths the result with an inductor and capacitor. The output ripple you measured in Steps 1 and 2 is the smoothed part. You know that a square wave contains odd and even harmonics, and that faster edges contain more high-frequency energy.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Switch node:</b> the junction between the switch and the inductor. Its voltage jumps between 0 and V<sub>in</sub> every cycle: a trapezoid of amplitude V<sub>in</sub>, duty D = V<sub>out</sub>/V<sub>in</sub> and edge (rise) time t<sub>r</sub>. It is the strongest RF source on most boards.</p>
+    <p><b>Harmonic n:</b> the spectral line at n·f<sub>sw</sub>. Its amplitude is set by the trapezoid: flat up to about 1/(πDT), falling 20 dB per decade up to 1/(π t<sub>r</sub>), then 40 dB per decade.</p>
+    <p><b>Coupling isolation:</b> the loss, in dB, between the switch node and the victim input (here the receiver IF input) through all paths: near-field, ground and radiation. 80 to 120 dB is typical for a regulator on the same board.</p>
+    <p><b>Spread-spectrum switching:</b> the regulator's clock is swept by ±δ (for example ±5 %) around f<sub>sw</sub>. Each harmonic is smeared over a width 2δ·n·f<sub>sw</sub>. <b>Synchronised switching:</b> f<sub>sw</sub> is locked to a system clock so that its harmonics fall on known, harmless frequencies.</p>
+    <p><b>RBW (resolution bandwidth):</b> the bandwidth of the receiver's narrowest filter or FFT bin. Noise power in it is −174 dBm/Hz + NF + 10·log<sub>10</sub>(RBW).</p>
+  </div>
+  <div class="col">
+    <p>A switching regulator makes two kinds of trouble. The first is the ripple on its output (Steps 1 and 2): a low-frequency signal that modulates carriers. The second is the switch-node edge itself: a comb of harmonics every f<sub>sw</sub> that reaches tens or hundreds of MHz. Those harmonics do not need a carrier to modulate. Wherever they fall inside a receiver band, an IF, an ADC's first Nyquist zone or a reference input, they <i>are</i> signals. A harmonic that couples onto the LO path also mixes with the LO and appears at LO ± n·f<sub>sw</sub>.</p>
+    <p>The worked example is a 12 V to 3.3 V buck at 500 kHz (D = 0.275) with 10 ns edges, 100 dB from a receiver whose IF is 60 to 80 MHz, NF 5 dB, RBW 10 kHz. The IF noise in one RBW is −174 + 5 + 40 = −129 dBm.</p>
+  </div>
+  <div class="eq">|V<sub>n</sub>| = 2·V<sub>in</sub>·D·|sinc(n·D)|·|sinc(n·f<sub>sw</sub>·t<sub>r</sub>)| &nbsp;&nbsp; P<sub>n</sub> = 10·log<sub>10</sub>(V<sub>n</sub>²/(2·50 Ω)/1 mW) − isolation &nbsp;&nbsp; spread gain = 10·log<sub>10</sub>( min(2δ·n·f<sub>sw</sub>, f<sub>sw</sub>) / RBW )<small>sinc(x) = sin(πx)/(πx). The fundamental of the 12 V switch node is 5.8 V peak, +25.3 dBm in 50 Ω; harmonic 140 (70 MHz) is still −23.9 dBm with 10 ns edges. The spread gain stops at f<sub>sw</sub>/RBW because once neighbouring harmonics overlap, the energy is a continuous floor of P<sub>n</sub>/f<sub>sw</sub> per Hz.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach picks a regulator for efficiency and size, with the fastest edges (lowest switching loss) and no thought for where its harmonics go. In the example, 23 of the 41 harmonics between 60 and 80 MHz sit above the IF noise; the worst, at 61 MHz, is −120.4 dBm, 8.6 dB above noise. Each one is a CW line in the IF that the detector and the display will treat as a signal (Step 10). Moving the regulator to 1 MHz "to make it smaller" makes it worse: 15.2 dB above noise, because each harmonic carries more energy when there are fewer of them.</p></div>
+  <h3>Side by side on one example: 500 kHz buck, 100 dB isolation, IF 60–80 MHz, RBW 10 kHz</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Choice</th><th>Worst line in the IF</th><th>Relative to noise in RBW</th><th>Lines above noise</th><th>What it costs</th></tr>
+    <tr><td>Fixed 500 kHz, t<sub>r</sub> 10 ns (naive)</td><td class="n">−120.4 dBm</td><td class="n">+8.6 dB</td><td class="n">23</td><td>nothing; it fails</td></tr>
+    <tr><td>Slower edges, t<sub>r</sub> 30 ns</td><td class="n">−134.6 dBm</td><td class="n">−5.6 dB</td><td class="n">0</td><td>more switching loss, warmer FETs</td></tr>
+    <tr><td>Spread spectrum ±2 %</td><td class="n">−138.7 dBm</td><td class="n">−9.7 dB</td><td class="n">0</td><td>floor raised 0.44 dB across the whole IF</td></tr>
+    <tr><td>Spread spectrum ±5 %</td><td class="n">−139.7 dBm</td><td class="n">−10.7 dB</td><td class="n">0</td><td>floor raised 0.36 dB; ripple now moves in frequency</td></tr>
+    <tr><td>Fixed, 20 dB more isolation (shield can, layout)</td><td class="n">−140.4 dBm</td><td class="n">−11.4 dB</td><td class="n">0</td><td>board area, a can, a ground stitch</td></tr>
+    <tr><td>Fixed and synchronised to the system clock</td><td class="n">−120.4 dBm</td><td class="n">+8.6 dB, but at known frequencies</td><td class="n">23</td><td>a clock line; lines can be placed outside the IF or at zero Doppler</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Each method attacks a different term of the equation. Slower edges move the second knee, 1/(π t<sub>r</sub>), from 32 MHz down to 11 MHz, so the worst line in the IF falls by about 14 dB. Spread spectrum does not remove energy, it redistributes it: a CW line becomes a band of noise, which is excellent for a narrow-RBW receiver (gain up to 10·log(500 kHz/10 kHz) = 17 dB) and worth much less for a wide one: with RBW 100 kHz the gain is limited to 10·log(500/100) = 7 dB, and the worst level improves only from 1.4 dB to 10.7 dB below the (10 dB higher) noise. Synchronising keeps the lines but puts them where the processing can ignore them: between channels, outside the IF, or locked to the radar PRF so that they land at zero Doppler (Step 10).</p>
+  </div>
+  <h3>How to choose f<sub>sw</sub>, edge rate and modulation</h3>
+  <div class="col"><p>(1) Write the frequency plan first: list every IF band, ADC Nyquist zone and reference frequency, and compute which harmonics n·f<sub>sw</sub> fall in each. (2) Choose f<sub>sw</sub> so that no low harmonic (n below about 20) falls in any of them, and so that f<sub>sw</sub> is well above the PLL loop bandwidth (Step 2). (3) Estimate the worst harmonic in each band with the equation and the isolation you expect; require it to be at least 6 dB below noise in the narrowest RBW. (4) If it fails, slow the edges first (cheap, costs efficiency), then add isolation (layout, can, filter), then choose between spread spectrum (narrow-RBW receivers, no coherent processing) and synchronisation (coherent radar, where a stable known line is better than a moving one). (5) Never let two regulators free-run at nearly the same frequency: their beat note (the difference) is a slow ripple that the PLL cannot remove.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSw" width="640" height="360" aria-label="Spectrum of the switching-regulator harmonics as seen in the receiver IF, with the IF band and the noise level in one RBW"></canvas>
+    <div class="ctrl">
+      <label for="swF"><span>Switching frequency f<sub>sw</sub></span> <b id="swFv"></b></label><input id="swF" type="range" min="200" max="3000" step="50" value="500">
+      <label for="swT"><span>Switch-node edge time t<sub>r</sub></span> <b id="swTv"></b></label><input id="swT" type="range" min="2" max="50" step="1" value="10">
+      <label for="swI"><span>Coupling isolation</span> <b id="swIv"></b></label><input id="swI" type="range" min="70" max="140" step="1" value="100">
+      <label for="swM"><span>Switching mode</span></label><select id="swM"><option value="0">Fixed (free-running)</option><option value="0.02">Spread spectrum ±2 %</option><option value="0.05">Spread spectrum ±5 %</option><option value="0.1">Spread spectrum ±10 %</option></select>
+      <label for="swB"><span>Receiver RBW</span></label><select id="swB"><option value="1000">1 kHz</option><option value="10000" selected>10 kHz</option><option value="100000">100 kHz</option></select>
+      <div class="readout" id="swOut"></div>
+    </div>
+    <p class="cap">Power in one RBW at the IF input, 40 to 100 MHz. Shaded: the 60–80 MHz IF. Dashed: noise in one RBW (NF 5 dB). Fixed switching gives a comb of lines every f<sub>sw</sub>; spread spectrum turns each line into a band and, once the bands overlap, into a raised floor.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: worst line −120.4 dBm at 61 MHz, +8.6 dB above noise, 23 lines above noise: the first row of the table.</li>
+    <li>Set t<sub>r</sub> to 30 ns: the worst line falls to −134.6 dBm and no line is above noise. The comb envelope bends down at the second knee, now 10.6 MHz.</li>
+    <li>Back at 10 ns, select ±5 % spread: −139.7 dBm, floor rise 0.36 dB, spread gain 17.0 dB at n = 140. Then select RBW 100 kHz: the spread gain drops to 7.0 dB; spread spectrum gains less in a wide RBW.</li>
+    <li>Fixed mode, f<sub>sw</sub> 1 MHz: +15.2 dB above noise. Higher switching frequency helps pushing (Step 2) but hurts the IF comb.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>f<sub>sw</sub></td><td>Regulator part, inductor, efficiency target</td><td>Switching frequency, sync input</td><td>Sets which harmonic number lands in each IF; 500 kHz → 1 MHz raises the worst IF line from +8.6 to +15.2 dB over noise</td></tr>
+    <tr><td>Edge time t<sub>r</sub></td><td>Gate-drive strength, gate resistor, snubber</td><td>Rarely given; measure the switch node</td><td>10 → 30 ns lowers the 70 MHz comb by about 14 dB</td></tr>
+    <tr><td>Spread / sync</td><td>Regulator feature, clock distribution</td><td>"Spread spectrum ±x %", SYNC pin range</td><td>Spread: up to 10·log(f<sub>sw</sub>/RBW) lower lines but a raised floor. Sync: lines stay, but at chosen frequencies</td></tr>
+    <tr><td>Isolation</td><td>Placement, can, ground stitching, filtering</td><td>System-level, not on a datasheet</td><td>dB for dB on every harmonic</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Power designers:</b> give the RF team f<sub>sw</sub>, its tolerance over temperature, the switch-node edge time and whether the part can be synchronised. These four numbers decide the IF spur budget.</li>
+    <li><b>IF, ADC and filter designers:</b> your band is where the comb is counted. Tell the power designer the bands; a filter that rejects a 70 MHz line from a rail (Step 4) is far cheaper than one in the signal path.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A receiver has a 140 MHz IF, 10 MHz wide. Which harmonics of a 2.2 MHz regulator fall in it, and what f<sub>sw</sub> near 2.2 MHz would keep the IF free?</summary><p>135–145 MHz contains n = 62, 63, 64, 65 (136.4, 138.6, 140.8, 143.0 MHz). For the IF to fall between two harmonics, the spacing must exceed 10 MHz, which no f<sub>sw</sub> near 2 MHz can do. Choose instead a frequency that puts the IF centre midway between harmonics and rely on the IF filter for the rest, or synchronise and place lines on channel boundaries.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="post">
+  <div class="secno">Step 4</div>
+  <h2>LDO post-regulation and LC or ferrite filtering, and their trade-offs</h2>
+  <div class="know"><h4>You already know</h4><p>An LC low-pass section attenuates 40 dB per decade above its corner f<sub>0</sub> = 1/(2π√(LC)). A ferrite bead is sold by its impedance at 100 MHz, for example "600 Ω". Real capacitors have ESR and ESL, and become inductive above their self-resonance.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Post-regulation:</b> putting a second, quiet regulator (normally an LDO) after an efficient but noisy switching regulator. <b>Dropout:</b> the smallest input-to-output voltage at which the LDO still regulates; <b>headroom</b> is the margin you give it above dropout. The LDO burns (V<sub>in</sub> − V<sub>out</sub>)·I as heat.</p>
+    <p><b>LC filter resonance:</b> at f<sub>0</sub> the filter has gain, not loss, of about Q = √(L/C)/R where R is the total series resistance. With ceramic capacitors (ESR a few mΩ) this peak can be +10 to +20 dB.</p>
+    <p><b>Damping:</b> a resistor R<sub>d</sub> in series with a larger capacitor (here 4·C) placed across the filter capacitor; it lowers the resonance peak without adding DC loss. The best R<sub>d</sub> is close to √(L/C).</p>
+    <p><b>Ferrite bead:</b> an inductor whose core loss makes it resistive at high frequency. At low frequency it is a small inductor (about 1.5 µH here), and its inductance falls as DC current saturates the ferrite. <b>ESL:</b> the series inductance of a capacitor, about 1 nH for a ceramic part with its vias; it sets a floor on attenuation at high frequency.</p>
+  </div>
+  <div class="col">
+    <p>The VCO rail of Step 2 is fed from a buck at 1 MHz with 30 mV p-p ripple. It needs 5 V at 150 mA, and the VCO pushing is 2 MHz/V, so without filtering the spur is 20·log(2×10<sup>6</sup> × 0.015/(2 × 10<sup>6</sup>)) = −36.5 dBc. Four tools are available, and each has a different frequency behaviour.</p>
+  </div>
+  <div class="eq">H<sub>LC</sub>(f) = Z<sub>C</sub> ∥ R<sub>load</sub> / (Z<sub>L</sub> + Z<sub>C</sub> ∥ R<sub>load</sub>) &nbsp;&nbsp; f<sub>0</sub> = 1/(2π√(LC)) &nbsp;&nbsp; total = H<sub>LC</sub>·10<sup>−PSRR/20</sup>, never below −80 dB<small>Z<sub>C</sub> includes ESR and ESL, Z<sub>L</sub> includes the inductor's DC resistance (about 20 mΩ + 30 mΩ per µH here). Attenuations in dB of an LC filter and an LDO add, up to the 80 dB layout limit of Step 1.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive fix is "put a ferrite bead in": a 600 Ω bead and a 10 µF ceramic capacitor. It does attenuate 1 MHz by 56.8 dB at 150 mA. But at 45 kHz the bead's inductance and the low-ESR capacitor resonate with a peak of <b>+15.4 dB</b>: any disturbance near 45 kHz, such as a load that switches at a PRF of a few tens of kHz, is amplified six times. And the bead is a current-dependent part: at 1 A its inductance has dropped so far that the 1 MHz attenuation is only 37.3 dB. The naive filter is tested at no load and specified at 600 Ω at 100 MHz, a frequency where the problem is not.</p></div>
+  <h3>Side by side on one example: 1 MHz buck, 30 mV p-p, VCO rail 5 V at 150 mA, K<sub>P</sub> = 2 MHz/V</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Filter</th><th>Atten. at 1 MHz</th><th>Atten. at 10 MHz</th><th>Resonance peak</th><th>VCO spur</th><th>DC drop / heat</th></tr>
+    <tr><td>None</td><td class="n">0 dB</td><td class="n">0 dB</td><td class="n">none</td><td class="n">−36.5 dBc</td><td class="n">0</td></tr>
+    <tr><td>Ferrite bead + 10 µF</td><td class="n">56.8 dB</td><td class="n">62.0 dB</td><td class="n">+15.4 dB at 45 kHz</td><td class="n">−93.3 dBc</td><td class="n">7.5 mV</td></tr>
+    <tr><td>LC 1 µH + 22 µF, undamped</td><td class="n">61.8 dB</td><td class="n">60.1 dB</td><td class="n">+11.6 dB at 34 kHz</td><td class="n">−98.3 dBc</td><td class="n">7.5 mV</td></tr>
+    <tr><td>LC 1 µH + 22 µF, R<sub>d</sub> 0.2 Ω</td><td class="n">62.0 dB</td><td class="n">61.5 dB</td><td class="n">+0.3 dB</td><td class="n">−98.5 dBc</td><td class="n">7.5 mV</td></tr>
+    <tr><td>Low-noise LDO alone (0.5 V headroom)</td><td class="n">44.4 dB</td><td class="n">40.8 dB</td><td class="n">none</td><td class="n">−80.9 dBc</td><td class="n">75 mW</td></tr>
+    <tr><td>Damped LC + LDO</td><td class="n">80.0 dB</td><td class="n">80.0 dB</td><td class="n">none</td><td class="n">−116.5 dBc</td><td class="n">7.5 mV + 75 mW</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The three tools fail in different places. An LC filter is excellent at f<sub>sw</sub> but flattens at about 60 dB above a few MHz because the capacitor's 1 nH ESL takes over (ESL/L = 1/1 000 = −60 dB), and it has a resonance that must be damped. An LDO has no resonance and also removes slow drift and load steps, but its PSRR is worst exactly at high frequency (Step 1) and it costs heat. A bead is a lossy part best used at tens to hundreds of MHz, against switch-node harmonics (Step 3), not at f<sub>sw</sub>. The combination, a damped LC first and an LDO last, covers both ends and reaches the layout limit.</p>
+  </div>
+  <h3>How to choose the filter</h3>
+  <div class="col"><p>(1) Find the attenuation needed at f<sub>sw</sub> from the spur budget (Steps 1, 2) and at the IF-band harmonics (Step 3). (2) Put the LC corner at least a decade below f<sub>sw</sub>: f<sub>0</sub> = 34 kHz gives about 60 dB at 1 MHz. (3) Check that f<sub>0</sub> does not sit on a known disturbance (PRF, a fan, another regulator) and damp it with R<sub>d</sub> ≈ √(L/C) = √(1 µH/22 µF) = 0.21 Ω. (4) Rate the inductor or bead for the full DC current, and look at its inductance <i>at that current</i>. (5) Put the LDO last, as close to the pin as possible, with at least its datasheet headroom: PSRR collapses near dropout. Raising L or C lowers f<sub>0</sub> and improves attenuation at f<sub>sw</sub>, at the cost of size, DC drop and a lower, harder-to-damp resonance.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPo" width="640" height="340" aria-label="Attenuation versus frequency of the chosen supply filter, with the switching frequency and its harmonics marked"></canvas>
+    <div class="ctrl">
+      <label for="poT"><span>Filter</span></label><select id="poT"><option value="none">None</option><option value="bead" selected>Ferrite bead + 10 µF</option><option value="lc">LC</option><option value="ldo">Low-noise LDO</option><option value="lcldo">LC + LDO</option></select>
+      <label for="poL"><span>Inductor L (LC only)</span> <b id="poLv"></b></label><input id="poL" type="range" min="0.1" max="22" step="0.1" value="1">
+      <label for="poC"><span>Capacitor C (LC only)</span> <b id="poCv"></b></label><input id="poC" type="range" min="1" max="100" step="1" value="22">
+      <label for="poR"><span>Damping R<sub>d</sub> (LC only, 0 = none)</span> <b id="poRv"></b></label><input id="poR" type="range" min="0" max="2" step="0.01" value="0">
+      <label for="poI"><span>DC load current</span> <b id="poIv"></b></label><input id="poI" type="range" min="10" max="1000" step="10" value="150">
+      <div class="readout" id="poOut"></div>
+    </div>
+    <p class="cap">Transfer from the buck output to the VCO pin in dB (0 dB = no filtering; above 0 dB is a resonance peak). Dashed: the low-noise LDO's PSRR alone, for comparison. Orange: f<sub>sw</sub> = 1 MHz; thin lines: its harmonics. The bottom line at −80 dB is the layout limit. L, C and R<sub>d</sub> act only on the LC and LC + LDO filters.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (bead, 150 mA): 56.8 dB at 1 MHz and a +15.4 dB peak at 45 kHz, the naive row. Raise the load to 1 A: 37.3 dB at 1 MHz; the bead has saturated.</li>
+    <li>Select LC (1 µH, 22 µF, no damping): +11.6 dB at 34 kHz. Set R<sub>d</sub> to 0.20 Ω: the peak drops to +0.3 dB and the 1 MHz attenuation is unchanged at 62.0 dB.</li>
+    <li>Raise R<sub>d</sub> to 1 Ω: the peak comes back to +6.5 dB; too much damping resistance is as bad as none.</li>
+    <li>Select LC + LDO: 80.0 dB at 1 MHz, the layout limit, and the VCO spur at −116.5 dBc.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LC corner f<sub>0</sub></td><td>L and C values</td><td>Inductance, capacitance at bias and current</td><td>About 40·log(f<sub>sw</sub>/f<sub>0</sub>) dB at f<sub>sw</sub>: 34 kHz corner gives 62 dB at 1 MHz, VCO spur −36.5 → −98.5 dBc</td></tr>
+    <tr><td>Damping</td><td>R<sub>d</sub> + 4C branch, or lossy capacitor</td><td>ESR</td><td>Undamped peak +11.6 dB amplifies anything at 34 kHz; R<sub>d</sub> = √(L/C) removes it</td></tr>
+    <tr><td>Bead saturation</td><td>Bead part number and current rating</td><td>Impedance vs DC bias curve</td><td>150 mA → 1 A loses 19.5 dB of attenuation at 1 MHz</td></tr>
+    <tr><td>LDO headroom</td><td>Buck output setting</td><td>Dropout, PSRR vs headroom</td><td>0.5 V headroom at 150 mA = 75 mW of heat for 44 dB at 1 MHz</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Passive-component engineers:</b> inductance at DC bias, capacitance at DC bias (a 22 µF X5R part may be 10 µF at 5 V) and ESL decide the filter. A datasheet that gives only nominal values cannot be used here.</li>
+    <li><b>RF module designers:</b> if your module has its own LDO inside, say so and give the module's pushing or PSRR with it; the system team will then not add a second one.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An LC filter uses 4.7 µH and 47 µF. Where is its corner, roughly what attenuation does it give at 500 kHz, and what damping resistor would you start with?</summary><p>f<sub>0</sub> = 1/(2π√(4.7×10<sup>−6</sup> × 47×10<sup>−6</sup>)) = 10.7 kHz. At 500 kHz, about 40·log(500/10.7) = 67 dB, but the ESL floor (ESL/L ≈ 1 nH/4.7 µH = −73 dB) is close. Start damping with R<sub>d</sub> = √(4.7/47) = 0.32 Ω.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="pulse">
+  <div class="secno">Step 5</div>
+  <h2>Pulsed loads: PA drain droop, hold-up capacitance, and the pulse-to-pulse effect on MTI and Doppler</h2>
+  <div class="know"><h4>You already know</h4><p>A pulsed PA draws a large current only during the pulse: 10 A at 50 V for 100 µs, then nearly nothing. The <a href="M03-power-amplifier.html">power amplifier module</a> shows how its gain and phase change with drain voltage. You know Q = C·V, so a capacitor that delivers charge loses voltage.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Hold-up (reservoir) capacitor C:</b> the capacitor bank next to the PA that supplies the pulse current, so the power supply only needs to deliver the average current. <b>Droop:</b> the drain-voltage fall during one pulse, ΔV = I·τ/C. <b>ESR step:</b> the immediate drop I·ESR at the start of the pulse.</p>
+    <p><b>Recharge time constant τ<sub>r</sub>:</b> how fast the supply restores the bank between pulses (set by its loop bandwidth and current limit). <b>PRI</b> = 1/PRF, the time between pulses. <b>Stagger:</b> changing the PRI from pulse to pulse, used to remove blind speeds.</p>
+    <p><b>Intrapulse error:</b> amplitude and phase that change within one pulse. <b>Pulse-to-pulse error:</b> differences between successive pulses. <b>MTI improvement limit I:</b> the best clutter cancellation a moving-target indicator can reach with a given pulse-to-pulse phase error σ<sub>φ</sub> (radians, rms): I ≈ −20·log<sub>10</sub>(σ<sub>φ</sub>) dB.</p>
+  </div>
+  <div class="col">
+    <p>A radar does not care much about an error that is the same on every pulse: a constant phase offset is invisible to MTI and Doppler processing, because they compare pulses with each other. What matters is the <i>difference</i> between pulses. Clutter (ground, sea, rain) is a huge return that is the same on every pulse; MTI and Doppler filters remove it by subtracting pulses. Any pulse-to-pulse change in the transmitter makes the clutter look as if it moved, and that residue is not removed. With phase sensitivity k<sub>φ</sub> = 2 °/V, a 50 mV pulse-to-pulse change in drain voltage gives 0.1° of phase error, and I ≈ −20·log(0.1·π/180) = 55 dB.</p>
+    <p>With a constant PRI the bank settles into the same voltage at the start of every pulse, and all pulses are alike. With stagger, a pulse after a short PRI starts from a lower voltage than one after a long PRI, because the bank has had less time to recharge. That is how a "DC" design choice, the size of a capacitor and the speed of a charger, becomes a radar clutter-cancellation limit.</p>
+  </div>
+  <div class="eq">ΔV<sub>droop</sub> = I·τ/C &nbsp;&nbsp; intrapulse phase ramp = k<sub>φ</sub>·ΔV &nbsp;&nbsp; deficit<sub>k+1</sub> = (deficit<sub>k</sub> + ΔV)·e<sup>−(PRI<sub>k</sub>−τ)/τ<sub>r</sub></sup> &nbsp;&nbsp; I ≈ −20·log<sub>10</sub>(σ<sub>φ</sub>)<small>Phase of pulse k is taken at mid-pulse: φ<sub>k</sub> = −k<sub>φ</sub>·(deficit<sub>k</sub> + I·ESR + ΔV/2). σ<sub>φ</sub> is the rms of φ<sub>k</sub> over the stagger pattern, here PRI × (0.9, 1.1, 0.95, 1.05) for ±10 %. The amplitude error σ<sub>A</sub> = k<sub>G</sub>·σ<sub>V</sub>/8.686 (k<sub>G</sub> = 0.2 dB/V) adds to σ<sub>φ</sub> in power, and other sources (oscillator, timing) are taken as a fixed 0.005° rms, which caps I at 81 dB.</small></div>
+  <div class="col"><p>Worked number: 10 A for 100 µs from 1 000 µF is ΔV = 10 × 100×10<sup>−6</sup>/10<sup>−3</sup> = 1.0 V (2 % of 50 V), plus 0.1 V ESR step (10 mΩ). At 2 °/V and 0.2 dB/V the pulse has a 2.0° phase ramp and droops 0.22 dB in amplitude. The energy per pulse is 50 × 10 × 100×10<sup>−6</sup> = 0.05 J out of 1.25 J stored. With a 1 ms charger and a slow supply, the bank sags by 2.0 V on average before it reaches balance.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design sizes the bank for droop alone ("2 % is fine for a PA") and tests it at a constant PRF. Every pulse looks the same and the MTI limit is 81 dB. The radar then turns on ±10 % stagger: the pulse-to-pulse voltage changes by 50 mV rms, the phase by 0.10°, and the MTI limit falls to <b>53.5 dB</b>. Against 60 dB ground clutter, the residue is 6.5 dB <i>above</i> noise at every range cell with clutter, which shows up as false targets near hills and buildings or a loss of sensitivity there.</p></div>
+  <h3>Side by side on one example: 50 V, 10 A, 100 µs, PRF 2 kHz, 2 °/V, 0.2 dB/V</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Bank and supply</th><th>Droop</th><th>Phase ramp in pulse</th><th>Pulse-to-pulse phase (rms)</th><th>MTI limit</th></tr>
+    <tr><td>1 000 µF, τ<sub>r</sub> 1 ms, constant PRI</td><td class="n">1.00 V</td><td class="n">2.00°</td><td class="n">0.000°</td><td class="n">81.2 dB</td></tr>
+    <tr><td>1 000 µF, τ<sub>r</sub> 1 ms, ±10 % stagger (naive)</td><td class="n">1.00 V</td><td class="n">2.00°</td><td class="n">0.101°</td><td class="n">53.5 dB</td></tr>
+    <tr><td>1 000 µF, ±25 % stagger</td><td class="n">1.00 V</td><td class="n">2.00°</td><td class="n">0.255°</td><td class="n">45.5 dB</td></tr>
+    <tr><td>330 µF, ±10 % stagger</td><td class="n">3.03 V</td><td class="n">6.06°</td><td class="n">0.306°</td><td class="n">43.9 dB</td></tr>
+    <tr><td>3 300 µF, ±10 % stagger</td><td class="n">0.30 V</td><td class="n">0.61°</td><td class="n">0.031°</td><td class="n">63.8 dB</td></tr>
+    <tr><td>1 000 µF, fast charger τ<sub>r</sub> 0.2 ms, ±10 %</td><td class="n">1.00 V</td><td class="n">2.00°</td><td class="n">0.056°</td><td class="n">58.6 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Two separate knobs appear. A bigger bank lowers both the droop and its pulse-to-pulse variation in proportion: 3.3 times the capacitance gives 10.3 dB more MTI limit. A faster charger leaves the droop alone but makes every pulse start nearer to the set voltage, so stagger matters less: 5 times faster gives 5.1 dB. The intrapulse ramp is a separate matter: it is the same on every pulse, so MTI does not see it, but it distorts the pulse and raises the range sidelobes after pulse compression (PA module).</p></div>
+  <h3>How to choose the bank and the charger</h3>
+  <div class="col"><p>(1) From the radar, find the MTI or Doppler improvement needed: clutter-to-noise plus about 10 dB, for example 60 + 10 = 70 dB. (2) Convert to σ<sub>φ</sub>: 70 dB means 3.2×10<sup>−4</sup> rad = 0.018° rms. (3) Divide by k<sub>φ</sub> to get the allowed pulse-to-pulse voltage variation: 0.018/2 = 9 mV rms. (4) Choose C and τ<sub>r</sub> together to meet it at the worst stagger pattern; the demo shows that 1 000 µF needs a charger much faster than 0.2 ms, or several times more capacitance. (5) Separately, check the droop against the intrapulse limit from the pulse-compression sidelobe budget. (6) Alternatives that change the problem: regulate the drain voltage locally after the bank (a "pulse regulator"), or correct the known droop digitally with pre-distortion.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPl" width="640" height="380" aria-label="Top: drain voltage over the last pulses of a staggered train, showing droop and recovery. Bottom: phase of each pulse"></canvas>
+    <div class="ctrl">
+      <label for="plI"><span>Pulse current</span> <b id="plIv"></b></label><input id="plI" type="range" min="1" max="20" step="0.5" value="10">
+      <label for="plW"><span>Pulse width τ</span> <b id="plWv"></b></label><input id="plW" type="range" min="1" max="200" step="1" value="100">
+      <label for="plC"><span>Hold-up capacitance C</span> <b id="plCv"></b></label><input id="plC" type="range" min="2" max="4" step="0.01" value="3">
+      <label for="plR"><span>Recharge time constant τ<sub>r</sub></span> <b id="plRv"></b></label><input id="plR" type="range" min="0.1" max="2" step="0.05" value="1">
+      <label for="plP"><span>PRF</span> <b id="plPv"></b></label><input id="plP" type="range" min="0.5" max="10" step="0.1" value="2">
+      <label for="plS"><span>PRI pattern</span></label><select id="plS"><option value="0">Constant PRI</option><option value="0.1" selected>Stagger ±10 %</option><option value="0.25">Stagger ±25 %</option></select>
+      <label for="plK"><span>Phase sensitivity k<sub>φ</sub></span> <b id="plKv"></b></label><input id="plK" type="range" min="0.5" max="10" step="0.5" value="2">
+      <div class="readout" id="plOut"></div>
+    </div>
+    <p class="cap">Top: drain voltage over the last eight pulses of a long train (after it has settled), relative to the 50 V set point. Each pulse droops by I·τ/C; between pulses the supply restores it with time constant τ<sub>r</sub>. Bottom: mid-pulse phase of each pulse; their spread is the pulse-to-pulse error that limits MTI. The capacitance slider is logarithmic (100 µF to 10 000 µF). Pulse width is limited to just under half the shortest PRI.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (1 000 µF, τ<sub>r</sub> 1 ms, ±10 % stagger): droop 1.00 V, phase ramp 2.00°, pulse-to-pulse 0.101°, MTI limit 53.5 dB: the naive row.</li>
+    <li>Select constant PRI: the phase dots line up, pulse-to-pulse 0.000° and MTI limit 81.2 dB, although the droop is unchanged.</li>
+    <li>Back to ±10 %, set C to 3 300 µF (slider at 3.52): 0.031° and 63.8 dB. Then instead set C back and τ<sub>r</sub> to 0.2 ms: 58.6 dB.</li>
+    <li>Raise k<sub>φ</sub> from 2 to 4 °/V: the MTI limit drops from 53.5 to 48.6 dB, a little under 6 dB because the amplitude part of the error does not change.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Hold-up C and ESR</td><td>Capacitor type, number, placement</td><td>Capacitance, ESR, ripple-current rating</td><td>Droop I·τ/C sets the intrapulse ramp (1 000 µF: 2°); with stagger, C sets the MTI limit (330 → 3 300 µF: 43.9 → 63.8 dB)</td></tr>
+    <tr><td>Recharge τ<sub>r</sub></td><td>Charger loop bandwidth, current limit</td><td>Load-transient response</td><td>Faster recharge makes staggered pulses alike: 1 → 0.2 ms gives +5.1 dB MTI limit</td></tr>
+    <tr><td>PA k<sub>φ</sub></td><td>Device, bias, matching</td><td>Phase vs V<sub>DD</sub></td><td>Each halving gives up to +6 dB MTI limit on the same supply (+4.9 dB here, where amplitude error also counts)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> phase versus drain voltage, at the pulsed operating point, is a system parameter; publish it. The <a href="M03-power-amplifier.html">PA module</a> covers the intrapulse side.</li>
+    <li><b>Power-supply designers:</b> the specification is not "droop below 2 %" but "pulse-to-pulse variation below x mV rms for the stagger pattern". Ask the radar team for the pattern.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 28 V PA draws 6 A for 50 µs from 470 µF and has k<sub>φ</sub> = 3 °/V. What are the droop and the intrapulse phase ramp?</summary><p>ΔV = 6 × 50×10<sup>−6</sup>/470×10<sup>−6</sup> = 0.64 V (2.3 % of 28 V). The phase ramp is 3 × 0.64 = 1.9° within each pulse. Whether MTI suffers depends on how this varies from pulse to pulse, which is set by the charger and the stagger.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="mod">
+  <div class="secno">Step 6</div>
+  <h2>PA modulators: gate pulsing and drain pulsing</h2>
+  <div class="know"><h4>You already know</h4><p>A GaN or GaAs FET can be turned off two ways: by taking the gate below pinch-off, or by removing the drain voltage. You have seen ringing on a scope when a fast current step flows through a long wire: V = L·di/dt.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Modulator:</b> the circuit that turns the PA on and off for each pulse. <b>Gate pulsing:</b> the drain stays at full voltage; a small, fast switch moves the gate between pinch-off and bias. <b>Drain pulsing:</b> a high-current switch (a series FET) connects the drain supply only during the pulse. <b>Drain + gate:</b> the drain is switched first, the gate later, once the drain has settled.</p>
+    <p><b>Interconnect inductance L:</b> the inductance of the path from the bank (Step 5) to the drain pin: about 1 nH per mm of track or wire. <b>Drain-node capacitance C:</b> the local decoupling right at the PA. Together they ring at f<sub>ring</sub> = 1/(2π√(LC)).</p>
+    <p><b>Snubber:</b> R<sub>d</sub> in series with a capacitor 4·C, across the drain node; it absorbs the ringing. <b>Settling time:</b> the time until the drain stays within 0.1 V of its final value. <b>Quiescent current I<sub>DQ</sub>:</b> the bias current with no RF drive.</p>
+  </div>
+  <div class="col">
+    <p>The modulator decides three things: how fast the pulse can start, what transient the drain voltage has at the start of the pulse (which becomes a phase transient at k<sub>φ</sub> °/V, as in Step 5), and how much noise and power the PA produces when it should be off. The last one is easy to forget. A PA that stays biased between pulses keeps amplifying its own input noise, and that noise leaks into the receiver through the circulator or T/R switch during the listening time.</p>
+    <p>Worked number for the off-state: a PA with 30 dB gain and 6 dB noise figure, biased on, puts −174 + 6 + 30 = −138 dBm/Hz of noise on its output. Through 20 dB of circulator isolation, −158 dBm/Hz reaches the receiver, whose own noise (NF 2 dB) is −172 dBm/Hz. The receiver noise rises by 10·log(1 + 10<sup>1.4</sup>) = <b>14.2 dB</b>. Pinch the gate off and the PA output noise falls to the thermal floor: no rise.</p>
+  </div>
+  <div class="eq">ΔV<sub>step</sub> ≈ I·√(L/C) &nbsp;&nbsp; f<sub>ring</sub> = 1/(2π√(LC)) &nbsp;&nbsp; best R<sub>d</sub> ≈ √(L/C) &nbsp;&nbsp; phase transient = k<sub>φ</sub>·ΔV<sub>peak</sub><small>The first expression is the peak dip for a current step much faster than the ringing period. A slower edge (rise time comparable to 1/f<sub>ring</sub>) excites less ringing. A drain switch that rises fast into an undamped LC overshoots up to twice the step.</small></div>
+  <div class="col"><p>Worked number: 10 A drawn in 20 ns through 20 nH into a 100 nF drain node. √(L/C) = 0.45 Ω, so the dip is about 4.5 V (the demo gives 4.36 V), ringing at 3.56 MHz. At 2 °/V the pulse starts with a phase transient of 8.7°.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive choice is gate pulsing with the bank on the power board and a 20 mm path to the PA: it is simple, fast and needs no high-current switch. The drain node rings by 4.36 V and is still outside ±0.1 V after 10 µs, which is a tenth of the pulse: the first part of every pulse has a phase wobble of several degrees. The opposite naive choice, a fast drain switch (200 ns) on the same LC, overshoots by 14.8 V, which can exceed the device's drain rating, and takes 4.2 µs to settle.</p></div>
+  <h3>Side by side on one example: 50 V, 10 A, L = 20 nH, C = 100 nF unless stated</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Method</th><th>Peak drain transient</th><th>Settles to 0.1 V</th><th>Off-state noise into receiver</th><th>Off-state dissipation</th></tr>
+    <tr><td>CW bias, RF pulsed only</td><td class="n">−3.92 V</td><td class="n">≈ 10 µs</td><td class="n">+14.2 dB</td><td class="n">50 W (I<sub>DQ</sub> 1 A × 50 V) all the time</td></tr>
+    <tr><td>Gate pulsed (naive)</td><td class="n">−4.36 V</td><td class="n">&gt; 10 µs</td><td class="n">≈ 0 dB</td><td class="n">≈ 0.5 W leakage</td></tr>
+    <tr><td>Gate pulsed, C 1 µF, R<sub>d</sub> 0.2 Ω</td><td class="n">−0.84 V</td><td class="n">0.91 µs</td><td class="n">≈ 0 dB</td><td class="n">≈ 0.5 W leakage</td></tr>
+    <tr><td>Drain pulsed, 200 ns switch</td><td class="n">+14.76 V overshoot</td><td class="n">4.2 µs</td><td class="n">0 dB</td><td class="n">0 W</td></tr>
+    <tr><td>Drain pulsed, 1 µs switch</td><td class="n">+2.60 V overshoot</td><td class="n">3.6 µs</td><td class="n">0 dB</td><td class="n">0 W</td></tr>
+    <tr><td>Drain then gate (gate at 4 µs), C 1 µF, R<sub>d</sub> 0.2 Ω</td><td class="n">−0.82 V</td><td class="n">0.92 µs after gate</td><td class="n">0 dB</td><td class="n">0 W</td></tr>
+  </table></div>
+  <div class="col"><p>Read it as: the method decides the off-state behaviour, and the local L, C and snubber decide the transient. Gate pulsing is fast and cheap but keeps the full drain voltage on the device (a reliability and leakage question for GaN). Drain pulsing removes all off-state noise and power but needs a switch rated for the full current and a slow, controlled edge. Moving the bank close (smaller L) and damping the drain node (R<sub>d</sub> ≈ √(L/C)) improve every method.</p></div>
+  <h3>How to choose the modulator and the drain network</h3>
+  <div class="col"><p>(1) If the receiver listens through the same antenna, the PA must be quiet off-pulse: gate or drain pulsing, never CW bias. (2) From the phase budget at the start of the pulse, find the allowed ΔV: for 1° at 2 °/V, 0.5 V. (3) Choose C so that I·√(L/C) meets it: with 20 nH and 10 A, C ≥ 8 µF, or shorten the path to lower L. (4) Add R<sub>d</sub> ≈ √(L/C) with 4·C in series. (5) For drain pulsing, make the switch edge at least as slow as the ringing period and keep the overshoot inside the device's drain rating. (6) Start RF only after the settling time; that time is lost duty cycle and, in a monostatic radar, a slightly longer blind range.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cMo" width="640" height="340" aria-label="Drain voltage and RF envelope against time at the start of a pulse for the chosen modulator"></canvas>
+    <div class="ctrl">
+      <label for="moM"><span>Modulator method</span></label><select id="moM"><option value="cw">CW bias, RF pulsed</option><option value="gate" selected>Gate pulsed</option><option value="drain">Drain pulsed</option><option value="both">Drain then gate</option></select>
+      <label for="moL"><span>Interconnect L</span> <b id="moLv"></b></label><input id="moL" type="range" min="2" max="100" step="1" value="20">
+      <label for="moC"><span>Drain-node C</span> <b id="moCv"></b></label><input id="moC" type="range" min="1" max="3" step="0.02" value="2">
+      <label for="moR"><span>Snubber R<sub>d</sub> (0 = none)</span> <b id="moRv"></b></label><input id="moR" type="range" min="0" max="2" step="0.01" value="0">
+      <label for="moT"><span>Drain-switch rise time</span> <b id="moTv"></b></label><input id="moT" type="range" min="50" max="2000" step="10" value="200">
+      <label for="moI"><span>PA pulse current</span> <b id="moIv"></b></label><input id="moI" type="range" min="1" max="20" step="0.5" value="10">
+      <div class="readout" id="moOut"></div>
+    </div>
+    <p class="cap">Solid: drain voltage over the first 10 µs, relative to 50 V. Dashed: RF envelope (0 to 1, right-hand scale). Shaded band: ±0.1 V around the final value. The capacitance slider is logarithmic (10 nF to 1 µF). The drain-switch rise time acts only on the two drain methods; gate edges are fixed at 20 ns.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (gate pulsed, 20 nH, 100 nF, no snubber): dip −4.36 V, ringing 3.56 MHz, not settled in 10 µs, phase transient 8.7°: the naive row.</li>
+    <li>Set C to 1 µF (slider at 3.0) and R<sub>d</sub> to 0.20 Ω: −0.84 V, settled in 0.91 µs.</li>
+    <li>Select drain pulsed with the switch at 200 ns: overshoot +14.76 V. Slow the switch to 1 µs: +2.60 V.</li>
+    <li>Select CW bias: the off-state noise rise reads +14.2 dB and the standing dissipation 50 W; every other method reads about 0 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Modulator method</td><td>Gate, drain or both</td><td>Rise/fall time, off-state leakage</td><td>CW bias raises receive noise by 14.2 dB in the example; pulsed bias removes it</td></tr>
+    <tr><td>L and C at the drain</td><td>Bank placement, local decoupling</td><td>Not on a datasheet; layout</td><td>Dip I·√(L/C): 4.36 V → 0.84 V; phase transient 8.7° → 1.7° at 2 °/V</td></tr>
+    <tr><td>Drain-switch edge</td><td>Gate drive of the series switch</td><td>Rise time</td><td>200 ns → 1 µs takes the overshoot from 14.8 to 2.6 V</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA and T/R module designers:</b> the drain path inside your module is part of L. Give the module's internal drain capacitance and the recommended external bank distance.</li>
+    <li><b>Modulator designers:</b> specify the drain transient at the PA pin, not at your output connector: the cable between them is the 20 nH.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 5 A gate-pulsed PA is fed through 10 nH. What drain-node capacitance keeps the initial dip below 0.25 V, and what snubber resistor would you fit?</summary><p>I·√(L/C) ≤ 0.25 means √(L/C) ≤ 0.05 Ω, so C ≥ L/0.0025 = 10×10<sup>−9</sup>/0.0025 = 4 µF. The snubber starts at R<sub>d</sub> = √(L/C) = 0.05 Ω with a 16 µF capacitor in series.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="gnd">
+  <div class="secno">Step 7</div>
+  <h2>Grounding: star versus plane, return currents and ground loops</h2>
+  <div class="know"><h4>You already know</h4><p>A via has about 0.5 nH, a millimetre of track about 1 nH. At RF you always put a solid plane under a microstrip line, because the line's characteristic impedance depends on it. You have seen a "ground bounce" spike on a digital scope trace.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Return current:</b> every current that leaves a source on a track comes back to it. "Ground" is just the conductor it comes back on, and it has resistance and inductance like any other.</p>
+    <p><b>Path of least impedance:</b> at DC the return spreads to the lowest-resistance path; above about 100 kHz on a board it follows the lowest-<i>inductance</i> path, which is the plane area directly under the outgoing track, because that minimises the loop area.</p>
+    <p><b>Common-impedance coupling:</b> when two circuits share a piece of return path with impedance Z, the noisy circuit's current I puts a voltage I·Z on the quiet circuit's reference: V = L·di/dt + R·I.</p>
+    <p><b>Star ground:</b> each circuit has its own return wire to one point. <b>Ground plane:</b> one continuous copper layer used by all circuits. <b>Slot:</b> a cut in the plane (a split, a row of clearances); a return current must go around it.</p>
+    <p><b>Ground loop:</b> a closed loop formed when two units are grounded at two places and also joined by a cable shield. A potential difference between the two grounds, or a magnetic field through the loop, drives current along the shield and adds a voltage to the signal.</p>
+  </div>
+  <div class="col">
+    <p>A ground is a component. On a mixed board the noisy currents are the PA drain return (amperes, pulsed), the regulator switch currents (Step 3) and digital logic; the quiet references are the ADC input, the LNA bias and the VCO tuning voltage. Whether they share impedance is decided by the layout, not the schematic: the schematic draws one ground symbol for all of them.</p>
+  </div>
+  <div class="eq">V<sub>victim</sub> = L<sub>shared</sub>·dI/dt + R<sub>shared</sub>·I &nbsp;&nbsp; track ≈ 1 nH/mm, 0.5 mΩ/mm (1 mm wide, 35 µm copper) &nbsp;&nbsp; X<sub>L</sub> = 2π·f·L<small>Example: a 1 A current with 50 ns edges. Through 20 mm of shared track (20 nH, 10 mΩ) the spike is 20×10<sup>−9</sup> × 1/50×10<sup>−9</sup> = 0.40 V, and the flat part 10 mV. On an ADC with 1 V peak full scale, the spike is −8 dBFS.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>There are two opposite naive approaches. The first is a daisy chain: one ground track running from the PA past the ADC to the connector, so the ADC reference sees the PA's return: −8 dBFS spikes at every pulse edge, repeated at the PRF, which become a comb of spurs in the ADC output. The second is the "audio" fix, a star ground: every circuit gets its own wire to one point. That removes the shared impedance (0.5 nH left at the star point, −40 dBFS) but gives each RF part a 20 mm, 20 nH ground lead, which is 377 Ω at 3 GHz: the RF stage no longer has a ground at all and may oscillate. A star is a low-frequency idea.</p></div>
+  <h3>Side by side on one example: 1 A, 50 ns edges, 20 mm path</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Topology</th><th>Shared L / R</th><th>Spike on the victim</th><th>Relative to 1 V full scale</th><th>RF return reactance at 3 GHz</th></tr>
+    <tr><td>Daisy-chained track</td><td class="n">20 nH / 10 mΩ</td><td class="n">400 mV</td><td class="n">−8.0 dBFS</td><td class="n">9.4 Ω (via)</td></tr>
+    <tr><td>Star ground (20 mm leads)</td><td class="n">0.5 nH / 0.2 mΩ</td><td class="n">10 mV</td><td class="n">−40.0 dBFS</td><td class="n">377 Ω</td></tr>
+    <tr><td>Solid plane</td><td class="n">0.05 nH / 0.05 mΩ</td><td class="n">1 mV</td><td class="n">−60.0 dBFS</td><td class="n">9.4 Ω (via)</td></tr>
+    <tr><td>Plane with a 20 mm slot across the return</td><td class="n">8.05 nH / 0.45 mΩ</td><td class="n">161 mV</td><td class="n">−15.9 dBFS</td><td class="n">9.4 Ω (via)</td></tr>
+  </table></div>
+  <div class="col"><p>A solid plane wins at every frequency, because the return current of each circuit flows directly under its own tracks and the paths of different circuits barely overlap. The plane's weakness is the slot: a 20 mm cut forces the return round it and adds about 8 nH, bringing back most of the daisy-chain problem. The usual "split analog and digital ground" advice creates exactly this when a track crosses the split. Keep one plane, and separate circuits by <i>placement</i> (noisy parts and their return paths in one region, quiet ones in another) rather than by cuts.</p>
+    <p>Ground loops are the system version. Two units, each bonded to the airframe, joined by a coax: 1 A of 400 Hz power-return current flowing along the airframe divides into the shield. With 10 mΩ of shield resistance, 10 mV of 400 Hz appears in series with the signal, which is a hum spur at 400 Hz on every video or baseband line using that cable. The fixes are a balanced or differential interface, a single-point bond at low frequency (a capacitor to chassis at the far end keeps the RF bond), or a fibre link.</p></div>
+  <h3>How to choose the grounding</h3>
+  <div class="col"><p>(1) Use one continuous plane under all RF and mixed-signal parts; put no cuts under any track. (2) Place parts so that each high-current loop (regulator switch, PA drain, decoupling of fast logic) is small and away from the quiet references; the plane then keeps them apart. (3) Give every RF ground pad its own vias next to the pad (0.5 nH each, several in parallel). (4) Where you must cross between regions, give the return a path right next to the signal: a stitching capacitor or the plane continuing under the track. (5) Between boxes, decide the low-frequency grounding scheme (one bond point) and keep the RF shield bonded at both ends with low inductance. Shorter shared paths and slower edges both reduce L·dI/dt in proportion.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cGn" width="640" height="340" aria-label="Left: sketch of the chosen ground topology. Right: noise voltage on the victim reference during one current pulse"></canvas>
+    <div class="ctrl">
+      <label for="gnT"><span>Ground topology</span></label><select id="gnT"><option value="trace" selected>Daisy-chained track</option><option value="star">Star ground</option><option value="plane">Solid plane</option><option value="slot">Plane with a slot</option></select>
+      <label for="gnI"><span>Noisy current step</span> <b id="gnIv"></b></label><input id="gnI" type="range" min="0.1" max="10" step="0.1" value="1">
+      <label for="gnE"><span>Edge time</span> <b id="gnEv"></b></label><input id="gnE" type="range" min="5" max="500" step="5" value="50">
+      <label for="gnL"><span>Path length (track, lead or slot)</span> <b id="gnLv"></b></label><input id="gnL" type="range" min="2" max="100" step="1" value="20">
+      <div class="readout" id="gnOut"></div>
+    </div>
+    <p class="cap">Left: the noisy circuit (N), the victim (V) and their returns; red marks the shared part. Right: voltage on the victim's reference during one 2 µs current pulse, in mV. The path length means the shared track for the daisy chain, each part's own lead for the star, and the slot length for the slotted plane; it does not change the solid plane.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (daisy chain, 1 A, 50 ns, 20 mm): spike 400 mV, −8.0 dBFS: the first row of the table.</li>
+    <li>Select star: −40.0 dBFS, but the RF return reactance at 3 GHz reads 377 Ω. Select solid plane: −60.0 dBFS and 9.4 Ω.</li>
+    <li>Select the slotted plane: −15.9 dBFS at 20 mm. Shorten the slot to 2 mm: about −35 dBFS.</li>
+    <li>On the daisy chain, slow the edge from 50 to 500 ns: the spike falls by 20 dB, from −8.0 to −28.0 dBFS. Edge rate is a grounding parameter.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Shared return impedance</td><td>Topology, placement, cuts</td><td>Layout, not a datasheet</td><td>20 nH shared → 0.4 V spikes, −8 dBFS at the ADC; a plane gives −60 dBFS</td></tr>
+    <tr><td>RF ground inductance</td><td>Vias per pad, lead length</td><td>Recommended footprint</td><td>20 mm lead = 377 Ω at 3 GHz: gain loss, instability</td></tr>
+    <tr><td>Box-to-box bonding</td><td>Interface type, bond points</td><td>Interface spec (single-ended or balanced)</td><td>1 A through 10 mΩ shield = 10 mV hum on single-ended lines</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every board designer:</b> the ground pads of your part and the recommended via pattern are part of its RF performance; specify them.</li>
+    <li><b>ADC and LNA designers:</b> say which ground pin is the reference and how much ground noise your part rejects (differential inputs help).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A digital bus switches 0.2 A in 2 ns, and its return shares 3 mm of track with an LNA bias circuit. What spike does the LNA see?</summary><p>L ≈ 3 nH, dI/dt = 0.2/2×10<sup>−9</sup> = 10<sup>8</sup> A/s, so V = 3×10<sup>−9</sup> × 10<sup>8</sup> = 0.3 V. Even 3 mm of shared track is too much for a fast digital edge; it must have its own return path under its own tracks.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="shield">
+  <div class="secno">Step 8</div>
+  <h2>Shielding and cavity isolation, and conducted and radiated EMC</h2>
+  <div class="know"><h4>You already know</h4><p>RF modules sit in milled aluminium housings with walls between stages. You have seen a module whose isolation was fine with the lid off and poor with the lid on, or the reverse. Waveguide has a cut-off frequency set by its width.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Shielding effectiveness (SE):</b> the ratio, in dB, of the field without the shield to the field with it. A solid metal wall gives well over 100 dB; in practice SE is set by the holes in it.</p>
+    <p><b>Aperture (slot) leakage:</b> a slot of longest dimension L is a good antenna once L approaches half a wavelength. Below that, SE<sub>slot</sub> ≈ 20·log<sub>10</sub>(λ/(2L)) dB; at L ≥ λ/2 it is about 0 dB. n similar slots lower it by about 10·log<sub>10</sub>(n).</p>
+    <p><b>Cavity resonance:</b> a closed metal box of sides a × b × d is a resonator. Its lowest mode is at f = (c/2)·√((1/a)² + (1/b)²) for the two largest sides. At a resonance the field inside builds up by roughly the box Q, and isolation between two points in the box collapses. <b>Absorber:</b> lossy material on the lid that lowers the Q.</p>
+    <p><b>Conducted emission (CE):</b> unwanted current or voltage on power and signal leads, measured into a standard 50 Ω network (LISN) in dBµV. <b>Radiated emission (RE):</b> unwanted field in dBµV/m at a set distance. <b>Susceptibility:</b> the reverse: how much field or lead noise the unit tolerates.</p>
+  </div>
+  <div class="col">
+    <p>The housing does two jobs: it keeps other things out (and your own emissions in), and it separates stages from each other inside. Both fail in the same two ways. Holes leak when they are electrically long, and closed boxes resonate. A slot that is harmless at 1 GHz can be an open window at 10 GHz, and a compartment that isolates 60 dB at 3 GHz can isolate nothing at its first resonance.</p>
+    <p>The model in this step adds three terms: a 30 dB baseline from geometry and distance between the two points, plus the slot SE, minus the build-up near each box resonance, about 20·log<sub>10</sub>(Q) at the peak. With no absorber Q ≈ 100 (40 dB); a thin absorber gives Q ≈ 20 (26 dB), a thick one Q ≈ 5 (14 dB).</p>
+  </div>
+  <div class="eq">SE<sub>slot</sub> = 20·log<sub>10</sub>(λ/2L) − 10·log<sub>10</sub>(n) &nbsp;&nbsp; f<sub>mnp</sub> = (c/2)·√((m/a)² + (n/b)² + (p/d)²) &nbsp;&nbsp; isolation ≈ 30 dB + SE<sub>slot</sub> − 20·log<sub>10</sub>(Q)·(near resonance)<small>Box 60 × 40 × 15 mm: lowest mode TE<sub>110</sub> at (c/2)·√(1/0.06² + 1/0.04²) = 4.50 GHz, then 6.25, 7.90, 8.38 and 9.01 GHz. Slot 30 mm: at 1 GHz λ = 300 mm and λ/2L = 5, so SE = 14.0 dB; 4.4 dB at 3 GHz; 0 dB at 10 GHz, where λ/2 = 15 mm is shorter than the slot.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive housing is one 60 × 40 mm cavity with a lid held by four screws, leaving 30 mm gaps between screws. At 10 GHz the gaps give no SE at all (λ/2 = 15 mm), and the cavity's modes near 10 GHz eat the rest: isolation 5.0 dB. At 4.50 GHz, the first resonance, it is 0 dB: whatever is radiated by the LO at that frequency arrives at the LNA input at full strength. A filter with 70 dB rejection placed in such a box measures 70 dB on the bench with the lid off, and much less in the box.</p></div>
+  <h3>Side by side on one example: 60 × 40 × 15 mm box, at 10 GHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Housing</th><th>Slot SE</th><th>Isolation at 10 GHz</th><th>At 4.5 GHz (TE<sub>110</sub>)</th></tr>
+    <tr><td>30 mm screw gaps, no absorber (naive)</td><td class="n">0 dB</td><td class="n">5.0 dB</td><td class="n">0 dB</td></tr>
+    <tr><td>3 mm screw pitch, no absorber</td><td class="n">14.0 dB</td><td class="n">19.0 dB</td><td class="n">11.0 dB</td></tr>
+    <tr><td>30 mm gaps, thick absorber</td><td class="n">0 dB</td><td class="n">16.3 dB</td><td class="n">16.9 dB</td></tr>
+    <tr><td>3 mm pitch, thick absorber</td><td class="n">14.0 dB</td><td class="n">30.3 dB</td><td class="n">36.9 dB</td></tr>
+    <tr><td>3 mm pitch, wall splitting the box into 30 × 20 mm cells</td><td class="n">14.0 dB</td><td class="n">28.8 dB</td><td class="n">44.9 dB (first mode now 9.01 GHz)</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The slot term and the resonance term are independent fixes. Closer screws (or a conductive gasket) shrink the slot; absorber lowers the resonance peak; walls make the cavities smaller, which pushes the first mode above the frequencies present in that cell. A compartment whose first mode is above every frequency inside it behaves like a waveguide below cut-off: fields decay instead of propagating. That is why X-band modules are full of narrow channels.</p>
+    <p><b>Conducted and radiated EMC</b> follow the same rules at the unit's boundary. A 500 kHz buck draws its input current in pulses; if 2 mA rms of that reaches the 28 V leads, the LISN sees 2 mA × 50 Ω = 0.1 V = 100 dBµV, about 40 dB above a typical conducted-emission limit of the order of 60 dBµV at that frequency (illustrative). The fix is an input filter of 40 dB or more at f<sub>sw</sub> (Step 4, now on the input side) and the input capacitor right at the switch. For radiation, every connector hole, vent and seam is a slot: the same 20·log(λ/2L) rule says a 3 mm seam keeps 14 dB at 10 GHz, a 30 mm one keeps none. A unit that fails radiated emission usually has a seam or a cable shield problem, not a thin wall.</p>
+  </div>
+  <h3>How to choose the housing</h3>
+  <div class="col"><p>(1) List the frequencies present in each compartment (LO, its harmonics, IF, clocks, regulator harmonics). (2) Size each compartment so its first mode is above all of them by at least 20 %: for a 10 GHz LO, keep a × b small enough that (c/2)·√(1/a² + 1/b²) &gt; 12 GHz. (3) Keep every seam and slot below λ/20 at the highest frequency of concern (1.5 mm at 10 GHz gives about 20 dB); use screws at that pitch or a gasket. (4) Where a compartment must be large, add absorber on the lid to bring Q down. (5) Filter every wire that crosses a wall (feed-through capacitors), because a wire through a wall is an antenna on both sides. (6) At the unit boundary, filter power inputs for CE and treat cable shields as part of the enclosure (360° bonding at connectors).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSh" width="640" height="340" aria-label="Isolation between two points inside the housing versus frequency, showing slot leakage and cavity resonances"></canvas>
+    <div class="ctrl">
+      <label for="shL"><span>Longest slot or screw gap</span> <b id="shLv"></b></label><input id="shL" type="range" min="1" max="50" step="1" value="30">
+      <label for="shA"><span>Box width a</span> <b id="shAv"></b></label><input id="shA" type="range" min="10" max="100" step="1" value="60">
+      <label for="shB"><span>Box length b</span> <b id="shBv"></b></label><input id="shB" type="range" min="10" max="100" step="1" value="40">
+      <label for="shQ"><span>Lid treatment</span></label><select id="shQ"><option value="100">No absorber (Q ≈ 100)</option><option value="20">Thin absorber (Q ≈ 20)</option><option value="5">Thick absorber (Q ≈ 5)</option></select>
+      <label for="shF"><span>Frequency of concern</span> <b id="shFv"></b></label><input id="shF" type="range" min="0" max="1.3" step="0.01" value="1">
+      <div class="readout" id="shOut"></div>
+    </div>
+    <p class="cap">Isolation from 1 to 20 GHz (logarithmic). Dashed: 30 dB baseline plus slot SE alone. Solid: with the box resonances (thin vertical lines). Orange: the frequency of concern. The box height is fixed at 15 mm. The frequency slider is logarithmic (1 to 20 GHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (30 mm gap, 60 × 40 mm, no absorber, 10 GHz): slot SE 0.0 dB, isolation 5.0 dB, first mode 4.50 GHz: the naive row.</li>
+    <li>Set the gap to 3 mm: slot SE 14.0 dB, isolation 19.0 dB. Then choose thick absorber: 30.3 dB.</li>
+    <li>With the 3 mm gap and no absorber, set the box to 30 × 20 mm: the first mode moves to 9.01 GHz and the isolation at 10 GHz is 28.8 dB, the last row.</li>
+    <li>Move the frequency to 1 GHz (slider at 0): the 30 mm gap still gives 14.0 dB there, and the nearest mode (4.50 GHz) takes only 4.3 dB off: isolation 39.7 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Seam and slot length</td><td>Screw pitch, gasket, connector holes</td><td>Mechanical drawing</td><td>30 → 3 mm takes slot SE at 10 GHz from 0 to 14 dB</td></tr>
+    <tr><td>Compartment size</td><td>Wall layout</td><td>Mechanical drawing</td><td>First mode (c/2)·√(1/a² + 1/b²): 60 × 40 mm = 4.50 GHz, 30 × 20 mm = 9.01 GHz</td></tr>
+    <tr><td>Absorber</td><td>Material and thickness on the lid</td><td>Absorber loss vs frequency</td><td>Resonance build-up 40 → 14 dB</td></tr>
+    <tr><td>Input filter</td><td>LC on the power entry</td><td>Conducted emission at f<sub>sw</sub></td><td>2 mA at 500 kHz in the leads = 100 dBµV, about 40 dB over a typical limit</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mechanical and module designers:</b> isolation is a mechanical specification. Give the RF team the compartment sizes so they can check the first mode against the frequency plan.</li>
+    <li><b>Filter and LNA designers:</b> quote rejection and isolation as measured in the housing, lid on. Bench numbers with the lid off overstate them.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A compartment for an 8 GHz LO buffer is 25 × 20 mm. Is its first mode safely above 8 GHz?</summary><p>(c/2)·√(1/0.025² + 1/0.02²) = 1.5×10<sup>8</sup> × √(1 600 + 2 500) = 1.5×10<sup>8</sup> × 64.0 = 9.6 GHz. That is 20 % above 8 GHz, just at the margin; the LO's second harmonic at 16 GHz is above it and will excite higher modes, so add absorber or a further wall.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="cosite">
+  <div class="secno">Step 9</div>
+  <h2>Co-site interference: your own transmitter in your own receiver</h2>
+  <div class="know"><h4>You already know</h4><p>Free-space path loss between two antennas is 20·log<sub>10</sub>(4π·d/λ) dB. An LNA has an input 1 dB compression point, and its noise figure sets the receiver's noise floor. A transmitter has a noise floor too: its output is not perfectly clean away from the carrier.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Co-site:</b> transmitters and receivers on the same platform (ship, aircraft, vehicle). <b>Antenna-to-antenna isolation:</b> path loss minus the antennas' gains toward each other (usually sidelobe or backlobe gains, often −10 dBi each).</p>
+    <p><b>Transmitter broadband noise:</b> the noise the transmitter puts out at frequencies away from its carrier, in dBc/Hz. At the victim's frequency it adds to the victim's noise floor. <b>Desensitisation:</b> the rise of the victim's noise floor in dB, 10·log<sub>10</sub>(1 + N<sub>tx</sub>/N<sub>rx</sub>).</p>
+    <p><b>Blocking:</b> the transmitter's carrier itself overloads the victim's front end (compresses the LNA or trips the limiter, see the <a href="M06-limiter-duplexer.html">limiter module</a>). <b>Blanking:</b> switching the victim off, or flagging its data, while the own transmitter is on.</p>
+  </div>
+  <div class="col">
+    <p>Co-site is the platform-level version of everything above. A 1 kW radar or jammer 2 m from an ESM antenna is 100 dB stronger than any signal the ESM is trying to find. Two separate things can go wrong: the carrier blocks the front end (that needs filtering or blanking), and the transmitter's own noise, which no filter at the receiver can remove because it is in the receiver's band, raises the floor.</p>
+  </div>
+  <div class="eq">isolation = 20·log<sub>10</sub>(4π·d/λ) − G<sub>tx→rx</sub> − G<sub>rx→tx</sub> &nbsp;&nbsp; P<sub>in</sub> = P<sub>t</sub> − isolation &nbsp;&nbsp; N<sub>tx</sub> = P<sub>t</sub> + noise(dBc/Hz) − isolation &nbsp;&nbsp; desense = 10·log<sub>10</sub>(1 + 10<sup>(N<sub>tx</sub>−N<sub>rx</sub>)/10</sup>)<small>N<sub>rx</sub> = −174 + NF dBm/Hz. Worked number: 1 kW (60 dBm) at 9.5 GHz, d = 2 m: path loss 20·log(4π × 2/0.0316) = 58.0 dB, sidelobes −10 dBi each, isolation 78.0 dB, carrier at the ESM −18.0 dBm. Transmitter noise −140 dBc/Hz gives −158.0 dBm/Hz at the ESM, against its own −164 dBm/Hz (NF 10 dB): desensitisation 6.95 dB.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive platform layout places antennas where there is room and treats each system as if it were alone. The ESM, specified for −65 dBm sensitivity, sees −18 dBm from its own radar, 7 dB above its −25 dBm input compression point: its front end is compressed for the whole pulse, and between pulses its floor is 7 dB higher, which costs 7 dB of sensitivity. For an ESM, whose detection range goes as the square root of received power, 7 dB is a range factor of 10<sup>−6.95/20</sup> = 0.45: less than half the intercept range, caused entirely by its own platform.</p></div>
+  <h3>Side by side on one example: 60 dBm at 9.5 GHz, −10 dBi sidelobes each way, −140 dBc/Hz noise, ESM NF 10 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Separation</th><th>Isolation</th><th>Carrier at ESM</th><th>Tx noise at ESM</th><th>Desensitisation</th></tr>
+    <tr><td>1 m</td><td class="n">72.0 dB</td><td class="n">−12.0 dBm</td><td class="n">−152.0 dBm/Hz</td><td class="n">12.26 dB</td></tr>
+    <tr><td>2 m (naive)</td><td class="n">78.0 dB</td><td class="n">−18.0 dBm</td><td class="n">−158.0 dBm/Hz</td><td class="n">6.95 dB</td></tr>
+    <tr><td>5 m</td><td class="n">86.0 dB</td><td class="n">−26.0 dBm</td><td class="n">−166.0 dBm/Hz</td><td class="n">2.13 dB</td></tr>
+    <tr><td>10 m</td><td class="n">92.0 dB</td><td class="n">−32.0 dBm</td><td class="n">−172.0 dBm/Hz</td><td class="n">0.64 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Separation alone is a weak tool: each doubling buys 6 dB, and platforms are small. Antenna placement that puts deep backlobes toward each other buys 10 to 30 dB. For the carrier, a band-stop or band-pass filter at the ESM input removes blocking but does nothing for the noise, which is in band. For the noise, the fix is at the transmitter: a filter after the PA (removing broadband noise outside its own band, see the <a href="M04-filters.html">filters module</a>), a lower-noise exciter, or time-sharing: blank the ESM during own pulses, which costs probability of intercept by the transmit duty cycle.</p></div>
+  <h3>How to choose the co-site measures</h3>
+  <div class="col"><p>(1) Make a matrix of every transmitter against every receiver on the platform, with frequencies. (2) For each pair, compute isolation from separation and antenna patterns. (3) Carrier check: P<sub>in</sub> must stay below the victim's damage and compression limits, else add front-end filtering (if the bands differ) or blanking (if they overlap). (4) Noise check: N<sub>tx</sub> at the victim must be at least 10 dB below N<sub>rx</sub> for under 0.4 dB desensitisation; that sets the transmitter's noise in dBc/Hz at the victim's frequency, which becomes a transmit filter or exciter requirement. (5) Where nothing else fits, plan blanking and accept its duty-cycle cost.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCo" width="640" height="360" aria-label="Top: own-transmitter carrier at the receiver input versus antenna separation, with the receiver compression limit. Bottom: desensitisation versus separation"></canvas>
+    <div class="ctrl">
+      <label for="coP"><span>Transmitter power</span> <b id="coPv"></b></label><input id="coP" type="range" min="30" max="70" step="1" value="60">
+      <label for="coD"><span>Antenna separation</span> <b id="coDv"></b></label><input id="coD" type="range" min="0.5" max="30" step="0.5" value="2">
+      <label for="coG"><span>Antenna gains toward each other (sum)</span> <b id="coGv"></b></label><input id="coG" type="range" min="-50" max="10" step="1" value="-20">
+      <label for="coN"><span>Transmitter noise at the receiver frequency</span> <b id="coNv"></b></label><input id="coN" type="range" min="-170" max="-110" step="1" value="-140">
+      <label for="coF"><span>Receiver front-end filter rejection of the carrier</span> <b id="coFv"></b></label><input id="coF" type="range" min="0" max="80" step="1" value="0">
+      <div class="readout" id="coOut"></div>
+    </div>
+    <p class="cap">Top: carrier power at the receiver input after the front-end filter, against separation (logarithmic axis, 0.5 to 32 m); dashed line: −25 dBm, the input compression limit assumed for the wideband ESM front end. Bottom: desensitisation from transmitter noise; the front-end filter does not change it because the noise is in band. The orange marker is the chosen separation. Receiver NF 10 dB, 9.5 GHz.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (60 dBm, 2 m, −20 dBi, −140 dBc/Hz, no filter): carrier −18.0 dBm, desensitisation 6.95 dB, range factor 0.45: the naive row.</li>
+    <li>Raise the filter rejection to 60 dB: the carrier falls to −78 dBm and the top curve drops, but desensitisation stays 6.95 dB.</li>
+    <li>Lower the transmitter noise to −150 dBc/Hz: desensitisation 1.45 dB. That is the fix for the noise, and it is at the transmitter.</li>
+    <li>Set separation to 10 m: 0.64 dB, the last row.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Transmitter broadband noise</td><td>Exciter noise, PA output filter</td><td>Noise floor in dBc/Hz at offsets</td><td>−140 → −150 dBc/Hz takes ESM desensitisation from 6.95 to 1.45 dB</td></tr>
+    <tr><td>Receiver front-end rejection</td><td>Preselector, limiter</td><td>Rejection at the transmit frequency</td><td>Removes blocking (−18 dBm → −78 dBm with 60 dB) but not the in-band noise</td></tr>
+    <tr><td>Antenna backlobes</td><td>Antenna design, placement</td><td>Pattern, front-to-back ratio</td><td>dB for dB on both carrier and noise</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Exciter and PA designers:</b> the far-out noise floor of your transmitter, 100 MHz to GHz away from the carrier, is a co-site specification. Quote it.</li>
+    <li><b>Limiter and LNA designers:</b> your recovery time after a co-site pulse sets how much of the listening time is lost (limiter module).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 100 W (50 dBm) communications transmitter at 3 GHz is 5 m from a radar warning receiver with NF 12 dB, with 0 dBi gains each way. What transmitter noise is allowed for under 1 dB desensitisation?</summary><p>λ = 0.1 m, path loss 20·log(4π × 5/0.1) = 56.0 dB, isolation 56.0 dB. N<sub>rx</sub> = −162 dBm/Hz. For 1 dB, N<sub>tx</sub> ≤ N<sub>rx</sub> − 5.9 dB = −167.9 dBm/Hz, so P<sub>t</sub> + noise − 56 ≤ −167.9 and noise ≤ −161.9 dBc/Hz at the receiver's frequency: a filter after the transmitter is needed.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="false">
+  <div class="secno">Step 10</div>
+  <h2>How a spur becomes a false target or a false ESM detection</h2>
+  <div class="know"><h4>You already know</h4><p>A radar integrates N pulses coherently in a Doppler FFT: a steady target gains 10·log<sub>10</sub>(N) dB of signal-to-noise. A detector declares a target when a cell exceeds a threshold, typically 13 dB above the noise for a low false-alarm rate (radar module R3). An ESM receiver reports an emitter when a channel exceeds its threshold.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Doppler bin:</b> one output of the Doppler FFT, PRF/N wide. A tone at offset f<sub>off</sub> from the carrier appears at the Doppler frequency f<sub>off</sub> folded into ±PRF/2 (aliased), and is read as a radial velocity v = f<sub>D</sub>·λ/2.</p>
+    <p><b>Coherent spur:</b> a spur whose phase is stable across the N pulses (a fixed regulator line, a clock spur). It integrates exactly like a target. <b>Incoherent spur:</b> one whose phase changes randomly from pulse to pulse (spread spectrum); it integrates like noise and gains nothing.</p>
+    <p><b>Clutter notch:</b> the Doppler bins around zero that the MTI or clutter map removes. <b>False target:</b> a detection with no real object. <b>False emitter:</b> an ESM report of an emitter that does not exist; a CW line above threshold looks like a CW transmitter.</p>
+  </div>
+  <div class="col">
+    <p>Every step above ends here. A spur that reaches the receiver is a signal, and the processing cannot tell it from a real one if it has the properties of a real one. A fixed, stable spur inside the radar's band is the worst case: it is coherent, so Doppler integration gives it the same 10·log(N) gain as a target, and it appears in <i>every</i> range cell (it is there all the time, not at one delay), at one Doppler, as a line of false targets all moving at the same speed. In an ESM receiver, a line above threshold is reported as an emitter, and dozens of regulator harmonics become dozens of false emitters, which overload the operator and the emitter library.</p>
+  </div>
+  <div class="eq">SNR<sub>spur, per pulse</sub> = P<sub>spur</sub> − (−174 + NF + 10·log<sub>10</sub>B) &nbsp;&nbsp; after N pulses: + 10·log<sub>10</sub>N (coherent) or + 0 (incoherent) &nbsp;&nbsp; false detection if SNR &gt; threshold<small>Radar: B = 1 MHz (1 µs pulse), NF 4 dB, so noise is −110 dBm per pulse; PRF 2 kHz, 10 GHz. A spur of −120 dBm is −10 dB per pulse and +8.1 dB after 64 pulses: below a 13 dB threshold. At −115 dBm it is +13.1 dB: a false target in every range cell.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive check looks at the spur on a spectrum analyser at the receiver input: "−115 dBm is 5 dB below the noise, it cannot be seen". That is true for one pulse. After 64 coherent pulses it is 13.1 dB above the noise in its Doppler bin, at the threshold, and with a free-running regulator at 503.3 kHz it lands at −700 Hz Doppler: a target moving at 10.5 m/s at every range. In the ESM, a −90 dBm regulator harmonic is 14 dB above the −104 dBm channel noise, one dB under a 15 dB threshold; a slightly warmer day or a 1 dB gain change makes it an emitter.</p></div>
+  <h3>Side by side on one example: spur at −115 dBm, radar 64 pulses, threshold 13 dB</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Spur type</th><th>Per pulse</th><th>After Doppler processing</th><th>Where it lands</th><th>Result</th></tr>
+    <tr><td>Fixed, free-running (503.3 kHz)</td><td class="n">−5.0 dB</td><td class="n">+13.1 dB</td><td>−700 Hz, every range</td><td>False target line at 10.5 m/s</td></tr>
+    <tr><td>Fixed, synchronised to the PRF (locked to 504 kHz = 252 × PRF)</td><td class="n">−5.0 dB</td><td class="n">+13.1 dB</td><td>0 Hz, inside the clutter notch</td><td>Removed with the clutter; no false target</td></tr>
+    <tr><td>Spread spectrum ±5 %</td><td class="n">−5.0 dB</td><td class="n">−5.0 dB</td><td>spread over all bins</td><td>No detection; noise floor +1.2 dB</td></tr>
+  </table></div>
+  <div class="col"><p>This is the reason Step 3 offered two opposite fixes. For a coherent radar, a synchronised regulator turns a moving false target into a zero-Doppler line that the clutter filter already removes, and spread spectrum turns it into noise. For an ESM with 1 MHz channels, spread spectrum hardly helps (the spread is limited to about 10·log(f<sub>sw</sub>/B), here 3.4 dB for a 2.2 MHz regulator), and synchronisation helps only because the lines are then at known frequencies that can be put in a spur table and ignored, at the cost of those channels being blind.</p></div>
+  <h3>How to set the spur requirement</h3>
+  <div class="col"><p>(1) Find the largest integration gain the processing can give a coherent spur: 10·log(N) for the longest Doppler FFT, plus any further integration. (2) Require the spur at the receiver input to be below noise − 10·log(N) + threshold − margin: for N = 64, 13 dB threshold and 6 dB margin, P<sub>spur</sub> &lt; −110 − 18.1 + 13 − 6 = −121.1 dBm. (3) Carry that number back through the chain: coupling isolation (Steps 3, 7, 8), filtering (Step 4), and the regulator's own spectrum. (4) For an ESM, the requirement is per channel: below threshold − margin, at the highest gain setting. (5) Choose synchronised switching for coherent radars and keep the regulator frequency a multiple of the PRF if the PRF is fixed; with staggered PRF, use spread spectrum or more isolation.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cFa" width="640" height="340" aria-label="Radar Doppler spectrum or ESM channel spectrum with the spur, the noise and the detection threshold"></canvas>
+    <div class="ctrl">
+      <label for="faS"><span>System</span></label><select id="faS"><option value="radar">Pulse-Doppler radar</option><option value="esm">ESM, 1 MHz channels</option></select>
+      <label for="faP"><span>Spur level at receiver input</span> <b id="faPv"></b></label><input id="faP" type="range" min="-140" max="-70" step="1" value="-115">
+      <label for="faT"><span>Spur type</span></label><select id="faT"><option value="fixed">Fixed, free-running</option><option value="sync">Fixed, synchronised</option><option value="spread">Spread spectrum ±5 %</option></select>
+      <label for="faN"><span>Pulses in the Doppler FFT (radar)</span> <b id="faNv"></b></label><input id="faN" type="range" min="3" max="10" step="1" value="6">
+      <label for="faO"><span>Spur offset from carrier (radar)</span> <b id="faOv"></b></label><input id="faO" type="range" min="100.5" max="599.5" step="0.1" value="503.3">
+      <label for="faH"><span>Detection threshold above noise</span> <b id="faHv"></b></label><input id="faH" type="range" min="8" max="20" step="0.5" value="13">
+      <div class="readout" id="faOut"></div>
+    </div>
+    <p class="cap">Radar: the Doppler spectrum of one range cell after N pulses, in dB relative to the mean noise per bin; shaded: the clutter notch around 0 Hz; dashed: the threshold. ESM: power in 64 channels of 1 MHz (100 to 164 MHz IF) with a 2.2 MHz regulator comb; the strongest harmonic has the chosen level. Red: a cell above threshold, that is, a false report. Pulse-count and offset sliders act on the radar only; the pulse count is a power of two (8 to 1 024).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (radar, −115 dBm, fixed, 64 pulses, 503.3 kHz): +13.1 dB after processing, at −700 Hz and 10.5 m/s, flagged as a false target: the first row of the table.</li>
+    <li>Select synchronised: the spur moves to 0 Hz, inside the notch, and is not reported. Select spread: −5.0 dB, no detection.</li>
+    <li>Fixed again, set the spur to −120 dBm: +8.1 dB, below threshold. Then raise the pulses to 1 024: +20.1 dB, a false target again. Longer integration needs cleaner supplies.</li>
+    <li>Select ESM with −90 dBm: the strongest line is 14.0 dB over noise against a 13 dB threshold, and 7 channels are reported (red); the readout asks for a 1.0 dB threshold raise. Raise the threshold to 15 dB: no false reports, at a 2 dB sensitivity cost.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Spur level at the receiver</td><td>Everything in Steps 1–9</td><td>Spurious-free level, dBm</td><td>−120 dBm: clean for 64 pulses; −115 dBm: false targets at threshold 13 dB</td></tr>
+    <tr><td>Spur coherence</td><td>Fixed, synchronised or spread switching</td><td>Regulator SYNC and spread features</td><td>Coherent spurs gain 10·log(N); synchronised ones land in the clutter notch; spread ones gain nothing</td></tr>
+    <tr><td>Integration length N</td><td>Radar waveform (system choice)</td><td>n/a</td><td>64 → 1 024 pulses tightens the spur requirement by 12 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every component on the receive side:</b> your spur line, wherever it comes from, will be integrated by the processing. The system spur requirement is "below noise minus integration gain", often 20 to 30 dB below the noise you see on an analyser.</li>
+    <li><b>Power designers:</b> a SYNC pin on the regulator is a radar feature; route the system clock to it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar integrates 256 pulses with noise −112 dBm per pulse and a 13 dB threshold. What is the largest coherent spur that will not be detected, with no margin?</summary><p>Integration gain 10·log(256) = 24.1 dB. The spur must satisfy P − (−112) + 24.1 &lt; 13, so P &lt; −123.1 dBm, 11 dB below the noise in one pulse.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="summary">
+  <div class="secno">Step 11</div>
+  <h2>Summary: every power, ground and EMC parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by</th><th>System effect (example numbers from this page)</th></tr>
+    <tr><td>PSRR at f<sub>sw</sub></td><td>Regulator type and loop bandwidth, output capacitor</td><td>Sidebands fall dB for dB: LNA ripple sideband −65.6 dBc direct, −85.8 basic LDO, −115.7 low-noise LDO</td></tr>
+    <tr><td>Gain and phase sensitivity to supply</td><td>Amplifier bias and topology</td><td>AM −70.8 and PM −67.2 dBc from 20 mV p-p at 0.5 dB/V and 5 °/V</td></tr>
+    <tr><td>VCO pushing</td><td>VCO design, on-chip regulation</td><td>2 MHz/V and 20 mV p-p at 500 kHz: −34 dBc LO spurs; supply noise −83 dBc/Hz at 10 kHz</td></tr>
+    <tr><td>Regulator noise density</td><td>LDO choice, reference filter</td><td>500 → 10 nV/√Hz: supply phase-noise term −83 → −117 dBc/Hz at 10 kHz</td></tr>
+    <tr><td>Switching frequency and edges</td><td>Regulator part, gate drive</td><td>Harmonic 122 at 61 MHz +8.6 dB over IF noise; 30 ns edges: −5.6 dB</td></tr>
+    <tr><td>Spread / synchronised switching</td><td>Regulator features, clock routing</td><td>Spread: up to 10·log(f<sub>sw</sub>/RBW), 17 dB at 10 kHz RBW, with a raised floor; sync: lines at chosen frequencies, zero Doppler</td></tr>
+    <tr><td>LC / bead / LDO filter</td><td>L, C, damping, bead current rating, headroom</td><td>Damped LC + LDO: 80 dB at 1 MHz (layout limit); undamped LC peaks +11.6 dB; bead loses 19.5 dB at 1 A</td></tr>
+    <tr><td>Hold-up capacitance and recharge</td><td>Bank size, ESR, charger bandwidth</td><td>1 000 µF: 1 V droop, 2° ramp; with ±10 % stagger, MTI limit 53.5 dB (3 300 µF: 63.8 dB)</td></tr>
+    <tr><td>Modulator and drain network</td><td>Gate or drain pulsing, L, C, snubber</td><td>Gate step dip 4.36 V → 0.84 V with 1 µF and 0.2 Ω; CW bias raises receive noise 14.2 dB</td></tr>
+    <tr><td>Ground topology</td><td>Layout: plane, placement, no cuts</td><td>Shared 20 mm track: −8 dBFS spikes; plane: −60 dBFS; 20 mm slot: −15.9 dBFS</td></tr>
+    <tr><td>Seams and compartment size</td><td>Mechanical design, absorber</td><td>30 mm gap: no SE at 10 GHz; 60 × 40 mm box first mode 4.50 GHz</td></tr>
+    <tr><td>Conducted emission</td><td>Input filter, input capacitor</td><td>2 mA at 500 kHz in the leads: 100 dBµV, about 40 dB over a typical limit</td></tr>
+    <tr><td>Co-site isolation and transmitter noise</td><td>Antenna placement, transmit filter</td><td>1 kW at 2 m: −18 dBm carrier, 6.95 dB ESM desensitisation, 0.45 range factor</td></tr>
+    <tr><td>Spur coherence and level</td><td>All of the above</td><td>−115 dBm coherent spur → false targets after 64 pulses; requirement −121 dBm with 6 dB margin</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (loop filtering, multiplication, reciprocal mixing), <a href="M03-power-amplifier.html">Power amplifier</a> (droop and AM/PM from the PA side), <a href="M07-adc-dac-sampling.html">ADC, DAC and sampling</a> (SFDR, clock jitter), <a href="M14-reference-timing.html">References, clocks and timing</a> (reference spurs and distribution), <a href="M06-limiter-duplexer.html">Limiter and duplexer</a> (co-site blocking and recovery), and the system pages <a href="R4-pulse-radar.html">R4 Pulse radar end to end</a>, <a href="R5-fmcw.html">R5 FMCW radar</a> and <a href="P3-sar-imaging.html">Part 3 SAR</a>, where these spurs and pulse-to-pulse errors set clutter and image quality. The receiver/ESM and transmit/jamming parts use Steps 9 and 10 directly.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Absorber</dt><dd>Lossy material inside a housing that lowers cavity Q and the build-up at resonances.</dd>
+    <dt>AM index (m)</dt><dd>Peak fractional change of carrier amplitude; each AM sideband is m/2.</dd>
+    <dt>Aperture (slot) leakage</dt><dd>Field passing through a hole or seam; SE ≈ 20·log(λ/2L), zero once L ≥ λ/2.</dd>
+    <dt>Blanking</dt><dd>Switching a receiver off, or flagging its data, while an own transmitter is on.</dd>
+    <dt>Blocking</dt><dd>Overload of a receiver front end by a strong signal outside the wanted one.</dd>
+    <dt>Bus</dt><dd>The raw platform supply (for example 28 V) that feeds the regulators.</dd>
+    <dt>Cavity resonance</dt><dd>A mode of a closed metal box, f = (c/2)·√((m/a)² + (n/b)² + (p/d)²), where isolation collapses.</dd>
+    <dt>Clutter notch</dt><dd>Doppler bins around zero that MTI or a clutter map removes.</dd>
+    <dt>Coherent spur</dt><dd>A spur with stable phase over the integration time; it gains 10·log(N) like a target.</dd>
+    <dt>Co-site interference</dt><dd>Interference between transmitters and receivers on the same platform.</dd>
+    <dt>Common-impedance coupling</dt><dd>Noise put on one circuit by another's current flowing through a shared return impedance.</dd>
+    <dt>Conducted emission (CE)</dt><dd>Unwanted signal on a unit's leads, measured into a LISN in dBµV.</dd>
+    <dt>Damping resistor (R<sub>d</sub>)</dt><dd>Resistor, in series with a larger capacitor, that removes the resonance peak of an LC filter; best near √(L/C).</dd>
+    <dt>Desensitisation</dt><dd>Rise of a receiver's noise floor caused by an interferer's noise, 10·log(1 + N<sub>tx</sub>/N<sub>rx</sub>).</dd>
+    <dt>Drain pulsing</dt><dd>Switching the PA drain supply on only during the pulse.</dd>
+    <dt>Dropout / headroom</dt><dd>The smallest input-output difference at which an LDO regulates / the margin given above it.</dd>
+    <dt>Droop</dt><dd>Fall of drain voltage during a pulse, I·τ/C from the hold-up capacitor.</dd>
+    <dt>EMC</dt><dd>Electromagnetic compatibility: neither disturbing nor being disturbed by other equipment.</dd>
+    <dt>ESL / ESR</dt><dd>Equivalent series inductance / resistance of a capacitor.</dd>
+    <dt>Ferrite bead</dt><dd>Lossy inductor, resistive at high frequency, whose inductance falls with DC current.</dd>
+    <dt>Gain / phase sensitivity</dt><dd>Change of an amplifier's gain (dB/V) or phase (°/V) per volt of supply.</dd>
+    <dt>Gate pulsing</dt><dd>Turning the PA on and off by moving its gate between pinch-off and bias, drain kept at full voltage.</dd>
+    <dt>Ground loop</dt><dd>A loop through two ground bonds and a cable shield, in which current adds a voltage to the signal.</dd>
+    <dt>Hold-up capacitor</dt><dd>Capacitor bank that supplies the pulse current so the supply only delivers the average.</dd>
+    <dt>LDO</dt><dd>Low-dropout linear regulator; quiet, no switching, burns (V<sub>in</sub> − V<sub>out</sub>)·I.</dd>
+    <dt>LISN</dt><dd>Line impedance stabilisation network: the standard 50 Ω load used to measure conducted emission.</dd>
+    <dt>Modulator</dt><dd>The circuit that turns a PA on and off for each pulse.</dd>
+    <dt>MTI improvement limit</dt><dd>Best clutter cancellation possible with a given pulse-to-pulse error, about −20·log(σ<sub>φ</sub>).</dd>
+    <dt>PM index (β)</dt><dd>Peak phase deviation in radians; for FM, β = Δf/f<sub>m</sub>. Each sideband is β/2 when β ≪ 1.</dd>
+    <dt>Post-regulation</dt><dd>A quiet regulator placed after an efficient switching regulator.</dd>
+    <dt>PSRR</dt><dd>Power-supply rejection ratio: attenuation of supply disturbances, dB, a function of frequency.</dd>
+    <dt>Pulse-to-pulse error</dt><dd>Difference in amplitude or phase between successive transmitted pulses.</dd>
+    <dt>Pushing (K<sub>P</sub>)</dt><dd>Change of VCO frequency per volt of supply, MHz/V.</dd>
+    <dt>Radiated emission (RE)</dt><dd>Unwanted field from a unit, in dBµV/m at a set distance.</dd>
+    <dt>Rail</dt><dd>One regulated DC supply net.</dd>
+    <dt>Return current</dt><dd>The current flowing back to its source; at RF it follows the lowest-inductance path, under the outgoing track.</dd>
+    <dt>Ripple</dt><dd>Periodic part of a rail voltage at the switching frequency and its harmonics.</dd>
+    <dt>Shielding effectiveness (SE)</dt><dd>Field reduction by a shield, in dB.</dd>
+    <dt>Snubber</dt><dd>Resistor-capacitor network that absorbs ringing on a node.</dd>
+    <dt>Spread-spectrum switching</dt><dd>Sweeping a regulator's frequency by ±δ so that each harmonic spreads over 2δ·n·f<sub>sw</sub>.</dd>
+    <dt>Spur</dt><dd>A discrete unwanted spectral line, in dBc or dBm.</dd>
+    <dt>Stagger</dt><dd>Changing the PRI from pulse to pulse.</dd>
+    <dt>Star ground</dt><dd>Each circuit returned by its own wire to one point; good at low frequency, poor at RF.</dd>
+    <dt>Switch node</dt><dd>The node of a switching regulator that swings between 0 and V<sub>in</sub> each cycle.</dd>
+    <dt>Synchronised switching</dt><dd>Locking a regulator's frequency to a system clock so its harmonics fall where chosen.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Ott, <i>Electromagnetic Compatibility Engineering</i>; Paul, <i>Introduction to Electromagnetic Compatibility</i>; Bogatin, <i>Signal and Power Integrity, Simplified</i>; Johnson and Graham, <i>High-Speed Digital Design</i>; Erickson and Maksimović, <i>Fundamentals of Power Electronics</i>; Skolnik, <i>Introduction to Radar Systems</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+/* ===== Engine: pure maths, no DOM (checked in node before use) ===== */
+const E={};
+E.d20=x=>20*Math.log10(x); E.d10=x=>10*Math.log10(x);
+E.sinc=x=>x===0?1:Math.sin(Math.PI*x)/(Math.PI*x);
+/* Regulator models: residual ripple ratio r(f) = Vout/Vin (PSRR = -20 log r), and output noise density e(f) V/rtHz */
+E.REG={
+  none:{name:'none (direct)',rdc:1,fp:1,rmax:1,fc:1e12,en:500e-9,fn:0},
+  basic:{name:'basic LDO',rdc:1e-3,fp:2e3,rmax:0.1,fc:3e6,en:200e-9,fn:1e3},
+  lownoise:{name:'low-noise LDO',rdc:3.16e-4,fp:50e3,rmax:0.0316,fc:3e6,en:10e-9,fn:100},
+  rc:{name:'low-noise LDO + RC',rdc:3.16e-4,fp:50e3,rmax:0.0316,fc:3e6,en:10e-9,fn:100,frc:1.6e3}
+};
+E.rr=(k,f)=>{ const p=E.REG[k]; if(k==='none') return 1; let r=Math.min(p.rmax,p.rdc*Math.sqrt(1+(f/p.fp)**2)); r/=Math.sqrt(1+(f/p.fc)**2); if(p.frc) r/=Math.sqrt(1+(f/p.frc)**2); return Math.max(r,1e-4); };
+E.psrr=(k,f)=>-E.d20(E.rr(k,f));
+E.en=(k,f)=>{ const p=E.REG[k]; let e=p.en*Math.sqrt(1+p.fn/f); if(p.frc) e/=Math.sqrt(1+(f/p.frc)**2); return e; };
+/* Step 1: amplifier supply sensitivity -> AM and PM sidebands. a = peak ripple volts on the rail */
+E.amp=(a,kdB,kdeg)=>{ const m=kdB*a/8.686, b=kdeg*Math.PI/180*a; return {m,b,am:E.d20(m/2),pm:E.d20(b/2),sb:E.d20(0.5*Math.hypot(m,b))}; };
+/* Step 2: VCO pushing. Kp Hz/V, a peak volts, fm Hz: small-index FM sideband */
+E.fmSb=(Kp,a,fm)=>{ const beta=Kp*a/fm; return {beta,dbc:E.d20(beta/2),dev:Kp*a}; };
+E.Lsup=(Kp,en,f)=>E.d20(Kp*en/(Math.SQRT2*f));            /* dBc/Hz from supply noise density */
+E.Lvco=f=>{ const L100=-110; let L=L100-20*Math.log10(f/1e5); L+=E.d10(1+1e4/f); return E.d10(Math.pow(10,L/10)+1e-15); }; /* free-running 10 GHz VCO, -110 dBc/Hz at 100 kHz, flicker corner 10 kHz, floor -150 */
+E.hp=(f,fl)=>{ const x=(f/fl)**2; return x/Math.sqrt(1+x*x); };   /* PLL high-pass on VCO-side disturbances (amplitude) */
+E.lp=(f,fl)=>{ const x=(f/fl)**2; return 1/Math.sqrt(1+x*x); };
+E.vcoModel=(o)=>{ /* o: Kp (Hz/V), reg, vpp, fsw, fl */
+  const a=o.vpp/2, out={};
+  out.aout=a*E.rr(o.reg,o.fsw);
+  const H=E.hp(o.fsw,o.fl);
+  out.spur1=E.fmSb(o.Kp,out.aout,o.fsw).dbc+E.d20(H);
+  const a2=a*0.25*E.rr(o.reg,2*o.fsw);                    /* 2nd harmonic of ripple at 1/4 amplitude */
+  out.spur2=E.fmSb(o.Kp,a2,2*o.fsw).dbc+E.d20(E.hp(2*o.fsw,o.fl));
+  out.L=f=>{ const h=E.hp(f,o.fl)**2, l=E.lp(f,o.fl)**2; return E.d10(Math.pow(10,E.Lvco(f)/10)*h+Math.pow(10,E.Lsup(o.Kp,E.en(o.reg,f),f)/10)*h+Math.pow(10,-100/10)*l); };
+  out.Lsup=f=>E.Lsup(o.Kp,E.en(o.reg,f),f)+E.d20(E.hp(f,o.fl));
+  /* integrated phase jitter 1 kHz - 10 MHz incl. both spur pairs */
+  let s=0; const N=400, f1=1e3, f2=1e7; for(let i=0;i<N;i++){ const fa=f1*Math.pow(f2/f1,i/N), fb=f1*Math.pow(f2/f1,(i+1)/N), fm=Math.sqrt(fa*fb); s+=2*Math.pow(10,out.L(fm)/10)*(fb-fa); }
+  s+=2*Math.pow(10,out.spur1/10)+2*Math.pow(10,out.spur2/10);
+  out.phrms=Math.sqrt(s)*180/Math.PI; out.jit=Math.sqrt(s)/(2*Math.PI*10e9);
+  return out; };
+/* Step 3: switch-node trapezoid -> harmonic powers coupled into a 50 ohm receiver input */
+E.swHarm=(n,Vin,D,tr,fsw)=>2*Vin*D*Math.abs(E.sinc(n*D))*Math.abs(E.sinc(n*fsw*tr)); /* peak volts */
+E.swEnv=(n,Vin,D,tr,fsw)=>{ const a=2*Vin*D, x=n*D, y=n*fsw*tr; return a*Math.min(1,1/(Math.PI*x))*Math.min(1,1/(Math.PI*y)); };
+E.dBmPk=v=>E.d10(v*v/(2*50)/1e-3);
+E.swSpec=(o)=>{ /* o: Vin, D, tr, fsw, iso, rbw, sp (fractional +-), f1, f2, npts. returns arrays freq, dBm in RBW */
+  const fs=[], ps=new Float64Array(o.npts).fill(0); for(let i=0;i<o.npts;i++) fs.push(o.f1+(o.f2-o.f1)*i/(o.npts-1));
+  const df=(o.f2-o.f1)/(o.npts-1), nmin=Math.max(1,Math.floor(o.f1/o.fsw/(1+o.sp))-1), nmax=Math.ceil(o.f2/o.fsw/(1-o.sp))+1;
+  for(let n=nmin;n<=nmax;n++){ const P=Math.pow(10,(E.dBmPk(E.swHarm(n,o.Vin,o.D,o.tr,o.fsw))-o.iso)/10); const fc=n*o.fsw;
+    if(o.sp<=0){ const i=Math.round((fc-o.f1)/df); if(i>=0&&i<o.npts) ps[i]=Math.max(ps[i],P); }
+    else { const W=2*o.sp*fc, dens=P/W; const ia=Math.ceil((fc-W/2-o.f1)/df), ib=Math.floor((fc+W/2-o.f1)/df);
+      if(ib<ia){ const i=Math.round((fc-o.f1)/df); if(i>=0&&i<o.npts) ps[i]+=P*Math.min(1,o.rbw/W); continue; }
+      for(let i=Math.max(0,ia);i<=Math.min(o.npts-1,ib);i++) ps[i]+=dens*Math.min(W,o.rbw); } }
+  return {fs,p:Array.from(ps,v=>v>0?E.d10(v):-300)}; };
+E.ssRed=(sp,n,fsw,rbw)=>{ const W=2*sp*n*fsw; return sp<=0?0:Math.max(0,E.d10(Math.min(W,fsw)/rbw)); };
+/* Step 4: post-regulation filter transfer |Vout/Vin| */
+E.cx=(re,im)=>({re,im}); E.cadd=(a,b)=>E.cx(a.re+b.re,a.im+b.im); E.cmul=(a,b)=>E.cx(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re);
+E.cdiv=(a,b)=>{ const d=b.re*b.re+b.im*b.im; return E.cx((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d); }; E.cabs=a=>Math.hypot(a.re,a.im);
+E.par=(a,b)=>E.cdiv(E.cmul(a,b),E.cadd(a,b));
+E.filt=(o,f)=>{ /* o: type(none|bead|lc|ldo|lcldo), L (H), C (F), R (ohm damping in series with C), I (A), V (V) */
+  const w=2*Math.PI*f, RL=o.V/o.I; let H=1;
+  const lcH=(Ls,Rs,C,Resr,ESL,Rd)=>{ const Zs=E.cx(Rs,w*Ls); let Zc=E.cx(Resr,w*ESL-1/(w*C)); if(Rd>0) Zc=E.par(Zc,E.cx(Rd,w*2e-9-1/(w*4*C))); const Zp=E.par(Zc,E.cx(RL,0)); return E.cabs(E.cdiv(Zp,E.cadd(Zs,Zp))); };
+  if(o.type==='bead'){ const Lb=1.5e-6/(1+(o.I/0.3)**2), x=(f/50e6)**2, Rb=400*x/(1+x)+0.05; H=lcH(Lb,Rb,10e-6,0.005,1e-9,0); }
+  if(o.type==='lc'||o.type==='lcldo') H=lcH(o.L,0.02+0.03*o.L/1e-6,o.C,0.005,1e-9,o.R);
+  if(o.type==='ldo'||o.type==='lcldo') H*=E.rr('lownoise',f);
+  return o.type==='none'?1:Math.max(H,1e-4); };
+E.filtInfo=(o)=>{ let pk=-1e9, fpk=0; for(let i=0;i<=600;i++){ const f=1e3*Math.pow(1e5,i/600); const h=E.d20(E.filt(o,f)); if(h>pk){pk=h;fpk=f;} }
+  const dcr=(o.type==='lc'||o.type==='lcldo')?0.02+0.03*o.L/1e-6:(o.type==='bead'?0.05:0);
+  return {pk,fpk,drop:dcr*o.I,heat:(o.type==='ldo'||o.type==='lcldo')?0.5*o.I:0,f0:(o.type==='lc'||o.type==='lcldo')?1/(2*Math.PI*Math.sqrt(o.L*o.C)):(o.type==='bead'?1/(2*Math.PI*Math.sqrt(1.5e-6/(1+(o.I/0.3)**2)*10e-6)):NaN)}; };
+/* Step 5: pulsed load on a hold-up capacitor; o: V, I, tau, C, esr, taur, prf, st (stagger fraction), kph (deg/V), kg (dB/V), npl */
+E.pulseSim=(o)=>{ const PRI=1/o.prf, pat=[1-o.st,1+o.st,1-o.st/2,1+o.st/2]; const tau=Math.min(o.tau,0.5*PRI*(1-o.st));
+  const dq=o.I*tau/o.C; let d=0; const ph=[], vm=[], starts=[], pris=[]; const NP=o.npl||600;
+  for(let k=0;k<NP;k++){ const T=PRI*pat[k%4]; starts.push(d); const vmid=-(d+o.I*o.esr+0.5*dq); vm.push(vmid); ph.push(o.kph*vmid);
+    d=(d+dq)*Math.exp(-(T-tau)/o.taur); pris.push(T); }
+  const tail=ph.slice(NP-64), mean=tail.reduce((a,b)=>a+b,0)/64, sd=Math.sqrt(tail.reduce((a,b)=>a+(b-mean)**2,0)/64);
+  const vt=vm.slice(NP-64), vmean=vt.reduce((a,b)=>a+b,0)/64, sdv=Math.sqrt(vt.reduce((a,b)=>a+(b-vmean)**2,0)/64);
+  const sA=o.kg*sdv/8.686, sP=sd*Math.PI/180, s0=0.005*Math.PI/180;
+  const Ilim=-E.d20(Math.sqrt(sP*sP+sA*sA+s0*s0));
+  return {tau,dq,step:o.I*o.esr,ramp:o.kph*dq,gdroop:o.kg*(dq+o.I*o.esr),sdph:sd,sdv,Ilim,ph,vm,starts,pris,E:o.V*o.I*tau,Ec:0.5*o.C*o.V*o.V,dstart:starts[NP-1]}; };
+/* Step 6: supply -> series L (+10 mohm) -> drain node C (with optional RC snubber Rd + 4C) -> PA. o: mode cw|gate|drain|both, L, C, Rd (0 = none), tr (drain switch rise), I, V, T */
+E.modSim=(o)=>{ const N=2000, sub=40, dt=o.T/N, h=dt/sub, Rs=0.01, trg=20e-9, tOn=o.tOn||4e-6, Idq=0.1*o.I;
+  const drain=(o.mode==='drain'||o.mode==='both');
+  const ramp=(t,t0,tr)=>t<t0?0:(t>=t0+tr?1:(t-t0)/tr);
+  let v=drain?0:o.V, vc=v, i=(o.mode==='cw')?Idq:0; const ts=[], vs=[], rf=[];
+  const iload=(t,v)=>{ if(o.mode==='cw') return Idq+(o.I-Idq)*ramp(t,0,trg); if(o.mode==='gate') return o.I*ramp(t,0,trg);
+    if(o.mode==='drain') return o.I*Math.max(0,v)/o.V; return o.I*ramp(t,tOn,trg); };
+  for(let k=0;k<=N;k++){ const t=k*dt; ts.push(t); vs.push(v); rf.push(o.mode==='drain'?Math.max(0,Math.min(1.2,v/o.V)):(o.mode==='both'?ramp(t,tOn,trg):ramp(t,0,trg)));
+    for(let s=0;s<sub;s++){ const tt=t+s*h, vsrc=drain?o.V*ramp(tt,0,o.tr):o.V, il=iload(tt,v);
+      const isn=o.Rd>0?(v-vc)/o.Rd:0; i+=(vsrc-v-Rs*i)/o.L*h; v+=(i-il-isn)/o.C*h; if(o.Rd>0) vc+=isn/(4*o.C)*h; } }
+  return {ts,vs,rf,tOn,Rs}; };
+E.modInfo=(o)=>{ const r=E.modSim(o); const tev=o.mode==='both'?r.tOn:0, Vf=o.V-o.I*r.Rs; let dev=0, last=-1;
+  for(let k=0;k<r.ts.length;k++){ if(r.ts[k]<tev) continue; const dv=r.vs[k]-Vf; if(o.mode!=='drain'&&Math.abs(dv)>Math.abs(dev)) dev=dv; if(Math.abs(dv)>0.1) last=k; }
+  if(o.mode==='drain'){ let mx=0; r.vs.forEach(v=>mx=Math.max(mx,v)); dev=mx-Vf; }
+  const settled=last<r.ts.length-1, settle=last<0?0:r.ts[last]-tev; const fr=1/(2*Math.PI*Math.sqrt(o.L*o.C));
+  return {r,dev,settle,settled,fr,Vf,tev}; };
+/* Step 7: shared ground impedance per topology; len in mm */
+E.gnd=(top,len)=>{ if(top==='trace') return {L:1e-9*len,R:0.5e-3*len,Lrf:0.5e-9};
+  if(top==='star') return {L:0.5e-9,R:0.2e-3,Lrf:1e-9*len};
+  if(top==='plane') return {L:0.05e-9,R:0.05e-3,Lrf:0.5e-9};
+  return {L:0.05e-9+0.4e-9*len,R:0.05e-3+0.02e-3*len,Lrf:0.5e-9}; };
+E.gndWave=(g,I,te,T)=>{ /* trapezoid current: rise te at t=te, flat to T/2, fall te. v = L di/dt + R i */
+  const N=800, ts=[], vs=[]; const t1=0.1*T, t2=0.6*T; for(let k=0;k<=N;k++){ const t=T*k/N; let i=0, di=0;
+    if(t>=t1&&t<t1+te){ i=I*(t-t1)/te; di=I/te; } else if(t>=t1+te&&t<t2){ i=I; } else if(t>=t2&&t<t2+te){ i=I*(1-(t-t2)/te); di=-I/te; }
+    ts.push(t); vs.push(g.L*di+g.R*i); } return {ts,vs,spike:g.L*I/te,flat:g.R*I}; };
+/* Step 8: aperture SE and cavity resonances */
+E.c0=299792458;
+E.seAp=(f,Lmm,n)=>{ const lam=E.c0/f*1e3; const se=lam>2*Lmm?E.d20(lam/(2*Lmm)):0; return Math.max(0,se-E.d20(Math.sqrt(n))); };
+E.modes=(a,b,d)=>{ const m=[]; for(let i=0;i<=4;i++) for(let j=0;j<=4;j++) for(let k=0;k<=4;k++){ const nz=(i>0)+(j>0)+(k>0); if(nz<2) continue; const f=E.c0/2*Math.sqrt((i/a)**2+(j/b)**2+(k/d)**2); m.push({f,i,j,k}); } m.sort((x,y)=>x.f-y.f); return m; };
+E.iso=(f,o)=>{ /* o: Lmm, n, a,b,d (m), Q */ let b=0; o.modes.forEach(md=>{ const x=2*o.Q*(f/md.f-1); b=Math.max(b,E.d20(1+(o.Q-1)/Math.sqrt(1+x*x))); });
+  return Math.max(0,o.base+E.seAp(f,o.Lmm,o.n)-b); };
+/* Step 9: co-site */
+E.cosite=(o)=>{ /* Pt dBm, d m, f Hz, G dBi (sum of both antennas toward each other), filt dB, ntx dBc/Hz, nf dB, p1 dBm */
+  const lam=E.c0/o.f, fspl=E.d20(4*Math.PI*o.d/lam), isoA=fspl-o.G; const Pin=o.Pt-isoA, Pafter=Pin-o.filt;
+  const Ntx=o.Pt+o.ntx-isoA, Nrx=-174+o.nf; const des=E.d10(1+Math.pow(10,(Ntx-Nrx)/10));
+  return {fspl,isoA,Pin,Pafter,Ntx,Nrx,des,comp:Pafter-o.p1}; };
+/* Step 10: spur into processing */
+E.det=(o)=>{ /* radar: Ps dBm, nf, B Hz, N pulses, type; ESM: Ps, nf, Bch, type */
+  const N0=-174+o.nf+E.d10(o.B); let snr1=o.Ps-N0, gain=0, spread=0;
+  if(o.sys==='radar'){ if(o.type==='fixed'){ gain=E.d10(o.N); } else if(o.type==='sync'){ gain=E.d10(o.N); } else { gain=0; spread=0; } }
+  else { if(o.type==='spread'){ spread=Math.max(0,E.d10(o.W/o.B)); } }
+  const out=snr1+gain-spread; return {N0,snr1,gain,spread,out,margin:out-o.thr}; };
+
+
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??2)+' ms'; return x.toFixed(d??2)+' s'; }
+  if(u==='V'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µV'; if(a<1) return (x*1e3).toFixed(d??1)+' mV'; return x.toFixed(d??2)+' V'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+const mn=s=>String(s).replace(/(^|[\s(])-(?=[\d.])/g,'$1−');
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${mn(p[1])}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(1)+' dB';
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=mn(s); }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=mn(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const xt=o.xt||null, nx=o.nx||4; const ticks=xt||Array.from({length:nx+1},(_,k)=>xa+(xb-xa)*k/nx);
+  ticks.forEach(v=>{ const s=mn(o.fx?o.fx(v):v.toFixed(0)); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); if(xt){ g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(X(v),y0); g.lineTo(X(v),y0+h); g.stroke(); } });
+  if(o.xl){ g.fillStyle=css('--muted'); g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillStyle=css('--muted'); g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])){ st=false; continue; } const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash,w){ g.strokeStyle=color; g.lineWidth=w||1; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); g.lineWidth=1; }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(mn(s),x,y); }
+function txtR(g,s,x,y,color){ s=mn(s); g.fillStyle=color||css('--ink'); g.fillText(s,x-g.measureText(s).width,y); }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+const logF=v=>{ const p=Math.pow(10,v); return p>=1e9?(p/1e9).toFixed(p>=1e10?0:0)+'G':p>=1e6?(p/1e6).toFixed(0)+'M':p>=1e3?(p/1e3).toFixed(0)+'k':p.toFixed(0); };
+const decs=(a,b)=>{ const t=[]; for(let k=Math.ceil(a);k<=Math.floor(b);k++) t.push(k); return t; };
+const d1=x=>isFinite(x)?x.toFixed(1):'n/a';
+
+/* ---------- Step 1: PSRR and amplifier sidebands ---------- */
+function psDraw(){
+  const c=$('cPs'), g=ctx(c); const vpp=sl('psR')*1e-3, fr=[100,200,500,1e3,2e3,5e3,1e4,2e4,5e4,1e5,2e5,5e5,1e6,2e6,3e6][sl('psF')], k=$('psK').value, kG=sl('psG'), kP=sl('psP');
+  setv('psR',sl('psR').toFixed(0)+' mV'); setv('psF',fmt(fr,'Hz',fr>=1e6?2:(fr>=1e3?1:0))); setv('psG',kG.toFixed(2)+' dB/V'); setv('psP',kP.toFixed(1)+' °/V');
+  const P=E.psrr(k,fr), a=vpp/2*E.rr(k,fr), s=E.amp(a,kG,kP);
+  const xs=[]; for(let i=0;i<=300;i++) xs.push(2+4.5*i/300);
+  const cur=['basic','lownoise','rc'].map(kk=>({x:xs,y:xs.map(v=>E.psrr(kk,Math.pow(10,v))),color:kk===k?css('--trace'):css('--muted'),dash:kk===k?[]:[4,4],w:kk===k?2.2:1.2}));
+  if(k==='none') cur.push({x:xs,y:xs.map(()=>0.3),color:css('--trace'),w:2.2});
+  const p1=plot(g,56,22,568,140,2,6.5,0,100,cur,{ny:5,xt:decs(2,6.5),fx:logF,fy:v=>v.toFixed(0),yl:'PSRR, dB'});
+  txt(g,'ripple frequency, Hz',624-g.measureText('ripple frequency, Hz').width,190,css('--muted'));
+  vline(g,p1.X(Math.log10(fr)),22,140,css('--accent'),[],1.5); dot(g,p1.X(Math.log10(fr)),p1.Y(P),css('--accent'),4);
+  txt(g,'PSRR '+P.toFixed(1)+' dB at '+fmt(fr,'Hz',1),64,38,css('--accent'));
+  /* spectrum */
+  const p2=plot(g,56,222,568,118,-3.5,3.5,-160,0,[],{ny:4,xt:[-3,-2,-1,0,1,2,3],fx:v=>v===0?'f₀':(v>0?'+':'')+v+'·f',fy:v=>v.toFixed(0),yl:'amplifier output, dBc'});
+  txt(g,'offset from carrier, multiples of ripple frequency',624-g.measureText('offset from carrier, multiples of ripple frequency').width,370,css('--muted'));
+  g.lineWidth=2.5; vline(g,p2.X(0),p2.Y(0),p2.Y(-160)-p2.Y(0),css('--trace'),[],2.5);
+  [-1,1].forEach(u=>{ const y=Math.max(-160,s.sb); vline(g,p2.X(u),p2.Y(y),p2.Y(-160)-p2.Y(y),css('--accent'),[],2.5); dot(g,p2.X(u),p2.Y(y),css('--accent'),3.5); });
+  txt(g,'sideband '+s.sb.toFixed(1)+' dBc',p2.X(1)+8,p2.Y(Math.max(-150,s.sb))+4,css('--accent'));
+  ro($('psOut'),[['sideband offset','± '+fmt(fr,'Hz',fr>=1e6?2:(fr>=1e3?1:0))],['PSRR at f',P.toFixed(1)+' dB'],['pin ripple p-p',fmt(2*a,'V',2)],['AM index m',s.m.toExponential(2)],['AM sideband',isFinite(s.am)?s.am.toFixed(1)+' dBc':'none'],['PM index β, rad',s.b.toExponential(2)],['PM sideband',isFinite(s.pm)?s.pm.toFixed(1)+' dBc':'none'],['each sideband',isFinite(s.sb)?s.sb.toFixed(1)+' dBc':'none'],['SB on 60 dB clutter',isFinite(s.sb)?sdb(60+s.sb):'none']]);
+}
+bind(['psR','psF','psK','psG','psP'],psDraw);
+
+/* ---------- Step 2: VCO pushing ---------- */
+function puDraw(){
+  const c=$('cPu'), g=ctx(c), A=area(c); const Kp=sl('puK')*1e6, reg=$('puS').value, vpp=sl('puR')*1e-3, fsw=sl('puF')*1e3, fl=Math.pow(10,sl('puL'));
+  setv('puK',sl('puK').toFixed(1)+' MHz/V'); setv('puR',sl('puR').toFixed(0)+' mV'); setv('puF',fmt(fsw,'Hz',fsw>=1e6?2:0)); setv('puL',fmt(fl,'Hz',fl>=1e6?2:0));
+  const r=E.vcoModel({Kp,reg,vpp,fsw,fl}); const xs=[]; for(let i=0;i<=400;i++) xs.push(2+5*i/400);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,2,7,-170,-30,[{x:xs,y:xs.map(v=>E.Lvco(Math.pow(10,v))),color:css('--muted'),dash:[2,3],w:1.4},{x:xs,y:xs.map(v=>r.Lsup(Math.pow(10,v))),color:css('--trace2'),dash:[6,4],w:1.6},{x:xs,y:xs.map(v=>r.L(Math.pow(10,v))),color:css('--trace'),w:2.2}],
+    {ny:7,xt:decs(2,7),fx:logF,fy:v=>v.toFixed(0),xl:'offset from carrier, Hz',yl:'L(f), dBc/Hz   (spurs in dBc)'});
+  [[fsw,r.spur1],[2*fsw,r.spur2]].forEach(([f,s])=>{ if(f>1e7) return; const y=Math.max(-170,s); vline(g,P.X(Math.log10(f)),P.Y(y),P.Y(-170)-P.Y(y),css('--accent'),[],2.5); dot(g,P.X(Math.log10(f)),P.Y(y),css('--accent'),3.5); });
+  vline(g,P.X(Math.log10(fl)),A.y0,A.h,css('--line'),[3,3]); txt(g,'loop BW',P.X(Math.log10(fl))+4,A.y0+A.h-8,css('--muted'));
+  txt(g,'spur at f_sw: '+r.spur1.toFixed(1)+' dBc',A.x0+150,A.y0+16,css('--accent'));
+  const aout=r.aout;
+  ro($('puOut'),[['VCO pin ripple',fmt(2*aout,'V',2)+' p-p'],['peak deviation',fmt(Kp*aout,'Hz',Kp*aout>=1e3?2:1)],['spur at f_sw',r.spur1.toFixed(1)+' dBc'],['spur at 2·f_sw',r.spur2.toFixed(1)+' dBc'],['supply @10 kHz',E.Lsup(Kp,E.en(reg,1e4),1e4).toFixed(1)+' dBc/Hz'],['locked @100 kHz',r.L(1e5).toFixed(1)+' dBc/Hz'],['VCO @100 kHz',E.Lvco(1e5).toFixed(1)+' dBc/Hz'],['rms φ 1k–10M',r.phrms.toFixed(2)+'°'],['jitter @10 GHz',(r.jit*1e15).toFixed(0)+' fs']]);
+}
+bind(['puK','puS','puR','puF','puL'],puDraw);
+
+/* ---------- Step 3: switching-regulator comb in the IF ---------- */
+function swDraw(){
+  const c=$('cSw'), g=ctx(c), A=area(c); const fsw=sl('swF')*1e3, tr=sl('swT')*1e-9, iso=sl('swI'), sp=+$('swM').value, rbw=+$('swB').value;
+  setv('swF',fmt(fsw,'Hz',fsw>=1e6?2:0)); setv('swT',sl('swT').toFixed(0)+' ns'); setv('swI',iso.toFixed(0)+' dB');
+  const Vin=12, D=0.275, N0=-174+5+db(rbw);
+  const s=E.swSpec({Vin,D,tr,fsw,iso,rbw,sp,f1:40e6,f2:100e6,npts:6001});
+  const xs=s.fs.map(f=>f/1e6);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,40,100,-180,-90,[],{ny:6,nx:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),xl:'frequency at the IF input, MHz',yl:'dBm in one RBW'});
+  shade(g,P.X(60),P.X(80),A.y0,A.h,css('--trace'),0.10);
+  g.save(); g.beginPath(); g.rect(A.x0,A.y0,A.w,A.h); g.clip();
+  if(sp<=0){ g.strokeStyle=css('--accent'); g.lineWidth=1.2; for(let n=Math.ceil(40e6/fsw);n*fsw<=100e6;n++){ const p=E.dBmPk(E.swHarm(n,Vin,D,tr,fsw))-iso; if(p<-180) continue; const x=P.X(n*fsw/1e6); g.beginPath(); g.moveTo(x,P.Y(-180)); g.lineTo(x,P.Y(p)); g.stroke(); } }
+  else { g.strokeStyle=css('--accent'); g.lineWidth=1.6; g.beginPath(); let st=false; for(let i=0;i<xs.length;i+=2){ const v=Math.max(-180,s.p[i]); const x=P.X(xs[i]), y=P.Y(v); st?g.lineTo(x,y):g.moveTo(x,y); st=true; } g.stroke(); }
+  g.restore(); g.lineWidth=1;
+  hline(g,A.x0,A.w,P.Y(N0),css('--ink'),[6,4]); { const s='noise in RBW '+N0.toFixed(0)+' dBm', w=g.measureText(mn(s)).width; g.fillStyle=css('--panel'); g.fillRect(A.x0+A.w-w-12,P.Y(N0)-17,w+8,15); txtR(g,s,A.x0+A.w-8,P.Y(N0)-5,css('--ink')); }
+  txt(g,'IF 60–80 MHz',P.X(60)+4,A.y0+14,css('--trace'));
+  let worst=-300, fw=0; s.fs.forEach((f,i)=>{ if(f>=60e6&&f<=80e6&&s.p[i]>worst){ worst=s.p[i]; fw=f; } });
+  let cnt=0; const n1=Math.ceil(60e6/fsw), n2=Math.floor(80e6/fsw); for(let n=n1;n<=n2;n++){ if(E.dBmPk(E.swHarm(n,Vin,D,tr,fsw))-iso>N0) cnt++; }
+  const mar=worst-N0;
+  ro($('swOut'),[['IF harmonics','n '+n1+'–'+n2],['switch-node f₁',E.dBmPk(E.swHarm(1,Vin,D,tr,fsw)).toFixed(1)+' dBm'],['2nd knee',fmt(1/(Math.PI*tr),'Hz',1)],['worst in IF',worst.toFixed(1)+' dBm'],['at',fmt(fw,'Hz',2)],['re noise in RBW',sdb(mar)],[sp<=0?'lines above noise':'floor rise in IF',sp<=0?cnt+' of '+(n2-n1+1):E.d10(1+Math.pow(10,mar/10)).toFixed(2)+' dB'],['spread gain n='+Math.round(70e6/fsw),sp<=0?'0 dB (fixed)':E.ssRed(sp,Math.round(70e6/fsw),fsw,rbw).toFixed(1)+' dB']]);
+}
+bind(['swF','swT','swI','swM','swB'],swDraw);
+
+/* ---------- Step 4: post-regulation filters ---------- */
+function poDraw(){
+  const c=$('cPo'), g=ctx(c), A=area(c); const type=$('poT').value, L=sl('poL')*1e-6, C=sl('poC')*1e-6, R=sl('poR'), I=sl('poI')*1e-3;
+  setv('poL',sl('poL').toFixed(1)+' µH'); setv('poC',sl('poC').toFixed(0)+' µF'); setv('poR',R===0?'none':R.toFixed(2)+' Ω'); setv('poI',sl('poI').toFixed(0)+' mA');
+  const o={type,L,C,R,I,V:5}; const xs=[]; for(let i=0;i<=500;i++) xs.push(3+5*i/500);
+  const y=xs.map(v=>E.d20(E.filt(o,Math.pow(10,v)))), yl=xs.map(v=>Math.max(-80,-E.psrr('lownoise',Math.pow(10,v))));
+  const P=plot(g,A.x0,A.y0,A.w,A.h,3,8,-90,20,[{x:xs,y:yl,color:css('--muted'),dash:[5,4],w:1.2},{x:xs,y,color:css('--trace'),w:2.2}],{ny:11,xt:decs(3,8),fx:logF,fy:v=>v.toFixed(0),xl:'frequency, Hz',yl:'transfer buck → VCO pin, dB'});
+  hline(g,A.x0,A.w,P.Y(-80),css('--bad'),[2,3]); txt(g,'layout limit −80 dB',A.x0+6,P.Y(-80)+14,css('--bad'));
+  hline(g,A.x0,A.w,P.Y(0),css('--line'),[]);
+  for(let k=2;k<=10;k++) vline(g,P.X(Math.log10(k*1e6)),A.y0,A.h,css('--accent'),[1,3]);
+  vline(g,P.X(6),A.y0,A.h,css('--accent'),[],1.5);
+  const inf=E.filtInfo(o), a1=E.d20(E.filt(o,1e6)), a10=E.d20(E.filt(o,1e7)); const aout=0.015*Math.pow(10,a1/20), spur=E.d20(2e6*aout/(2*1e6));
+  const hasPk=(type==='bead'||type==='lc')&&inf.pk>0.05;
+  if(hasPk){ dot(g,P.X(Math.log10(inf.fpk)),P.Y(inf.pk),css('--bad'),4); txt(g,'+'+inf.pk.toFixed(1)+' dB',P.X(Math.log10(inf.fpk))+6,P.Y(inf.pk)-4,css('--bad')); }
+  txtR(g,'at 1 MHz: '+a1.toFixed(1)+' dB',A.x0+A.w-8,A.y0+16,css('--accent'));
+  ro($('poOut'),[['LC corner f₀',isFinite(inf.f0)?fmt(inf.f0,'Hz',1):'n/a'],['resonance peak',hasPk?'+'+inf.pk.toFixed(1)+' dB':'none'],['peak at',hasPk?fmt(inf.fpk,'Hz',1):'n/a'],['atten. at 1 MHz',(-a1).toFixed(1)+' dB'],['atten. at 10 MHz',(-a10).toFixed(1)+' dB'],['VCO pin p-p',fmt(2*aout,'V',2)],['VCO spur',spur.toFixed(1)+' dBc'],['DC drop',(inf.drop*1e3).toFixed(1)+' mV'],['LDO heat',(inf.heat*1e3).toFixed(0)+' mW']]);
+}
+bind(['poT','poL','poC','poR','poI'],poDraw);
+
+/* ---------- Step 5: pulsed load ---------- */
+function plDraw(){
+  const c=$('cPl'), g=ctx(c); const I=sl('plI'), tau0=sl('plW')*1e-6, C=Math.pow(10,sl('plC'))*1e-6, taur=sl('plR')*1e-3, prf=sl('plP')*1e3, st=+$('plS').value, kph=sl('plK');
+  const r=E.pulseSim({V:50,I,tau:tau0,C,esr:0.01,taur,prf,st,kph,kg:0.2,npl:600}); const lim=r.tau<tau0-1e-12;
+  setv('plI',I.toFixed(1)+' A'); setv('plW',(r.tau*1e6).toFixed(lim?1:0)+' µs'+(lim?' (lim.)':'')); setv('plC',(C*1e6).toFixed(0)+' µF'); setv('plR',(taur*1e3).toFixed(2)+' ms'); setv('plP',(prf/1e3).toFixed(1)+' kHz'); setv('plK',kph.toFixed(1)+' °/V');
+  /* rebuild last 8 pulses */
+  const NP=600, K0=NP-8; let t0=0; const ts=[], vs=[];
+  for(let k=K0;k<NP;k++){ const d=r.starts[k], T=r.pris[k];
+    for(let i=0;i<=40;i++){ const t=r.tau*i/40; ts.push((t0+t)*1e3); vs.push(-(d+I*0.01+I*t/C)); }
+    for(let i=1;i<=60;i++){ const t=(T-r.tau)*i/60; ts.push((t0+r.tau+t)*1e3); vs.push(-(d+r.dq)*Math.exp(-t/taur)); }
+    t0+=T; }
+  let vmin=0; vs.forEach(v=>vmin=Math.min(vmin,v)); const nice=[0.05,0.1,0.2,0.25,0.5,1,2,2.5,5,10,20]; const stp=nice.find(x=>4*x>=-vmin*1.1)||20; const lo=-4*stp;
+  plot(g,60,22,564,170,0,t0*1e3,lo,0,[{x:ts,y:vs,color:css('--trace'),w:1.8}],{ny:4,nx:4,fx:v=>v.toFixed(2),fy:v=>v.toFixed(stp<0.1?2:(stp<1?1:0)),yl:'drain voltage − 50 V, V'});
+  txt(g,'time, ms (last 8 pulses)',624-g.measureText('time, ms (last 8 pulses)').width,228,css('--muted'));
+  const ph=r.ph.slice(NP-32), mean=ph.reduce((a,b)=>a+b,0)/32; let mx=0; ph.forEach(p=>mx=Math.max(mx,Math.abs(p-mean)));
+  const yr=Math.max(0.02,mx*1.3);
+  const P2=plot(g,60,250,564,90,0,31,-yr,yr,[],{ny:2,xt:[0,8,16,24,31],fx:v=>v.toFixed(0),fy:v=>v.toFixed(yr<0.1?3:2),yl:'mid-pulse phase − mean, °'});
+  txt(g,'pulse number (last 32)',624-g.measureText('pulse number (last 32)').width,374,css('--muted'));
+  ph.forEach((p,i)=>dot(g,P2.X(i),P2.Y(p-mean),css('--accent'),3.2));
+  const mtxt=r.Ilim>=80?r.Ilim.toFixed(1)+' dB (floor)':r.Ilim.toFixed(1)+' dB';
+  ro($('plOut'),[['PRI',fmt(1/prf,'s',0)],['duty',(100*r.tau*prf).toFixed(1)+' %'],['droop I·τ/C',r.dq.toFixed(3)+' V'],['droop / 50 V',(100*r.dq/50).toFixed(2)+' %'],['ESR step',(I*0.01).toFixed(2)+' V'],['phase ramp',r.ramp.toFixed(2)+'°'],['amplitude droop',r.gdroop.toFixed(3)+' dB'],['mean start sag',r.dstart.toFixed(2)+' V'],['p-to-p V rms',(r.sdv*1e3).toFixed(1)+' mV'],['p-to-p φ rms',r.sdph.toFixed(3)+'°'],['MTI limit',mtxt],['pulse / stored',(r.E).toFixed(3)+' / '+r.Ec.toFixed(2)+' J']]);
+}
+bind(['plI','plW','plC','plR','plP','plS','plK'],plDraw);
+
+/* ---------- Step 6: modulators ---------- */
+function moDraw(){
+  const c=$('cMo'), g=ctx(c), A=area(c,{l:56,t:22,r:44,b:40}); const mode=$('moM').value, L=sl('moL')*1e-9, C=Math.pow(10,sl('moC'))*1e-9, Rd=sl('moR'), tr=sl('moT')*1e-9, I=sl('moI');
+  setv('moL',sl('moL').toFixed(0)+' nH'); setv('moC',C>=1e-6?(C*1e6).toFixed(2)+' µF':(C*1e9).toFixed(0)+' nF'); setv('moR',Rd===0?'none':Rd.toFixed(2)+' Ω'); setv('moT',sl('moT').toFixed(0)+' ns');
+  setv('moI',I.toFixed(1)+' A');
+  const inf=E.modInfo({mode,L,C,Rd,tr,I,V:50,T:10e-6}); const r=inf.r;
+  const yr=Math.max(1,Math.abs(inf.dev)*1.25); const xs=r.ts.map(t=>t*1e6), ys=r.vs.map(v=>v-50);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,10,-yr,yr,[],{ny:4,nx:5,fx:v=>v.toFixed(0),fy:v=>v.toFixed(yr<3?1:0),xl:'time from switch command, µs',yl:'drain voltage − 50 V, V'});
+  const vf=inf.Vf-50; shade(g,A.x0,A.x0+A.w,P.Y(vf+0.1),P.Y(vf-0.1)-P.Y(vf+0.1),css('--good'),0.25);
+  plot(g,A.x0,A.y0,A.w,A.h,0,10,-yr,yr,[{x:xs,y:ys,color:css('--trace'),w:1.8}],{ny:4,nx:5,fx:v=>v.toFixed(0),fy:v=>v.toFixed(yr<3?1:0)});
+  g.strokeStyle=css('--accent'); g.setLineDash([5,4]); g.lineWidth=1.4; g.beginPath(); r.rf.forEach((v,i)=>{ const x=P.X(xs[i]), y=A.y0+A.h*(1-v/1.2); i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke(); g.setLineDash([]); g.lineWidth=1;
+  g.fillStyle=css('--accent'); ['0','1'].forEach((s,i)=>g.fillText(s,A.x0+A.w+6,A.y0+A.h*(1-i/1.2)+4)); g.fillText('RF',A.x0+A.w+6,A.y0-6);
+  if(mode==='both') vline(g,P.X(inf.tev*1e6),A.y0,A.h,css('--muted'),[3,3]);
+  const offN=mode==='cw'?'+14.2 dB':'≈ 0 dB', offP=mode==='cw'?(0.1*I*50).toFixed(0)+' W':(mode==='gate'?'≈ 0.5 W':'0 W');
+  ro($('moOut'),[['ringing frequency',fmt(inf.fr,'Hz',2)],['√(L/C)',Math.sqrt(L/C).toFixed(3)+' Ω'],[mode==='drain'?'overshoot':'peak transient',(inf.dev>=0?'+':'')+inf.dev.toFixed(2)+' V'],['settles ±0.1 V',inf.settled?fmt(inf.settle,'s',inf.settle<1e-6?0:2):'> 10 µs'],['phase step @2°/V',(2*Math.abs(inf.dev)).toFixed(1)+'°'],['peak drain',(50+Math.max(0,...ys)).toFixed(1)+' V'],['off-state Rx noise',offN],['off-state power',offP]]);
+}
+bind(['moM','moL','moC','moR','moT','moI'],moDraw);
+
+/* ---------- Step 7: grounding ---------- */
+function gnDraw(){
+  const c=$('cGn'), g=ctx(c); const top=$('gnT').value, I=sl('gnI'), te=sl('gnE')*1e-9, len=sl('gnL');
+  setv('gnI',I.toFixed(1)+' A'); setv('gnE',sl('gnE').toFixed(0)+' ns'); setv('gnL',len.toFixed(0)+' mm');
+  const G=E.gnd(top,len), w=E.gndWave(G,I,te,2e-6);
+  /* sketch */
+  const ink=css('--ink'), mu=css('--muted'), bad=css('--bad'), tr=css('--trace'), t2=css('--trace2');
+  g.strokeStyle=css('--line'); g.strokeRect(12,22,230,278);
+  const box=(x,y,s,col)=>{ g.strokeStyle=col; g.lineWidth=1.5; g.strokeRect(x,y,44,30); g.lineWidth=1; txt(g,s,x+17,y+20,col); };
+  box(30,50,'N',css('--accent')); box(170,50,'V',tr); txt(g,'noisy',30,44,mu); txt(g,'victim',170,44,mu);
+  g.lineWidth=3;
+  if(top==='trace'){ g.strokeStyle=t2; g.beginPath(); g.moveTo(52,80); g.lineTo(52,200); g.lineTo(192,200); g.stroke(); g.beginPath(); g.moveTo(192,80); g.lineTo(192,200); g.stroke(); g.strokeStyle=bad; g.beginPath(); g.moveTo(192,200); g.lineTo(232,200); g.stroke(); g.beginPath(); g.moveTo(52,200); g.lineTo(192,200); g.stroke(); txt(g,'shared track',80,220,bad); txt(g,'⏚ connector',176,250,mu); }
+  if(top==='star'){ g.strokeStyle=t2; g.beginPath(); g.moveTo(52,80); g.lineTo(122,250); g.stroke(); g.beginPath(); g.moveTo(192,80); g.lineTo(122,250); g.stroke(); dot(g,122,250,bad,6); txt(g,'star point',134,270,bad); txt(g,'long leads: L at RF',30,180,mu); }
+  if(top==='plane'||top==='slot'){ g.globalAlpha=0.25; g.fillStyle=t2; g.fillRect(20,120,214,140); g.globalAlpha=1; g.strokeStyle=t2; g.beginPath(); g.moveTo(52,80); g.lineTo(52,120); g.moveTo(192,80); g.lineTo(192,120); g.stroke();
+    if(top==='slot'){ const sh=Math.min(120,len*1.2); g.fillStyle=css('--panel'); g.fillRect(118,120,8,sh); g.strokeStyle=bad; g.lineWidth=2; g.beginPath(); g.moveTo(52,130); g.lineTo(52,125+sh+8); g.lineTo(192,125+sh+8); g.lineTo(192,130); g.stroke(); txt(g,'slot forces detour',40,290,bad); }
+    else txt(g,'returns stay under own tracks',24,290,mu); }
+  g.lineWidth=1;
+  /* waveform */
+  const ys=w.vs.map(v=>v*1e3), xs=w.ts.map(t=>t*1e6); let m=0; ys.forEach(v=>m=Math.max(m,Math.abs(v))); const nice=[0.025,0.05,0.1,0.25,0.5,1,2.5,5,10,25,50,100,250,500,1000,2500,5000]; const yr=2*(nice.find(x=>2*x>=m*1.1)||10000);
+  const P=plot(g,312,22,312,278,0,2,-yr,yr,[{x:xs,y:ys,color:css('--trace'),w:1.8}],{ny:4,nx:4,fx:v=>v.toFixed(1),fy:v=>yr>=10?v.toFixed(0):(yr>=1?v.toFixed(1):v.toFixed(2)),xl:'time, µs',yl:'victim reference noise, mV'});
+  const dbfs=E.d20(Math.max(w.spike,w.flat)/1);
+  ro($('gnOut'),[['shared L',(G.L*1e9).toFixed(2)+' nH'],['shared R',(G.R*1e3).toFixed(2)+' mΩ'],['spike L·dI/dt',fmt(w.spike,'V',1)],['flat part R·I',fmt(w.flat,'V',2)],['vs 1 V full scale',dbfs.toFixed(1)+' dBFS'],['RF ground X @3 GHz',(2*Math.PI*3e9*G.Lrf).toFixed(1)+' Ω']]);
+}
+bind(['gnT','gnI','gnE','gnL'],gnDraw);
+
+/* ---------- Step 8: shielding ---------- */
+function shDraw(){
+  const c=$('cSh'), g=ctx(c), A=area(c); const Lmm=sl('shL'), a=sl('shA')*1e-3, b=sl('shB')*1e-3, Q=+$('shQ').value, f=Math.pow(10,9+sl('shF'));
+  setv('shL',Lmm.toFixed(0)+' mm'); setv('shA',sl('shA').toFixed(0)+' mm'); setv('shB',sl('shB').toFixed(0)+' mm'); setv('shF',fmt(f,'Hz',2));
+  const md=E.modes(a,b,0.015), o={Lmm,n:1,modes:md,Q,base:30}; const xs=[]; for(let i=0;i<=700;i++) xs.push(9+Math.log10(20)*i/700);
+  const ys=xs.map(v=>E.iso(Math.pow(10,v),o)), yb=xs.map(v=>30+E.seAp(Math.pow(10,v),Lmm,1));
+  const P=plot(g,A.x0,A.y0,A.w,A.h,9,9+Math.log10(20),0,80,[],{ny:8,xt:[9,Math.log10(2e9),Math.log10(5e9),10,Math.log10(2e10)],fx:v=>(Math.pow(10,v)/1e9).toFixed(0)+' G',fy:v=>v.toFixed(0),xl:'frequency, Hz',yl:'isolation between two points in the box, dB'});
+  g.globalAlpha=0.6; md.forEach(m=>{ if(m.f<=2e10) vline(g,P.X(Math.log10(m.f)),A.y0,A.h,css('--muted'),[1,3]); }); g.globalAlpha=1;
+  plot(g,A.x0,A.y0,A.w,A.h,9,9+Math.log10(20),0,80,[{x:xs,y:yb,color:css('--muted'),dash:[5,4],w:1.3},{x:xs,y:ys,color:css('--trace'),w:2}],{ny:8,xt:[],fy:v=>v.toFixed(0)});
+  vline(g,P.X(Math.log10(f)),A.y0,A.h,css('--accent'),[],1.5); const isf=E.iso(f,o); dot(g,P.X(Math.log10(f)),P.Y(isf),css('--accent'),4);
+  let near=md[0]; md.forEach(m=>{ if(Math.abs(Math.log(m.f/f))<Math.abs(Math.log(near.f/f))) near=m; });
+  const lam=E.c0/f*1e3;
+  ro($('shOut'),[['slot SE at f',E.seAp(f,Lmm,1).toFixed(1)+' dB'],['isolation at f',isf.toFixed(1)+' dB'],['first mode',fmt(md[0].f,'Hz',2)+' TE'+md[0].i+md[0].j+md[0].k],['nearest mode',fmt(near.f,'Hz',2)],['slot open above',fmt(E.c0/(2*Lmm*1e-3),'Hz',2)],['λ/2 at f',(lam/2).toFixed(1)+' mm'],['gap for 20 dB',(lam/20).toFixed(1)+' mm']]);
+}
+bind(['shL','shA','shB','shQ','shF'],shDraw);
+
+/* ---------- Step 9: co-site ---------- */
+function coDraw(){
+  const c=$('cCo'), g=ctx(c); const Pt=sl('coP'), d=sl('coD'), G=sl('coG'), ntx=sl('coN'), filt=sl('coF');
+  setv('coP',Pt.toFixed(0)+' dBm ('+(Math.pow(10,(Pt-30)/10)>=1000?(Math.pow(10,(Pt-30)/10)/1000).toFixed(0)+' kW':Math.pow(10,(Pt-30)/10).toFixed(Pt<40?1:0)+' W')+')'); setv('coD',d.toFixed(1)+' m'); setv('coG',G.toFixed(0)+' dBi'); setv('coN',ntx.toFixed(0)+' dBc/Hz'); setv('coF',filt.toFixed(0)+' dB');
+  const base={Pt,f:9.5e9,G,filt,ntx,nf:10,p1:-25}; const xs=[]; for(let i=0;i<=200;i++) xs.push(-0.3+1.8*i/200);
+  const rs=xs.map(v=>E.cosite({...base,d:Math.pow(10,v)})); const pa=rs.map(r=>r.Pafter), de=rs.map(r=>r.des);
+  let pmax=-1e9,pmin=1e9; pa.forEach(v=>{pmax=Math.max(pmax,v);pmin=Math.min(pmin,v);}); let ya=Math.floor(Math.min(pmin,-30)/10)*10, yb=Math.ceil(Math.max(pmax,0)/10)*10; if(((yb-ya)/10)%2&&(yb-ya)/10>8) ya-=10; if((yb-ya)/20>8&&((yb-ya)/20)%2) ya-=20;
+  const xt=[Math.log10(0.5),0,Math.log10(2),Math.log10(5),1,Math.log10(20),Math.log10(30)];
+  const P1=plot(g,56,22,568,140,-0.3,1.5,ya,yb,[{x:xs,y:pa,color:css('--trace'),w:2}],{ny:(yb-ya)/10<=8?(yb-ya)/10:((yb-ya)/20<=8?(yb-ya)/20:(yb-ya)/40),xt,fx:v=>{ const m=Math.pow(10,v); return m<1?m.toFixed(1):m.toFixed(0); },fy:v=>v.toFixed(0),yl:'carrier at receiver input, dBm'});
+  hline(g,56,568,P1.Y(-25),css('--bad'),[5,4]); txt(g,'compression −25 dBm',62,P1.Y(-25)-5,css('--bad'));
+  let dmax=0; de.forEach(v=>dmax=Math.max(dmax,v)); const dy=Math.max(4,Math.ceil(dmax/4)*4);
+  const P2=plot(g,56,210,568,110,-0.3,1.5,0,dy,[{x:xs,y:de,color:css('--trace2'),w:2}],{ny:4,xt,fx:v=>{ const m=Math.pow(10,v); return m<1?m.toFixed(1):m.toFixed(0); },fy:v=>v.toFixed(dy<=4?1:0),yl:'desensitisation, dB'});
+  txt(g,'antenna separation, m',624-g.measureText('antenna separation, m').width,350,css('--muted'));
+  const r=E.cosite({...base,d}); const X=P1.X(Math.log10(d));
+  vline(g,X,22,140,css('--accent'),[],1.5); vline(g,X,210,110,css('--accent'),[],1.5); dot(g,X,P1.Y(r.Pafter),css('--accent'),4); dot(g,X,P2.Y(r.des),css('--accent'),4);
+  ro($('coOut'),[['path loss',r.fspl.toFixed(1)+' dB'],['antenna isolation',r.isoA.toFixed(1)+' dB'],['carrier at input',r.Pafter.toFixed(1)+' dBm'],['over compression',sdb(r.comp)],['Tx noise at Rx',r.Ntx.toFixed(1)+' dBm/Hz'],['Rx own noise',r.Nrx.toFixed(1)+' dBm/Hz'],['desensitisation',r.des.toFixed(2)+' dB'],['ESM range factor',Math.pow(10,-r.des/20).toFixed(2)]]);
+}
+bind(['coP','coD','coG','coN','coF'],coDraw);
+
+/* ---------- Step 10: spur to false report ---------- */
+function rnd(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return (s+0.5)/4294967296; }; }
+function faDraw(){
+  const c=$('cFa'), g=ctx(c), A=area(c); const sys=$('faS').value, Ps=sl('faP'), type=$('faT').value, N=Math.pow(2,sl('faN')), off=sl('faO')*1e3, thr=sl('faH');
+  setv('faP',Ps.toFixed(0)+' dBm'); setv('faN',N.toFixed(0)); setv('faO',(off/1e3).toFixed(1)+' kHz'); setv('faH',thr.toFixed(1)+' dB');
+  const bad=css('--bad');
+  if(sys==='radar'){
+    const PRF=2000, nf=4, B=1e6; const r=E.det({sys,Ps,nf,B,N,type,thr}); const R=rnd(12345+N);
+    const offU=type==='sync'?Math.round(off/PRF)*PRF:off; let fd=((offU%PRF)+PRF)%PRF; if(fd>PRF/2) fd-=PRF; const v=Math.abs(fd)*0.03/2; const notch=Math.abs(fd)<100;
+    const floor=type==='spread'?db(1+Math.pow(10,r.snr1/10)):0;
+    const xs=[], ys=[]; let ib=-1, best=1e9; for(let k=0;k<N;k++){ const f=-PRF/2+PRF*k/N; xs.push(f); ys.push(floor+db(-Math.log(R()))); if(Math.abs(f-fd)<best){ best=Math.abs(f-fd); ib=k; } }
+    if(type!=='spread') ys[ib]=db(Math.pow(10,ys[ib]/10)+Math.pow(10,r.out/10)); /* spur adds in its bin */
+    const top=Math.max(40,Math.ceil((r.out+10)/10)*10);
+    const P=plot(g,A.x0,A.y0,A.w,A.h,-PRF/2,PRF/2,-20,top,[],{ny:6,nx:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),xl:'Doppler frequency, Hz',yl:'one range cell after '+N+'-pulse FFT, dB re noise'});
+    shade(g,P.X(-100),P.X(100),A.y0,A.h,css('--muted'),0.18); txt(g,'clutter notch',P.X(100)+4,A.y0+14,css('--muted'));
+    g.strokeStyle=css('--trace'); g.lineWidth=N>256?1:1.4; g.beginPath(); xs.forEach((x,k)=>{ const X=P.X(x), Y=P.Y(ys[k]); k?g.lineTo(X,Y):g.moveTo(X,Y); }); g.stroke(); g.lineWidth=1;
+    hline(g,A.x0,A.w,P.Y(thr),css('--ink'),[6,4]); txtR(g,'threshold '+thr.toFixed(1)+' dB',A.x0+A.w-6,P.Y(thr)-5,css('--muted'));
+    const det=type!=='spread'&&!notch&&r.out>thr;
+    if(type!=='spread'){ const X=P.X(xs[ib]); dot(g,X,P.Y(ys[ib]),det?bad:css('--accent'),5); txt(g,det?'false target':(notch?'in notch: removed':'spur below threshold'),clamp(X+8,A.x0+4,A.x0+A.w-130),P.Y(ys[ib])-8,det?bad:css('--accent')); }
+    const res=type==='spread'?'no detection':(notch?'removed in notch':(det?'FALSE TARGET':'below threshold'));
+    ro($('faOut'),[['noise per pulse',r.N0.toFixed(1)+' dBm'],['spur per pulse',sdb(r.snr1)],['integration gain',type==='spread'?'0 dB (incoherent)':sdb(r.gain)],['after processing',sdb(type==='spread'?r.snr1:r.out)],['margin',sdb((type==='spread'?r.snr1:r.out)-thr)],['Doppler',fd.toFixed(0)+' Hz'],['regulator at',(offU/1e3).toFixed(1)+' kHz'],['apparent speed',v.toFixed(1)+' m/s'],['floor rise',floor.toFixed(2)+' dB'],['result',res]]);
+  } else {
+    const nf=10, B=1e6, N0=-174+nf+60, fsw=2.2e6, R=rnd(777); const ch=[]; for(let k=0;k<64;k++) ch.push(0);
+    const lines=[]; for(let n=46;n*fsw<164e6;n++){ const p=Ps-E.d20(n/46); lines.push({f:n*fsw,p}); }
+    if(type==='spread'){ lines.forEach(l=>{ const W=0.1*l.f, P=Math.pow(10,(l.p-N0)/10); for(let k=0;k<64;k++){ const a=100e6+k*1e6, b=a+1e6, ov=Math.max(0,Math.min(b,l.f+W/2)-Math.max(a,l.f-W/2)); ch[k]+=P*ov/W; } }); }
+    else lines.forEach(l=>{ const k=Math.floor((l.f-100e6)/1e6); if(k>=0&&k<64) ch[k]+=Math.pow(10,(l.p-N0)/10); });
+    const ys=ch.map(v=>db(-Math.log(R())+v)); const xs=ch.map((_,k)=>100.5+k);
+    let mx=-1e9; ys.forEach(v=>mx=Math.max(mx,v)); const top=Math.max(30,Math.ceil((mx+8)/10)*10);
+    const P=plot(g,A.x0,A.y0,A.w,A.h,100,164,-10,top,[],{ny:4,nx:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),xl:'ESM IF channel, MHz',yl:'power per 1 MHz channel, dB re noise'});
+    let cnt=0, masked=0; const bw=A.w/64;
+    ys.forEach((v,k)=>{ const has=type!=='spread'&&ch[k]>0.01; const above=v>thr; const isM=type==='sync'&&has; if(isM) masked++; else if(above) cnt++;
+      g.fillStyle=isM?css('--muted'):(above?bad:css('--trace')); g.globalAlpha=isM?0.45:0.85; const y=P.Y(v); g.fillRect(P.X(xs[k])-bw*0.38,y,bw*0.76,P.Y(-10)-y); g.globalAlpha=1; });
+    hline(g,A.x0,A.w,P.Y(thr),css('--ink'),[6,4]); txtR(g,'threshold '+thr.toFixed(1)+' dB',A.x0+A.w-6,P.Y(thr)-5,css('--muted'));
+    const strong=Ps-N0, eff=type==='spread'?strong-E.ssRed(0.05,46,fsw,B):strong;
+    ro($('faOut'),[['noise per channel',N0.toFixed(1)+' dBm'],['strongest re noise',sdb(strong)],['after spreading',type==='spread'?sdb(eff):'not spread'],['comb lines in IF',String(lines.length)],['false emitters',type==='sync'?'0 (in spur table)':String(cnt)],['blind channels',type==='sync'?String(masked):'0'],['raise to clear',Math.max(0,eff-thr).toFixed(1)+' dB'],['result',type==='sync'?'masked, blind':(cnt>0?'FALSE EMITTERS':'none false')]]);
+  }
+}
+bind(['faS','faP','faT','faN','faO','faH'],faDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

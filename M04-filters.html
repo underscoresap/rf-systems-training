@@ -1,0 +1,1301 @@
+<meta charset="utf-8">
+<title>Filters and Preselection</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Filters and Preselection · RF Systems for Component Engineers</div>
+  <h1>Filters and preselection, from one resonator to probability of intercept</h1>
+  <p class="lede">A filter is the part of a chain that decides which frequencies are allowed to exist. In a receiver it keeps out everything that could become noise, an image, a spur or a blocker; in a transmitter it keeps your own harmonics and splatter out of everyone else's band. It does this at a price: loss, which in front of the LNA is noise; group delay, which smears pulses and chirps; size, power limits and temperature drift. This page builds those trade-offs from a single resonator and its Q, through filter families and group delay, to the frequency plan, blocking, transmit masks, technology choice and the ESM trade between preselector bandwidth and probability of intercept. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 What filters do in each chain</a><a href="#q">1 Response and Q</a><a href="#il">2 Insertion loss and noise</a><a href="#shape">3 Bandwidth, ripple, rejection, families</a><a href="#delay">4 Group delay and pulse fidelity</a><a href="#image">5 Image and half-IF</a><a href="#block">6 Blocking and intermod</a><a href="#tx">7 Transmit harmonics, mask, power</a><a href="#tech">8 Technologies and drift</a><a href="#esm">9 ESM bandwidth vs intercept</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>What a filter does in each chain</h2>
+  <div class="know"><h4>You already know</h4><p>A filter passes a band of frequencies and attenuates the rest. You know how to design resonators, couple them and measure S<sub>21</sub> and S<sub>11</sub> on a network analyser. What this page adds is why the system engineer writes each line of your filter specification, and what happens to the radar or ESM receiver when a line is missed.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Preselector:</b> the first filter in a receiver, right after the antenna (and limiter). It "selects in advance" which band the rest of the receiver is allowed to see.</p>
+    <p><b>Pass band / stop band:</b> the frequencies the filter passes with little loss, and the frequencies it must attenuate by at least a stated amount. Between them is the <b>transition band</b>.</p>
+    <p><b>Insertion loss (IL):</b> how much weaker a pass-band signal is at the output than it would be with a perfect through line, in dB. <b>Rejection</b> is the same quantity at a stop-band frequency, usually quoted relative to the pass-band loss.</p>
+    <p><b>Group delay:</b> how long the envelope of a signal takes to pass through the filter, in ns; defined in Step 4.</p>
+  </div>
+  <div class="col">
+    <p>Every RF chain on this page contains three to six filters, and each one is there for a different reason. Before any formula, here is where they sit and what each one protects.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Five RF chains with their filters highlighted: pulse radar receiver, FMCW radar, ESM receiver, radar transmitter and jammer transmitter">
+    <svg viewBox="0 0 860 410" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <g fill="none" stroke-width="1.4">
+        <!-- row geometry: y centres 40, 120, 200, 280, 360 -->
+        <g stroke="var(--line)">
+          <rect x="120" y="24" width="66" height="32" rx="3"/><rect x="292" y="24" width="56" height="32" rx="3"/><rect x="456" y="24" width="56" height="32" rx="3"/><rect x="620" y="24" width="56" height="32" rx="3"/>
+          <rect x="120" y="104" width="66" height="32" rx="3"/><rect x="292" y="104" width="56" height="32" rx="3"/><rect x="456" y="104" width="56" height="32" rx="3"/><rect x="620" y="104" width="56" height="32" rx="3"/>
+          <rect x="292" y="184" width="56" height="32" rx="3"/><rect x="456" y="184" width="56" height="32" rx="3"/><rect x="620" y="184" width="56" height="32" rx="3"/>
+          <rect x="120" y="264" width="66" height="32" rx="3"/><rect x="292" y="264" width="56" height="32" rx="3"/><rect x="456" y="264" width="84" height="32" rx="3"/>
+          <rect x="120" y="344" width="66" height="32" rx="3"/><rect x="292" y="344" width="56" height="32" rx="3"/><rect x="456" y="344" width="84" height="32" rx="3"/>
+        </g>
+        <g stroke="var(--accent)" stroke-width="2">
+          <rect x="206" y="24" width="66" height="32" rx="3"/><rect x="368" y="24" width="66" height="32" rx="3"/><rect x="532" y="24" width="66" height="32" rx="3"/><rect x="696" y="24" width="66" height="32" rx="3"/>
+          <rect x="206" y="104" width="66" height="32" rx="3"/><rect x="532" y="104" width="66" height="32" rx="3"/><rect x="696" y="104" width="66" height="32" rx="3"/>
+          <rect x="120" y="184" width="152" height="32" rx="3"/><rect x="532" y="184" width="66" height="32" rx="3"/><rect x="696" y="184" width="66" height="32" rx="3"/>
+          <rect x="206" y="264" width="66" height="32" rx="3"/><rect x="368" y="264" width="66" height="32" rx="3"/>
+          <rect x="206" y="344" width="66" height="32" rx="3"/><rect x="368" y="344" width="66" height="32" rx="3"/>
+        </g>
+        <g stroke="var(--muted)" marker-end="url(#ar)">
+          <path d="M186 40H204M272 40H290M348 40H366M434 40H454M512 40H530M598 40H618M676 40H694"/>
+          <path d="M186 120H204M272 120H290M348 120H454M512 120H530M598 120H618M676 120H694"/>
+          <path d="M272 200H290M348 200H454M512 200H530M598 200H618M676 200H694"/>
+          <path d="M186 280H204M272 280H290M348 280H366M434 280H454"/>
+          <path d="M186 360H204M272 360H290M348 360H366M434 360H454"/>
+        </g>
+      </g>
+      <text x="10" y="36">Pulse radar</text><text x="10" y="50" class="mut">receiver</text>
+      <text x="10" y="116">FMCW radar</text><text x="10" y="130" class="mut">receiver</text>
+      <text x="10" y="196">ESM</text><text x="10" y="210" class="mut">receiver</text>
+      <text x="10" y="276">Radar</text><text x="10" y="290" class="mut">transmitter</text>
+      <text x="10" y="356">Jammer</text><text x="10" y="370" class="mut">transmitter</text>
+      <g text-anchor="middle">
+        <text x="153" y="44">limiter</text><text x="239" y="44">① presel</text><text x="320" y="44">LNA</text><text x="401" y="44">② image</text><text x="484" y="44">mixer</text><text x="565" y="44">③ IF BPF</text><text x="648" y="44">ADC</text><text x="729" y="44">④ digital</text>
+        <text x="153" y="124">LNA</text><text x="239" y="124">① presel</text><text x="320" y="124">mixer</text><text x="484" y="124">IF amp</text><text x="565" y="124">⑤ HPF+LPF</text><text x="648" y="124">ADC</text><text x="729" y="124">④ FFT bins</text>
+        <text x="196" y="204">⑥ switched bank / YIG</text><text x="320" y="204">LNA</text><text x="484" y="204">mixer</text><text x="565" y="204">③ IF BPF</text><text x="648" y="204">detector</text><text x="729" y="204">⑦ video</text>
+        <text x="153" y="284">exciter</text><text x="239" y="284">⑧ BPF</text><text x="320" y="284">PA</text><text x="401" y="284">⑨ harm.</text><text x="498" y="284">circulator</text>
+        <text x="153" y="364">DRFM/DAC</text><text x="239" y="364">⑧ BPF</text><text x="320" y="364">PA</text><text x="401" y="364">⑨ mask</text><text x="498" y="364">antenna</text>
+      </g>
+      <text x="566" y="276" class="mut">orange = a filter. Numbers are referred to in the table below.</text>
+      <text x="566" y="292" class="mut">The same filter type can serve several roles.</text>
+    </svg>
+  </div>
+  <h3>What goes wrong with no filters at all</h3>
+  <div class="col"><p>Take an X-band receiver and a 100 W transmitter with every filter removed. The image noise doubles the IF noise: +3 dB noise figure (Step 5). Two −20 dBm out-of-band signals create an intermod product at −70 dBm, 32.5 dB above the noise, a false target (Step 6). The PA's 2nd harmonic at −20 dBc is 1 W radiated at 2f<sub>0</sub> (Step 7). Each filter in the table below exists to stop one of these.</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>#</th><th>Filter</th><th>What it protects</th><th>The specification line it creates</th><th>Step</th></tr>
+    <tr><td>①</td><td>RF preselector (band-pass, before or just after the LNA)</td><td>The LNA and mixer from strong out-of-band signals; the mixer from images and spurs</td><td>Insertion loss (= noise), out-of-band rejection, power handling</td><td class="n">2, 5, 6</td></tr>
+    <tr><td>②</td><td>Image-reject filter (between LNA and mixer)</td><td>The IF from the image frequency, and the LNA's amplified noise at the image</td><td>Rejection at f<sub>RF</sub> ± 2·f<sub>IF</sub></td><td class="n">5</td></tr>
+    <tr><td>③</td><td>IF band-pass filter</td><td>Sets the noise bandwidth; rejects adjacent signals and mixer products</td><td>Bandwidth, shape factor, group-delay flatness</td><td class="n">3, 4</td></tr>
+    <tr><td>④</td><td>Anti-alias and digital filters</td><td>The ADC from signals that fold back into the band</td><td>Rejection at f<sub>s</sub> − f; flatness and delay across the band</td><td class="n">3, 4</td></tr>
+    <tr><td>⑤</td><td>FMCW beat filters (high-pass and low-pass)</td><td>The ADC from the huge close-in leakage and from beats beyond maximum range</td><td>Slope (dB/octave) and corner frequencies</td><td class="n">3</td></tr>
+    <tr><td>⑥</td><td>ESM preselector: switched filter bank or tunable YIG</td><td>A wideband receiver from overload, intermod and spurs, while keeping intercept probability</td><td>Sub-band width, switching or tuning time, rejection, limiting</td><td class="n">8, 9</td></tr>
+    <tr><td>⑦</td><td>Video filter (after the detector)</td><td>Detection noise vs pulse rise time</td><td>Video bandwidth</td><td class="n">4</td></tr>
+    <tr><td>⑧</td><td>Exciter band-pass</td><td>The PA from exciter spurs, DAC images and phase-noise skirts</td><td>Rejection at DAC images and spur frequencies</td><td class="n">7</td></tr>
+    <tr><td>⑨</td><td>Harmonic and spectral-mask filter (after the PA)</td><td>Other users from your harmonics and splatter</td><td>Rejection at 2f<sub>0</sub>, 3f<sub>0</sub>; mask margin; power handling; loss (= lost transmitter power)</td><td class="n">7</td></tr>
+  </table></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why can the same band-pass filter be called a preselector in one chain and an image filter in another?</summary><p>The name describes the job, not the construction. A filter before the LNA that sets which band is seen is a preselector; a filter before the mixer that removes the image is an image filter. In many receivers one filter does both jobs, and its specification is the stricter of the two.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="q">
+  <div class="secno">Step 1</div>
+  <h2>Filter response basics: one resonator, loaded Q and unloaded Q</h2>
+  <div class="know"><h4>You already know</h4><p>A series or parallel LC tank resonates at f<sub>0</sub> = 1/(2π√(LC)). Its Q tells you how sharply it resonates. You have measured Q on a network analyser from the 3 dB bandwidth.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Q<sub>u</sub> (unloaded Q):</b> set by your construction only: conductor loss (surface resistance, plating, skin depth), dielectric loss tangent, radiation and housing loss. It is a property of the technology: about 50–150 for chip inductors, 2 000–8 000 for an air cavity.</p>
+    <p><b>Q<sub>L</sub> (loaded Q):</b> set mainly by how strongly you couple the resonator to the ports (tap point, gap, iris). It is chosen to give the bandwidth.</p>
+    <p><b>f<sub>0</sub>, centre frequency:</b> the frequency of peak transmission. <b>Fractional bandwidth (FBW):</b> BW/f<sub>0</sub>, written in percent.</p>
+    <p><b>|S<sub>21</sub>| in dB:</b> the transmission through the filter. Its negative is the loss.</p>
+  </div>
+  <div class="col">
+    <p>Every band-pass filter is built from resonators. Before coupling several of them, look at the simplest possible filter: one resonator placed between a 50 Ω source and a 50 Ω load. Two different Q values describe it, and the difference between them is the most important idea on this page.</p>
+    <p>The resonator stores energy and loses a little of it each cycle in its own conductor and dielectric. That internal loss defines the <b>unloaded Q</b>, Q<sub>u</sub>. Once the resonator is coupled to the source and load, energy also leaves through the ports, which is how the signal gets through. Counting both losses gives the <b>loaded Q</b>, Q<sub>L</sub>, which sets the bandwidth. The <b>external Q</b>, Q<sub>e</sub>, counts only the loss to the ports.</p>
+  </div>
+  <div class="eq">1/Q<sub>L</sub> = 1/Q<sub>u</sub> + 1/Q<sub>e</sub> &nbsp;&nbsp; BW<sub>3dB</sub> = f<sub>0</sub>/Q<sub>L</sub> &nbsp;&nbsp; IL(f<sub>0</sub>) = −20·log<sub>10</sub>(1 − Q<sub>L</sub>/Q<sub>u</sub>) dB<small>Q = 2π × (energy stored) / (energy lost per cycle). Q<sub>L</sub>/Q<sub>u</sub> is the fraction of the energy that is lost inside the resonator instead of reaching the load. The narrower you make the filter (higher Q<sub>L</sub>) with the same resonator (same Q<sub>u</sub>), the more of the signal is burned as heat.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach picks the coupling for the bandwidth and ignores the resonator's own Q. A 10 MHz filter at 1 GHz needs Q<sub>L</sub> = 100. Built from chip LC with Q<sub>u</sub> = 200, Q<sub>L</sub>/Q<sub>u</sub> = 0.5: the loss is 6.0 dB, only 25 % of the power reaches the load, 25 % is reflected and 50 % becomes heat. The bandwidth is right; the filter is useless in front of an LNA.</p></div>
+  <h3>Side by side on one example: a 1 GHz single-resonator filter</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Q<sub>L</sub> (bandwidth)</th><th>Q<sub>u</sub> (technology)</th><th>Q<sub>L</sub>/Q<sub>u</sub></th><th>Loss at f<sub>0</sub></th></tr>
+    <tr><td>20 (50 MHz)</td><td>200 (good chip LC)</td><td class="n">0.10</td><td class="n">0.92 dB</td></tr>
+    <tr><td>20 (50 MHz)</td><td>1 000 (ceramic coaxial)</td><td class="n">0.02</td><td class="n">0.18 dB</td></tr>
+    <tr><td>100 (10 MHz)</td><td>200</td><td class="n">0.50</td><td class="n">6.02 dB</td></tr>
+    <tr><td>100 (10 MHz)</td><td>1 000</td><td class="n">0.10</td><td class="n">0.92 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Read the table as a rule: <b>loss depends on the ratio Q<sub>L</sub>/Q<sub>u</sub></b>, that is, on how narrow the filter is compared with how good the resonator is. Making the filter five times narrower with the same resonator multiplies the loss by about six here. To keep the loss, the resonator Q must rise by the same factor as the loaded Q, which usually means a bigger, heavier technology.</p>
+  </div>
+  <h3>How to choose Q<sub>L</sub> and Q<sub>u</sub></h3>
+  <div class="col"><p>(1) The bandwidth fixes Q<sub>L</sub> = f<sub>0</sub>/BW. (2) The loss budget fixes the largest allowed ratio: Q<sub>L</sub>/Q<sub>u</sub> ≤ 1 − 10<sup>−IL/20</sup>. (3) So Q<sub>u</sub> ≥ Q<sub>L</sub> / (1 − 10<sup>−IL/20</sup>). Example: 10 MHz at 1 GHz with at most 1 dB loss: Q<sub>L</sub> = 100, ratio ≤ 0.109, Q<sub>u</sub> ≥ 920. (4) Q<sub>u</sub> then picks the technology (Step 8). Raising Q<sub>L</sub> narrows the filter and raises the loss; raising Q<sub>u</sub> lowers the loss at the same bandwidth but means a bigger or better resonator.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cQ" width="640" height="320" aria-label="Transmission of a single resonator for the chosen loaded and unloaded Q"></canvas>
+    <div class="ctrl">
+      <label for="qL"><span>Loaded Q (sets bandwidth)</span> <b id="qLv"></b></label><input id="qL" type="range" min="2" max="200" step="1" value="20">
+      <label for="qU"><span>Unloaded Q (technology)</span> <b id="qUv"></b></label><input id="qU" type="range" min="2.3" max="4" step="0.01" value="2.3">
+      <label for="qF"><span>Centre frequency</span> <b id="qFv"></b></label><input id="qF" type="range" min="0.1" max="18" step="0.1" value="1">
+      <div class="readout" id="qOut"></div>
+    </div>
+    <p class="cap">Solid: the resonator with the chosen Q<sub>u</sub>. Dashed: a lossless resonator with the same bandwidth. The vertical gap at f<sub>0</sub> is the insertion loss. Raise Q<sub>L</sub> towards Q<sub>u</sub>: the filter narrows and its loss climbs steeply. The unloaded-Q slider is logarithmic (200 to 10 000).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Q<sub>L</sub> 20 with Q<sub>u</sub> 200 (slider at the left end): 0.92 dB, the first row of the table.</li>
+    <li>Q<sub>L</sub> 100 with Q<sub>u</sub> 200: 6.02 dB and "power lost as heat" 50 %; then raise Q<sub>u</sub> to 1 000 (slider at 3.0): 0.92 dB again, the last row.</li>
+    <li>Move Q<sub>L</sub> towards Q<sub>u</sub>: the readout limits Q<sub>L</sub> to 0.95·Q<sub>u</sub>, where the loss is 26 dB.</li>
+    <li>Change the centre frequency: the curve keeps its shape, and the 3 dB bandwidth scales as f<sub>0</sub>/Q<sub>L</sub>.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Q<sub>u</sub></td><td>Technology, resonator volume, plating, dielectric</td><td>Not on the datasheet; it shows up as IL</td><td>Sets the loss for any bandwidth (Step 2): Q<sub>u</sub> 200 → 1 000 cuts a 10 MHz filter's loss from 6.0 to 0.9 dB</td></tr>
+    <tr><td>Q<sub>L</sub></td><td>Coupling to ports (tap, gap, iris)</td><td>3 dB bandwidth = f<sub>0</sub>/Q<sub>L</sub></td><td>Noise bandwidth and selectivity (Steps 3, 9)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the first question for any new specification is "what Q<sub>u</sub> does this bandwidth and loss need?". That answer picks the technology before any layout is drawn (Step 8).</li>
+    <li><b>LNA and oscillator designers:</b> your matching networks and tanks follow the same rule. A narrow match built from lossy inductors costs noise figure; a high-Q tank needs low-loss parts.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 2.4 GHz filter must be 24 MHz wide with no more than 1 dB loss from one resonator. What Q<sub>u</sub> is needed?</summary><p>Q<sub>L</sub> = 2 400/24 = 100. 1 dB loss means 1 − Q<sub>L</sub>/Q<sub>u</sub> = 10<sup>−1/20</sup> = 0.891, so Q<sub>L</sub>/Q<sub>u</sub> = 0.109 and Q<sub>u</sub> ≈ 920. That is ceramic coaxial or cavity territory, not chip LC.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="il">
+  <div class="secno">Step 2</div>
+  <h2>Insertion loss of a multi-resonator filter, and its noise cost before the LNA</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M01-lna-noise.html">LNA and receiver noise</a> module: a passive loss L at temperature 290 K has noise figure L, and in front of the LNA it adds to the system noise figure dB for dB (Friis). Sensitivity is −174 dBm/Hz + NF + 10·log B + SNR<sub>min</sub>.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Order N:</b> the number of resonators (poles). More poles give a steeper skirt and more loss.</p>
+    <p><b>g-values:</b> the normalised element values of the low-pass prototype. For a 5-pole 0.1 dB Chebyshev they are 1.147, 1.371, 1.975, 1.371, 1.147 (sum 7.01).</p>
+    <p><b>System noise figure:</b> the noise figure of the whole receive chain from the antenna port, which sets sensitivity.</p>
+  </div>
+  <div class="col">
+    <p>A practical filter couples N resonators. The response is defined by a <b>low-pass prototype</b>: a ladder of N normalised elements g<sub>1</sub> … g<sub>N</sub> (from tables or formulas for each family) that is scaled to the centre frequency and bandwidth. Each resonator then stores energy, and each one has the same Q<sub>u</sub>. Cohn's classic result adds up their losses:</p>
+  </div>
+  <div class="eq">IL(f<sub>0</sub>) ≈ 4.343 · (g<sub>1</sub> + g<sub>2</sub> + … + g<sub>N</sub>) / (FBW · Q<sub>u</sub>) dB &nbsp;&nbsp; IL(f) ≈ 4.343 · ω<sub>0</sub> · τ<sub>g</sub>(f) / Q<sub>u</sub> dB<small>FBW is the fractional bandwidth as a ratio (0.05 for 5 %). The second form says the same thing in physical terms: loss is proportional to group delay τ<sub>g</sub>, the time the signal spends stored in the resonators. Where the delay is largest (the band edges) the loss is largest too, so a lossy filter has "rounded shoulders".</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach puts the sharpest filter it can find in front of the LNA. A 7-pole 0.1 dB Chebyshev (Σg = 10.97) on microstrip (Q<sub>u</sub> 150), 500 MHz wide at 9.5 GHz: IL = 4.343 × 10.97/(0.0526 × 150) = 6.04 dB. System NF goes from 1.59 dB to 7.63 dB, and radar detection range falls to 10<sup>−6.04/40</sup> = 0.71, a 29 % loss, before any interferer is present.</p></div>
+  <h3>Side by side on one example: an X-band preselector, 9.5 GHz, 500 MHz wide</h3>
+  <div class="col"><p>5-pole 0.1 dB Chebyshev, FBW = 500/9 500 = 0.0526, Σg = 7.01. LNA: NF 1.5 dB, gain 25 dB; everything after it: NF 10 dB.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Technology (Q<sub>u</sub>)</th><th>Filter IL</th><th>Filter before LNA: system NF</th><th>Filter after LNA: system NF</th></tr>
+    <tr><td>No filter</td><td class="n">0 dB</td><td class="n">1.59 dB</td><td class="n">1.59 dB</td></tr>
+    <tr><td>Microstrip (150)</td><td class="n">3.86 dB</td><td class="n">5.44 dB</td><td class="n">1.70 dB</td></tr>
+    <tr><td>Suspended stripline (300)</td><td class="n">1.93 dB</td><td class="n">3.52 dB</td><td class="n">1.64 dB</td></tr>
+    <tr><td>Air cavity (3 000)</td><td class="n">0.19 dB</td><td class="n">1.78 dB</td><td class="n">1.59 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Before the LNA, the cavity filter gives a system NF 1.74 dB better than the stripline filter. Radar detection range goes as (system noise factor)<sup>−1/4</sup>, so that is 10<sup>−1.74/40</sup> = 0.905: the stripline filter costs <b>9.5 % of detection range</b>. Put after the LNA, the same stripline filter costs only 0.05 dB, because the LNA's 25 dB of gain hides it. Why not always put it after? Because then the LNA faces every strong out-of-band signal unfiltered (Step 6). That is the central preselector trade: <b>loss in front of the LNA costs sensitivity; no filter in front of the LNA costs dynamic range</b>.</p>
+  </div>
+  <h3>How to choose order, Q<sub>u</sub> and position</h3>
+  <div class="col"><p>(1) The rejection you need (Steps 3, 5, 6) sets the lowest order N and the family. (2) The noise-figure cost you can accept sets the largest IL before the LNA. (3) Rearranging Cohn: Q<sub>u</sub> ≥ 4.343·Σg/(FBW·IL). Example: 5-pole 0.1 dB Chebyshev, FBW 5.26 %, IL ≤ 0.5 dB → Q<sub>u</sub> ≥ 4.343 × 7.01/(0.0526 × 0.5) ≈ 1 160: ceramic or cavity. (4) If no technology meets it, split the job: a wide, low-order, low-loss filter before the LNA for survival and gross rejection, and the sharp filter after the LNA where its loss is hidden. Each extra pole adds about Σg/N to the loss; each halving of the bandwidth doubles it.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cIl" width="640" height="320" aria-label="System noise figure against filter order, for the filter before and after the LNA"></canvas>
+    <div class="ctrl">
+      <label for="ilN"><span>Filter order N</span> <b id="ilNv"></b></label><input id="ilN" type="range" min="1" max="9" step="1" value="5">
+      <label for="ilB"><span>Fractional bandwidth</span> <b id="ilBv"></b></label><input id="ilB" type="range" min="0.5" max="30" step="0.01" value="5.26">
+      <label for="ilQ"><span>Unloaded Q (log)</span> <b id="ilQv"></b></label><input id="ilQ" type="range" min="1.7" max="4" step="0.001" value="2.477">
+      <label for="ilF">Family</label>
+      <select id="ilF"><option value="bw">Butterworth</option><option value="c01" selected>Chebyshev 0.1 dB</option><option value="c05">Chebyshev 0.5 dB</option></select>
+      <label for="ilP">Filter position</label>
+      <select id="ilP"><option value="pre" selected>Before the LNA</option><option value="post">After the LNA</option></select>
+      <label for="ilLn"><span>LNA NF</span> <b id="ilLnv"></b></label><input id="ilLn" type="range" min="0.5" max="4" step="0.05" value="1.5">
+      <div class="readout" id="ilOut"></div>
+    </div>
+    <p class="cap">x-axis: filter order. Bars: mid-band insertion loss for each order with the chosen Q<sub>u</sub> and bandwidth. Lines: system NF with the filter before the LNA (orange) and after it (teal); the dot marks your order. Each extra pole adds roughly Σg/N more loss. Narrow the bandwidth or lower Q<sub>u</sub>: the orange line climbs, the teal line hardly moves.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (N 5, FBW 5.26 %, Q<sub>u</sub> 300, Chebyshev 0.1 dB, before the LNA): IL 1.93 dB and system NF 3.52 dB, the stripline row of the table.</li>
+    <li>Q<sub>u</sub> to 3 000 (slider 3.477): IL 0.19 dB and NF 1.78 dB, the cavity row.</li>
+    <li>Switch the position to "After the LNA": NF 1.64 dB, the teal line, almost flat with order.</li>
+    <li>Order 7: IL rises by Σg 10.97/7.01 = 1.56×, as in the check-yourself question.</li>
+    <li>Compare "IL at band edge" (3.91 dB) with "IL at f₀": the edge is about twice the centre, because group delay peaks there.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Insertion loss</td><td>Q<sub>u</sub> (technology, size, plating), order N, bandwidth, family</td><td>IL ≤ 1.93 dB at 9.5 GHz (5-pole, Q<sub>u</sub> 300)</td><td>System NF 1.59 → 3.52 dB before the LNA: −9.5 % radar range vs a cavity, ESM sensitivity 1.9 dB worse</td></tr>
+    <tr><td>Filter position</td><td>Preselector before or after the LNA; or split: a low-loss wide filter before, a sharper one after</td><td>(system decision)</td><td>After the LNA: 1.64 dB NF but the LNA must survive and stay linear with all out-of-band signals</td></tr>
+    <tr><td>Band-edge loss</td><td>Family and order (delay peaks at the edges)</td><td>IL at band edge, often 1.5–2.5 × mid-band</td><td>Sensitivity worst at the edge channels: the system specification must use the edge value</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> 0.5 dB saved in a preselector is worth exactly as much as 0.5 dB off the LNA noise figure, and is often easier. Use the lowest order that meets rejection, and silver-plate cavities (surface resistance sets Q<sub>u</sub>).</li>
+    <li><b>LNA designers:</b> if the system puts the preselector after you, your P1dB and IP3 are now the out-of-band protection (Step 6).</li>
+    <li><b>Mechanical and thermal engineers:</b> a cavity filter's Q<sub>u</sub> falls with surface roughness and poor plating; a 20 % lower Q<sub>u</sub> is 20 % more dB of loss.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 7-pole filter replaces a 5-pole one of the same bandwidth and Q<sub>u</sub>. Roughly how much more loss?</summary><p>For 0.1 dB Chebyshev, Σg rises from 7.01 to 10.97 (7-pole), so the loss grows by about 1.56 times: 1.93 dB becomes about 3.0 dB in the X-band example.</p></details>
+    <details><summary>Why is a preselector specified at its worst band edge, not at the centre?</summary><p>The system specification is a minimum sensitivity over the whole band. The band-edge channels have the most filter loss (largest group delay), so they set the guaranteed number.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="shape">
+  <div class="secno">Step 3</div>
+  <h2>Bandwidth, ripple, rejection and shape factor; Butterworth, Chebyshev and elliptic</h2>
+  <div class="know"><h4>You already know</h4><p>Butterworth is "maximally flat", Chebyshev ripples in the pass band, elliptic has notches in the stop band. You pick g-values from a table.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Bandwidth:</b> for Butterworth the 3 dB bandwidth; for Chebyshev and elliptic the <b>ripple bandwidth</b>, the band over which loss stays within the ripple. Always ask which one a datasheet quotes.</p>
+    <p><b>Ripple:</b> the peak-to-peak variation of loss across the pass band, in dB.</p>
+    <p><b>Rejection:</b> attenuation at a stated stop-band frequency, relative to the pass-band loss.</p>
+    <p><b>Shape factor:</b> ratio of a wide-attenuation bandwidth (40 or 60 dB) to the 3 dB bandwidth. 1 would be a perfect "brick wall".</p>
+    <p><b>Transmission zero:</b> a frequency where the response is exactly zero (a notch). Elliptic and cross-coupled filters create them by coupling non-adjacent resonators.</p>
+    <p><b>Return loss:</b> −|S<sub>11</sub>| in dB. For a lossless filter it follows from the ripple: 0.1 dB ripple ↔ 16.4 dB return loss; 0.5 dB ↔ 9.6 dB.</p>
+    <p><b>Ω<sub>s</sub> (elliptic stop-band edge):</b> the normalised frequency where the elliptic's stop band starts. Below it the response falls; above it the rejection stays at or above a fixed minimum (the floor). A smaller Ω<sub>s</sub> gives a steeper skirt but a lower floor.</p>
+  </div>
+  <div class="col">
+    <p>The system engineer specifies a filter by its <b>mask</b>: the pass band where the loss must stay below a limit, and the stop bands where the rejection must exceed a limit. How fast the response goes from one to the other is the <b>shape factor</b>. To compare families fairly they are designed from a normalised low-pass prototype with frequency variable Ω, then mapped to a band-pass filter:</p>
+  </div>
+  <div class="eq">Ω = (f/f<sub>0</sub> − f<sub>0</sub>/f) · f<sub>0</sub>/BW &nbsp;&nbsp; |H|² = 1 / (1 + ε²·R<sub>N</sub>(Ω)²) &nbsp;&nbsp; SF<sub>60/3</sub> = BW<sub>60dB</sub> / BW<sub>3dB</sub><small>R<sub>N</sub> is the family's characteristic function: Ω<sup>N</sup> (Butterworth), the Chebyshev polynomial T<sub>N</sub>(Ω) (Chebyshev), or an elliptic rational function with zeros in the pass band and poles (transmission zeros) in the stop band (elliptic). ε sets the ripple: ripple = 10·log(1 + ε²) dB. Ω = ±1 is the band edge.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach meets a stop-band point by adding Butterworth poles. 60 dB at twice the band edge (Ω = 2) needs a 10-pole Butterworth (each pole gives about 6 dB per octave): Σg = 12.8, so 1.8 × the loss of the 5-pole Chebyshev from Step 2, and ten resonators to tune. An 8-pole 0.1 dB Chebyshev or a 7-pole 0.5 dB Chebyshev reaches the same point with the same loss (Σg ≈ 12.6); a 6-pole elliptic with Ω<sub>s</sub> = 2 reaches it with Σg = 7.9, only 1.1 × the 5-pole Chebyshev's loss.</p></div>
+  <h3>Side by side on one example: three 5-pole filters of the same ripple bandwidth</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Family (N = 5)</th><th>Rejection at Ω = 2</th><th>SF<sub>40/3</sub></th><th>SF<sub>60/3</sub></th><th>Delay at centre / peak</th></tr>
+    <tr><td>Butterworth</td><td class="n">30.1 dB</td><td class="n">2.51</td><td class="n">3.98</td><td class="n">3.24 / 5.17</td></tr>
+    <tr><td>Chebyshev 0.1 dB</td><td class="n">34.8 dB</td><td class="n">1.96</td><td class="n">3.00</td><td class="n">3.51 / 7.77</td></tr>
+    <tr><td>Chebyshev 0.5 dB</td><td class="n">42.0 dB</td><td class="n">1.81</td><td class="n">2.75</td><td class="n">4.21 / 10.6</td></tr>
+    <tr><td>Elliptic 0.1 dB, Ω<sub>s</sub> = 1.5</td><td class="n">46.9 dB</td><td class="n">1.35</td><td class="n">never (floor 43.4 dB)</td><td class="n">2.81 / 10.9</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Delay is in normalised units; divide by π·BW to get seconds (for 500 MHz, 1 unit = 0.64 ns). Three lessons. (1) Accepting more ripple buys steeper skirts at the same order. (2) The elliptic is steepest near the band but its stop band has a <b>floor</b>: rejection never exceeds the chosen minimum (43.4 dB here), so it cannot meet a 60 dB specification however far away the interferer is. (3) Every step in steepness is paid for in peak group delay, which matters for pulses (Step 4) and for band-edge loss (Step 2).</p>
+  </div>
+  <h3>How to choose family, order, ripple and Ω<sub>s</sub></h3>
+  <div class="col"><p>(1) Write the mask: ripple bandwidth and every stop-band point (frequency, rejection). (2) Choose the ripple from the return loss and flatness the system needs: 0.1 dB ↔ 16.4 dB RL is the usual choice; 0.5 dB only if VSWR and gain flatness allow it. (3) Find the lowest order that meets the nearest stop-band point. (4) If one point close to the band dominates and the far rejection need is moderate, use an elliptic (or cross-coupled zeros) with Ω<sub>s</sub> at that point, and check that the floor meets every farther point. (5) Check group delay (Step 4) and loss (Step 2) before fixing the design: each step up in steepness costs both.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSh" width="640" height="340" aria-label="Band-pass response of the chosen filter family and order, with 3, 40 and 60 dB bandwidths marked"></canvas>
+    <div class="ctrl">
+      <label for="shF">Family</label>
+      <select id="shF"><option value="bw">Butterworth</option><option value="c01" selected>Chebyshev 0.1 dB</option><option value="c05">Chebyshev 0.5 dB</option><option value="c1">Chebyshev 1 dB</option><option value="el">Elliptic 0.1 dB</option></select>
+      <label for="shN"><span>Order N</span> <b id="shNv"></b></label><input id="shN" type="range" min="2" max="9" step="1" value="5">
+      <label for="shS"><span>Elliptic Ω<sub>s</sub></span> <b id="shSv"></b></label><input id="shS" type="range" min="1.1" max="3" step="0.05" value="1.5">
+      <label for="shB"><span>Ripple bandwidth</span> <b id="shBv"></b></label><input id="shB" type="range" min="50" max="1500" step="10" value="500">
+      <label for="shZ">View</label>
+      <select id="shZ"><option value="wide" selected>Whole response (0 to −100 dB)</option><option value="pass">Pass-band ripple (0 to −3 dB)</option></select>
+      <div class="readout" id="shOut"></div>
+    </div>
+    <p class="cap">Centre 9.5 GHz. The bands marked are the 3 dB, 40 dB and 60 dB widths; the dashed line is the 60 dB level. Ω<sub>s</sub> only affects the elliptic family (it sets where the stop band starts, and with it the floor). Switch to the pass-band view to see the ripple that Chebyshev and elliptic trade for steepness.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (Chebyshev 0.1 dB, N 5): SF 40/3 = 1.96 and SF 60/3 = 3.00, the second table row; 3 dB BW 567 MHz = 1.13 × the 500 MHz ripple BW.</li>
+    <li>Elliptic, N 5, Ω<sub>s</sub> 1.5: floor 43.4 dB and "60 dB BW: never". Raise N to 7: the floor rises to about 72 dB.</li>
+    <li>Elliptic: move Ω<sub>s</sub> from 1.5 to 3: the skirt gets gentler and the floor rises.</li>
+    <li>Butterworth N 10 is not offered: compare N 9 Butterworth with N 7 Chebyshev 0.5 dB at the 60 dB line.</li>
+    <li>Pass-band view: "ripple measured" equals the family's ripple (0.1 dB for Chebyshev 0.1 dB); Butterworth shows the 3 dB roll-off instead.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Bandwidth</td><td>Coupling coefficients between resonators, external Q</td><td>Ripple BW 500 MHz; 3 dB BW 567 MHz</td><td>Noise bandwidth for an IF filter: 10·log B in the sensitivity (twice the bandwidth = +3 dB noise)</td></tr>
+    <tr><td>Ripple / return loss</td><td>Family and ε; tuning accuracy</td><td>0.1 dB ripple, RL ≥ 16 dB</td><td>Gain flatness (amplitude DF errors in ESM, pulse-compression sidelobes: 0.5 dB p-p ≈ −37 dB paired echoes); VSWR seen by the LNA</td></tr>
+    <tr><td>Rejection / shape factor</td><td>Order N, family, transmission zeros (cross-coupling)</td><td>≥ 60 dB at ± 1.7 × BW/2 from centre</td><td>Image and spur rejection (Step 5), blocking margin (Step 6), adjacent-channel separation</td></tr>
+    <tr><td>Stop-band floor</td><td>Elliptic minimum attenuation; housing leakage, spurious resonances of the structure</td><td>≥ 60 dB to 2 × f<sub>0</sub> (no re-entry)</td><td>A far-away strong signal that the filter "should" kill leaks through at the floor or at a spurious pass band</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> check the response far beyond the drawing: distributed filters have a second pass band (re-entry) near 2f<sub>0</sub> or 3f<sub>0</sub>; cavities have higher modes. The system cares about rejection up to the LNA's top frequency, not just the mask on your sheet.</li>
+    <li><b>IF and digital filter designers:</b> FMCW beat filters (⑤) use the same ideas: a high-pass slope of 40 dB/decade (12 dB/octave) compensates the R<sup>4</sup> fall of echo power with range so the ADC sees near and far targets at similar levels.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A specification asks for 60 dB at 1.5 × the band edge. Can a 5-pole elliptic with Ω<sub>s</sub> = 1.5 meet it?</summary><p>No. Its stop-band minimum is 43.4 dB. Either increase the order (7-pole gives about 72 dB minimum at Ω<sub>s</sub> 1.5) or accept a larger Ω<sub>s</sub>.</p></details>
+    <details><summary>Why do Chebyshev filters list a "ripple bandwidth" that is narrower than the 3 dB bandwidth?</summary><p>The ripple band ends where the loss first exceeds the ripple value (0.1 dB). The response keeps falling after that and crosses 3 dB a little later: for a 5-pole 0.1 dB Chebyshev the 3 dB bandwidth is 1.13 × the ripple bandwidth.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="delay">
+  <div class="secno">Step 4</div>
+  <h2>Group delay and its variation: pulse rise time, chirp fidelity and compression sidelobes</h2>
+  <div class="know"><h4>You already know</h4><p>S<sub>21</sub> has a phase. A network analyser can display group delay, the slope of that phase against frequency. A radar pulse occupies a bandwidth of roughly 1/(pulse width); a chirp occupies its sweep bandwidth B.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Group delay variation (flatness):</b> the peak-to-peak change in τ<sub>g</sub> across a stated band, in ns. Datasheets give it over the pass band or over the central 80 %.</p>
+    <p><b>Dispersion:</b> distortion caused by group delay that changes with frequency.</p>
+    <p><b>Rise time:</b> time for the pulse envelope to go from 10 % to 90 % of its final value. <b>Overshoot:</b> how far it rises above the final value, in %. <b>Ringing:</b> the decaying oscillation that follows.</p>
+    <p><b>Pulse compression:</b> transmitting a long chirp (frequency swept over B during T) and correlating the echo with a copy of the chirp (the <b>matched filter</b>), which squeezes it into a pulse about 1/B wide. <b>PSLR</b>, peak sidelobe ratio, is the highest sidelobe relative to the peak.</p>
+    <p><b>Weighting (window):</b> tapering the reference chirp's amplitude (for example Hamming) to lower the range sidelobes from −13.3 dB to about −40 dB, at the cost of a wider main lobe.</p>
+    <p><b>Filter BW / signal BW:</b> how much wider the filter is than the signal it carries (for a 100 ns pulse the signal bandwidth is taken as 10 MHz; for the chirp, its 100 MHz sweep). BW is the 3 dB bandwidth for Butterworth and the ripple bandwidth for the others.</p>
+    <p><b>Delay ripple and ripple cycles:</b> a sinusoidal wobble of group delay on top of the filter's own delay, given as ns peak-to-peak and as the number of wobble periods across the filter bandwidth. Its period in frequency is F<sub>r</sub> = filter BW / cycles.</p>
+  </div>
+  <div class="col">
+    <p>A signal is a sum of frequencies. If every frequency in it is delayed by the same time, the signal comes out identical, only later. If different frequencies are delayed by different times, the parts of the signal arrive out of step and the shape is distorted. <b>Group delay</b> is the delay at each frequency:</p>
+  </div>
+  <div class="eq">τ<sub>g</sub>(f) = −(1/2π) · dφ/df &nbsp;&nbsp; τ<sub>g,bp</sub>(f<sub>0</sub>) ≈ Σg / (2π·BW) &nbsp;&nbsp; t<sub>rise</sub> ≈ 0.7 / BW<sub>3dB</sub> &nbsp;&nbsp; paired echo = 20·log(a/2), a = Δτ<sub>pk</sub>·F<sub>r</sub><small>φ is the phase of S<sub>21</sub> in radians. A sinusoidal delay ripple of peak Δτ<sub>pk</sub> and period F<sub>r</sub> (Hz) across the band is a phase ripple of peak a radians; after pulse compression it creates two false "echo" sidelobes at ± 1/F<sub>r</sub> from the target, each 20·log(a/2) dB below it. Amplitude ripple works the same way: ripple p-p (dB)/17.4 = a.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach makes the filter exactly as wide as the signal (ratio 1). A 100 ns pulse through a 10 MHz 5-pole 0.1 dB Chebyshev: rise time 80 ns, so the pulse never reaches a flat top; the delay across the signal band varies by 110 ns because the band edges sit on the delay peaks. A 100 MHz chirp through a 100 MHz filter: compressed sidelobes rise from −42.7 dB (Hamming, ideal) to −32.7 dB.</p></div>
+  <h3>Side by side on one example: what the X-band preselector does to delay</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Value</th></tr>
+    <tr><td>5-pole 0.1 dB Chebyshev, 500 MHz: delay at centre = 3.51/(π·500 MHz)</td><td class="n">2.23 ns</td></tr>
+    <tr><td>Peak delay, just beyond the ripple band edge = 7.77/(π·500 MHz)</td><td class="n">4.95 ns</td></tr>
+    <tr><td>Delay variation over the ripple band (2.21 to 4.41 ns)</td><td class="n">2.2 ns p-p</td></tr>
+    <tr><td>A 100 MHz chirp centred in this band sees (central 20 %)</td><td class="n">0.02 ns p-p</td></tr>
+    <tr><td>IF filter of 10 MHz: rise time of a pulse ≈ 0.7/10 MHz (simulated, 5-pole 0.1 dB Chebyshev: 80 ns)</td><td class="n">≈ 70–80 ns</td></tr>
+    <tr><td>Delay ripple 2 ns p-p (Δτ<sub>pk</sub> = 1 ns) with period F<sub>r</sub> = 20 MHz: a = 1 ns × 20 MHz</td><td class="n">0.02 rad → echoes at −40 dB, ± 50 ns</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The preselector is wide compared with the signal, so its delay variation over the signal band is small. The filters that really shape pulses are the narrow ones: the IF filter, the anti-alias filter and the video filter. A chirp that spans most of a filter's band sees the steep delay rise at the edges, and that is where compressed sidelobes appear. As a rule of thumb a filter should be about 1.5 to 2 times wider than the signal it carries if pulse shape matters.</p>
+  </div>
+  <h3>Side by side: four families on the same pulse and chirp (N = 5, no extra ripple, Hamming)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Family</th><th>Pulse, ratio 1: rise / 50 % delay</th><th>Pulse, ratio 2: rise / overshoot</th><th>Chirp PSLR, ratio 1</th><th>Chirp PSLR, ratio 2</th></tr>
+    <tr><td>Butterworth</td><td class="n">78.6 / 107 ns</td><td class="n">40.8 ns / 12.8 %</td><td class="n">−28.7 dB</td><td class="n">−41.5 dB</td></tr>
+    <tr><td>Chebyshev 0.1 dB</td><td class="n">80.0 / 117 ns</td><td class="n">39.8 ns / 15.2 %</td><td class="n">−32.7 dB</td><td class="n">−42.7 dB</td></tr>
+    <tr><td>Chebyshev 0.5 dB</td><td class="n">86.4 / 130 ns</td><td class="n">44.9 ns / 13.2 %</td><td class="n">−28.9 dB</td><td class="n">−37.9 dB</td></tr>
+    <tr><td>Elliptic 0.1 dB</td><td class="n">91.4 / 94 ns</td><td class="n">46.1 ns / 17.5 %</td><td class="n">−28.8 dB</td><td class="n">−42.6 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Doubling the filter width halves the rise time and brings every family except the 0.5 dB Chebyshev within 1.2 dB of the ideal −42.7 dB sidelobes. At ratio 2 the Butterworth is slightly worse than the 0.1 dB Chebyshev on the chirp: its "BW" is a 3 dB bandwidth, so its amplitude droop at the chirp edges costs more than its flatter delay gains.</p></div>
+  <h3>How to choose the bandwidth margin, family and delay-ripple limit</h3>
+  <div class="col"><p>(1) Bandwidth: make the filter 1.5–2 × the signal bandwidth; below that, rise time and band-edge delay dominate. (2) Family: for chirps and short pulses prefer low ripple (Butterworth, 0.1 dB Chebyshev) or add a delay equaliser; avoid 0.5 dB ripple. (3) Delay-ripple limit from the sidelobe budget: Δτ<sub>pk</sub> ≤ 2·10<sup>SL/20</sup>/F<sub>r</sub>; for −45 dB at 25 MHz that is 0.45 ns peak. (4) Rise time: t<sub>rise</sub> ≈ 0.7–0.8/BW; choose BW from the time-of-arrival or range accuracy needed.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cGd" width="640" height="380" aria-label="Top: group delay of the filter across the signal band. Bottom: the pulse or compressed chirp after the filter"></canvas>
+    <div class="ctrl">
+      <label for="gdM">Signal</label>
+      <select id="gdM"><option value="pulse" selected>100 ns rectangular pulse (10 MHz)</option><option value="chirp">Chirp 100 MHz × 10 µs, compressed</option></select>
+      <label for="gdF">Filter family</label>
+      <select id="gdF"><option value="bw">Butterworth</option><option value="c01" selected>Chebyshev 0.1 dB</option><option value="c05">Chebyshev 0.5 dB</option><option value="el">Elliptic 0.1 dB (Ω<sub>s</sub> 1.5)</option></select>
+      <label for="gdN"><span>Order N</span> <b id="gdNv"></b></label><input id="gdN" type="range" min="2" max="9" step="1" value="5">
+      <label for="gdR"><span>Filter BW / signal BW</span> <b id="gdRv"></b></label><input id="gdR" type="range" min="0.6" max="5" step="0.05" value="2">
+      <label for="gdA"><span>Extra delay ripple</span> <b id="gdAv"></b></label><input id="gdA" type="range" min="0" max="10" step="0.1" value="2">
+      <label for="gdP"><span>Ripple cycles across filter band</span> <b id="gdPv"></b></label><input id="gdP" type="range" min="1" max="20" step="0.5" value="5">
+      <label for="gdW">Compression weighting</label>
+      <select id="gdW"><option value="none">None (uniform)</option><option value="ham" selected>Hamming</option></select>
+      <div class="readout" id="gdOut"></div>
+    </div>
+    <p class="cap">Real simulation: the signal is filtered in the frequency domain using the filter's complex response (amplitude and phase from its poles). Top panel: group delay across ± the filter bandwidth; the shaded band is the signal's bandwidth. Bottom: pulse envelope in and out (pulse mode), or the compressed chirp in dB with and without the filter (chirp mode). "Extra delay ripple" adds the sinusoidal ripple a real filter has from tuning, mismatch or cable reflections. Weighting applies to chirp mode only.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (pulse, Chebyshev 0.1 dB, N 5, ratio 2, 2 ns p-p ripple): rise 39.8 ns against the 0.7/BW estimate of 35 ns.</li>
+    <li>Ratio 1: rise about 80 ns and "Δτ in signal band" about 110 ns p-p, the naive case above.</li>
+    <li>Chirp mode with the default 2 ns p-p ripple and 5 cycles (F<sub>r</sub> = 40 MHz): predicted echo −34.0 dB at ±25 ns, simulated PSLR −32.9 dB.</li>
+    <li>Set the ripple to 0: PSLR returns to the ideal −42.7 dB. Switch weighting to "None": −13.3 dB, the uniform sidelobe level.</li>
+    <li>Try each family at ratio 2 and compare with the side-by-side table.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Group delay (absolute)</td><td>Order, bandwidth, family</td><td>τ<sub>g</sub> = 2.2 ns at f<sub>0</sub></td><td>A fixed range offset (2.2 ns = 0.33 m), removed in calibration; differs per channel in a monopulse or interferometer receiver → angle error unless matched</td></tr>
+    <tr><td>Group delay variation</td><td>Family (Butterworth flattest of the three; Bessel or delay-equalised designs flatter still), bandwidth margin over the signal, equaliser sections</td><td>≤ 1 ns p-p over central 80 %</td><td>Chirp dispersion: higher compressed sidelobes, mainlobe broadening, range error. Sinusoidal ripple → paired echoes (1 ns pk at 20 MHz period → −40 dB false targets ± 7.5 m away)</td></tr>
+    <tr><td>Bandwidth vs pulse</td><td>IF/video filter bandwidth</td><td>3 dB BW 10 MHz</td><td>Rise time ≈ 70–80 ns: time-of-arrival accuracy in ESM, pulse-width measurement error, range-gate straddle in radar</td></tr>
+    <tr><td>Phase/delay matching between channels</td><td>Same lot, same tuning, temperature tracking</td><td>Δφ ≤ 3° between units</td><td>Monopulse and interferometer angle accuracy; beamforming loss in arrays</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> for any filter that carries a chirp, put group-delay variation on your test sheet. Tuning screws set to the ripple mask alone can leave several ns of delay ripple.</li>
+    <li><b>Interconnect and LNA designers:</b> two mismatches separated by a cable create a delay and amplitude ripple whose period is 1/(2 × cable delay): a 1 m cable (5 ns) gives ripple every 100 MHz.</li>
+    <li><b>Synthesiser and exciter designers:</b> the chirp source's own phase ripple adds to the filter's; the sidelobe budget is shared (see the <a href="M02-synthesiser-phase-noise.html">synthesiser</a> module).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The pulse-compression sidelobe budget is −45 dB for paired echoes. What delay ripple can a filter have if its ripple period across the band is 25 MHz?</summary><p>20·log(a/2) = −45 → a = 0.0112 rad. Δτ<sub>pk</sub> = a/F<sub>r</sub> = 0.0112/25 MHz = 0.45 ns, so about 0.9 ns peak-to-peak.</p></details>
+    <details><summary>Why does a sharper filter ring more?</summary><p>Steep skirts need high-Q poles close to the jω axis. Those poles store energy and release it slowly, which is the ringing; in the frequency domain they show up as a tall delay peak at the band edge.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="image">
+  <div class="secno">Step 5</div>
+  <h2>Image and half-IF rejection in a frequency plan</h2>
+  <div class="know"><h4>You already know</h4><p>A mixer multiplies RF by LO and produces sum and difference frequencies. The IF filter selects the difference |f<sub>RF</sub> − f<sub>LO</sub>| = f<sub>IF</sub>.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>IF (intermediate frequency):</b> the fixed frequency the receiver converts every RF signal to, where most gain and filtering happen.</p>
+    <p><b>Low-side / high-side LO:</b> LO below or above the wanted RF. It decides which side the image is on.</p>
+    <p><b>Image rejection:</b> how much weaker the IF output is for a signal at the image than for the same signal at the wanted frequency, in dB.</p>
+    <p><b>Frequency plan:</b> the choice of IF(s), LO(s) and filters so that images and strong spurs fall where filters can remove them.</p>
+    <p><b>Image rejection required:</b> the rejection the system specification asks for, set by the strongest signal expected at the image minus the weakest wanted signal, plus margin. For example a −30 dBm emitter and a −90 dBm target need 60 dB.</p>
+  </div>
+  <div class="col">
+    <p>A mixer cannot tell which side of the LO a signal is on. With the LO below the wanted signal (low-side LO, f<sub>LO</sub> = f<sub>RF</sub> − f<sub>IF</sub>), a signal at f<sub>LO</sub> − f<sub>IF</sub> also produces exactly f<sub>IF</sub>. That second frequency is the <b>image</b>. Once it is in the IF it cannot be removed: it looks exactly like a real signal. Only a filter <i>before</i> the mixer can stop it. The mixer also responds, more weakly, to many other frequencies m·f<sub>RF</sub> ± n·f<sub>LO</sub> = f<sub>IF</sub> (spurious responses). The most troublesome is the <b>half-IF</b> spur, from the second harmonics of RF and LO: 2f<sub>RF</sub> − 2f<sub>LO</sub> = f<sub>IF</sub>.</p>
+  </div>
+  <div class="eq">f<sub>image</sub> = f<sub>RF</sub> ∓ 2·f<sub>IF</sub> &nbsp;&nbsp; f<sub>½IF</sub> = f<sub>RF</sub> ∓ f<sub>IF</sub>/2 &nbsp;&nbsp; (upper sign: low-side LO) &nbsp;&nbsp; rej<sub>½IF,total</sub> = S<sub>22</sub> + (P<sub>ref</sub> − P<sub>in</sub>) + 2·R<sub>filter</sub><small>The image is 2·f<sub>IF</sub> from the wanted signal; the half-IF spur is only f<sub>IF</sub>/2 away, so it is much closer and much harder to filter. The 2×2 spur is a second-order product: each dB the filter removes at the input lowers the spur by 2 dB. S<sub>22</sub> is the mixer's 2×2 suppression (dBc) quoted at input level P<sub>ref</sub>.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach picks the lowest convenient IF, say 160 MHz, behind the same 500 MHz preselector. The image at 9.68 GHz is then inside the filter and only 10.9 dB down, and the half-IF spur at 9.92 GHz is 0.1 dB down. Every emitter at 9.68 GHz appears at 10 GHz as a false signal only 11 dB weaker, and the image noise adds up to 3 dB to the noise figure.</p></div>
+  <h3>Side by side on one example: 10 GHz receiver with the X-band preselector (5-pole 0.1 dB Chebyshev, 500 MHz)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Plan</th><th>LO</th><th>Image (rejection)</th><th>Half-IF (filter rejection)</th></tr>
+    <tr><td>IF 1 GHz, low-side</td><td class="n">9.0 GHz</td><td class="n">8.0 GHz (103 dB)</td><td class="n">9.5 GHz (36 dB)</td></tr>
+    <tr><td>IF 160 MHz, low-side</td><td class="n">9.84 GHz</td><td class="n">9.68 GHz (10.9 dB)</td><td class="n">9.92 GHz (0.1 dB)</td></tr>
+    <tr><td>IF 1 GHz, 1 GHz-wide preselector</td><td class="n">9.0 GHz</td><td class="n">8.0 GHz (72.5 dB)</td><td class="n">9.5 GHz (0.3 dB)</td></tr>
+    <tr><td>IF 3 GHz, low-side</td><td class="n">7.0 GHz</td><td class="n">4.0 GHz (&gt;100 dB)</td><td class="n">8.5 GHz (89 dB)</td></tr>
+  </table></div>
+  <div class="col">
+    <p>With a 160 MHz IF the image is inside the preselector and only 11 dB down. This is why receivers with narrow, low IFs use two conversions: a high first IF that the RF preselector can protect, then a second conversion to a low IF where a narrow filter sets the bandwidth. The half-IF spur in the 1 GHz plan: filter rejection 36 dB, mixer 2×2 suppression 60 dBc at −10 dBm, interferer −30 dBm at the mixer → total 60 + 20 + 72 = 152 dB. Without the filter, only 80 dB.</p>
+  </div>
+  <h3>How to choose the IF, LO side and preselector</h3>
+  <div class="col"><p>(1) Set the required image rejection (60 dB in the example). (2) Find the offset where the preselector gives it: for the 5-pole 0.1 dB Chebyshev, 500 MHz wide, 60 dB is reached 851 MHz from centre, so 2·f<sub>IF</sub> ≥ 851 MHz → f<sub>IF</sub> ≥ 0.43 GHz. (3) Check the half-IF spur, only f<sub>IF</sub>/2 away: 30 dB of filter rejection (giving 140 dB total with the mixer) needs f<sub>IF</sub>/2 ≥ 455 MHz → f<sub>IF</sub> ≥ 0.91 GHz. The half-IF, not the image, sets the IF here. (4) LO side: put the image and LO where the filter is steepest, or away from known strong emitters. (5) If a low final IF is needed, convert twice: high first IF for image rejection, then low second IF.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cIm" width="640" height="320" aria-label="Preselector response with the wanted signal, LO, image and half-IF frequencies marked"></canvas>
+    <div class="ctrl">
+      <label for="imI"><span>IF</span> <b id="imIv"></b></label><input id="imI" type="range" min="0.1" max="4" step="0.02" value="1">
+      <label for="imS">LO side</label>
+      <select id="imS"><option value="low" selected>Low-side (LO below RF)</option><option value="high">High-side (LO above RF)</option></select>
+      <label for="imB"><span>Preselector ripple BW</span> <b id="imBv"></b></label><input id="imB" type="range" min="100" max="2000" step="10" value="500">
+      <label for="imN"><span>Preselector order</span> <b id="imNv"></b></label><input id="imN" type="range" min="2" max="9" step="1" value="5">
+      <label for="imR"><span>Image rejection required</span> <b id="imRv"></b></label><input id="imR" type="range" min="30" max="90" step="1" value="60">
+      <div class="readout" id="imOut"></div>
+    </div>
+    <p class="cap">Wanted signal fixed at 10 GHz. The curve is the preselector's rejection; markers show the wanted signal (teal), the image and half-IF spur (orange) and the LO (purple). The LO line also shows how much LO leaking back towards the antenna the preselector removes. Shrink the IF and watch the image walk into the pass band.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (IF 1 GHz, low side, 500 MHz, N 5): image 103 dB, half-IF 36.1 dB, total half-IF 152 dB, LO 69.7 dB: the first table row.</li>
+    <li>IF 0.16 GHz: image 10.9 dB, half-IF 0.1 dB: the naive case.</li>
+    <li>Find the smallest IF where the image just meets 60 dB: about 0.43 GHz.</li>
+    <li>Switch to high-side LO: image moves to 12 GHz, the same distance, almost the same rejection.</li>
+    <li>Order 3 at IF 1 GHz: see how much image and half-IF rejection you lose.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Image rejection</td><td>Preselector order and bandwidth (filter), or image-reject IQ mixer (mixer), set against the IF chosen</td><td>≥ 60 dB at f<sub>RF</sub> − 2 GHz</td><td>Missing it: a strong emitter at the image appears as a false target or a false ESM report at the wanted frequency; noise at the image adds up to 3 dB to the noise figure</td></tr>
+    <tr><td>Half-IF rejection</td><td>Rejection f<sub>IF</sub>/2 from the band edge; mixer 2×2 balance</td><td>Filter ≥ 35 dB at f<sub>RF</sub> − 0.5 GHz</td><td>Spur 152 dB down instead of 80 dB: no false signals from neighbouring emitters</td></tr>
+    <tr><td>LO leakage rejection</td><td>Preselector rejection at f<sub>LO</sub>; mixer LO-RF isolation</td><td>≥ 60 dB at f<sub>LO</sub></td><td>Radiated LO reveals the receiver (ESM must be passive) and breaks emission limits</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> image and half-IF frequencies are usually on one side only. An asymmetric response (transmission zero placed on that side by cross-coupling) gives the rejection with less order and less loss.</li>
+    <li><b>Mixer designers:</b> IQ image-reject mixers give 20–35 dB set by amplitude and phase balance; the filter makes up the rest. Mixer spur tables (module 05) and filter rejection add in dB.</li>
+    <li><b>Synthesiser designers:</b> the LO's spurs and harmonics also mix; the preselector is what keeps the RF at their image away.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Noise at the image frequency: why can a missing image filter cost 3 dB of noise figure even with no interferer present?</summary><p>The LNA amplifies noise at both the wanted and the image frequency, and the mixer converts both to the same IF. With no image filter the IF gets twice the noise power: +3 dB. This is the "single-sideband vs double-sideband noise figure" difference.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="block">
+  <div class="secno">Step 6</div>
+  <h2>Out-of-band blocking and intermodulation protection</h2>
+  <div class="know"><h4>You already know</h4><p>From the LNA module: P1dB is where gain has dropped 1 dB; IIP3 is the input level where the extrapolated third-order product equals the fundamental; third-order products sit at 2f<sub>1</sub> − f<sub>2</sub> and 2f<sub>2</sub> − f<sub>1</sub>.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Blocker:</b> a strong unwanted signal, usually out of band, that degrades reception of a weak wanted one.</p>
+    <p><b>Desensitisation:</b> the rise in the minimum detectable signal caused by a blocker.</p>
+    <p><b>Spurious-free dynamic range (SFDR):</b> the range of input levels from the noise floor up to where IM3 products reach the noise floor.</p>
+  </div>
+  <div class="col">
+    <p>The antenna collects everything: your own transmitter's leakage, communications links, other radars, jammers. Most of it is outside your band, so it never reaches the detector, but it does reach the LNA and mixer if nothing stops it. There it does two kinds of damage. <b>Blocking</b> (desensitisation): a strong signal compresses the amplifier, so a weak in-band signal loses gain and noise rises. <b>Intermodulation</b>: two strong out-of-band signals at f<sub>1</sub> and f<sub>2</sub> create a product 2f<sub>1</sub> − f<sub>2</sub> that can land in your band, where no later filter can remove it. The preselector's rejection at f<sub>1</sub> and f<sub>2</sub> lowers both inputs before the LNA sees them.</p>
+  </div>
+  <div class="eq">P<sub>IM3,in</sub> = 2·P<sub>1</sub> + P<sub>2</sub> − 2·IIP3 &nbsp;&nbsp; with filter: P<sub>1</sub> → P<sub>1</sub> − R(f<sub>1</sub>), P<sub>2</sub> → P<sub>2</sub> − R(f<sub>2</sub>) &nbsp;&nbsp; noise floor = −174 + NF + 10·log B<small>All in dBm referred to the LNA input. The IM3 product falls by 2R(f<sub>1</sub>) + R(f<sub>2</sub>): every dB of rejection at the nearer tone is worth 2 dB of intermod. P<sub>1</sub> is the tone nearer the band.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>With no preselector the two −20 dBm tones put IM3 at 3 × (−20) − 2 × 5 = −70 dBm, 32.5 dB above the −102.5 dBm noise floor. The naive fix is a more linear LNA: IM3 falls 2 dB per dB of IIP3, so reaching the noise floor needs IIP3 +21.3 dBm instead of +5 dBm, 16 dB more, which costs a much larger device and several times the DC power. The 3-pole filter in the table does the same job for about 0.9 dB of loss (Q<sub>u</sub> 300).</p></div>
+  <h3>Side by side on one example: two signals 400 and 800 MHz above a 9.5 GHz radar band (500 MHz preselector)</h3>
+  <div class="col"><p>Each tone −20 dBm at the antenna. LNA IIP3 +5 dBm, NF 1.5 dB; receiver bandwidth 10 MHz (noise floor −102.5 dBm). Without a filter, IM3 at the band centre would be 3 × (−20) − 10 = −70 dBm: 32.5 dB above the noise, a false target in every range cell.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Preselector</th><th>R(+400 MHz)</th><th>R(+800 MHz)</th><th>IM3 at LNA input</th><th>vs noise floor</th></tr>
+    <tr><td>None</td><td class="n">0 dB</td><td class="n">0 dB</td><td class="n">−70.0 dBm</td><td class="n">+32.5 dB</td></tr>
+    <tr><td>3-pole 0.1 dB Chebyshev</td><td class="n">5.6 dB</td><td class="n">24.3 dB</td><td class="n">−105.5 dBm</td><td class="n">−3.0 dB</td></tr>
+    <tr><td>5-pole</td><td class="n">22.0 dB</td><td class="n">55.4 dB</td><td class="n">−169.4 dBm</td><td class="n">far below</td></tr>
+    <tr><td>7-pole</td><td class="n">39.7 dB</td><td class="n">86.4 dB</td><td class="n">−235.8 dBm</td><td class="n">far below</td></tr>
+  </table></div>
+  <div class="col"><p>Even the 3-pole filter turns a strong false signal into one just below the noise; the 5-pole makes it irrelevant. Compare the loss cost from Step 2: rejection and loss are bought with the same order, so the right answer is the lowest order that pushes the worst intermod product below the noise floor with margin.</p></div>
+  <h3>How to choose the rejection mask against blockers</h3>
+  <div class="col"><p>(1) List the threats: frequency and level of each strong signal at the antenna (own transmitter, co-site radios, other radars). (2) For each pair, compute IM3 at the LNA input with the formula, using the filter rejection at each tone. (3) Choose the lowest order (or add transmission zeros) so the worst IM3 is below the noise floor with margin, for example 6 dB. (4) Check the total power at the LNA against P1dB for blocking. (5) Check the loss this costs (Step 2). The nearer tone counts twice, so rejection close to the band is worth the most.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cBk" width="640" height="340" aria-label="Spectrum at the LNA input: two interferers before and after the preselector, the IM3 product they create and the noise floor"></canvas>
+    <div class="ctrl">
+      <label for="bkP"><span>Each interferer at antenna</span> <b id="bkPv"></b></label><input id="bkP" type="range" min="-50" max="10" step="1" value="-20">
+      <label for="bkD"><span>Spacing Δ (tones at f<sub>0</sub>+Δ, f<sub>0</sub>+2Δ)</span> <b id="bkDv"></b></label><input id="bkD" type="range" min="260" max="1500" step="10" value="400">
+      <label for="bkN"><span>Preselector order (0 = none)</span> <b id="bkNv"></b></label><input id="bkN" type="range" min="0" max="9" step="1" value="5">
+      <label for="bkI"><span>LNA IIP3</span> <b id="bkIv"></b></label><input id="bkI" type="range" min="-10" max="30" step="1" value="5">
+      <label for="bkC"><span>LNA input P1dB</span> <b id="bkCv"></b></label><input id="bkC" type="range" min="-30" max="10" step="1" value="-10">
+      <div class="readout" id="bkOut"></div>
+    </div>
+    <p class="cap">Centre 9.5 GHz, preselector 0.1 dB Chebyshev, 500 MHz ripple bandwidth. Hollow bars: the two tones at the antenna. Filled bars: what reaches the LNA. The orange bar at the band centre is the IM3 product 2f<sub>1</sub> − f<sub>2</sub>, referred to the LNA input. The dashed lines are the noise floor (10 MHz, NF 1.5 dB) and the LNA's P1dB. Note that with Δ below 250 MHz the tones would be inside the band, where no preselector can help.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (−20 dBm, Δ 400 MHz, N 5, IIP3 +5 dBm): IM3 −169.4 dBm, the 5-pole row.</li>
+    <li>Order 3: IM3 −105.5 dBm, 3.0 dB below noise. Order 0: −70 dBm, 32.5 dB above.</li>
+    <li>Order 0 with IIP3 +21 dBm: IM3 close to the noise floor, the naive fix.</li>
+    <li>Raise the tones to +10 dBm with order 0: the P1dB margin goes negative (compressed).</li>
+    <li>Reduce Δ towards 260 MHz: the nearer tone moves onto the skirt and IM3 rises 2 dB per dB lost at f<sub>1</sub>.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Out-of-band rejection</td><td>Order, transmission zeros, stop-band floor</td><td>≥ 22 dB at +400 MHz, ≥ 55 dB at +800 MHz</td><td>IM3 from two −20 dBm tones falls from −70 dBm (false target, +32.5 dB above noise) to −169 dBm</td></tr>
+    <tr><td>Rejection at the own transmitter / co-site emitters</td><td>Notch or band-stop sections at known frequencies</td><td>≥ 70 dB at the co-site comms band</td><td>LNA not compressed while the ship's or aircraft's own radios transmit: no desensitisation</td></tr>
+    <tr><td>Filter linearity</td><td>Avoid ferrites, magnetic plating (nickel under silver), loose joints, tuning-screw contacts</td><td>Passive IM (PIM) ≤ −140 dBc</td><td>In shared transmit/receive filters, PIM of the transmit tones lands in the receive band</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the system engineer translates the threat environment (which emitters, which levels) into your rejection mask. Ask for the reason behind each mask point: it tells you where a transmission zero earns its place.</li>
+    <li><b>LNA designers:</b> your IIP3 and the filter's rejection trade dB for dB in this calculation; agree them together. In ESM, IIP3 often matters more than NF.</li>
+    <li><b>Limiter designers:</b> the limiter protects against damage; the filter protects against linearity loss at levels far below damage. They are not substitutes.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The nearer tone gains 10 dB more rejection; the farther one stays the same. How much does IM3 fall?</summary><p>20 dB: the nearer tone enters the IM3 formula squared (2·P<sub>1</sub>).</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="tx">
+  <div class="secno">Step 7</div>
+  <h2>Transmit filtering: harmonics, spectral mask and power handling</h2>
+  <div class="know"><h4>You already know</h4><p>From the power-amplifier module: a PA driven into saturation produces harmonics at 2f<sub>0</sub>, 3f<sub>0</sub> … typically only 15–30 dB below the carrier. A rectangular pulse has a sin(x)/x spectrum whose sidelobes fall slowly.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Spectral mask:</b> a limit line of allowed emission level against frequency offset from the carrier.</p>
+    <p><b>Power handling:</b> average power (set by heating) and peak power (set by voltage breakdown in gaps, and in vacuum by <b>multipaction</b>, a resonant electron avalanche) the filter can carry.</p>
+    <p><b>Spurious domain:</b> frequencies far from the carrier (harmonics, mixing products). <b>Out-of-band domain:</b> frequencies just outside the necessary bandwidth.</p>
+    <p><b>Cut-off ratio f<sub>c</sub>/f<sub>0</sub>:</b> where the low-pass filter's pass band ends, relative to the carrier. 1.3 means the ripple band ends 30 % above f<sub>0</sub>. A lower ratio moves the skirt closer to 2f<sub>0</sub> (more rejection) but also brings the band-edge loss and delay peak closer to the carrier.</p>
+  </div>
+  <div class="col">
+    <p>On the transmit side the filter protects other users from you. Two separate problems: <b>harmonics</b>, far from the carrier, usually removed by a low-pass filter after the PA; and <b>out-of-band emission</b> close to the carrier (spectral splatter from fast pulse edges and PA nonlinearity), which must stay under a regulatory or platform <b>spectral mask</b>. Because the filter sits after the PA, its loss is not noise but <b>lost power</b>, turned into heat inside the filter.</p>
+  </div>
+  <div class="eq">P<sub>harm,out</sub> = P<sub>0</sub> + H<sub>n</sub>(dBc) − R(n·f<sub>0</sub>) &nbsp;&nbsp; P<sub>diss</sub> = P<sub>in</sub>·(1 − 10<sup>−IL/10</sup>) &nbsp;&nbsp; W<sub>stored</sub> ≈ P<sub>in</sub>·τ<sub>g</sub><small>H<sub>n</sub> is the PA's n-th harmonic level relative to the carrier. The energy stored in a filter is the power flowing through it times its group delay. At the band edges, where delay peaks, the stored energy, the resonator voltages and the risk of breakdown or multipaction all peak too.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach uses a simple maximally flat low-pass: a 5-pole Butterworth with cut-off 1.3 f<sub>0</sub> leaves the 2nd harmonic at −38.8 dBc, 21 dB above the −60 dBc limit; at 100 W that is 13 mW at 2f<sub>0</sub>. Going to 9 poles only reaches 33.7 dB of rejection (−53.7 dBc) and still fails, with almost twice the loss.</p></div>
+  <h3>Side by side on one example: 100 W (50 dBm) S-band transmitter, harmonic filter cut-off 1.3 f<sub>0</sub></h3>
+  <div class="col"><p>PA harmonics: 2nd −20 dBc, 3rd −30 dBc. Requirement: every harmonic ≤ −60 dBc.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Low-pass filter</th><th>Rejection 2f<sub>0</sub> / 3f<sub>0</sub></th><th>2nd / 3rd at output</th><th>Meets −60 dBc?</th></tr>
+    <tr><td>5-pole Butterworth</td><td class="n">18.8 / 36.3 dB</td><td class="n">−38.8 / −66.3 dBc</td><td>No (2nd)</td></tr>
+    <tr><td>7-pole 0.1 dB Chebyshev</td><td class="n">38.2 / 67.6 dB</td><td class="n">−58.2 / −97.6 dBc</td><td>No, by 1.8 dB</td></tr>
+    <tr><td>5-pole elliptic (Ω<sub>s</sub> 1.5)</td><td class="n">54.8 / 70.8 dB</td><td class="n">−74.8 / −100.8 dBc</td><td>Yes</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Loss: with Q<sub>u</sub> 200, the 5-pole elliptic dissipates 0.146 dB at f<sub>0</sub> (plus 0.06 dB reflected by its pass-band ripple), so 100 W × (1 − 10<sup>−0.0146</sup>) = <b>3.3 W of heat</b> inside the filter. With thermal resistance 5 °C/W the filter runs 16.5 °C above its base plate, which also shifts its frequency (Step 8). The elliptic's stop-band floor is not a problem here because the harmonics are at fixed frequencies where its notches can be placed.</p>
+  </div>
+  <h3>How to choose family, order and cut-off</h3>
+  <div class="col"><p>(1) Required rejection at each harmonic = PA harmonic − limit + margin: 2nd: −20 − (−60) + 6 = 46 dB. (2) Lowering f<sub>c</sub>/f<sub>0</sub> helps fastest, but keep the band edge clear of the carrier: the 7-pole Chebyshev at 1.2 gives 44.4 dB at 2f<sub>0</sub> (passes −60 dBc by 4.4 dB) but dissipates 0.29 dB (6.5 W) instead of 0.25 dB. (3) An elliptic with a transmission zero near 2f<sub>0</sub> gives the rejection with fewer poles: 5-pole elliptic, 54.8 dB. (4) Check heat and peak field at the highest power and temperature.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTx" width="640" height="320" aria-label="Transmitter harmonics before and after the harmonic filter, with the limit line"></canvas>
+    <div class="ctrl">
+      <label for="txF">Filter family</label>
+      <select id="txF"><option value="bw">Butterworth</option><option value="c01" selected>Chebyshev 0.1 dB</option><option value="el">Elliptic 0.1 dB (Ω<sub>s</sub> 1.5)</option></select>
+      <label for="txN"><span>Order N</span> <b id="txNv"></b></label><input id="txN" type="range" min="2" max="9" step="1" value="7">
+      <label for="txC"><span>Cut-off f<sub>c</sub> / f<sub>0</sub></span> <b id="txCv"></b></label><input id="txC" type="range" min="1.05" max="1.9" step="0.01" value="1.3">
+      <label for="txH"><span>PA 2nd harmonic</span> <b id="txHv"></b></label><input id="txH" type="range" min="-40" max="-10" step="1" value="-20">
+      <label for="txP"><span>PA output power</span> <b id="txPv"></b></label><input id="txP" type="range" min="30" max="63" step="1" value="50">
+      <label for="txL"><span>Limit</span> <b id="txLv"></b></label><input id="txL" type="range" min="-80" max="-40" step="1" value="-60">
+      <div class="readout" id="txOut"></div>
+    </div>
+    <p class="cap">x-axis in multiples of f<sub>0</sub>. Curve: the low-pass filter's attenuation. Hollow bars: PA output (3rd harmonic 10 dB below the 2nd, 4th 20 dB below). Filled bars: after the filter. Dashed: the limit. The filter Q<sub>u</sub> is fixed at 200 and thermal resistance at 5 °C/W for the heat readout. Pull the cut-off closer to f<sub>0</sub>: rejection improves but the pass-band edge, and its loss and delay peak, approaches the carrier.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (Chebyshev 0.1 dB, N 7, 1.3): 2nd harmonic −58.2 dBc, margin −1.8 dB FAIL, the second table row.</li>
+    <li>Elliptic, N 5: margin +14.8 dB, heat 3.3 W, the third row.</li>
+    <li>Chebyshev N 7 with cut-off 1.20: 44.4 dB, margin +4.4 dB, heat 6.5 W.</li>
+    <li>Butterworth N 5: −38.8 dBc, the naive case.</li>
+    <li>PA output 60 dBm (1 kW): the heat grows ten times while every dBc number stays the same.</li>
+  </ul></div>
+  <h3>Close to the carrier: the spectral mask</h3>
+  <div class="col"><p><b>What the pulse spectrum is.</b> A rectangular pulse of width τ has a sin(x)/x spectrum: nulls every 1/τ, and sidelobes whose envelope falls at 20 dB per decade of offset. Real pulses have rise and fall times t<sub>r</sub>; that multiplies the spectrum by a second sin(x)/x, and beyond about 1/(π·t<sub>r</sub>) the envelope falls at 40 dB per decade. For τ = 1 µs and t<sub>r</sub> = 20 ns the corners are 1 MHz and 16 MHz.</p><p><b>What the mask is and the output filter does.</b> The illustrative mask below allows 0 dB out to ±1/τ, then falls at 40 dB per decade to a −60 dB floor. An output band-pass filter of bandwidth BW (Butterworth, order N) attenuates the far sidelobes, but every filter lengthens the rise time, roughly t<sub>out</sub> ≈ √(t<sub>r</sub>² + (0.7/BW)²).</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Fast 20 ns edges and no output filter: the sidelobes between 1 and 16 MHz fall at only 20 dB per decade while the mask falls at 40, and the spectrum breaks the mask by 14.1 dB.</p></div>
+  <h3>Side by side on one example (τ = 1 µs)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Edges / filter</th><th>Worst mask margin</th><th>Rise time out</th></tr>
+    <tr><td>20 ns edges, no filter</td><td class="n">−14.1 dB</td><td class="n">20 ns</td></tr>
+    <tr><td>20 ns edges, 3-pole 20 MHz filter</td><td class="n">−7.3 dB</td><td class="n">≈ 40 ns</td></tr>
+    <tr><td>100 ns edges, no filter</td><td class="n">−0.1 dB</td><td class="n">100 ns</td></tr>
+    <tr><td>200 ns edges, no filter</td><td class="n">0.0 dB (meets)</td><td class="n">200 ns</td></tr>
+  </table></div>
+  <h3>How to choose edge shaping and the output filter</h3>
+  <div class="col"><p>(1) Shape the pulse edges first: slower edges cost no power and no filter loss; they fix the near-in violation that a filter cannot reach cheaply. (2) Then add an output filter only for what remains far out (harmonic-zone and spurious emissions). (3) Check the cost: each ns of extra rise time blurs range by 0.15 m and shortens the usable pulse; at high power the filter also dissipates (Step 7 above).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cMk" width="640" height="320" aria-label="Spectrum of a trapezoidal radar pulse before and after the output band-pass filter, against an illustrative emission mask"></canvas>
+    <div class="ctrl">
+      <label for="mkW"><span>Pulse width</span> <b id="mkWv"></b></label><input id="mkW" type="range" min="0.2" max="10" step="0.1" value="1">
+      <label for="mkR"><span>Rise / fall time</span> <b id="mkRv"></b></label><input id="mkR" type="range" min="5" max="200" step="5" value="20">
+      <label for="mkB"><span>Output filter BW</span> <b id="mkBv"></b></label><input id="mkB" type="range" min="2" max="100" step="1" value="20">
+      <label for="mkN"><span>Output filter order (0 = none)</span> <b id="mkNv"></b></label><input id="mkN" type="range" min="0" max="7" step="1" value="3">
+      <div class="readout" id="mkOut"></div>
+    </div>
+    <p class="cap">Illustrative mask: 0 dB up to ± 1/τ, then falling at 40 dB per decade of offset to a −60 dB floor (the shape used by radar emission rules; exact limits depend on the rule and radar type). Grey: the pulse spectrum envelope; teal: after a Butterworth output band-pass filter. Slow edges cut far-out splatter without a filter; a filter cuts it further but rounds the pulse (rise time readout) and costs loss at high power.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (1 µs, 20 ns, 20 MHz, 3-pole): margin unfiltered −14.1 dB, filtered −7.3 dB, the first two rows.</li>
+    <li>Rise time 100 ns: margin about −0.1 dB with no filter; 200 ns: it meets.</li>
+    <li>Filter order 0 vs 7 at 20 ns edges: the filter helps far out but the near-in violation remains.</li>
+    <li>Narrow the output filter to 2 MHz: watch the rise-time readout and the "Δ range res." cost.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Harmonic rejection</td><td>Order, family, cut-off ratio, transmission zeros at 2f<sub>0</sub> and 3f<sub>0</sub>; spurious-free stop band to 5f<sub>0</sub></td><td>≥ 55 dB at 2f<sub>0</sub>, ≥ 50 dB at 3f<sub>0</sub></td><td>Harmonics ≤ −60 dBc: no interference with other bands, own-platform receivers and ESM; meets emission rules</td></tr>
+    <tr><td>Transmit loss</td><td>Q<sub>u</sub>, order</td><td>IL ≤ 0.25 dB</td><td>0.146 dB dissipated = 3.3 W of 100 W lost as heat; 0.21 dB total ≈ −1.2 % radar range (range ∝ P<sup>1/4</sup>); the heat shifts frequency</td></tr>
+    <tr><td>Power handling</td><td>Gap sizes, radii on edges, pressurisation, material, thermal path</td><td>100 W average, 10 kW peak; multipaction-free margin ≥ 6 dB (space)</td><td>Breakdown = arcing, reflected power into the PA, permanent filter damage</td></tr>
+    <tr><td>Mask filtering</td><td>Output BPF bandwidth and order; pulse edge shaping in the modulator</td><td>Emission ≤ mask, rise time ≤ 50 ns</td><td>Legal operation, co-site compatibility; but a filter too narrow lengthens rise time and degrades range resolution</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> for transmit filters, the highest field is in the resonator with the largest stored energy, usually near the input at the band edge. Test at the band edge, at full peak power, hot.</li>
+    <li><b>PA designers:</b> each dB of harmonic you remove inside the PA (harmonic tuning, push-pull) is a dB the filter need not provide, with less loss. The filter's out-of-band VSWR (it reflects the harmonics) also sets the PA's harmonic load impedance.</li>
+    <li><b>Jammer designers:</b> a wideband jammer cannot use a narrow output filter; a switched or tunable mask filter follows the jamming band, and its switching speed limits how fast the jammer can hop.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A filter after a 1 kW PA has 0.4 dB loss. How much heat?</summary><p>1 000 × (1 − 10<sup>−0.04</sup>) = 88 W. That is a heatsink problem and a frequency-drift problem, not just a 0.4 dB problem.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="tech">
+  <div class="secno">Step 8</div>
+  <h2>Technology choices and temperature drift: LC, printed, ceramic, cavity, SAW/BAW, YIG and switched banks</h2>
+  <div class="know"><h4>You already know</h4><p>How to build at least one of these technologies. Every material expands with temperature and every dielectric constant changes with temperature.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>TCF / τ<sub>f</sub>:</b> fractional frequency change per °C, in ppm/°C. <b>Guard band:</b> extra filter bandwidth beyond the wanted channel to absorb drift and manufacturing tolerance.</p>
+    <p><b>YIG:</b> yttrium iron garnet, a ferrimagnetic sphere whose resonance frequency is proportional to the applied magnetic field (about 2.8 MHz per oersted), so a current in a coil tunes it over decades. It tunes in milliseconds, shows hysteresis, and its tuning coil makes it slow and power-hungry.</p>
+  </div>
+  <div class="col">
+    <p>Steps 1 and 2 showed that the required Q<sub>u</sub> follows from the bandwidth and loss specification. The technology table turns that Q<sub>u</sub> into a choice, with its size, power limit and temperature behaviour. Temperature matters because the centre frequency moves: if a filter shifts by more than the margin between its pass band and the wanted channel, the channel edge falls down the skirt and the loss there rises sharply.</p>
+  </div>
+  <div class="eq">Δf = TCF · f<sub>0</sub> · ΔT · 10<sup>−6</sup> &nbsp;&nbsp; cavity in one metal: TCF ≈ −α (thermal expansion) &nbsp;&nbsp; dielectric-loaded: TCF ≈ −(α + ½·TCε)<small>TCF (temperature coefficient of frequency) in ppm/°C. An all-aluminium cavity grows by α = 23 ppm/°C, so its frequency falls by 23 ppm/°C: 10 GHz × 23 ppm × 60 °C = 13.8 MHz. Ceramic resonators are formulated so that the expansion and permittivity change cancel (τ<sub>f</sub> ≈ 0 ± 5 ppm/°C).</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach chooses the technology for Q<sub>u</sub> alone. A 20 MHz (0.2 %) channel filter at 10 GHz in an aluminium cavity has excellent Q<sub>u</sub>, but over −40 to +85 °C it moves 10 GHz × 23 ppm/°C × 125 °C = 28.8 MHz, more than its whole pass band: at one end of the temperature range the wanted channel sits on the skirt.</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>Technology</th><th>Typical range</th><th>Q<sub>u</sub></th><th>TCF (ppm/°C)</th><th>Power</th><th>Typical use</th></tr>
+    <tr><td>Lumped LC (chip L and C)</td><td>10 MHz – 3 GHz</td><td class="n">50 – 150</td><td class="n">+30 … +100</td><td>≈ 1–10 W</td><td>IF filters, anti-alias, wide preselectors at low frequency</td></tr>
+    <tr><td>Printed: microstrip, stripline, suspended stripline</td><td>1 – 40 GHz</td><td class="n">100 – 300 (susp. 500–1 000)</td><td class="n">−20 … −60</td><td>10–100 W</td><td>Wide ESM sub-bands, image filters, harmonic LPFs</td></tr>
+    <tr><td>Ceramic coaxial / dielectric resonator</td><td>0.3 – 8 GHz</td><td class="n">300 – 1 500</td><td class="n">0 ± 5</td><td>10–100 W</td><td>Compact narrow preselectors, duplexers</td></tr>
+    <tr><td>Air cavity, combline, waveguide</td><td>0.5 – 100 GHz</td><td class="n">2 000 – 20 000</td><td class="n">−23 (Al), −1.5 (Invar)</td><td>kW – MW peak</td><td>Low-loss radar preselectors, transmit filters</td></tr>
+    <tr><td>SAW (surface acoustic wave)</td><td>30 MHz – 2.5 GHz</td><td class="n">IL 1.5–3 dB typ.</td><td class="n">−35 … −45 (TC-SAW −10)</td><td>≲ 1 W</td><td>Very steep, small IF filters, pulse-compression delay lines</td></tr>
+    <tr><td>BAW / FBAR (bulk acoustic wave)</td><td>1.5 – 10 GHz</td><td class="n">1 000 – 3 000</td><td class="n">−20 … −30</td><td>≈ 1–3 W</td><td>Tiny steep RF filters below 10 GHz</td></tr>
+    <tr><td>YIG (tunable, magnetic)</td><td>0.5 – 40 GHz, tunable</td><td class="n">1 000 – 5 000</td><td class="n">≈ 10 (equivalent, compensated)</td><td>limits above ≈ 0 to +10 dBm</td><td>Tracking preselectors in scanning ESM and spectrum analysers</td></tr>
+    <tr><td>Switched filter bank</td><td>multi-octave in sub-bands</td><td class="n">per filter + switch loss 1–2 dB</td><td class="n">per filter</td><td>set by switches</td><td>ESM and wideband receivers: one sub-band at a time, 50–200 ns switching</td></tr>
+  </table></div>
+  <h3>Side by side on one example: drift over −40 to +85 °C at 10 GHz, 5-pole filter 5 % wide</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Technology</th><th>TCF</th><th>Shift over 125 °C</th><th>As a fraction of 500 MHz</th></tr>
+    <tr><td>Aluminium cavity</td><td class="n">−23 ppm/°C</td><td class="n">28.8 MHz</td><td class="n">5.8 %</td></tr>
+    <tr><td>Suspended stripline</td><td class="n">−40 ppm/°C</td><td class="n">50 MHz</td><td class="n">10 %</td></tr>
+    <tr><td>Invar cavity</td><td class="n">−1.5 ppm/°C</td><td class="n">1.9 MHz</td><td class="n">0.4 %</td></tr>
+  </table></div>
+  <div class="col"><p>For a 5 % wide filter these drifts are a small slice of the band. For a narrow filter they are not: a 20 MHz (0.2 %) cavity channel at 10 GHz would move by more than its own width. Narrow filters therefore need temperature-compensated construction (bimetal tuning, Invar, ceramic), a heater, or a guard band that widens the filter (and costs selectivity).</p></div>
+  <h3>How to choose the technology</h3>
+  <div class="col"><p>(1) Q<sub>u</sub> needed from the bandwidth and loss (Steps 1, 2) narrows the list. (2) Frequency range rules out some (SAW above about 2.5 GHz, lumped LC above about 3 GHz). (3) Drift budget: the shift over the temperature range should be a small part of the guard band. With a channel 80 % of the filter bandwidth the guard is 10 % on each side, so keep |TCF|·f<sub>0</sub>·ΔT well inside it, or widen the filter, or compensate (Invar, ceramic τ<sub>f</sub> ≈ 0, heater). (4) Power handling (Step 7), size and weight, and for tunable filters the tuning or switching speed (Step 9).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTc" width="640" height="320" aria-label="Filter response at 25 °C and at the chosen temperature for the chosen technology, with the wanted channel marked"></canvas>
+    <div class="ctrl">
+      <label for="tcT">Technology</label>
+      <select id="tcT"><option value="lc">Lumped LC</option><option value="ms">Microstrip / stripline</option><option value="ss">Suspended stripline</option><option value="cer">Ceramic coaxial</option><option value="cav" selected>Aluminium cavity</option><option value="inv">Invar cavity</option><option value="saw">SAW (LiTaO₃)</option><option value="baw">BAW / FBAR</option><option value="yig">YIG (compensated)</option></select>
+      <label for="tcF"><span>Centre frequency</span> <b id="tcFv"></b></label><input id="tcF" type="range" min="0.2" max="18" step="0.1" value="10">
+      <label for="tcB"><span>Filter ripple BW (% of f<sub>0</sub>)</span> <b id="tcBv"></b></label><input id="tcB" type="range" min="0.2" max="10" step="0.1" value="1">
+      <label for="tcK"><span>Temperature</span> <b id="tcKv"></b></label><input id="tcK" type="range" min="-55" max="125" step="1" value="85">
+      <div class="readout" id="tcOut"></div>
+    </div>
+    <p class="cap">5-pole 0.1 dB Chebyshev. Dashed: response at 25 °C. Solid: at the chosen temperature, including the band-edge loss from the technology's Q<sub>u</sub> (Step 2). The shaded band is the wanted channel, 80 % of the filter's ripple bandwidth, so the filter has a 10 % guard band on each side. Readout shows the loss at the worse channel edge. The readout says when the centre frequency is outside the technology's usual range.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (aluminium cavity, 10 GHz, 1 %, 85 °C): shift −13.8 MHz, channel-edge loss 1.07 → 2.73 dB.</li>
+    <li>Invar cavity at the same settings: shift −0.9 MHz and the edge loss barely changes.</li>
+    <li>Temperature −55 °C: the aluminium cavity moves the other way, +18.4 MHz.</li>
+    <li>Filter BW 0.2 %: the aluminium cavity shift is now larger than the guard band.</li>
+    <li>SAW at 10 GHz: the readout says the frequency is outside its usual range.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Technology / Q<sub>u</sub></td><td>Cavity vs printed vs acoustic vs YIG</td><td>IL, size, weight, power</td><td>IL before LNA → range (Step 2); size and weight per channel × number of channels in an array or filter bank</td></tr>
+    <tr><td>Temperature drift</td><td>Materials (Al, Invar, ceramic τ<sub>f</sub>), compensation, heater</td><td>Δf ≤ ± 2 MHz over −40 … +85 °C</td><td>Channel-edge loss rises (sensitivity drops at hot/cold edges); image rejection falls if the skirt moves towards the image; in pairs of channels, phase tracking errors</td></tr>
+    <tr><td>Tuning speed (YIG) / switching time (bank)</td><td>Coil inductance and driver; PIN or GaAs switch design</td><td>YIG: ≈ 1 ms per GHz step; bank: ≤ 100 ns</td><td>Revisit time and probability of intercept in scanning ESM (Step 9)</td></tr>
+    <tr><td>YIG limiting and spurious modes</td><td>Sphere size, coupling loops, magnetic shielding</td><td>Linear to 0 dBm; spurious ≥ 40 dB down</td><td>Strong signals limit or create spurious responses; magnetic fields from nearby equipment detune the filter</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> put TCF on your test sheet, measured over the full system temperature range, including the filter's own heating in transmit (Step 7).</li>
+    <li><b>Mechanical designers:</b> mixed materials (aluminium housing, brass screws, steel inserts) give TCF values that are not in any table; measure them.</li>
+    <li><b>Switch designers:</b> in a switched bank, your switch loss is the filter bank's loss, and your isolation (unselected paths) sets the bank's out-of-band rejection floor.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why are acoustic (SAW/BAW) filters so small for their Q?</summary><p>The acoustic wave travels about 10<sup>5</sup> times slower than light, so a resonator a fraction of an acoustic wavelength long is tiny. The price: low power handling, limited top frequency, and higher TCF unless temperature-compensated.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="esm">
+  <div class="secno">Step 9</div>
+  <h2>ESM: preselector bandwidth versus probability of intercept</h2>
+  <div class="know"><h4>You already know</h4><p>An ESM (electronic support measures) receiver listens for radar signals over a very wide band, for example 2–18 GHz, to detect, measure and identify them. Sensitivity improves as bandwidth falls (10·log B).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous bandwidth (IBW):</b> the frequency range processed at one time.</p>
+    <p><b>Dwell time:</b> how long a scanning receiver stays at one frequency step, including tuning or switching and settling time.</p>
+    <p><b>Probability of intercept (POI):</b> probability that a given emitter is detected within a given time.</p>
+    <p><b>Pulse density:</b> radar pulses per second arriving in the receiver's band. Overlapping pulses corrupt the measurements.</p>
+  </div>
+  <div class="col">
+    <p>A radar receiver knows its own frequency. An ESM receiver does not: the emitter can be anywhere in 16 GHz, and its main beam may sweep past the ESM antenna for only a few milliseconds per antenna rotation. The ESM designer must choose an <b>instantaneous bandwidth</b> (IBW), the band the receiver sees at one moment, set by the preselector. Wide open, it sees every emitter all the time but with poor sensitivity and a crowded, intermod-prone band. Narrow, it is sensitive and clean, but must step or sweep the narrow window across the band, and may be looking elsewhere when the emitter's beam passes. The chance of being in the right place at the right time is the <b>probability of intercept (POI)</b>.</p>
+  </div>
+  <div class="eq">M = ⌈span / IBW⌉ steps &nbsp;&nbsp; T<sub>revisit</sub> = M · T<sub>dwell</sub> &nbsp;&nbsp; POI ≈ min(1, (T<sub>on</sub> + T<sub>dwell</sub>) / T<sub>revisit</sub>) &nbsp;&nbsp; S = −174 + NF + 10·log B + SNR<small>T<sub>on</sub> is how long the emitter's beam illuminates the ESM per scan. T<sub>dwell</sub> includes tuning or switching time. A simple single-look model: the receiver catches the emitter if one of its dwells overlaps the illumination. A channelised receiver (all filters in parallel) has POI = 1 with narrow channels, at the cost of one receiver per channel.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach opens the receiver to the whole 2–18 GHz band. POI is 100 %, but the sensitivity is −47 dBm, and at 200 000 pulses per second in the band each 1 µs pulse has a 1 − e<sup>−0.4</sup> = 33 % chance of overlapping another, corrupting its measurements. The opposite naive choice, a 50 MHz YIG, is 25 dB more sensitive but catches a 20 ms illumination only 3.2 % of the time.</p></div>
+  <h3>Side by side on one example: 2–18 GHz, emitter beam on the ESM for 20 ms per scan</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Preselector</th><th>IBW</th><th>Steps</th><th>Revisit</th><th>Single-look POI</th><th>Sensitivity (NF 10 dB, SNR 15 dB)</th></tr>
+    <tr><td>Wide open</td><td class="n">16 GHz</td><td class="n">1</td><td class="n">—</td><td class="n">100 %</td><td class="n">−47.0 dBm</td></tr>
+    <tr><td>Switched bank, 8 bands, 2 ms dwell (+ 100 ns switching)</td><td class="n">2 GHz</td><td class="n">8</td><td class="n">16 ms</td><td class="n">100 %</td><td class="n">−56.0 dBm</td></tr>
+    <tr><td>YIG 50 MHz, 2 ms dwell + 0.2 ms tuning</td><td class="n">50 MHz</td><td class="n">320</td><td class="n">704 ms</td><td class="n">3.2 %</td><td class="n">−72.0 dBm</td></tr>
+    <tr><td>Channelised, 320 × 50 MHz</td><td class="n">50 MHz each</td><td class="n">1</td><td class="n">—</td><td class="n">100 %</td><td class="n">−72.0 dBm</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The YIG is 25 dB more sensitive than wide open, which is about 18 times the detection range (ESM range goes as 10<sup>ΔS/20</sup>), but it catches a 20 ms illumination only 3.2 % of the time per scan. The switched bank is the common compromise: 9 dB better than wide open and still 100 % POI in this scenario. The channelised receiver gets both, at the cost of 320 parallel channels, which is why digital channelisers (module 11) exist.</p>
+  </div>
+  <h3>How to choose the instantaneous bandwidth and preselector type</h3>
+  <div class="col"><p>(1) The weakest emitter at the longest range sets the sensitivity, and so the largest IBW: each halving of IBW gains 3 dB. (2) The shortest illumination T<sub>on</sub> sets the largest number of steps: POI ≈ (T<sub>on</sub> + T<sub>dwell</sub>)/(M·T<sub>dwell</sub>) ≥ target. With 20 ms, 2 ms dwell and a 100 % target, M ≤ 11. (3) Pulse density sets an upper limit on IBW for clean measurements. (4) If no single IBW meets (1)–(3), go parallel: a channelised receiver, at the cost of one channel per sub-band. (5) The switching or tuning time adds to each dwell.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPo" width="640" height="320" aria-label="Sensitivity and probability of intercept against instantaneous bandwidth for the chosen ESM preselector"></canvas>
+    <div class="ctrl">
+      <label for="poT">Preselector type</label>
+      <select id="poT"><option value="wide">Wide open</option><option value="bank" selected>Switched filter bank</option><option value="yig">Scanning YIG</option><option value="chan">Channelised (parallel)</option></select>
+      <label for="poB"><span>IBW / sub-band (log)</span> <b id="poBv"></b></label><input id="poB" type="range" min="1.3" max="4.2" step="0.001" value="3.302">
+      <label for="poD"><span>Dwell per step</span> <b id="poDv"></b></label><input id="poD" type="range" min="0.1" max="20" step="0.1" value="2">
+      <label for="poO"><span>Emitter on time per scan</span> <b id="poOv"></b></label><input id="poO" type="range" min="1" max="100" step="1" value="20">
+      <label for="poE"><span>Pulse density</span> <b id="poEv"></b></label><input id="poE" type="range" min="10" max="2000" step="10" value="200">
+      <div class="readout" id="poOut"></div>
+    </div>
+    <p class="cap">Span 2–18 GHz, receiver NF 10 dB, SNR 15 dB, pulse width 1 µs; each step adds 0.2 ms tuning (YIG) or 100 ns switching (bank) to the dwell. Teal: sensitivity (left axis, dBm, lower is better). Orange: single-look POI (right axis, %). The dot is your choice. "Wide open" ignores the IBW slider (it is always 16 GHz); "channelised" always has POI 100 % and reports how many channels it needs. Pulse density is in thousands of pulses per second over the whole 16 GHz; the overlap readout is the chance that a pulse is hit by another in the same IBW.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (switched bank, 2 GHz, 2 ms, 20 ms, 200 k/s): 8 steps, POI 100 %, sensitivity −56 dBm (9 dB better than wide open), overlap 4.9 %.</li>
+    <li>Scanning YIG at 50 MHz: POI 3.2 %, sensitivity −72 dBm, the table row.</li>
+    <li>Wide open: POI 100 %, sensitivity −47 dBm, overlap about 33 %.</li>
+    <li>Channelised at 50 MHz: POI 100 % and −72 dBm, but 320 parallel channels.</li>
+    <li>Bank with a 50 ms illumination: count the looks per illumination.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Sub-band width (IBW)</td><td>Number of filters in the bank, YIG bandwidth</td><td>8 sub-bands of 2 GHz</td><td>Sensitivity −56 dBm vs −47 dBm wide open (≈ 2.8 × detection range); fewer simultaneous signals per band</td></tr>
+    <tr><td>Switching / tuning time</td><td>Switch technology, YIG driver</td><td>≤ 100 ns (bank); 1 ms/GHz (YIG)</td><td>Part of every dwell: slow switching lengthens revisit and lowers POI</td></tr>
+    <tr><td>Crossover loss between sub-bands</td><td>Filter overlap, diplexer/multiplexer design</td><td>≤ 3 dB at crossover</td><td>Sensitivity hole at sub-band edges; emitters there may be missed or reported twice</td></tr>
+    <tr><td>Sub-band rejection</td><td>Order, switch isolation</td><td>≥ 50 dB one sub-band away</td><td>A strong emitter in a neighbouring band does not desensitise or create spurs in the band being searched</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter bank designers:</b> your crossover point and loss are what the ESM operator sees as "holes" in coverage. Specify the crossover loss as carefully as the mid-band loss.</li>
+    <li><b>YIG designers:</b> tuning speed and settling time are system parameters: halving them doubles the scan rate and the POI.</li>
+    <li><b>Receiver and DSP designers:</b> channelising digitally after a switched bank combines bank selectivity with parallel-channel POI (modules 09 and 11).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>With the YIG at 50 MHz (320 steps) and 0.2 ms tuning per step, how short must the dwell become to reach 50 % POI against a 20 ms illumination?</summary><p>With x = dwell + tuning: (20 + x)/(320·x) = 0.5 → x ≈ 0.126 ms. That is less than the 0.2 ms tuning time alone, so 50 % is impossible: even zero dwell gives (20.2)/(64) ≈ 32 %. A dwell shorter than the radar PRI would miss pulses anyway. The practical answers are a wider IBW, a faster tuner, or parallel channels.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: every filter parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Unloaded Q (Q<sub>u</sub>)</td><td>Technology, resonator size, plating, dielectric loss</td><td>Sets loss for any bandwidth: IL ∝ Σg/(FBW·Q<sub>u</sub>)</td></tr>
+    <tr><td>Insertion loss before LNA</td><td>Q<sub>u</sub>, order, bandwidth, family</td><td>Adds dB for dB to system NF: 1.93 dB stripline vs 0.19 dB cavity ≈ −9.5 % radar range</td></tr>
+    <tr><td>Band-edge loss</td><td>Group-delay peak of the family</td><td>Worst-channel sensitivity; must be used in the system budget</td></tr>
+    <tr><td>Bandwidth</td><td>Inter-resonator coupling, external Q</td><td>Noise bandwidth (10·log B); selectivity; signal fidelity (filter ≈ 1.5–2 × signal BW)</td></tr>
+    <tr><td>Ripple / return loss</td><td>Family, ε, tuning</td><td>Gain flatness; paired echoes (0.5 dB p-p ≈ −37 dB); LNA mismatch</td></tr>
+    <tr><td>Rejection and shape factor</td><td>Order, family, transmission zeros</td><td>Image, half-IF, blocking and intermod protection; adjacent-channel separation</td></tr>
+    <tr><td>Stop-band floor / re-entry</td><td>Elliptic minimum, housing leakage, spurious modes, switch isolation</td><td>Far-off strong signals leak through regardless of the nominal skirt</td></tr>
+    <tr><td>Group delay and its variation</td><td>Family, bandwidth margin, equalisers, tuning, interconnect mismatch</td><td>Rise time (≈ 0.7/BW), chirp dispersion, compressed sidelobes (1 ns pk ripple, 20 MHz period → −40 dB echoes)</td></tr>
+    <tr><td>Image rejection</td><td>Preselector vs IF choice; IQ mixer</td><td>False signals at the image; up to 3 dB more noise without an image filter</td></tr>
+    <tr><td>Half-IF rejection</td><td>Rejection f<sub>IF</sub>/2 from the band; mixer 2×2</td><td>Each filter dB = 2 dB less 2×2 spur (80 → 152 dB total in the example)</td></tr>
+    <tr><td>Out-of-band blocking / IM protection</td><td>Rejection at the threat frequencies</td><td>IM3 falls by 2R(f<sub>1</sub>) + R(f<sub>2</sub>): −70 dBm false target → −169 dBm</td></tr>
+    <tr><td>Harmonic rejection</td><td>Low-pass order, cut-off, zeros at n·f<sub>0</sub></td><td>Harmonics −20 dBc → −75 dBc with a 5-pole elliptic</td></tr>
+    <tr><td>Spectral-mask filtering</td><td>Output BPF, pulse edge shaping</td><td>Legal emission and co-site compatibility, traded against rise time</td></tr>
+    <tr><td>Power handling and transmit loss</td><td>Gaps, radii, materials, thermal path</td><td>0.146 dB at 100 W = 3.3 W heat; breakdown or multipaction at band-edge peak fields</td></tr>
+    <tr><td>Temperature drift (TCF)</td><td>Materials, compensation, heater</td><td>Channel-edge loss and image rejection change with temperature; Al cavity −23 ppm/°C = 28.8 MHz at 10 GHz over 125 °C</td></tr>
+    <tr><td>Tunable / switched preselector</td><td>YIG speed, switch speed, number of sub-bands</td><td>ESM sensitivity vs probability of intercept vs pulse overlap</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M01-lna-noise.html">LNA and receiver noise</a> (Friis, sensitivity, blocking from the LNA side); <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (LO spurs and chirp phase errors that share the sidelobe budget). The radar pages R4 and R5 and the receiver/ESM and transmit/jamming parts use these filter numbers in full chains.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Band-edge loss</dt><dd>Insertion loss at the edge of the pass band; larger than mid-band because group delay peaks there.</dd>
+    <dt>Blocking / desensitisation</dt><dd>Loss of sensitivity caused by a strong unwanted signal compressing an amplifier or mixer.</dd>
+    <dt>Butterworth</dt><dd>Filter family with maximally flat pass band and moderate skirt; the flattest group delay of the three classic families.</dd>
+    <dt>Channelised receiver</dt><dd>A receiver that splits the band into many filters processed in parallel, giving 100 % intercept with narrow channels.</dd>
+    <dt>Chebyshev</dt><dd>All-pole family with equal ripple in the pass band, steeper skirts than Butterworth for the same order.</dd>
+    <dt>Cohn's formula</dt><dd>IL ≈ 4.343·Σg/(FBW·Q<sub>u</sub>) dB: mid-band dissipation loss of an N-resonator filter.</dd>
+    <dt>Dispersion</dt><dd>Signal distortion from group delay that varies with frequency.</dd>
+    <dt>Elliptic (Cauer)</dt><dd>Family with ripple in both pass and stop band and transmission zeros; steepest skirt, but a fixed stop-band floor.</dd>
+    <dt>External Q (Q<sub>e</sub>)</dt><dd>Q counting only the energy that leaves through the ports; set by input/output coupling.</dd>
+    <dt>Fractional bandwidth (FBW)</dt><dd>Bandwidth divided by centre frequency.</dd>
+    <dt>Frequency plan</dt><dd>Choice of IFs, LOs and filters so that images and spurs fall where they can be filtered.</dd>
+    <dt>g-values</dt><dd>Normalised element values of a low-pass prototype filter.</dd>
+    <dt>Group delay (τ<sub>g</sub>)</dt><dd>−(1/2π)·dφ/df; the time the envelope of a narrowband signal takes to pass through.</dd>
+    <dt>Group delay variation</dt><dd>Peak-to-peak change of group delay over a stated band.</dd>
+    <dt>Guard band</dt><dd>Extra filter bandwidth beyond the wanted channel, to absorb drift and tolerance.</dd>
+    <dt>Half-IF spur</dt><dd>Mixer 2×2 response at f<sub>RF</sub> ∓ f<sub>IF</sub>/2, from second harmonics of RF and LO.</dd>
+    <dt>Image</dt><dd>The second RF frequency that converts to the same IF: f<sub>RF</sub> ∓ 2f<sub>IF</sub>.</dd>
+    <dt>Instantaneous bandwidth (IBW)</dt><dd>The frequency range a receiver processes at one time.</dd>
+    <dt>Insertion loss (IL)</dt><dd>Pass-band loss of the filter compared with a through line, in dB.</dd>
+    <dt>Loaded Q (Q<sub>L</sub>)</dt><dd>Q including both internal loss and loss to the ports; sets the bandwidth: BW = f<sub>0</sub>/Q<sub>L</sub>.</dd>
+    <dt>Matched filter</dt><dd>Correlation of the received signal with a copy of the transmitted waveform; gives maximum SNR and compresses a chirp.</dd>
+    <dt>Multipaction</dt><dd>Resonant electron avalanche between metal surfaces in vacuum at high RF field; a peak-power limit for space filters.</dd>
+    <dt>Paired echoes</dt><dd>Two false sidelobes either side of a compressed pulse, caused by sinusoidal amplitude or phase (delay) ripple.</dd>
+    <dt>Preselector</dt><dd>The first filter in a receiver, deciding which band the rest of the receiver sees.</dd>
+    <dt>Probability of intercept (POI)</dt><dd>Probability that an ESM receiver detects a given emitter within a given time.</dd>
+    <dt>PSLR</dt><dd>Peak sidelobe ratio: highest sidelobe relative to the main peak, in dB.</dd>
+    <dt>Rejection</dt><dd>Attenuation at a stop-band frequency, relative to the pass-band loss.</dd>
+    <dt>Ripple</dt><dd>Peak-to-peak loss variation across the pass band.</dd>
+    <dt>Ripple bandwidth</dt><dd>The bandwidth over which a Chebyshev or elliptic filter stays within its ripple.</dd>
+    <dt>SAW / BAW</dt><dd>Surface / bulk acoustic wave resonators: very small, steep filters, limited in frequency and power.</dd>
+    <dt>Shape factor</dt><dd>Ratio of the 40 dB or 60 dB bandwidth to the 3 dB bandwidth.</dd>
+    <dt>Spectral mask</dt><dd>Limit on emitted power against frequency offset from the carrier.</dd>
+    <dt>Switched filter bank</dt><dd>A set of sub-band filters selected one at a time by switches.</dd>
+    <dt>TCF (τ<sub>f</sub>)</dt><dd>Temperature coefficient of frequency, in ppm/°C.</dd>
+    <dt>Transmission zero</dt><dd>A frequency where the filter's transmission is zero (a notch).</dd>
+    <dt>Unloaded Q (Q<sub>u</sub>)</dt><dd>Q of the resonator from its internal losses only; a property of the technology.</dd>
+    <dt>YIG</dt><dd>Yttrium iron garnet: a magnetically tuned resonator used in tunable preselectors.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Matthaei, Young and Jones, <i>Microwave Filters, Impedance-Matching Networks, and Coupling Structures</i>; Hong and Lancaster, <i>Microstrip Filters for RF/Microwave Applications</i>; Cameron, Kudsia and Mansour, <i>Microwave Filters for Communication Systems</i>; Pozar, <i>Microwave Engineering</i>; Zverev, <i>Handbook of Filter Synthesis</i>; Skolnik, <i>Introduction to Radar Systems</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+
+/* ---- filter maths ---- */
+/* filter maths library: shared between node checks and the page */
+const Cx=(r,i)=>({r,i});
+const cadd=(a,b)=>Cx(a.r+b.r,a.i+b.i), csub=(a,b)=>Cx(a.r-b.r,a.i-b.i), cmul=(a,b)=>Cx(a.r*b.r-a.i*b.i,a.r*b.i+a.i*b.r);
+const cabs=a=>Math.hypot(a.r,a.i);
+function cdiv(a,b){ const d=b.r*b.r+b.i*b.i; return Cx((a.r*b.r+a.i*b.i)/d,(a.i*b.r-a.r*b.i)/d); }
+/* polynomials: real coefficient arrays, index = power */
+function pmul(a,b){ const r=new Array(a.length+b.length-1).fill(0); for(let i=0;i<a.length;i++) for(let j=0;j<b.length;j++) r[i+j]+=a[i]*b[j]; return r; }
+function padd(a,b){ const n=Math.max(a.length,b.length), r=[]; for(let i=0;i<n;i++) r.push((a[i]||0)+(b[i]||0)); return r; }
+function pscale(a,s){ return a.map(v=>v*s); }
+function pevalC(p,z){ let r=Cx(0,0); for(let i=p.length-1;i>=0;i--) r=cadd(cmul(r,z),Cx(p[i],0)); return r; }
+function pevalR(p,x){ let r=0; for(let i=p.length-1;i>=0;i--) r=r*x+p[i]; return r; }
+/* Durand-Kerner roots of a real polynomial */
+function roots(p){ let n=p.length-1; while(n>0&&Math.abs(p[n])<1e-300) n--; const a=p.slice(0,n+1).map(v=>v/p[n]);
+  let z=[]; for(let i=0;i<n;i++) z.push(cmul(Cx(0.9,0),{r:Math.cos(TAU*i/n+0.4),i:Math.sin(TAU*i/n+0.4)}));
+  for(let it=0;it<800;it++){ let mx=0; for(let i=0;i<n;i++){ let den=Cx(1,0); for(let j=0;j<n;j++) if(j!==i) den=cmul(den,csub(z[i],z[j]));
+      const d=cdiv(pevalC(a,z[i]),den); z[i]=csub(z[i],d); mx=Math.max(mx,cabs(d)); } if(mx<1e-13) break; }
+  return z; }
+/* elliptic helpers (Orfanidis): Landen sequence and cd(uK,k) for real u */
+function landen(k){ const v=[]; for(let n=0;n<8;n++){ k=Math.pow(k/(1+Math.sqrt(1-k*k)),2); v.push(k); } return v; }
+function cde(u,k){ const v=landen(k); let w=Math.cos(u*Math.PI/2); for(let n=v.length-1;n>=0;n--) w=(1+v[n])*w/(1+v[n]*w*w); return w; }
+/* Chebyshev polynomial T_N coefficients */
+function chebT(N){ let a=[1], b=[0,1]; if(N===0) return a; for(let n=2;n<=N;n++){ const c=padd(pscale([0].concat(b),2),pscale(a,-1)); a=b; b=c; } return b; }
+/* lowpass prototype. fam: 'bw' Butterworth, 'c01','c05','c1' Chebyshev ripple, 'el' elliptic (ripple 0.1 dB, selectivity ws)
+   returns {eps, P, Q, poles(s-plane LHP), zeros (jw axis transmission zero freqs), mag2(W), H(W) complex, tau(W)} */
+const FAM={bw:{n:'Butterworth',r:0},c01:{n:'Chebyshev 0.1 dB',r:0.1},c05:{n:'Chebyshev 0.5 dB',r:0.5},c1:{n:'Chebyshev 1 dB',r:1},el:{n:'Elliptic 0.1 dB',r:0.1}};
+const protoCache={};
+function proto(fam,N,ws){ ws=ws||1.5; const key=fam+'|'+N+'|'+(fam==='el'?ws.toFixed(3):'');
+  if(protoCache[key]) return protoCache[key];
+  let P,Q=[1],eps,tz=[];
+  if(fam==='bw'){ eps=1; P=new Array(N).fill(0).concat([1]); }
+  else if(fam==='el'){ eps=Math.sqrt(lin(FAM[fam].r)-1); const k=1/ws; const zs=[]; const L=Math.floor(N/2);
+    for(let i=1;i<=L;i++) zs.push(cde((2*i-1)/N,k));
+    P=[1]; if(N%2) P=[0,1]; zs.forEach(z=>{ P=pmul(P,[-z*z,0,1]); Q=pmul(Q,[-1/(k*k*z*z),0,1]); tz.push(1/(k*z)); });
+    const s=pevalR(Q,1)/pevalR(P,1); P=pscale(P,s); }
+  else { eps=Math.sqrt(lin(FAM[fam].r)-1); P=chebT(N); }
+  /* E(x)=Q^2+eps^2 P^2 ; |H|^2 = Q^2/E ; x=W. Roots in x, s=j x; keep LHP */
+  const E=padd(pmul(Q,Q),pscale(pmul(P,P),eps*eps));
+  const rx=roots(E); const poles=rx.map(x=>Cx(-x.i,x.r)).filter(s=>s.r<0);
+  const R=W=>pevalR(P,W)/pevalR(Q,W);
+  const mag2=W=>{ const q=pevalR(Q,W), p=pevalR(P,W); return q*q/(q*q+eps*eps*p*p); };
+  const Hraw=W=>{ let num=Cx(1,0); tz.forEach(z=>{ num=cmul(num,Cx(z*z-W*W,0)); }); let den=Cx(1,0); poles.forEach(p=>{ den=cmul(den,csub(Cx(0,W),p)); }); return cdiv(num,den); };
+  const Wref=0.3; const sc=Math.sqrt(mag2(Wref))/cabs(Hraw(Wref));
+  const H=W=>{ const h=Hraw(W); return Cx(h.r*sc,h.i*sc); };
+  const tau=W=>{ let t=0; poles.forEach(p=>{ t+=-p.r/(p.r*p.r+(W-p.i)*(W-p.i)); }); return t; };
+  const out={fam,N,eps,P,Q,poles,tz,R,mag2,H,tau,ws};
+  protoCache[key]=out; return out; }
+const attdB=(pr,W)=>-db(Math.max(pr.mag2(W),1e-30));
+/* bandpass mapping */
+const bpW=(f,f0,bw)=>(f/f0-f0/f)*f0/bw;
+/* Chebyshev / Butterworth g-values (for Cohn table) */
+function gvals(fam,N){ const g=[]; if(fam==='bw'){ for(let k=1;k<=N;k++) g.push(2*Math.sin((2*k-1)*Math.PI/(2*N))); return g; }
+  const Lr=FAM[fam].r; const beta=Math.log(1/Math.tanh(Lr/17.37)); const gam=Math.sinh(beta/(2*N));
+  const a=k=>Math.sin((2*k-1)*Math.PI/(2*N)), b=k=>gam*gam+Math.pow(Math.sin(k*Math.PI/N),2);
+  g.push(2*a(1)/gam); for(let k=2;k<=N;k++) g.push(4*a(k-1)*a(k)/(b(k-1)*g[k-2])); return g; }
+/* radix-2 FFT in place on re,im arrays */
+function fft(re,im,inv){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; } }
+  for(let len=2;len<=n;len<<=1){ const ang=(inv?2:-2)*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } }
+  if(inv){ for(let i=0;i<n;i++){ re[i]/=n; im[i]/=n; } } }
+
+const mg=x=>(x>=0?'+':'')+x.toFixed(1)+' dB '+(x<0?'FAIL':'ok');
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(x<10?2:0)+' MHz');
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+/* largest W with attenuation below A (scan down from Wmax); Infinity if stop band never holds A */
+function edgeW(p,A,Wmax){ Wmax=Wmax||40; if(attdB(p,Wmax)<A) return Infinity; let prev=Wmax;
+  for(let W=Wmax;W>0;W-=0.002){ if(attdB(p,W)<A) return W; prev=W; } return 0; }
+const dissLP=(p,W,FBW,Qu)=>8.686*p.tau(W)/(FBW*Qu);   /* band-pass dissipation loss, dB */
+
+/* ---------- Step 1: single resonator ---------- */
+function qDraw(){
+  const c=$('cQ'), g=ctx(c), A=area(c);
+  let QL=sl('qL'); const Qu=Math.pow(10,sl('qU')), f0=sl('qF')*1e9;
+  const lim=QL>0.95*Qu; if(lim) QL=0.95*Qu;
+  setv('qL',sl('qL').toFixed(0)+(lim?' (lim.)':'')); setv('qU',Qu.toFixed(0)); setv('qF',fmt(f0,'Hz'));
+  const r=QL/Qu, BW=f0/QL, IL=-20*Math.log10(1-r), Qe=1/(1/QL-1/Qu);
+  const xs=[], y1=[], y2=[]; const span=4;
+  for(let i=0;i<=600;i++){ const u=-span+2*span*i/600; const f=f0+u*BW; xs.push(u); if(f<=0){ y1.push(NaN); y2.push(NaN); continue; }
+    const d=QL*(f/f0-f0/f); const m=1/Math.hypot(1,d); y1.push(20*Math.log10((1-r)*m)); y2.push(20*Math.log10(m)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-span,span,-40,0,[{x:xs,y:y2,color:css('--muted'),dash:[5,4]},{x:xs,y:y1,color:css('--trace'),w:2}],
+    {nx:4,fx:v=>{ const m=v*BW/1e6; return (m>0?'+':'')+(Math.abs(m)>=10?m.toFixed(0):m.toFixed(2)); },fy:v=>v.toFixed(0),xl:'offset from f₀, MHz',yl:'|S21| dB'});
+  hline(g,P.X(-0.5),P.X(0.5)-P.X(-0.5),P.Y(-IL-3.01),css('--accent'),[2,3]);
+  vline(g,P.X(0),P.Y(0),P.Y(-IL)-P.Y(0),css('--accent'),[]);
+  txt(g,'IL '+IL.toFixed(2)+' dB at f₀ = '+fmt(f0,'Hz'),A.x0+A.w-g.measureText('IL '+IL.toFixed(2)+' dB at f₀ = '+fmt(f0,'Hz')).width-8,A.y0+14,css('--accent'));
+  { const s4='3 dB BW = '+fmt(BW,'Hz'); txt(g,s4,A.x0+A.w-g.measureText(s4).width-8,A.y0+30,css('--accent')); }
+  ro($('qOut'),[['f₀',fmt(f0,'Hz',3)],['3 dB bandwidth',fmt(BW,'Hz')],['FBW',(100/QL).toFixed(2)+' %'],['Q_L / Q_u',r.toFixed(3)],['external Q_e',Qe.toFixed(1)],['loss at f₀',IL.toFixed(2)+' dB'],['return loss at f₀',(-20*Math.log10(r)).toFixed(1)+' dB'],['power lost as heat',(100*2*r*(1-r)).toFixed(1)+' %']]);
+}
+bind(['qL','qU','qF'],qDraw);
+
+/* ---------- Step 2: IL and system NF ---------- */
+function ilDraw(){
+  const c=$('cIl'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const N=sl('ilN'), FBW=sl('ilB')/100, Qu=Math.pow(10,sl('ilQ')), fam=$('ilF').value, pos=$('ilP').value, nfL=sl('ilLn');
+  setv('ilN',N); setv('ilB',(FBW*100).toFixed(2)+' %'); setv('ilQ',Qu.toFixed(0)); setv('ilLn',nfL.toFixed(2)+' dB');
+  const G=lin(25), Fr=lin(10), Fl=lin(nfL);
+  const sysPre=IL=>db(lin(IL)*(Fl+(Fr-1)/G)), sysPost=IL=>db(Fl+(lin(IL)*Fr-1)/G);
+  const ILn=n=>8.686*proto(fam,n).tau(0)/(FBW*Qu);
+  const ns=[],pre=[],post=[],ils=[]; for(let n=1;n<=9;n++){ ns.push(n); const L=ILn(n); ils.push(L); pre.push(sysPre(L)); post.push(sysPost(L)); }
+  const ymax=Math.min(40,Math.max(6,Math.ceil(Math.max(...pre)+1)));
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0.5,9.5,0,ymax,[],{nx:9,fx:v=>'',fy:v=>v.toFixed(ymax>10?0:1),xl:'filter order N',yl:'dB'});
+  g.fillStyle=css('--muted'); for(let n=1;n<=9;n++) g.fillText(String(n),P.X(n)-4,A.y0+A.h+15);
+  const bw=A.w/9*0.5; g.fillStyle=css('--trace2'); g.globalAlpha=0.35;
+  ils.forEach((L,i)=>{ const x=P.X(i+1); g.fillRect(x-bw/2,P.Y(Math.min(L,ymax)),bw,P.Y(0)-P.Y(Math.min(L,ymax))); }); g.globalAlpha=1;
+  plot(g,A.x0,A.y0,A.w,A.h,0.5,9.5,0,ymax,[{x:ns,y:pre,color:css('--accent'),w:2},{x:ns,y:post,color:css('--trace'),w:2}],{nx:9,fx:v=>'',fy:v=>v.toFixed(ymax>10?0:1)});
+  const L=ILn(N), p=proto(fam,N); const Ledge=dissLP(p,1,FBW,Qu)-10*Math.log10(p.mag2(1));
+  const nfNo=sysPre(0), nf=pos==='pre'?sysPre(L):sysPost(L);
+  dot(g,P.X(N),P.Y(pos==='pre'?sysPre(L):sysPost(L)),pos==='pre'?css('--accent'):css('--trace'),5);
+  txt(g,'system NF, filter before LNA',A.x0+8,A.y0+14,css('--accent')); txt(g,'system NF, filter after LNA',A.x0+8,A.y0+30,css('--trace')); txt(g,'bars: filter IL at f₀',A.x0+8,A.y0+46,css('--trace2'));
+  const rr=Math.pow(10,-(nf-nfNo)/40);
+  ro($('ilOut'),[['Σg = 2·τ(0)',(2*p.tau(0)).toFixed(3)],['IL at f₀',L.toFixed(2)+' dB'],['IL at band edge',Ledge.toFixed(2)+' dB'],['system NF',nf.toFixed(2)+' dB'],['without filter',nfNo.toFixed(2)+' dB'],['cost',sdb(nf-nfNo)],['radar range ×',rr.toFixed(3)],['ESM sensitivity',(nf-nfNo).toFixed(2)+' dB worse']]);
+}
+bind(['ilN','ilB','ilQ','ilF','ilP','ilLn'],ilDraw);
+
+/* ---------- Step 3: families and shape factor ---------- */
+function shDraw(){
+  const c=$('cSh'), g=ctx(c), A=area(c);
+  const fam=$('shF').value, N=sl('shN'), ws=sl('shS'), BW=sl('shB'), view=$('shZ').value, f0=9500;
+  setv('shN',N); setv('shS',ws.toFixed(2)+(fam==='el'?'':' (unused)')); setv('shB',BW.toFixed(0)+' MHz');
+  const p=proto(fam,N,ws);
+  const wide=view==='wide', span=wide?3*BW:0.8*BW, ya=wide?-100:-3;
+  const xs=[],ys=[]; for(let i=0;i<=900;i++){ const f=f0-span+2*span*i/900; xs.push(f-f0); ys.push(-attdB(p,bpW(f,f0,BW))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-span,span,ya,0,[{x:xs,y:ys,color:css('--trace'),w:2}],{nx:6,ny:wide?5:6,fx:v=>(v>=0?'+':'')+v.toFixed(0),fy:v=>v.toFixed(wide?0:1),xl:'offset from 9.5 GHz, MHz',yl:'|S21| dB'});
+  const W3=edgeW(p,3), W40=edgeW(p,40), W60=edgeW(p,60);
+  const half=W=>W*BW/2;  /* narrowband: band edges at f0 ± W·BW/2 */
+  if(wide){ [[W3,'--trace2',0.10],[W40,'--accent',0.07],[W60,'--muted',0.07]].forEach(([W,col,al])=>{ if(isFinite(W)&&half(W)<span) shade(g,P.X(-half(W)),P.X(half(W)),A.y0,A.h,css(col),al); });
+    hline(g,A.x0,A.w,P.Y(-60),css('--muted')); hline(g,A.x0,A.w,P.Y(-40),css('--accent'),[2,4]);
+    txt(g,'60 dB',A.x0+4,P.Y(-60)-4,css('--muted')); txt(g,'40 dB',A.x0+4,P.Y(-40)-4,css('--accent'));
+    if(fam==='el'){ const flo=Math.min(...[...Array(400)].map((_,i)=>attdB(p,ws+i*0.05))); hline(g,A.x0,A.w,P.Y(-flo),css('--bad'),[6,3]); txt(g,'floor '+flo.toFixed(1)+' dB',A.x0+A.w-110,P.Y(-flo)-4,css('--bad')); }
+  } else { hline(g,A.x0,A.w,P.Y(-FAM[fam].r),css('--accent'),[2,4]); shade(g,P.X(-BW/2),P.X(BW/2),A.y0,A.h,css('--trace2'),0.08); txt(g,'ripple band',P.X(-BW/2)+4,A.y0+14,css('--trace2')); }
+  const fs=W=>isFinite(W)?(W*BW).toFixed(0)+' MHz':'never';
+  const rl=FAM[fam].r>0?(-10*Math.log10(1-Math.pow(10,-FAM[fam].r/10))).toFixed(1)+' dB':'n/a';
+  const floor=fam==='el'?Math.min(...[...Array(400)].map((_,i)=>attdB(p,ws+i*0.05))).toFixed(1)+' dB':'none';
+  ro($('shOut'),[['3 dB BW',fs(W3)],['40 dB BW',fs(W40)],['60 dB BW',fs(W60)],['SF 40/3',isFinite(W40)?(W40/W3).toFixed(2):'never'],['SF 60/3',isFinite(W60)?(W60/W3).toFixed(2):'never'],['rej. at +1 GHz',attdB(p,bpW(f0+1000,f0,BW)).toFixed(1)+' dB'],['min return loss',rl],['stop-band floor',floor],view==='pass'?['ripple measured',(Math.max(...ys.filter((v,i)=>Math.abs(xs[i])<=BW/2))-Math.min(...ys.filter((v,i)=>Math.abs(xs[i])<=BW/2))).toFixed(3)+' dB p-p']:['view span','± 3 × BW']]);
+}
+bind(['shF','shN','shS','shB','shZ'],shDraw);
+
+/* ---------- Step 4: group delay, pulse and chirp simulation ---------- */
+const FS=400e6;
+const gdCache={};
+function chirpBase(win){ const key='c'+win; if(gdCache[key]) return gdCache[key];
+  const N=16384, T=10e-6, B=100e6, k=B/T, n=Math.round(T*FS); const sr=new Float64Array(N), si=new Float64Array(N), rr=new Float64Array(N), ri=new Float64Array(N);
+  for(let i=0;i<n;i++){ const t=i/FS-T/2, ph=Math.PI*k*t*t; const w=win==='ham'?0.54-0.46*Math.cos(TAU*i/(n-1)):1; sr[i]=Math.cos(ph); si[i]=Math.sin(ph); rr[i]=w*Math.cos(ph); ri[i]=w*Math.sin(ph); }
+  fft(sr,si,false); fft(rr,ri,false);
+  /* S·conj(R) */
+  const pr=new Float64Array(N), pi=new Float64Array(N); for(let i=0;i<N;i++){ pr[i]=sr[i]*rr[i]+si[i]*ri[i]; pi[i]=si[i]*rr[i]-sr[i]*ri[i]; }
+  const ideal=compress(pr,pi,null); return gdCache[key]={N,pr,pi,ideal}; }
+/* zero-pad x4 in frequency and inverse FFT; H optional (function of f Hz) */
+function compress(pr,pi,H){ const N=pr.length, M=4*N, yr=new Float64Array(M), yi=new Float64Array(M);
+  for(let i=0;i<N;i++){ const f=(i<N/2?i:i-N)*FS/N; let a=pr[i], b=pi[i]; if(H){ const h=H(f); const t=a*h.r-b*h.i; b=a*h.i+b*h.r; a=t; } const j=i<N/2?i:M-(N-i); yr[j]=a; yi[j]=b; }
+  fft(yr,yi,true); const m=new Float64Array(M); for(let i=0;i<M;i++) m[i]=Math.hypot(yr[i],yi[i])*4; return m; }
+function gdDraw(){
+  const c=$('cGd'), g=ctx(c);
+  const mode=$('gdM').value, fam=$('gdF').value, N=sl('gdN'), ratio=sl('gdR'), App=sl('gdA')*1e-9, cyc=sl('gdP'), win=$('gdW').value;
+  setv('gdN',N); setv('gdR',ratio.toFixed(2)+' ×'); setv('gdA',(App*1e9).toFixed(1)+' ns p-p'); setv('gdP',cyc.toFixed(1));
+  const p=proto(fam,N,1.5), Bs=mode==='pulse'?10e6:100e6, BWf=ratio*Bs, Fr=BWf/cyc, a=(App/2)*Fr;
+  const H=f=>{ const h=p.H(f/(BWf/2)); const ph=a*Math.sin(TAU*f/Fr); const cr=Math.cos(ph), ci=Math.sin(ph); return Cx(h.r*cr-h.i*ci,h.r*ci+h.i*cr); };
+  const tauf=f=>p.tau(f/(BWf/2))/(Math.PI*BWf)-(a/Fr)*Math.cos(TAU*f/Fr);
+  /* top panel: group delay */
+  const x0=64,w=c.width-64-16, t0=22,th=110;
+  const fx=[],ty=[]; for(let i=0;i<=500;i++){ const f=-BWf+2*BWf*i/500; fx.push(f/1e6); ty.push(tauf(f)*1e9); }
+  const tmax=Math.max(...ty), tmin=Math.min(0,Math.min(...ty));
+  const P1=plot(g,x0,t0,w,th,-BWf/1e6,BWf/1e6,tmin,tmax*1.1,[{x:fx,y:ty,color:css('--trace2'),w:2}],{nx:4,ny:3,fx:v=>v.toFixed(0),fy:v=>v.toFixed(tmax>10?0:1),yl:'group delay, ns'});
+  shade(g,P1.X(-Bs/2e6),P1.X(Bs/2e6),t0,th,css('--trace'),0.12);
+  txt(g,'MHz offset (shaded: signal band)',x0+w-230,t0+th+15+13,css('--muted'));
+  let mn=1e9,mx=-1e9; for(let i=0;i<=200;i++){ const v=tauf(-Bs/2+Bs*i/200); mn=Math.min(mn,v); mx=Math.max(mx,v); }
+  const dvar=(mx-mn)*1e9, dc=tauf(0)*1e9;
+  /* bottom panel */
+  const b0=190,bh=150;
+  if(mode==='pulse'){
+    const n=4096, xr=new Float64Array(n), xi=new Float64Array(n), st=80, len=40;
+    for(let i=st;i<st+len;i++) xr[i]=1;
+    fft(xr,xi,false); for(let i=0;i<n;i++){ const f=(i<n/2?i:i-n)*FS/n; const h=H(f); const t=xr[i]*h.r-xi[i]*h.i; xi[i]=xr[i]*h.i+xi[i]*h.r; xr[i]=t; } fft(xr,xi,true);
+    const y=[], ti=[], xin=[]; let pk=0; for(let i=0;i<n;i++){ const v=Math.hypot(xr[i],xi[i]); if(i<1200){ y.push(v); ti.push(i/FS*1e9); xin.push(i>=st&&i<st+len?1:0); } pk=Math.max(pk,v); }
+    const h0=cabs(p.H(0)), ref=Math.min(h0,pk);
+    const cross=(lev)=>{ for(let i=1;i<y.length;i++) if(y[i-1]<lev&&y[i]>=lev) return ti[i-1]+(lev-y[i-1])/(y[i]-y[i-1])*(ti[i]-ti[i-1]); return NaN; };
+    const t10=cross(0.1*ref), t90=cross(0.9*ref), t50=cross(0.5*ref); const over=pk>h0?100*(pk-h0)/h0:0;
+    const P2=plot(g,x0,b0,w,bh,100,700,0,1.4,[{x:ti,y:xin,color:css('--muted'),dash:[5,4]},{x:ti,y:y,color:css('--trace'),w:2}],{nx:6,ny:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(1),xl:'time, ns',yl:'envelope (input dashed)'});
+    if(isFinite(t10)&&isFinite(t90)){ vline(g,P2.X(t10),b0,bh,css('--accent')); vline(g,P2.X(t90),b0,bh,css('--accent')); }
+    ro($('gdOut'),[['filter BW',fMHz(BWf/1e6)],['delay at centre',dc.toFixed(2)+' ns'],['Δτ in signal band',dvar.toFixed(2)+' ns p-p'],['rise 10–90 %',isFinite(t90-t10)?(t90-t10).toFixed(1)+' ns':'not reached'],['0.7/BW',(0.7/BWf*1e9).toFixed(1)+' ns'],['overshoot',over.toFixed(1)+' %'],['50 % delay',isFinite(t50)?(t50-st/FS*1e9).toFixed(1)+' ns':'n/a'],['peak',pk.toFixed(3)]]);
+  } else {
+    const base=chirpBase(win), M=base.ideal.length, out=compress(base.pr,base.pi,H), ideal=base.ideal;
+    let ip=0,ii=0; for(let i=0;i<M;i++) if(ideal[i]>ip){ ip=ideal[i]; ii=i; }
+    let op=0,oi=0; for(let i=0;i<M;i++) if(out[i]>op){ op=out[i]; oi=i; }
+    const dtS=1/(4*FS), win2=Math.round(150e-9/dtS);
+    const tt=[],yo=[],yi2=[]; for(let k=-win2;k<=win2;k++){ tt.push(k*dtS*1e9); yo.push(20*Math.log10(Math.max(out[(oi+k+M)%M],1e-12)/ip)); yi2.push(20*Math.log10(Math.max(ideal[(ii+k+M)%M],1e-12)/ip)); }
+    const pslr=a=>{ const c0=win2; let l=c0; while(l>0&&a[l-1]<a[l]) l--; let r=c0; while(r<a.length-1&&a[r+1]<a[r]) r++; let s=-200; for(let i=0;i<a.length;i++) if(i<l||i>r) s=Math.max(s,a[i]); return s-a[c0]; };
+    const w3=a=>{ let l=win2, r=win2; while(l>0&&a[l]>a[win2]-3) l--; while(r<a.length-1&&a[r]>a[win2]-3) r++; return (r-l)*dtS*1e9; };
+    const P2=plot(g,x0,b0,w,bh,-150,150,-70,0,[{x:tt,y:yi2,color:css('--muted'),dash:[5,4]},{x:tt,y:yo,color:css('--trace'),w:1.8}],{nx:6,ny:7,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),xl:'time from peak, ns',yl:'compressed, dB (ideal dashed)'});
+    const echo=a>0?20*Math.log10(a/2):-Infinity;
+    if(a>0){ const te=1e9/Fr; if(te<150){ vline(g,P2.X(te),b0,bh,css('--accent')); vline(g,P2.X(-te),b0,bh,css('--accent')); hline(g,x0,w,P2.Y(echo),css('--accent'),[2,4]); } }
+    ro($('gdOut'),[['filter BW',fMHz(BWf/1e6)],['Δτ in chirp band',dvar.toFixed(2)+' ns p-p'],['PSLR filtered',pslr(yo).toFixed(1)+' dB'],['PSLR ideal',pslr(yi2).toFixed(1)+' dB'],['−3 dB width',w3(yo).toFixed(1)+' ns ('+w3(yi2).toFixed(1)+')'],['mainlobe loss',(20*Math.log10(op/ip)).toFixed(2)+' dB'],['predicted echo',a>0?echo.toFixed(1)+' dB':'none'],['echo offset',a>0?'± '+(1e9/Fr).toFixed(0)+' ns':'n/a'],['filter delay',((oi-ii)*dtS*1e9).toFixed(2)+' ns']]);
+  }
+}
+bind(['gdM','gdF','gdN','gdR','gdA','gdP','gdW'],gdDraw);
+
+/* ---------- Step 5: image and half-IF ---------- */
+function imDraw(){
+  const c=$('cIm'), g=ctx(c), A=area(c);
+  const IF=sl('imI')*1000, side=$('imS').value, BW=sl('imB'), N=sl('imN'), req=sl('imR'), f0=10000;
+  setv('imI',fmt(IF*1e6,'Hz')); setv('imB',BW.toFixed(0)+' MHz'); setv('imN',N); setv('imR',req.toFixed(0)+' dB');
+  const p=proto('c01',N), s=side==='low'?-1:1;
+  const LO=f0+s*IF, im=f0+2*s*IF, hf=f0+s*IF/2;
+  const lo=Math.min(im,f0-BW)-0.25*IF-200, hi=Math.max(im,f0+BW)+0.25*IF+200;
+  const xs=[],ys=[]; for(let i=0;i<=900;i++){ const f=lo+(hi-lo)*i/900; xs.push(f/1000); ys.push(-attdB(p,bpW(f,f0,BW))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,lo/1000,hi/1000,-140,0,[{x:xs,y:ys,color:css('--trace'),w:2}],{nx:5,ny:7,fx:v=>v.toFixed(2),fy:v=>v.toFixed(0),xl:'frequency, GHz',yl:'preselector response, dB'});
+  const R=f=>attdB(p,bpW(f,f0,BW));
+  const mk=(f,col,lab,dy)=>{ const x=P.X(f/1000); vline(g,x,A.y0,A.h,col,[3,3]); const r=Math.min(R(f),140); dot(g,x,P.Y(-r),col,4); const tw=g.measureText(lab).width; txt(g,lab,Math.min(Math.max(x-tw/2,A.x0+2),A.x0+A.w-tw-2),A.y0+12+dy,col); };
+  mk(f0,css('--trace'),'wanted',0); mk(im,css('--accent'),'image',14); mk(hf,css('--accent'),'½IF',28); mk(LO,css('--trace2'),'LO',42);
+  hline(g,A.x0,A.w,P.Y(-req),css('--bad'),[6,3]); txt(g,'required '+req+' dB',A.x0+4,P.Y(-req)-4,css('--bad'));
+  const Ri=R(im), Rh=R(hf), Rl=R(LO), tot=60+20+2*Rh;
+  ro($('imOut'),[['LO',fmt(LO*1e6,'Hz',3)],['image',fmt(im*1e6,'Hz',3)],['image rejection',Ri.toFixed(1)+' dB'],['margin',mg(Ri-req)],['½IF spur at',fmt(hf*1e6,'Hz',3)],['½IF filter rej.',Rh.toFixed(1)+' dB'],['½IF total',tot.toFixed(0)+' dB'],['LO rejection',Rl.toFixed(1)+' dB']]);
+}
+bind(['imI','imS','imB','imN','imR'],imDraw);
+
+/* ---------- Step 6: blocking and IM3 ---------- */
+function bkDraw(){
+  const c=$('cBk'), g=ctx(c), A=area(c);
+  const Pa=sl('bkP'), D=sl('bkD'), N=sl('bkN'), IIP3=sl('bkI'), P1=sl('bkC'), f0=9500, BW=500;
+  setv('bkP',Pa+' dBm'); setv('bkD',D+' MHz'); setv('bkN',N===0?'none':N); setv('bkI',IIP3+' dBm'); setv('bkC',P1+' dBm');
+  const p=N>0?proto('c01',N):null, R=f=>p?attdB(p,bpW(f,f0,BW)):0;
+  const f1=f0+D, f2=f0+2*D, r1=R(f1), r2=R(f2), q1=Pa-r1, q2=Pa-r2;
+  const im=2*q1+q2-2*IIP3, nf=-174+1.5+70, tot=10*Math.log10(lin(q1)+lin(q2));
+  const lo=f0-600, hi=f2+300;
+  const xs=[],ys=[]; for(let i=0;i<=800;i++){ const f=lo+(hi-lo)*i/800; xs.push(f-f0); ys.push(Pa-R(f)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,lo-f0,hi-f0,-160,20,[{x:xs,y:ys,color:css('--muted'),dash:[4,3]}],{nx:5,ny:9,fx:v=>(v>=0?'+':'')+v.toFixed(0),fy:v=>v.toFixed(0),xl:'offset from 9.5 GHz, MHz',yl:'dBm at LNA input'});
+  shade(g,P.X(-BW/2),P.X(BW/2),A.y0,A.h,css('--trace'),0.10);
+  const bar=(f,lev,col,fill)=>{ const x=P.X(f-f0), y=P.Y(lev), y0=P.Y(-160); g.strokeStyle=col; g.fillStyle=col; g.lineWidth=1.5; if(fill) g.fillRect(x-5,y,10,y0-y); else g.strokeRect(x-5,y,10,y0-y); g.lineWidth=1; };
+  bar(f1-14,Pa,css('--trace2'),false); bar(f2-14,Pa,css('--trace2'),false); bar(f1+14,q1,css('--trace2'),true); bar(f2+14,q2,css('--trace2'),true);
+  bar(f0,Math.max(im,-160),css('--accent'),true);
+  hline(g,A.x0,A.w,P.Y(nf),css('--trace')); txt(g,'noise floor '+nf.toFixed(1)+' dBm (10 MHz)',A.x0+4,P.Y(nf)-4,css('--trace'));
+  hline(g,A.x0,A.w,P.Y(P1),css('--bad'),[6,3]); txt(g,'LNA P1dB '+P1+' dBm',A.x0+A.w-130,P.Y(P1)-4,css('--bad'));
+  { const s2='IM3 '+im.toFixed(1)+' dBm'+(im<-160?' (off scale)':''); txt(g,s2,Math.max(A.x0+4,P.X(0)-g.measureText(s2).width-8),P.Y(Math.max(im,-150))-6,css('--accent')); }
+  const st=im>nf?'false signal':'below noise';
+  ro($('bkOut'),[['rejection at f₁',r1.toFixed(1)+' dB'],['rejection at f₂',r2.toFixed(1)+' dB'],['f₁ at LNA',q1.toFixed(1)+' dBm'],['f₂ at LNA',q2.toFixed(1)+' dBm'],['IM3 at LNA input',im.toFixed(1)+' dBm'],['IM3 vs noise',sdb(im-nf)],['verdict',st],['P1dB margin',sdb(P1-tot)+(tot>P1?' COMPR.':'')]]);
+}
+bind(['bkP','bkD','bkN','bkI','bkC'],bkDraw);
+
+/* ---------- Step 7a: harmonics ---------- */
+function txDraw(){
+  const c=$('cTx'), g=ctx(c), A=area(c);
+  const fam=$('txF').value, N=sl('txN'), fc=sl('txC'), H2=sl('txH'), P0=sl('txP'), Lm=sl('txL');
+  setv('txN',N); setv('txC',fc.toFixed(2)); setv('txH',H2+' dBc'); setv('txP',P0+' dBm ('+(lin(P0)/1000>=1?(lin(P0)/1000).toFixed(lin(P0)>=1e4?0:1)+' W':lin(P0).toFixed(0)+' mW')+')'); setv('txL',Lm+' dBc');
+  const p=proto(fam,N,1.5), Qu=200, f0=3e9;
+  const xs=[],ys=[]; for(let i=0;i<=700;i++){ const x=0.5+5*i/700; xs.push(x); ys.push(-attdB(p,x/fc)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0.5,5.5,-140,0,[{x:xs,y:ys,color:css('--trace2'),w:1.6}],{nx:5,ny:7,fx:v=>'',fy:v=>v.toFixed(0),xl:'frequency',yl:'dBc / filter dB'});
+  g.fillStyle=css('--muted'); for(let n=1;n<=5;n++) g.fillText(n+'f₀',P.X(n)-8,A.y0+A.h+15);
+  const H=[0,H2,H2-10,H2-20,H2-30], out=H.map((h,i)=>h-attdB(p,(i+1)/fc));
+  H.forEach((h,i)=>{ const x=P.X(i+1); g.strokeStyle=css('--accent'); g.lineWidth=1.5; g.strokeRect(x-12,P.Y(h),9,P.Y(-140)-P.Y(h)); g.fillStyle=css('--trace'); const y=P.Y(Math.max(out[i],-140)); g.fillRect(x+3,y,9,P.Y(-140)-y); g.lineWidth=1; });
+  hline(g,A.x0,A.w,P.Y(Lm),css('--bad'),[6,3]); txt(g,'limit '+Lm+' dBc',A.x0+A.w-90,P.Y(Lm)-4,css('--bad'));
+  const W0=1/fc, diss=8.686*(W0/Qu)*p.tau(W0), refl=-10*Math.log10(p.mag2(W0)), heat=lin(P0)/1000*(1-Math.pow(10,-diss/10));
+  const tauS=p.tau(W0)/(TAU*fc*f0), E=lin(P0)/1000*tauS;
+  { const s3='P₀ '+P0+' dBm, filter heat '+heat.toFixed(heat<1?3:1)+' W'; txt(g,s3,A.x0+A.w-g.measureText(s3).width-8,A.y0+14,css('--ink')); }
+  const worst=Math.max(out[1],out[2],out[3],out[4]);
+  ro($('txOut'),[['rejection 2f₀',attdB(p,2/fc).toFixed(1)+' dB'],['rejection 3f₀',attdB(p,3/fc).toFixed(1)+' dB'],['2nd at output',out[1].toFixed(1)+' dBc'],['2nd absolute',(P0+out[1]).toFixed(1)+' dBm'],['3rd at output',out[2].toFixed(1)+' dBc'],['worst margin',mg(Lm-worst)],['dissipated at f₀',diss.toFixed(3)+' dB'],['reflected at f₀',refl.toFixed(3)+' dB'],['heat in filter',heat.toFixed(heat<1?3:2)+' W'],['filter ΔT',(heat*5).toFixed(1)+' °C'],['stored energy',(E*1e9).toFixed(1)+' nJ']]);
+}
+bind(['txF','txN','txC','txH','txP','txL'],txDraw);
+
+/* ---------- Step 7b: spectral mask ---------- */
+function mkDraw(){
+  const c=$('cMk'), g=ctx(c), A=area(c);
+  const tau=sl('mkW')*1e-6, tr=sl('mkR')*1e-9, BW=sl('mkB')*1e6, N=sl('mkN');
+  setv('mkW',fmt(tau,'s')); setv('mkR',fmt(tr,'s')); setv('mkB',fMHz(BW/1e6)); setv('mkN',N===0?'none':N);
+  const la=-1, lb=3; /* log10 MHz */
+  const env=f=>{ const a=Math.min(1,1/(Math.PI*f*tau)), b=Math.min(1,1/(Math.PI*f*tr)); return 20*Math.log10(a*b); };
+  const filt=f=>N>0?-10*Math.log10(1+Math.pow(f/(BW/2),2*N)):0;
+  const fm=1/tau, mask=f=>f<=fm?0:Math.max(-60,-40*Math.log10(f/fm));
+  const xs=[],e=[],o=[],m=[]; for(let i=0;i<=600;i++){ const lx=la+(lb-la)*i/600, f=Math.pow(10,lx)*1e6; xs.push(lx); e.push(env(f)); o.push(env(f)+filt(f)); m.push(mask(f)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,la,lb,-120,0,[{x:xs,y:m,color:css('--bad'),dash:[6,3]},{x:xs,y:e,color:css('--muted'),w:1.6},{x:xs,y:o,color:css('--trace'),w:2}],{nx:4,ny:6,fx:v=>{ const f=Math.pow(10,v); return f<1?f.toFixed(1):f.toFixed(0); },fy:v=>v.toFixed(0),xl:'offset from carrier, MHz (log)',yl:'dB rel. peak'});
+  let wm0=1e9,wm1=1e9,wf=0; for(let i=0;i<xs.length;i++){ const a=m[i]-e[i], b=m[i]-o[i]; if(a<wm0){ wm0=a; } if(b<wm1){ wm1=b; wf=xs[i]; } }
+  const fb=Math.pow(10,wf); vline(g,P.X(wf),A.y0,A.h,css('--accent'),[2,3]); txt(g,'worst point',Math.min(P.X(wf)+4,A.x0+A.w-80),A.y0+14,css('--accent'));
+  const trOut=N>0?Math.sqrt(tr*tr+Math.pow(0.7/BW,2)):tr;
+  ro($('mkOut'),[['mask corner',fMHz(fm/1e6)],['edge corner',fMHz(1/(Math.PI*tr)/1e6)],['margin unfiltered',mg(wm0)],['margin filtered',mg(wm1)],['worst offset',fMHz(fb)],['rise time out',fmt(trOut,'s',1)],['Δ range res.',((trOut-tr)*1.5e8).toFixed(1)+' m']]);
+}
+bind(['mkW','mkR','mkB','mkN'],mkDraw);
+
+/* ---------- Step 8: technology and temperature ---------- */
+const TECH={lc:{n:'Lumped LC',tcf:50,qu:100,lo:0.01,hi:3},ms:{n:'Microstrip / stripline',tcf:-40,qu:200,lo:1,hi:40},ss:{n:'Suspended stripline',tcf:-30,qu:700,lo:1,hi:40},cer:{n:'Ceramic coaxial',tcf:3,qu:800,lo:0.3,hi:8},
+  cav:{n:'Aluminium cavity',tcf:-23,qu:4000,lo:0.5,hi:40},inv:{n:'Invar cavity',tcf:-1.5,qu:3500,lo:0.5,hi:40},saw:{n:'SAW (LiTaO₃)',tcf:-40,qu:800,lo:0.03,hi:2.5},baw:{n:'BAW / FBAR',tcf:-25,qu:2000,lo:1.5,hi:10},yig:{n:'YIG (compensated)',tcf:10,qu:3000,lo:0.5,hi:40}};
+function tcDraw(){
+  const c=$('cTc'), g=ctx(c), A=area(c);
+  const t=TECH[$('tcT').value], f0=sl('tcF')*1000, FBW=sl('tcB')/100, T=sl('tcK');
+  setv('tcF',fmt(f0*1e6,'Hz')); setv('tcB',(FBW*100).toFixed(1)+' %'); setv('tcK',T+' °C');
+  const p=proto('c01',5), BW=FBW*f0, df=t.tcf*1e-6*f0*(T-25), fT=f0+df;
+  const resp=(f,fc)=>{ const W=bpW(f,fc,BW); return -attdB(p,W)-dissLP(p,W,FBW,t.qu); };
+  const span=1.6*BW/2+Math.abs(df);
+  const xs=[],y0=[],y1=[]; for(let i=0;i<=700;i++){ const f=f0-span+2*span*i/700; xs.push(f-f0); y0.push(resp(f,f0)); y1.push(resp(f,fT)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-span,span,-30,0,[{x:xs,y:y0,color:css('--muted'),dash:[5,4]},{x:xs,y:y1,color:css('--trace'),w:2}],{nx:4,ny:6,fx:v=>(v>=0?'+':'')+(Math.abs(span)<10?v.toFixed(2):v.toFixed(0)),fy:v=>v.toFixed(0),xl:'offset from nominal f₀, MHz',yl:'|S21| dB'});
+  const ch=0.4*BW; shade(g,P.X(-ch),P.X(ch),A.y0,A.h,css('--accent'),0.12);
+  txt(g,'wanted channel',P.X(-ch)+4,A.y0+14,css('--accent'));
+  const eL=Math.min(resp(f0-ch,fT),resp(f0+ch,fT)), e25=Math.min(resp(f0-ch,f0),resp(f0+ch,f0)), mid=resp(fT,fT);
+  const inR=(f0/1000>=t.lo&&f0/1000<=t.hi);
+  ro($('tcOut'),[['TCF',(t.tcf>0?'+':'')+t.tcf+' ppm/°C'],['Q_u',String(t.qu)],['usual range',t.lo+'–'+t.hi+' GHz'],['f₀ in range?',inR?'yes':'NO'],['shift at '+T+' °C',(df>=0?'+':'')+df.toFixed(2)+' MHz'],['shift / BW',(100*Math.abs(df)/BW).toFixed(1)+' %'],['IL mid-band',(-mid).toFixed(2)+' dB'],['edge loss 25 °C',(-e25).toFixed(2)+' dB'],['edge loss now',(-eL).toFixed(2)+' dB'],['change',sdb(e25-eL)]]);
+}
+bind(['tcT','tcF','tcB','tcK'],tcDraw);
+
+/* ---------- Step 9: ESM bandwidth vs POI ---------- */
+function poDraw(){
+  const c=$('cPo'), g=ctx(c), A=area(c,{l:56,t:22,r:48,b:40});
+  const type=$('poT').value, lB=sl('poB'), Td=sl('poD')*1e-3, Ton=sl('poO')*1e-3, dens=sl('poE')*1e3, span=16000, PW=1e-6;
+  const ibw=type==='wide'?span:Math.pow(10,lB);
+  setv('poB',fMHz(Math.pow(10,lB))+(type==='wide'?' (ignored)':'')); setv('poD',fmt(Td,'s')); setv('poO',fmt(Ton,'s')); setv('poE',(dens/1e3).toFixed(0)+' k pulses/s');
+  const sens=b=>-174+10+10*Math.log10(b*1e6)+15;
+  const over=(b)=>{ const M=Math.ceil(span/b); return type==='yig'?2e-4:(type==='bank'?1e-7:0); };
+  const poi=b=>{ if(type==='wide'||type==='chan') return 1; const M=Math.ceil(span/b), Tdw=Td+over(b), Tr=M*Tdw; return Math.min(1,(Ton+Tdw)/Tr); };
+  const la=1.3, lb=4.2; const xs=[],ss=[],pp=[]; for(let i=0;i<=400;i++){ const lx=la+(lb-la)*i/400; xs.push(lx); ss.push(sens(Math.pow(10,lx))); pp.push(poi(Math.pow(10,lx))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,la,lb,-80,-40,[{x:xs,y:ss,color:css('--trace'),w:2}],{nx:4,ny:4,fx:v=>fMHz(Math.pow(10,v)).replace(' MHz','M').replace(' GHz','G'),fy:v=>v.toFixed(0),xl:'instantaneous bandwidth (log)',yl:'sensitivity, dBm'});
+  const Yp=v=>A.y0+A.h*(1-v); g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); xs.forEach((x,i)=>{ const px=P.X(x), py=Yp(pp[i]); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--accent'); for(let k=0;k<=4;k++){ const s=(25*k)+'%'; g.fillText(s,A.x0+A.w+6,Yp(k/4)+4); }
+  const lx=Math.log10(ibw); dot(g,P.X(lx),P.Y(sens(ibw)),css('--trace'),5); dot(g,P.X(lx),Yp(poi(ibw)),css('--accent'),5);
+  txt(g,'sensitivity',A.x0+8,A.y0+14,css('--trace')); txt(g,'POI (right axis)',A.x0+8,A.y0+30,css('--accent')); txt(g,'pulse overlap '+(100*(1-Math.exp(-2*PW*dens*ibw/span))).toFixed(2)+' %',A.x0+8,A.y0+46,css('--muted'));
+  const M=type==='wide'?1:Math.ceil(span/ibw), Tr=(type==='wide'||type==='chan')?0:M*(Td+over(ibw));
+  const rate=dens*ibw/span, pov=1-Math.exp(-2*PW*rate), dS=sens(ibw)-sens(span);
+  ro($('poOut'),[['IBW',fMHz(ibw)],['steps / channels',type==='chan'?M+' parallel channels':M+' steps'],['revisit time',Tr>0?fmt(Tr,'s'):'continuous'],['single-look POI',(100*poi(ibw)).toFixed(1)+' %'],['sensitivity',sens(ibw).toFixed(1)+' dBm'],['vs wide open',sdb(dS)+', range ×'+Math.pow(10,-dS/20).toFixed(2)],['looks per illumination',Tr>0?(Ton/Tr).toFixed(2):'continuous'],['pulses/s in IBW',rate.toFixed(0)],['pulse overlap prob.',(100*pov).toFixed(2)+' %']]);
+}
+bind(['poT','poB','poD','poO','poE'],poDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

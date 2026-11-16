@@ -1,0 +1,1353 @@
+<meta charset="utf-8">
+<title>Exciters and Waveform Generation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Exciters and Waveform Generation · RF Systems for Component Engineers</div>
+  <h1>Exciters and waveform generation, from a phase accumulator to a jammer</h1>
+  <p class="lede">The exciter is the part of a radar, SAR or jammer that creates the signal before the power amplifier makes it big. Everything the receiver later does with that signal, pulse compression, Doppler filtering, clutter cancellation, imaging, assumes the transmitted waveform was exactly what the designer drew on paper. Every departure from that drawing, a spur, a bent chirp, a phase that wanders from pulse to pulse, a synthesiser still settling, an image left by the modulator, shows up later as a false target, a raised sidelobe, a smeared target or a target hidden under clutter. This page builds the exciter from first principles: what it is, which waveforms it makes, how a DDS and a DAC make them, and then, one impairment at a time, how a component choice becomes a datasheet line and how that line becomes a system number. Every term is defined before it is used, every step has worked numbers, and every bench is explained before you touch it.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 What an exciter is</a><a href="#types">1 Waveform types</a><a href="#dds">2 DDS and DAC generation</a><a href="#chirp">3 Chirp phase error and sidelobes</a><a href="#fmcw">4 FMCW ramp nonlinearity</a><a href="#upconv">5 Upconversion: image and LO leakage</a><a href="#shape">6 Pulse shaping and spectral mask</a><a href="#coh">7 Pulse-to-pulse coherence</a><a href="#agile">8 Frequency agility and settling</a><a href="#flat">9 Flatness and PA AM-PM</a><a href="#jam">10 Jammer waveforms</a><a href="#summary">11 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>What an exciter is and where it sits</h2>
+  <div class="know"><h4>You already know</h4><p>A synthesiser makes a clean carrier at a programmable frequency; a mixer moves a signal from one frequency to another; a DAC turns numbers into a voltage; a power amplifier (PA) makes the signal big. The exciter is simply these parts arranged so that the signal leaving it is the exact waveform the radar wants, at the right frequency, at a level the PA can take.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Waveform:</b> the exact shape in time of the transmitted signal: its envelope (how the amplitude rises, stays and falls), its frequency against time and its phase against time. A radar is designed around one waveform; the receiver's processing is the mirror image of it.</p>
+    <p><b>Exciter:</b> everything between the frequency reference and the PA input that creates the waveform: waveform generator, upconverter, filters and driver amplifier. It also hands a copy of its local oscillators to the receiver so that transmit and receive share one time and phase base.</p>
+    <p><b>Waveform generator:</b> the block that makes the waveform at a low frequency, today almost always digital: a <b>DDS</b> (direct digital synthesiser, Step 2) or an <b>arbitrary waveform generator</b> (AWG), which is a DAC playing samples from memory.</p>
+    <p><b>Coherent system:</b> one in which every oscillator (DAC clock, local oscillators, ADC clock) is derived from one reference, so that the phase of each transmitted pulse is known exactly at the receiver. Without coherence there is no Doppler processing and no SAR (Step 7).</p>
+    <p><b>Purity:</b> how close the real waveform is to the ideal one. It is measured as spurs and phase noise (unwanted frequency content), phase and frequency error against time, and amplitude and phase ripple across the band.</p>
+  </div>
+  <div class="col">
+    <p>A modern exciter works in four stages. (1) A <b>reference</b> (typically a 100 MHz oven-controlled crystal oscillator) sets the time base. (2) A <b>clock and LO synthesiser</b> derives from it the DAC clock (say 1 GHz) and the local oscillators (say 9.4 GHz). (3) A <b>waveform generator</b> (DDS or AWG plus DAC) makes the waveform at a low frequency, for example a 50 MHz-wide chirp centred at 100 MHz. (4) An <b>upconverter</b> (mixer or IQ modulator, then filters) moves it to the transmit frequency, here 9.5 GHz, and a driver brings it to the PA's input level. The same LO goes to the receiver's downconverter, so the receiver measures phase against the very same clock that made the pulse.</p>
+    <p>A worked number for why purity matters: a radar sees a ground clutter return 60 dB stronger than a small aircraft at the same range (Step 7). If the exciter adds anything to the transmitted signal that is only 50 dB below the wanted signal, a spur, an image, a phase wobble, the clutter carries that unwanted part too, 60 − 50 = 10 dB above the aircraft. The aircraft is lost, and no receiver improvement can recover it, because the fault was transmitted.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Block diagram of a coherent exciter: reference, synthesiser, waveform generator and DAC, reconstruction filter, upconverter with LO, image filter, driver, PA, and the LO shared with the receiver">
+    <svg viewBox="0 0 860 250" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <g fill="none" stroke="var(--line)" stroke-width="1.5">
+        <rect x="10" y="30" width="96" height="46" rx="4"/><rect x="140" y="30" width="110" height="46" rx="4"/>
+        <rect x="284" y="30" width="118" height="46" rx="4" stroke="var(--accent)"/><rect x="436" y="30" width="92" height="46" rx="4"/>
+        <rect x="562" y="30" width="88" height="46" rx="4"/><rect x="684" y="30" width="72" height="46" rx="4"/><rect x="784" y="30" width="66" height="46" rx="4"/>
+        <rect x="562" y="150" width="88" height="46" rx="4"/><rect x="284" y="150" width="118" height="46" rx="4"/>
+      </g>
+      <g stroke="var(--muted)" stroke-width="1.4" fill="none" marker-end="url(#ar)">
+        <path d="M106,53 H138"/><path d="M250,53 H282"/><path d="M402,53 H434"/><path d="M528,53 H560"/><path d="M650,53 H682"/><path d="M756,53 H782"/>
+        <path d="M195,76 V173 H282"/><path d="M402,173 H560"/><path d="M540,173 V120 H606 V80"/>
+        <path d="M195,76 V110 H343 V78" stroke-dasharray="4 3"/>
+      </g>
+      <text x="58" y="50" text-anchor="middle">Reference</text><text x="58" y="66" text-anchor="middle" class="mut">100 MHz OCXO</text>
+      <text x="195" y="50" text-anchor="middle">Synthesiser</text><text x="195" y="66" text-anchor="middle" class="mut">clock, LOs</text>
+      <text x="343" y="50" text-anchor="middle">DDS / AWG + DAC</text><text x="343" y="66" text-anchor="middle" class="mut">Steps 1, 2, 6</text>
+      <text x="482" y="50" text-anchor="middle">Recon. filter</text><text x="482" y="66" text-anchor="middle" class="mut">Step 2</text>
+      <text x="606" y="50" text-anchor="middle">Upconverter</text><text x="606" y="66" text-anchor="middle" class="mut">Step 5</text>
+      <text x="720" y="50" text-anchor="middle">Filter +</text><text x="720" y="66" text-anchor="middle" class="mut">driver</text>
+      <text x="817" y="50" text-anchor="middle">PA</text><text x="817" y="66" text-anchor="middle" class="mut">Step 9</text>
+      <text x="606" y="170" text-anchor="middle">Receiver</text><text x="606" y="186" text-anchor="middle" class="mut">same LO</text>
+      <text x="343" y="170" text-anchor="middle">LO chain</text><text x="343" y="186" text-anchor="middle" class="mut">9.4 GHz, Step 8</text>
+      <text x="300" y="126" class="mut">1 GHz DAC clock</text>
+      <text x="574" y="114" class="mut">LO</text>
+      <text x="10" y="18" class="mut">Every block is driven from the one reference: that is what makes the system coherent (Step 7).</text>
+      <text x="10" y="232" class="mut">Waveform at 100 MHz ± 25 MHz → mixed with 9.4 GHz LO → 9.5 GHz ± 25 MHz at the PA input.</text>
+    </svg>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The simplest transmitter, and the oldest, is a free-running power oscillator (a magnetron, or a VCO followed by a PA) switched on and off for each pulse. It makes a pulse, but: (1) the starting phase of every pulse is random, uniformly anywhere in 0–360°, so the receiver cannot compare one pulse with the next and clutter spreads over all Doppler filters (with 64 pulses the clutter floor is only 10·log<sub>10</sub>64 = 18 dB below the clutter peak, Step 7); (2) the only waveform it can make is a fixed-frequency pulse, so range resolution and energy fight each other (Step 1); (3) its edges are as fast as the switch, so its spectrum splatters into neighbouring bands (Step 6). A coherent, digitally generated exciter removes all three, and then each of its own parts must be good enough not to bring the problems back.</p></div>
+  <h3>Side by side: what each exciter block sets</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Block</th><th>Waveform property it sets</th><th>Typical spec</th><th>Step</th></tr>
+    <tr><td>Reference and synthesiser</td><td>Phase noise, pulse-to-pulse phase, hop speed</td><td class="n">−110 dBc/Hz @ 1 kHz; settling 7 µs</td><td>7, 8; module 02</td></tr>
+    <tr><td>DDS / AWG</td><td>Waveform shape, chirp linearity, frequency resolution</td><td class="n">32-bit phase; 0.23 Hz steps</td><td>1, 2, 3, 6</td></tr>
+    <tr><td>DAC</td><td>Spurs, images, sinc droop</td><td class="n">12–14 bits; SFDR 70–80 dBc</td><td>2; module 07</td></tr>
+    <tr><td>Reconstruction filter</td><td>Removes DAC images; adds ripple</td><td class="n">image &lt; −60 dBc</td><td>2, 9</td></tr>
+    <tr><td>Mixer / IQ modulator</td><td>Image, LO leakage</td><td class="n">IRR 28–40 dB; LO −30 to −40 dBc</td><td>5; module 05</td></tr>
+    <tr><td>Filters and driver</td><td>Mask, amplitude and phase flatness</td><td class="n">ripple 0.5 dB pp</td><td>5, 6, 9; module 04</td></tr>
+    <tr><td>PA (after the exciter)</td><td>AM-PM, droop, harmonics</td><td class="n">AM-PM 2–5 °/dB at P<sub>1dB</sub></td><td>9; module 03</td></tr>
+  </table></div>
+  <h3>How to think about exciter specs</h3>
+  <div class="col"><p>Work backwards from the receiver: (1) the processing (pulse compression, Doppler filtering, SAR focusing) promises a sidelobe level or a clutter rejection; (2) every exciter impairment adds an error term below that level; (3) give each block a budget so that the sum stays, say, 6 dB under the promise. The next ten steps give you the formula, the worked number and a bench for each term. Phase noise itself is covered in the <a href="M02-synthesiser-phase-noise.html">synthesiser module (02)</a>; DAC sampling in the <a href="M07-adc-dac-sampling.html">ADC and DAC module (07)</a>; pulse compression in the <a href="M09-digital-receiver.html">digital receiver module (09)</a>. This page uses their results and does not repeat them.</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser and reference designers:</b> your phase noise, spurs and lock time are copied onto every transmitted pulse.</li>
+    <li><b>DAC and FPGA designers:</b> your bits, clock and look-up tables are the waveform.</li>
+    <li><b>Mixer, filter and amplifier designers:</b> your image rejection, leakage, ripple and AM-PM decide how much of the ideal waveform survives to the antenna.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why can no receiver fix a spur that the exciter transmitted?</summary><p>Because the spur is reflected by every target and clutter patch exactly like the wanted signal. It arrives at the receiver as part of the echo, and processing designed for the wanted waveform cannot tell it from a real return.</p></details>
+    <details><summary>What makes a radar "coherent"?</summary><p>All its clocks and LOs come from one reference, so the phase of each transmitted pulse is known at the receiver. That allows pulse-to-pulse phase comparison: Doppler filtering, MTI and SAR.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="types">
+  <div class="secno">Step 1</div>
+  <h2>Waveform types: CW pulse, LFM chirp, phase codes, FMCW ramps, stepped frequency</h2>
+  <div class="know"><h4>You already know</h4><p>A pulse of length τ occupies a bandwidth of about 1/τ. Radar measures range from the round-trip delay: R = c·t/2, with c = 3×10<sup>8</sup> m/s. The <a href="R4-pulse-radar.html">pulse page (R4)</a> and the <a href="M09-digital-receiver.html">digital receiver module (09)</a> explain the matched filter; here we only need its result.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Range resolution ΔR:</b> the smallest separation at which two equal targets show as two peaks. ΔR = c/(2B), where B is the bandwidth the waveform occupies. 1 MHz → 150 m; 10 MHz → 15 m; 100 MHz → 1.5 m. We measure it on the bench as the width of the compressed peak at −3 dB.</p>
+    <p><b>Pulse energy:</b> peak power × pulse length. Detection range depends on energy, not peak power. A 10 µs pulse has 10 times (10 dB) the energy of a 1 µs pulse at the same peak power.</p>
+    <p><b>Matched filter / pulse compression:</b> the receiver correlates the echo with a copy of the transmitted waveform. For a waveform of bandwidth B the output peak is about 1/B wide, whatever the pulse length. That is how a long pulse (energy) can still give fine range resolution (bandwidth).</p>
+    <p><b>Time-bandwidth product TB:</b> τ × B. It is the compression ratio: a 10 µs, 10 MHz chirp has TB = 100, so it compresses 100 times, from 10 µs to 0.1 µs.</p>
+    <p><b>Sidelobes, PSLR:</b> the compressed output has small peaks either side of the main one. The peak sidelobe ratio (PSLR) is the highest of them relative to the peak, in dB. A strong target's sidelobes can hide a weak neighbour.</p>
+    <p><b>The five families:</b> <b>CW pulse</b>: a fixed frequency switched on for τ; B = 1/τ. <b>LFM chirp</b> (linear frequency modulation): the frequency sweeps linearly through B during the pulse. <b>Phase code</b>: the pulse is cut into equal <b>chips</b> and each chip's phase is set to 0° or 180° by a code; the 13-chip <b>Barker code</b> is the best known; B = 1/chip. <b>FMCW ramp</b> (frequency-modulated continuous wave): the transmitter never switches off and the frequency ramps repeatedly through B; the echo is mixed with the transmit signal and the difference frequency gives range (Step 4). <b>Stepped frequency</b>: a burst of narrow pulses, each at a frequency Δf higher than the last; after the burst the receiver combines them into a profile with the resolution of the total span B = M·Δf.</p>
+  </div>
+  <div class="col">
+    <p>The exciter's first job is to make one of these shapes exactly. Each family trades something: the CW pulse is trivial to make but ties resolution to length; the chirp needs a precise sweep; a phase code needs fast, clean 180° phase steps; FMCW needs a precise ramp and a transmitter that is on all the time; stepped frequency needs a synthesiser that hops and settles quickly (Step 8) and a target that stays still for the whole burst.</p>
+  </div>
+  <div class="eq">ΔR = c / (2B) &nbsp;&nbsp; E = P<sub>peak</sub>·τ &nbsp;&nbsp; TB = τ·B &nbsp;&nbsp; stepped: B = M·Δf, R<sub>unamb</sub> = c / (2Δf)<small>With B in MHz, c/2B in metres is 150/B. For stepped frequency, M steps of Δf give the fine resolution of the full span, but the profile repeats every c/(2Δf): 32 steps of 3.125 MHz give 1.5 m resolution and a 48 m window.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive waveform is a plain CW pulse. To see a small target at long range the radar needs energy, so it uses a long pulse: 10 µs. Its bandwidth is then 0.1 MHz and its −3 dB range resolution is 878 m, so two aircraft 500 m apart are one blob. Shortening the pulse to 1 µs gives 88 m, but the energy falls by 10 dB, and getting it back needs 10 times the peak power from the PA. A 10 µs chirp of 10 MHz keeps the 10 dB of energy and gives 13.3 m.</p></div>
+  <h3>Side by side on one example: the same radar with six waveforms</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Waveform</th><th>Length</th><th>B</th><th>TB</th><th>−3 dB width</th><th>PSLR</th><th>Energy vs 1 µs CW</th></tr>
+    <tr><td>CW pulse</td><td class="n">1 µs</td><td class="n">1 MHz</td><td class="n">1</td><td class="n">88 m</td><td class="n">none</td><td class="n">0 dB</td></tr>
+    <tr><td>CW pulse</td><td class="n">10 µs</td><td class="n">0.1 MHz</td><td class="n">1</td><td class="n">878 m</td><td class="n">none</td><td class="n">+10 dB</td></tr>
+    <tr><td>LFM chirp</td><td class="n">10 µs</td><td class="n">10 MHz</td><td class="n">100</td><td class="n">13.3 m</td><td class="n">−13.4 dB</td><td class="n">+10 dB</td></tr>
+    <tr><td>Barker 13</td><td class="n">13 µs (1 µs chips)</td><td class="n">1 MHz</td><td class="n">13</td><td class="n">88 m</td><td class="n">−22.3 dB</td><td class="n">+11.1 dB</td></tr>
+    <tr><td>Stepped, 32 × 3.125 MHz</td><td class="n">32 × 1 µs</td><td class="n">100 MHz</td><td class="n">synthetic</td><td class="n">1.33 m</td><td class="n">−13.2 dB</td><td class="n">0 dB per pulse</td></tr>
+    <tr><td>FMCW ramp</td><td class="n">20 µs</td><td class="n">50 MHz</td><td class="n">1000</td><td class="n">2.65 m</td><td class="n">−13.5 dB</td><td class="n">continuous</td></tr>
+  </table></div>
+  <div class="col"><p>The chirp, the stepped burst and the FMCW ramp all have the same −13.4 dB first sidelobe: their compressed output is a sin(x)/x shape, because their spectrum is nearly rectangular. Receivers reduce it with a <b>weighting window</b> (Hamming gives −42.7 dB at the price of a 48 % wider peak; module 09). The Barker code reaches −22.3 dB with no weighting but has a low TB, and no longer binary Barker codes exist.</p></div>
+  <h3>How to choose the waveform</h3>
+  <div class="col"><p>(1) Set B from the resolution you need: ΔR = 150/B(MHz). (2) Set τ from the energy you need, limited by the PA's duty cycle and by the <b>eclipse</b> (the radar cannot receive while it transmits: a 10 µs pulse blinds the first c·τ/2 = 1.5 km). (3) If TB is large, use an LFM chirp: it tolerates Doppler shift and is easy to generate digitally. (4) If the PA must be on continuously and the range is short (automotive, altimeters, missile seekers), use FMCW. (5) If the instantaneous bandwidth of the hardware is small but the synthesiser can hop, use stepped frequency. (6) Use phase codes when you want low sidelobes without weighting, or many different codes for different pulses.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cWf" width="640" height="400" aria-label="Top: frequency or phase of the waveform against time. Bottom: compressed output against range"></canvas>
+    <div class="ctrl">
+      <label for="wfT">Waveform</label>
+      <select id="wfT"><option value="cw">CW pulse</option><option value="lfm" selected>LFM chirp</option><option value="barker">Barker 13 phase code</option><option value="fmcw">FMCW ramp (one ramp)</option><option value="step">Stepped frequency, 32 steps</option></select>
+      <label for="wfTau"><span>Pulse / ramp length τ</span> <b id="wfTauv"></b></label><input id="wfTau" type="range" min="1" max="20" step="1" value="10">
+      <label for="wfB"><span>Bandwidth B</span> <b id="wfBv"></b></label><input id="wfB" type="range" min="1" max="50" step="1" value="10">
+      <div class="readout" id="wfOut"></div>
+    </div>
+    <p class="cap">Top: instantaneous frequency against time (for the Barker code, the phase of each chip; for stepped frequency, the frequency of each of the 32 pulses, each bar as long as the sub-pulse within a 25 µs pulse interval). Bottom: the matched-filter output, 0 dB at the peak, against range offset. For the CW pulse and the Barker code the bandwidth is set by τ (B is not used); for stepped frequency τ is the length of each sub-pulse and only changes the energy per step. Watch the readout's −3 dB width follow 150/B, not τ, for the chirp.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>LFM, 10 µs, 10 MHz (default): width 13.3 m, PSLR −13.4 dB, TB 100: the third table row.</li>
+    <li>CW pulse at 10 µs: width 878 m; at 1 µs: 88 m. Resolution follows the length, the naive case.</li>
+    <li>LFM: move τ from 1 to 20 µs at 10 MHz. The width stays near 13 m while the energy grows from 0 to +13 dB.</li>
+    <li>Barker 13 at 13 µs: PSLR −22.3 dB, twelve equal sidelobes, width 88 m.</li>
+    <li>Stepped frequency, B 50 MHz: width 2.66 m with a 96 m repeat window (c/2Δf with Δf = 1.56 MHz).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Instantaneous bandwidth</td><td>DAC rate, filters, mixer IF width</td><td class="n">B ≥ 100 MHz</td><td>ΔR = 1.5 m; SAR image pixel size</td></tr>
+    <tr><td>Waveform memory / DDS sweep</td><td>FPGA memory, ramp logic</td><td class="n">τ up to 100 µs</td><td>TB, energy, eclipse zone c·τ/2</td></tr>
+    <tr><td>Phase-step speed</td><td>DAC, modulator bandwidth</td><td class="n">180° step &lt; 5 % of a chip</td><td>Code sidelobes stay at −22.3 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter and IF designers:</b> the exciter's instantaneous bandwidth is the narrowest stage; it caps B and therefore ΔR.</li>
+    <li><b>Synthesiser designers:</b> stepped-frequency waveforms are only as fast as your hop and settle (Step 8).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 20 µs chirp of 5 MHz and a 1 µs chirp of 5 MHz: which resolves better?</summary><p>Neither: both give c/2B = 30 m. The 20 µs chirp has 13 dB more energy.</p></details>
+    <details><summary>Why does stepped frequency need a stationary target?</summary><p>The profile is built from 32 separate pulses. If the target moves a significant fraction of a wavelength between them, the phases are wrong and the profile smears.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="dds">
+  <div class="secno">Step 2</div>
+  <h2>DDS and DAC-based generation: clock, phase accumulator, truncation spurs</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M07-adc-dac-sampling.html">ADC and DAC module (07)</a>: a DAC clocked at f<sub>clk</sub> can produce frequencies up to f<sub>clk</sub>/2 (the <b>Nyquist</b> limit); its output steps are held for one clock period, which multiplies the spectrum by a sin(x)/x shape (<b>sinc roll-off</b>) and leaves copies (<b>images</b>) at f<sub>clk</sub> ± f<sub>out</sub>, 2f<sub>clk</sub> ± f<sub>out</sub> and so on. The <a href="M02-synthesiser-phase-noise.html">synthesiser module (02)</a> introduced the DDS as a frequency source; here we look inside it as a waveform generator.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Phase accumulator:</b> an N-bit register (N = 32 here) that adds a fixed number every clock and wraps round on overflow. Its value is the phase of the output, as a fraction of one cycle: 0 = 0°, 2<sup>32</sup> = 360°.</p>
+    <p><b>Frequency tuning word (FTW):</b> the number added each clock. f<sub>out</sub> = FTW·f<sub>clk</sub>/2<sup>N</sup>. With f<sub>clk</sub> = 1 GHz and N = 32, one step of FTW is 0.233 Hz: the <b>frequency resolution</b>. To make a chirp, a second accumulator adds a fixed amount to the FTW every clock, so the frequency ramps exactly linearly.</p>
+    <p><b>Phase-to-amplitude look-up table (LUT):</b> a memory that turns phase into sin(phase). A 32-bit address would need 2<sup>32</sup> entries, so only the top P bits are used (P = 12 to 16). Dropping the lower bits is <b>phase truncation</b>.</p>
+    <p><b>Truncation spurs:</b> the dropped bits make a small, periodic phase error (a sawtooth up to 360°/2<sup>P</sup>). A periodic error makes discrete spurs. The worst spur is about −6.02·P dBc: 12 bits → −72 dBc. If the FTW has no ones in its lowest N − P bits, there is no truncation error and no truncation spur.</p>
+    <p><b>DAC bits D and SFDR:</b> the amplitude is rounded to D bits. An ideal D-bit DAC has a signal-to-quantisation-noise ratio of 6.02·D + 1.76 dB over the Nyquist band. <b>Spurious-free dynamic range</b> (SFDR) is the distance from the carrier to the highest spur; in real DACs it is set more by analogue nonlinearity and glitches (typically 70–80 dBc) than by the bit count.</p>
+    <p><b>Reconstruction filter:</b> the low-pass filter after the DAC that removes the images. Its job gets harder as f<sub>out</sub> approaches f<sub>clk</sub>/2, because the first image, at f<sub>clk</sub> − f<sub>out</sub>, comes closer.</p>
+  </div>
+  <div class="col">
+    <p>A DDS makes the waveform from arithmetic. Because the phase is a number, the frequency is exact to 0.233 Hz, a chirp is exactly linear, a phase code is an exact 180° jump, and the starting phase of every pulse can be reset to the same value: the DDS is coherent by construction. Its errors come from finite numbers (truncation, rounding) and from the analogue DAC. An <b>AWG</b> is the alternative: precomputed samples played from memory; it can make any shape, including pre-distorted waveforms (Step 9), but needs memory proportional to pulse length × clock rate (10 µs at 1 GS/s = 10 000 samples per pulse).</p>
+  </div>
+  <div class="eq">f<sub>out</sub> = FTW·f<sub>clk</sub>/2<sup>N</sup> &nbsp;&nbsp; Δf = f<sub>clk</sub>/2<sup>N</sup> &nbsp;&nbsp; spur<sub>trunc</sub> ≈ −6.02·P dBc &nbsp;&nbsp; SQNR = 6.02·D + 1.76 dB &nbsp;&nbsp; sinc = sin(πf/f<sub>clk</sub>)/(πf/f<sub>clk</sub>)<small>Worked: f<sub>clk</sub> 1 GHz, f<sub>out</sub> 123.4 MHz → FTW = 0.1234 × 2<sup>32</sup> = 529 974 388 (0x1F972474); actual output 123.399 999 92 MHz. Sinc loss at 123.4 MHz: 0.22 dB; at 400 MHz: 2.42 dB. First image at 876.6 MHz, 17.0 dB below the wanted signal before any filtering.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive DDS keeps only the top 8 bits of phase to save look-up memory. The worst truncation spur is then −48.5 dBc (measured on the bench at 123.4 MHz). After upconversion that spur is transmitted with the wanted signal; a clutter return 60 dB above a target carries the spur 11.5 dB above the target. The second naive mistake is to run the DDS up to 0.45 f<sub>clk</sub> to get more bandwidth: at 400 MHz the first image (600 MHz) is only 3.5 dB below the wanted signal and 200 MHz away, so the reconstruction filter must climb 60 dB in 200 MHz, and the sinc has already cost 2.42 dB at the top of the band (this droop is also amplitude ripple across a chirp, Step 9).</p></div>
+  <h3>Side by side on one example: f<sub>clk</sub> 1 GHz, f<sub>out</sub> 123.4 MHz, measured on the bench</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Phase bits P / DAC bits D</th><th>Predicted −6.02·P</th><th>Measured worst spur</th><th>Limited by</th></tr>
+    <tr><td>8 / 14</td><td class="n">−48.2 dBc</td><td class="n">−48.5 dBc</td><td>phase truncation</td></tr>
+    <tr><td>10 / 14</td><td class="n">−60.2 dBc</td><td class="n">−60.2 dBc</td><td>phase truncation</td></tr>
+    <tr><td>12 / 12 (default)</td><td class="n">−72.2 dBc</td><td class="n">−72.1 dBc</td><td>phase truncation</td></tr>
+    <tr><td>14 / 14</td><td class="n">−84.3 dBc</td><td class="n">−84.5 dBc</td><td>phase truncation</td></tr>
+    <tr><td>16 / 8</td><td class="n">−96.3 dBc</td><td class="n">−67.8 dBc</td><td>DAC rounding</td></tr>
+    <tr><td>8 / 14 at 125.0 MHz</td><td class="n">−48.2 dBc</td><td class="n">−102.4 dBc</td><td>FTW 0x20000000: no truncation error</td></tr>
+  </table></div>
+  <div class="col"><p>The last row is the trick of <b>frequency planning</b>: if the FTW's lowest 24 bits are zero, the phase lands exactly on table entries and the truncation spur disappears. Radar exciters often restrict the DDS to such "clean" frequencies, or add a small random <b>dither</b> to the phase to spread the spur energy into a low noise floor.</p></div>
+  <h3>How to choose f<sub>clk</sub>, P and D</h3>
+  <div class="col"><p>(1) f<sub>clk</sub> ≥ 2.5 × the highest output frequency, so the useful band ends near 0.4 f<sub>clk</sub>, the first image is ≥ 0.2 f<sub>clk</sub> away and sinc droop stays under 2.4 dB (equalise it digitally if the chirp spans much of the band). (2) P from the spur budget: a −70 dBc requirement needs P ≥ 12 (−72 dBc) plus margin, or dither. (3) D: 12–14 bits; buy the DAC on its SFDR at your output frequency, not on its bit count. (4) The DAC clock's phase noise and spurs go straight onto the output, scaled by f<sub>out</sub>/f<sub>clk</sub> (module 02).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cDds" width="640" height="340" aria-label="DDS output spectrum, relative to the carrier, with the truncation-spur prediction line"></canvas>
+    <div class="ctrl">
+      <label for="ddF"><span>Output frequency f<sub>out</sub></span> <b id="ddFv"></b></label><input id="ddF" type="range" min="5" max="480" step="0.1" value="123.4">
+      <label for="ddP"><span>Phase bits kept P</span> <b id="ddPv"></b></label><input id="ddP" type="range" min="6" max="16" step="1" value="12">
+      <label for="ddD"><span>DAC bits D</span> <b id="ddDv"></b></label><input id="ddD" type="range" min="4" max="16" step="1" value="12">
+      <label for="ddV">View</label>
+      <select id="ddV"><option value="dig" selected>Digital samples, 0 to f<sub>clk</sub>/2</option><option value="ana">DAC analogue output, 0 to 2 f<sub>clk</sub> (sinc, images)</option></select>
+      <div class="readout" id="ddOut"></div>
+    </div>
+    <p class="cap">f<sub>clk</sub> = 1 GHz, 32-bit accumulator, 8192-point FFT with a Blackman-Harris window (its own leakage is below −92 dB). Dashed line: the −6.02·P prediction. Dotted line: the ideal DAC quantisation level per FFT bin. In the analogue view the first-zone spectrum is multiplied by the sinc and repeated as images around f<sub>clk</sub> and 2f<sub>clk</sub>; the marker shows the first image. Try 125.0 MHz with P = 8.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (123.4 MHz, P 12, D 12): worst spur −72.1 dBc, predicted −72.2 dBc.</li>
+    <li>P 8 (D 14): −48.5 dBc, the naive case. Each extra phase bit lowers it by about 6 dB.</li>
+    <li>125.0 MHz, P 8, D 14: the readout says the FTW is truncation-free and the spur drops to about −102 dBc.</li>
+    <li>D 8 with P 16: −67.8 dBc, now the DAC limits.</li>
+    <li>Analogue view at 400 MHz: sinc loss 2.42 dB and the first image only 3.5 dB below the carrier, 200 MHz away.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Phase bits P</td><td>LUT size, CORDIC depth</td><td class="n">P = 12 → −72 dBc</td><td>Spur transmitted with every pulse: clutter's copy 12 dB under a −60 dB target</td></tr>
+    <tr><td>DAC SFDR</td><td>DAC choice, layout, clock</td><td class="n">≥ 75 dBc at f<sub>out</sub></td><td>Same: false target or raised Doppler floor</td></tr>
+    <tr><td>f<sub>clk</sub> / f<sub>out</sub> ratio</td><td>Clock synthesiser</td><td class="n">f<sub>out</sub> ≤ 0.4 f<sub>clk</sub></td><td>Sinc droop ≤ 2.4 dB (chirp amplitude ripple), image ≥ 200 MHz away at 1 GHz</td></tr>
+    <tr><td>Reconstruction filter</td><td>Order, family, cut-off</td><td class="n">image ≤ −60 dBc</td><td>No mirrored chirp transmitted (Step 5)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>FPGA designers:</b> the accumulator width, LUT size and dither are your code.</li>
+    <li><b>Clock designers:</b> the DAC clock's jitter becomes the waveform's phase noise.</li>
+    <li><b>Filter designers:</b> the reconstruction filter's ripple and group delay are added to the chirp (Steps 3 and 9).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why can a DDS chirp be perfectly linear when a ramped VCO cannot?</summary><p>The DDS frequency is FTW·f<sub>clk</sub>/2<sup>N</sup> and the FTW is ramped by adding an exact number each clock; the only references are the clock and arithmetic. A VCO's frequency depends on a non-linear tuning curve, temperature and the drive circuit.</p></details>
+    <details><summary>Which FTWs give no truncation spur with P = 12, N = 32?</summary><p>Those whose lowest 20 bits are zero: multiples of 2<sup>20</sup>, i.e. output frequencies that are multiples of f<sub>clk</sub>/4096 = 244.14 kHz.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="chirp">
+  <div class="secno">Step 3</div>
+  <h2>Chirp linearity and phase error: what they do to range sidelobes and resolution after compression</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1: a chirp compresses to a peak about 1/B wide with −13.4 dB sidelobes, or −42.7 dB with Hamming weighting. From the <a href="M04-filters.html">filters module (04)</a>: a filter's group-delay ripple puts paired echoes on a compressed chirp. This step adds the exciter's own errors.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous frequency:</b> the rate of change of phase: f(t) = (1/2π)·dφ/dt. For an ideal LFM chirp it is a straight line from −B/2 to +B/2 in τ, so the phase is a parabola: φ(t) = π·K·t², with <b>chirp rate</b> K = B/τ (here 100 MHz/10 µs = 10 MHz per µs).</p>
+    <p><b>Phase error φ<sub>e</sub>(t):</b> the difference between the transmitted phase and the ideal parabola, after removing any constant and any straight-line part (a constant is an arbitrary phase; a straight line is only a small range shift). It is the quantity that matters to the matched filter.</p>
+    <p><b>Chirp linearity:</b> how straight the frequency-against-time line is. A frequency error δf(t) integrates into a phase error: φ<sub>e</sub> = 2π∫δf dt. So a small but slow frequency error over a long pulse is a big phase error.</p>
+    <p><b>Quadratic phase error (QPE):</b> φ<sub>e</sub> = a·u², where u runs from −1 at the start of the pulse to +1 at the end, so a is the error at the pulse edges. It is the phase of a wrong chirp rate (the frequency line is straight but too steep or too shallow). Its effect: a <b>wider main lobe</b> and filled-in nulls.</p>
+    <p><b>Cubic phase error:</b> φ<sub>e</sub> = a·u³: the frequency line is bowed (curved). Its effect: <b>asymmetric sidelobes</b>, one side raised.</p>
+    <p><b>Sinusoidal phase ripple:</b> φ<sub>e</sub> = a·sin(2π·n·t/τ), n cycles over the pulse. Its effect: a pair of <b>paired echoes</b>, small copies of the main peak at ±n range cells (n·c/2B), each 20·log<sub>10</sub>(a/2) dB below the peak.</p>
+    <p><b>ISLR:</b> integrated sidelobe ratio: all the energy outside the main lobe, relative to the energy inside it. It matters for distributed clutter and SAR images, where many weak sidelobes add up.</p>
+  </div>
+  <div class="col">
+    <p>Why the phase of a chirp maps onto range sidelobes: during a chirp, frequency and time are tied together (at time t the frequency is K·t). Pulse compression lines up all frequencies so they add in phase at one instant. Any error that bends one part of the pulse out of phase leaves that part's energy uncancelled at other instants: sidelobes. A slow error (quadratic) spreads the energy just beside the peak and widens it; a periodic error of n cycles puts energy exactly n range cells away, as echoes. The measure engineers use is the <b>peak phase error</b> in degrees.</p>
+  </div>
+  <div class="eq">φ<sub>e</sub>(t) = 2π ∫ δf(t) dt &nbsp;&nbsp; echo level = 20·log<sub>10</sub>(a/2) &nbsp;&nbsp; echo position = ±n·c/(2B)<small>Worked: a sinusoidal phase ripple of a = 0.1 rad (5.7°) peak with 5 cycles in the pulse puts echoes at 20·log(0.05) = −26.0 dB, at ±5 × 1.5 m = ±7.5 m. On the bench (6°, the nearest slider step: predicted −25.6 dB) Hamming weighting gives a PSLR of −25.1 dB: the echoes, not the window, now set the sidelobe level. A frequency error of only 10 kHz held for 5 µs is 2π × 10<sup>4</sup> × 5×10<sup>−6</sup> = 0.31 rad = 18°.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive chirp is made by ramping the tuning voltage of a free-running VCO. VCO tuning curves are curved: a "1 % linear" VCO is 1 MHz off at the middle of a 100 MHz sweep. Integrated over the 10 µs pulse that bow is about 240° of cubic-shaped phase error after removing the straight-line part, and with Hamming weighting the bench gives a PSLR of −14.7 dB instead of −42.7 dB: the weighting has been thrown away. To stay at 2–3° the frequency must be straight to about 10 kHz in 100 MHz, 0.01 %: only a DDS, an AWG or a closed-loop (PLL) chirp gets there.</p></div>
+  <h3>Side by side on one example: 10 µs, 100 MHz chirp, Hamming weighting, measured on the bench</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Phase error</th><th>−3 dB width</th><th>PSLR</th><th>Peak loss</th></tr>
+    <tr><td>None (ideal)</td><td class="n">1.96 m</td><td class="n">−42.7 dB</td><td class="n">0 dB</td></tr>
+    <tr><td>Quadratic 45°</td><td class="n">1.99 m (+1.5 %)</td><td class="n">−34.7 dB</td><td class="n">0.10 dB</td></tr>
+    <tr><td>Quadratic 90°</td><td class="n">2.09 m (+6.6 %)</td><td class="n">−26.8 dB</td><td class="n">0.41 dB</td></tr>
+    <tr><td>Quadratic 180°</td><td class="n">2.64 m (+34 %)</td><td class="n">−16.5 dB</td><td class="n">1.49 dB</td></tr>
+    <tr><td>Cubic 90°</td><td class="n">2.00 m</td><td class="n">−25.3 dB (one side)</td><td class="n">0.13 dB</td></tr>
+    <tr><td>Ripple 6°, 5 cycles</td><td class="n">1.96 m</td><td class="n">−25.1 dB (echo at ±7.5 m)</td><td class="n">0.02 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Without weighting the ideal PSLR is only −13.4 dB, and a 6° ripple's −26 dB echoes hide below the uniform sidelobes; that is why phase errors are usually discovered only when weighting is switched on. Here "main lobe" means the region between the ideal response's first nulls, so a widened peak's shoulders count as sidelobes.</p></div>
+  <h3>How to choose the phase-error budget</h3>
+  <div class="col"><p>(1) Start from the PSLR or ISLR the system needs, for example −35 dB. (2) Paired echoes from all ripple sources add; give the exciter, say, an echo budget of −41 dB (6 dB below), so a ≤ 2 × 10<sup>−41/20</sup> = 0.018 rad = 1.0° peak for any periodic term. (3) For slow (quadratic) errors, keep the peak below about 45°: the width grows only 1.5 % but PSLR is already −34.7 dB. (4) Convert to a frequency spec with φ<sub>e</sub> = 2π∫δf dt and allocate it to the synthesiser, DAC filter, mixer and PA. (5) If the hardware cannot meet it, measure the transmitted chirp through a loop-back path and pre-distort the DDS or AWG phase (Step 9).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCh" width="640" height="340" aria-label="Compressed chirp output with and without the phase error, against range"></canvas>
+    <div class="ctrl">
+      <label for="chE">Phase error shape</label>
+      <select id="chE"><option value="none">None (ideal)</option><option value="quad" selected>Quadratic (wrong chirp rate)</option><option value="cubic">Cubic (bowed frequency line)</option><option value="sin">Sinusoidal ripple</option></select>
+      <label for="chA"><span>Peak phase error a</span> <b id="chAv"></b></label><input id="chA" type="range" min="0" max="240" step="1" value="90">
+      <label for="chN"><span>Ripple cycles n in the pulse</span> <b id="chNv"></b></label><input id="chN" type="range" min="1" max="30" step="1" value="5">
+      <label for="chW">Receiver weighting</label>
+      <select id="chW"><option value="uniform">Uniform (none)</option><option value="hamming" selected>Hamming</option></select>
+      <div class="readout" id="chOut"></div>
+    </div>
+    <p class="cap">Chirp 10 µs, 100 MHz (ideal ΔR = 1.5 m), sampled at 400 MHz and compressed by FFT. Grey: ideal response with the same weighting. Coloured: with the phase error. Dashed markers: where a sinusoidal ripple's paired echoes should appear (±n × 1.5 m) and their predicted level 20·log(a/2). Ripple cycles only act on the sinusoidal shape.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (quadratic 90°, Hamming): width 2.09 m (+6.6 %), PSLR −26.8 dB, loss 0.41 dB.</li>
+    <li>Quadratic 180°: the peak widens 34 % and the nulls disappear: resolution is lost, not just sidelobes.</li>
+    <li>Sinusoidal, 6°, 5 cycles: echoes at ±7.5 m, predicted −25.6 dB by 20·log(a/2); PSLR −25.1 dB.</li>
+    <li>Switch to uniform with the same ripple: the echoes vanish under the −13.4 dB sidelobes.</li>
+    <li>Cubic 240°: PSLR −14.7 dB with Hamming, the naive VCO chirp.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Chirp phase error (slow)</td><td>DDS vs VCO ramp, PLL loop dynamics at ramp start</td><td class="n">≤ 45° peak quadratic</td><td>Width +1.5 %, PSLR −34.7 dB</td></tr>
+    <tr><td>Periodic phase ripple</td><td>Filter delay ripple, mismatch reflections, supply ripple</td><td class="n">≤ 1° peak</td><td>Echoes ≤ −41 dB: no false targets beside strong ones</td></tr>
+    <tr><td>Frequency nonlinearity</td><td>VCO tuning curve, ramp DAC, loop bandwidth</td><td class="n">≤ 10 kHz in 100 MHz</td><td>Weighting keeps its −42.7 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> a PLL-ramped chirp has a transient at each ramp start; that is a quadratic or cubic error at the pulse edge.</li>
+    <li><b>Filter and interconnect designers:</b> group-delay ripple and a double reflection between two mismatches each make a sinusoidal phase ripple across the chirp.</li>
+    <li><b>Power-supply designers:</b> ripple on the PA or driver supply phase-modulates the pulse through AM-PM (Step 9, module 16).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 3° peak phase ripple with 12 cycles in a 100 MHz chirp: where and how big are the echoes?</summary><p>At ±12 × 1.5 m = ±18 m, each 20·log(0.0524/2) = −31.6 dB.</p></details>
+    <details><summary>Why is a linear (straight-line) phase error harmless?</summary><p>A phase proportional to time is a constant frequency offset; for a chirp it only shifts the compressed peak by δf/K in time (a tiny range offset). The shape is unchanged.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="fmcw">
+  <div class="secno">Step 4</div>
+  <h2>FMCW ramp nonlinearity and target smearing</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1: an FMCW radar transmits a continuous frequency ramp. The FMCW explainer shows the beat-frequency idea in pictures. A mixer's output contains the difference frequency of its two inputs (module 05).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Ramp:</b> one linear sweep of B in time T<sub>r</sub>. Here B = 150 MHz in T<sub>r</sub> = 100 µs, so the slope is K = B/T<sub>r</sub> = 1.5 MHz per µs. Range resolution c/2B = 1.0 m.</p>
+    <p><b>Beat frequency f<sub>b</sub>:</b> the echo from range R is a copy of the ramp delayed by τ = 2R/c. Mixing it with the ramp being transmitted gives the difference frequency f<sub>b</sub> = K·τ = 2KR/c. At 1000 m: τ = 6.67 µs, f<sub>b</sub> = 10.0 MHz. An FFT of the beat signal is the range profile: frequency is range.</p>
+    <p><b>Ramp nonlinearity δ:</b> the largest departure of the ramp's frequency from a straight line, as a fraction of B. δ = 0.1 % of 150 MHz = 150 kHz.</p>
+    <p><b>Nonlinearity shape:</b> a <b>bow</b> (frequency bulges in the middle, from a curved VCO tuning law), an <b>S-curve</b> (bulges one way then the other), or a <b>ripple</b> (5 wiggles in the ramp, from a loop or a supply interacting with the ramp).</p>
+    <p><b>Smearing:</b> because the error is in the transmitted frequency, the beat frequency is f<sub>b</sub> = K·τ + τ·dδf/dt: it varies during the ramp by τ times the slope error. The FFT then shows a spread of frequencies instead of one line: the target's peak becomes wider and lower.</p>
+  </div>
+  <div class="col">
+    <p>The key fact: <b>the smear grows with range</b>. A target at 100 m has τ = 0.67 µs, so its beat barely notices the ramp's error; a target at 1000 m has ten times the delay and ten times the smear. For a bow of size δ, the slope error swings between ±4δB/T<sub>r</sub>, so the beat swings by ±4δ·f<sub>b</sub> and the target spreads over about 8δ·R in range: 0.1 % at 1000 m is 8 m, eight resolution cells. Pulse radars see a fixed error at every range (Step 3); FMCW sees an error that scales with range.</p>
+  </div>
+  <div class="eq">f<sub>b</sub> = 2KR/c &nbsp;&nbsp; smear (bow) ≈ 8·δ·R &nbsp;&nbsp; requirement: δ &lt; ΔR / (8R)<small>Worked: 1 m resolution at 1000 m needs δ &lt; 1/8000 = 0.0125 %, i.e. the ramp must be straight to 19 kHz in 150 MHz. The bench's exact spread (measured over the part of the ramp that is valid at that range) is 7.46 m for δ = 0.1 % at 1000 m.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive FMCW source is a VCO driven by a linear voltage ramp. A typical VCO tuning law is bowed by a few per cent; even after a one-time correction table, temperature leaves 0.1 %. The bench gives: near target (100 m) −3 dB width 1.46 m, unchanged; far target (1000 m) 2.65 m instead of 1.55 m and 2.6 dB lower; at 3000 m, 7.0 m wide and 5.9 dB lower. The far, weak target, the one the radar most needs, is the one that suffers.</p></div>
+  <h3>Side by side on one example: 150 MHz in 100 µs, Hann window, measured on the bench</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Nonlinearity (bow)</th><th>Target</th><th>−3 dB width</th><th>Peak loss</th><th>Predicted spread</th></tr>
+    <tr><td>0 (ideal)</td><td class="n">1000 m</td><td class="n">1.55 m</td><td class="n">0 dB</td><td class="n">0 m</td></tr>
+    <tr><td>0.01 %</td><td class="n">1000 m</td><td class="n">1.55 m</td><td class="n">0.03 dB</td><td class="n">0.75 m</td></tr>
+    <tr><td>0.05 %</td><td class="n">1000 m</td><td class="n">1.75 m</td><td class="n">0.75 dB</td><td class="n">3.7 m</td></tr>
+    <tr><td>0.1 %</td><td class="n">100 m</td><td class="n">1.46 m</td><td class="n">0.04 dB</td><td class="n">0.79 m</td></tr>
+    <tr><td>0.1 %</td><td class="n">1000 m</td><td class="n">2.65 m</td><td class="n">2.55 dB</td><td class="n">7.5 m</td></tr>
+    <tr><td>0.1 %</td><td class="n">3000 m</td><td class="n">7.00 m</td><td class="n">5.88 dB</td><td class="n">19.1 m</td></tr>
+    <tr><td>1 %</td><td class="n">1000 m</td><td class="n">27.2 m</td><td class="n">12.4 dB</td><td class="n">74.6 m</td></tr>
+  </table></div>
+  <div class="col"><p>A ripple-shaped error does not widen the peak; it moves energy into echoes either side of the target (the same paired-echo effect as Step 3), at a spacing set by the ripple rate. The −3 dB width then hides the damage; watch the peak loss and the echoes instead.</p></div>
+  <h3>How to choose the ramp linearity</h3>
+  <div class="col"><p>(1) Take the longest range R<sub>max</sub> and the resolution ΔR = c/2B. (2) Require δ &lt; ΔR/(8R<sub>max</sub>), with margin. (3) Choose the source: a PLL-controlled ramp (fractional-N with a ramp generator) holds 0.01 % or better; a DDS-driven ramp is exactly linear but needs multiplication to reach microwave bandwidth; a free VCO needs a measured correction table and temperature compensation. (4) Watch the ramp start: the PLL's transient at the flyback is a large error in the first microseconds; most FMCW radars discard the first 5–10 % of each ramp. (5) If the hardware is not good enough, measure the ramp with a reference delay line and correct the beat signal digitally.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cFm" width="640" height="340" aria-label="FMCW range profiles of a near and a far target, each centred on its true range"></canvas>
+    <div class="ctrl">
+      <label for="fmS">Nonlinearity shape</label>
+      <select id="fmS"><option value="bow" selected>Bow (curved tuning law)</option><option value="s">S-curve</option><option value="rip">Ripple, 5 cycles per ramp</option></select>
+      <label for="fmN"><span>Nonlinearity δ (peak, % of B)</span> <b id="fmNv"></b></label><input id="fmN" type="range" min="0" max="1" step="0.01" value="0.1">
+      <label for="fmR"><span>Far target range</span> <b id="fmRv"></b></label><input id="fmR" type="range" min="200" max="3000" step="50" value="1000">
+      <label for="fmW">Range FFT window</label>
+      <select id="fmW"><option value="uniform">Uniform</option><option value="hann" selected>Hann</option></select>
+      <div class="readout" id="fmOut"></div>
+    </div>
+    <p class="cap">Ramp 150 MHz in 100 µs (ΔR = 1.0 m). Each target's beat signal is computed from the nonlinear ramp and its delayed copy, over the part of the ramp after the echo has arrived, then FFT'd. Both profiles are drawn centred on the target's true range so their shapes can be compared. Grey: near target at 100 m. Coloured: far target. Shaded band: the predicted spread τ·(swing of the slope error).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (bow 0.1 %, 1000 m, Hann): far target 2.65 m wide and 2.55 dB down; the near target is untouched.</li>
+    <li>Far target 3000 m: 7.0 m and 5.9 dB down. The smear tripled with range.</li>
+    <li>δ 0.01 %: the far target is back to 1.55 m; this is the δ &lt; ΔR/(8R) rule (0.0125 %).</li>
+    <li>Ripple shape at 0.1 %: the width barely changes but the peak drops and echoes appear beside the target.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Ramp linearity</td><td>VCO tuning law, PLL ramp, correction table</td><td class="n">δ ≤ 0.01 %</td><td>Far targets keep 1 m resolution and full peak</td></tr>
+    <tr><td>Ramp-start transient</td><td>Loop bandwidth, flyback time</td><td class="n">settled in &lt; 5 % of T<sub>r</sub></td><td>Usable ramp fraction, SNR</td></tr>
+    <tr><td>Supply and loop ripple</td><td>Regulators, loop filter</td><td class="n">ripple-induced δ ≤ 0.002 %</td><td>No ghost targets beside strong ones</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>VCO designers:</b> tuning-law curvature and its temperature drift are the bow.</li>
+    <li><b>PLL designers:</b> loop bandwidth sets how faithfully the ramp is tracked and how long the flyback transient lasts.</li>
+    <li><b>Supply designers:</b> a regulator ripple on the tuning line or VCO supply becomes the ripple shape.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 1 GHz, 50 µs ramp (ΔR 0.15 m) must resolve targets at 200 m. What linearity is needed?</summary><p>δ &lt; 0.15/(8 × 200) = 0.0094 %, i.e. about 94 kHz in 1 GHz.</p></details>
+    <details><summary>Why does a pulse radar not see range-dependent smearing?</summary><p>Its matched filter compares the echo with a stored copy of the transmitted pulse, error included; the error sets one fixed sidelobe pattern at every range. FMCW compares the echo with the ramp being transmitted τ later, so the difference grows with τ.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="upconv">
+  <div class="secno">Step 5</div>
+  <h2>Upconversion: image and LO leakage, and the filtering that removes them</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M05-mixers-conversion.html">mixers module (05)</a>: a mixer driven by an LO at f<sub>LO</sub> turns an input at f<sub>IF</sub> into two outputs, f<sub>LO</sub> + f<sub>IF</sub> and f<sub>LO</sub> − f<sub>IF</sub>, and leaks some LO straight through. An IQ (quadrature) mixer can cancel one of the two outputs.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Upconverter:</b> the mixer or modulator that moves the waveform from the DAC's frequency (f<sub>IF</sub>, here 100 MHz) to the transmit frequency (f<sub>LO</sub> + f<sub>IF</sub> = 9.5 GHz with a 9.4 GHz LO).</p>
+    <p><b>Wanted sideband and image:</b> f<sub>LO</sub> + f<sub>IF</sub> is wanted; f<sub>LO</sub> − f<sub>IF</sub> is the <b>image</b>. A plain (real, double-sideband) mixer makes both at equal level. For a chirp the image is the <b>mirrored chirp</b>, sweeping the opposite way.</p>
+    <p><b>IQ modulator, single sideband (SSB):</b> two mixers driven 90° apart, fed with the waveform's I (cosine) and Q (sine) parts from two DACs. Ideally the image cancels. A <b>gain imbalance</b> g (dB) or <b>phase imbalance</b> φ (degrees) between the two paths leaves part of it.</p>
+    <p><b>Image rejection ratio (IRR):</b> wanted / image, in dB: IRR = 10·log<sub>10</sub>[(1 + 2g·cos φ + g²)/(1 − 2g·cos φ + g²)], with g as a voltage ratio. 0.5 dB and 3° → 28.2 dB; 0.1 dB and 1° → 39.6 dB.</p>
+    <p><b>LO leakage (carrier feedthrough):</b> the LO itself at the output, in dBc. It comes from the mixer's LO-to-RF isolation and, in an IQ modulator, from DC offsets on the I and Q inputs. Typical: −30 to −40 dBc before calibration.</p>
+    <p><b>Post-mixer filter:</b> a band-pass filter centred on the wanted signal. Its attenuation at the image (2f<sub>IF</sub> away) and at the LO (f<sub>IF</sub> away) adds to the mixer's own rejection.</p>
+  </div>
+  <div class="col">
+    <p>The image and the LO leak are transmitted and reflected like the wanted signal. The image chirp, compressed by a filter matched to the wanted chirp, does not compress: it spreads into a low floor of about −IRR − 10·log<sub>10</sub>(TB) dB, which with TB = 500 and a 28 dB IRR is −55 dB under every strong return. In FMCW and in pulse radars whose LO runs during reception, the LO leak is also a strong unmodulated signal that sits in the receiver at zero beat frequency. Both also fall into neighbours' bands: spectrum rules usually demand that every unwanted output is below a limit; here −60 dBc.</p>
+  </div>
+  <div class="eq">unwanted at output = unwanted at mixer − filter attenuation &nbsp;&nbsp; image offset = 2·f<sub>IF</sub> &nbsp;&nbsp; LO offset = f<sub>IF</sub><small>Worked (bench default): chirp 50 MHz wide, f<sub>IF</sub> 100 MHz, IQ modulator 0.5 dB / 3° → image −28.2 dBc; LO −30 dBc. 5-pole band-pass, 100 MHz wide (−3 dB), centred on the wanted signal: the image's nearest edge is 2 × 100 − 25 = 175 MHz away → 54.4 dB more → −82.6 dBc; the LO, 100 MHz away, gets 30.1 dB → −60.1 dBc. Both meet −60 dBc, the LO by 0.1 dB.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive upconverter is one double-sideband mixer with an IF of 30 MHz (convenient for the DAC). The image is then at 0 dBc and only 60 MHz from the wanted signal; with a 50 MHz chirp the two bands nearly touch and no practical filter separates them: the bench shows −0.1 dBc after a 5-pole filter. The LO, 30 MHz away and inside the filter, stays at −30 dBc. Either choose a higher IF, or cancel the image in an IQ modulator, or both.</p></div>
+  <h3>Side by side on one example: 50 MHz chirp at 9.5 GHz, limit −60 dBc</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Upconverter</th><th>f<sub>IF</sub></th><th>Filter</th><th>Image at output</th><th>LO at output</th><th>Meets −60 dBc?</th></tr>
+    <tr><td>Real mixer</td><td class="n">30 MHz</td><td>5-pole</td><td class="n">−0.1 dBc</td><td class="n">−30.0 dBc</td><td>No</td></tr>
+    <tr><td>Real mixer</td><td class="n">100 MHz</td><td>5-pole</td><td class="n">−54.4 dBc</td><td class="n">−60.1 dBc</td><td>No (image)</td></tr>
+    <tr><td>Real mixer</td><td class="n">300 MHz</td><td>5-pole</td><td class="n">−106.1 dBc</td><td class="n">−107.8 dBc</td><td>Yes</td></tr>
+    <tr><td>IQ 0.5 dB / 3°</td><td class="n">100 MHz</td><td>none</td><td class="n">−28.2 dBc</td><td class="n">−30.0 dBc</td><td>No</td></tr>
+    <tr><td>IQ 0.5 dB / 3°</td><td class="n">100 MHz</td><td>5-pole</td><td class="n">−82.6 dBc</td><td class="n">−60.1 dBc</td><td>Yes, just</td></tr>
+    <tr><td>IQ 0.1 dB / 1°, LO −40 dBc</td><td class="n">100 MHz</td><td>5-pole</td><td class="n">−94.0 dBc</td><td class="n">−70.1 dBc</td><td>Yes</td></tr>
+  </table></div>
+  <h3>How to choose the IF, the modulator and the filter</h3>
+  <div class="col"><p>(1) Make the image band clear the filter: 2f<sub>IF</sub> − B<sub>signal</sub>/2 must be well outside the filter's skirt; f<sub>IF</sub> ≥ 2 × the signal bandwidth is a good start. (2) A higher f<sub>IF</sub> needs a faster DAC (Step 2: keep f<sub>IF</sub> + B/2 ≤ 0.4 f<sub>clk</sub>). (3) An IQ modulator buys 25–40 dB of image rejection, and calibration (adjusting I/Q gain, phase and DC offset digitally) buys another 20 dB; but calibration drifts with temperature and frequency. (4) The LO is closest to the wanted signal (f<sub>IF</sub> away), so it usually sets the filter order. (5) The filter's own passband ripple and delay are added to the waveform (Step 9): a sharper filter means more ripple at the band edges.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cUp" width="640" height="340" aria-label="Spectrum at the upconverter output: wanted chirp, image, LO leak, filter response and the −60 dBc limit"></canvas>
+    <div class="ctrl">
+      <label for="upM">Upconverter</label>
+      <select id="upM"><option value="iq" selected>IQ modulator (single sideband)</option><option value="real">Real mixer (both sidebands)</option></select>
+      <label for="upI"><span>IF (DAC output) f<sub>IF</sub></span> <b id="upIv"></b></label><input id="upI" type="range" min="30" max="400" step="10" value="100">
+      <label for="upG"><span>I/Q gain imbalance</span> <b id="upGv"></b></label><input id="upG" type="range" min="0" max="2" step="0.05" value="0.5">
+      <label for="upP"><span>I/Q phase imbalance</span> <b id="upPv"></b></label><input id="upP" type="range" min="0" max="10" step="0.1" value="3">
+      <label for="upL"><span>LO leakage at the mixer</span> <b id="upLv"></b></label><input id="upL" type="range" min="-70" max="-20" step="1" value="-30">
+      <label for="upF">Post-mixer filter</label>
+      <select id="upF"><option value="0">None</option><option value="3">3-pole, 100 MHz</option><option value="5" selected>5-pole, 100 MHz</option><option value="7">7-pole, 100 MHz</option></select>
+      <div class="readout" id="upOut"></div>
+    </div>
+    <p class="cap">LO fixed at 9.4 GHz; the wanted chirp (50 MHz wide) sits at LO + f<sub>IF</sub>, the image at LO − f<sub>IF</sub>. Hollow blocks: at the mixer output. Filled blocks: after the filter. Curve: filter response (a Butterworth band-pass, 100 MHz at −3 dB, centred on the wanted signal). Dashed: the −60 dBc limit. Imbalance controls act only on the IQ modulator.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (IQ, 100 MHz, 0.5 dB, 3°, LO −30, 5-pole): IRR 28.2 dB, image −82.6 dBc, LO −60.1 dBc.</li>
+    <li>Real mixer at 30 MHz: image −0.1 dBc after the filter, the naive case.</li>
+    <li>Real mixer, then raise f<sub>IF</sub> to 300 MHz: image −106 dBc with no IQ cancellation at all.</li>
+    <li>IQ with 0.1 dB and 1°: IRR 39.6 dB.</li>
+    <li>Filter "none": everything the mixer makes is transmitted, image −28.2 dBc.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>I/Q balance</td><td>Matched DAC paths, 90° hybrid, calibration</td><td class="n">0.5 dB / 3° → IRR 28 dB</td><td>Mirrored chirp: floor ≈ −IRR − 10·log TB under strong returns; out-of-band emission</td></tr>
+    <tr><td>LO-RF isolation, DC offset</td><td>Mixer balance, I/Q offset trim</td><td class="n">LO ≤ −30 dBc</td><td>Spectral limit; LO leak into the receiver at zero beat</td></tr>
+    <tr><td>IF choice</td><td>DAC rate, frequency plan</td><td class="n">f<sub>IF</sub> ≥ 2 × B<sub>signal</sub></td><td>Filter order needed; DAC sinc and image (Step 2)</td></tr>
+    <tr><td>Post-mixer filter</td><td>Order, family, bandwidth</td><td class="n">≥ 30 dB at f<sub>IF</sub> offset</td><td>Meets −60 dBc; adds ripple and delay (Step 9)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mixer designers:</b> LO-RF isolation and, for IQ parts, quadrature accuracy are the two datasheet lines that matter here.</li>
+    <li><b>DAC designers:</b> two matched DACs (gain, delay, offset) are an IQ modulator's I/Q balance.</li>
+    <li><b>Filter designers:</b> the post-mixer filter is a trade between rejection at f<sub>IF</sub> offset and ripple across the signal.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does the image chirp not compress into a false target?</summary><p>It sweeps the opposite way. The matched filter adds the wanted chirp's frequencies in phase at one instant; the mirrored chirp's frequencies never line up, so its energy is spread over about two pulse lengths, about 10·log(TB) dB lower than a compressed peak.</p></details>
+    <details><summary>Which is harder to filter, the image or the LO leak?</summary><p>The LO: it is f<sub>IF</sub> from the wanted signal, the image is 2f<sub>IF</sub>.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="shape">
+  <div class="secno">Step 6</div>
+  <h2>Pulse shaping and the spectral mask</h2>
+  <div class="know"><h4>You already know</h4><p>A rectangular pulse of length τ has a sin(x)/x spectrum with nulls every 1/τ, whose peaks fall at 20 dB per decade. Faster edges mean more spectrum far from the carrier. The <a href="M04-filters.html">filters module (04)</a> treats the transmit output filter; here we shape the pulse at its source, in the DAC.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Envelope:</b> the slowly varying amplitude of the pulse. <b>Rise time t<sub>r</sub>:</b> the time the envelope takes from 10 % to 90 % of full amplitude (fall time likewise).</p>
+    <p><b>Spectral mask:</b> a limit line of allowed emission against frequency offset, relative to the peak. The illustrative mask used here: 0 dB out to f<sub>1</sub> = 2/τ + B/2, then falling 40 dB per decade, with a floor at −70 dB. For a 1 µs CW pulse, f<sub>1</sub> = 2 MHz and the mask is −40 dB at 20 MHz.</p>
+    <p><b>Edge shapes:</b> <b>rectangular</b> (as fast as the DAC, about 1 ns here); <b>trapezoidal</b> (straight-line edges); <b>raised-cosine</b> (edges shaped as half a cosine, smooth at both ends); <b>Gaussian</b> (edges as if the rectangle passed through a Gaussian filter, smoothest of all).</p>
+    <p><b>Why the shape matters:</b> a straight edge has a corner at each end. Each corner (a sudden change of slope) produces spectrum that falls at only 40 dB per decade beyond 1/(π·t<sub>r</sub>); a sharp step (no edge at all) falls at only 20 dB per decade. Smooth edges with no corners fall faster still.</p>
+    <p><b>Energy loss:</b> softer edges remove part of the pulse's energy. Loss = 10·log<sub>10</sub>(∫a²dt / τ), where a is the envelope (rectangle = 0 dB).</p>
+  </div>
+  <div class="col">
+    <p>In a digital exciter the envelope is simply a multiplication in the FPGA before the DAC, so shaping costs nothing in hardware. It matters for two reasons: the mask (other users of the spectrum) and the radar's own receiver, where a neighbouring channel's splatter is interference. It also matters for the PA (module 03): a PA switched on with a fast drive edge produces its own transient; a shaped drive edge lets it settle smoothly, though in saturation the PA squares the edges up again, which is why some systems shape the PA's supply or bias as well.</p>
+  </div>
+  <div class="eq">rectangle: |S(f)| ∝ 1/(π f τ) &nbsp;&nbsp; edge corner frequency ≈ 1/(π t<sub>r</sub>) &nbsp;&nbsp; mask(f) = −40·log<sub>10</sub>(f/f<sub>1</sub>) dB<small>Worked: 1 µs pulse, 50 ns raised-cosine edges: edge corner 1/(π × 50 ns) = 6.4 MHz; beyond it the spectrum falls fast enough that the bench's worst margin to the mask is +7.1 dB, at an energy cost of 0.49 dB. The same pulse with 1 ns (DAC-limited) rectangular edges fails by 19.2 dB at 113 MHz.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive pulse is gated on and off by the DAC at full speed: a rectangle with 1–2 ns edges. Its spectrum falls only at 20 dB per decade: −40 dB is not reached until 63 MHz either side (−40 dB bandwidth 63 MHz for a signal whose useful bandwidth is 1 MHz), and it breaks the mask by 19.2 dB at 113 MHz. Adding an output filter to fix this at RF is expensive at high power (module 04); shaping in the DAC is free.</p></div>
+  <h3>Side by side on one example: 1 µs CW pulse, mask as defined above, measured on the bench</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Edge</th><th>t<sub>r</sub> (10–90 %)</th><th>−40 dB bandwidth</th><th>Worst margin to mask</th><th>Energy loss</th></tr>
+    <tr><td>Rectangular</td><td class="n">≈ 1 ns</td><td class="n">63.1 MHz</td><td class="n">−19.2 dB FAIL</td><td class="n">0 dB</td></tr>
+    <tr><td>Trapezoidal</td><td class="n">20 ns</td><td class="n">40.2 MHz</td><td class="n">−0.6 dB FAIL</td><td class="n">0.15 dB</td></tr>
+    <tr><td>Trapezoidal</td><td class="n">50 ns</td><td class="n">22.6 MHz</td><td class="n">+7.2 dB</td><td class="n">0.38 dB</td></tr>
+    <tr><td>Raised cosine</td><td class="n">50 ns</td><td class="n">23.2 MHz</td><td class="n">+7.1 dB</td><td class="n">0.49 dB</td></tr>
+    <tr><td>Gaussian</td><td class="n">50 ns</td><td class="n">23.0 MHz</td><td class="n">+7.4 dB</td><td class="n">0.44 dB</td></tr>
+    <tr><td>Raised cosine</td><td class="n">100 ns</td><td class="n">13.6 MHz</td><td class="n">+12.3 dB</td><td class="n">1.03 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Near the mask corner the three shapes are almost equal, because there the rise time dominates; far out the smooth shapes keep falling while the trapezoid's corners leave a 40 dB-per-decade tail (where its worst margin moves to, about 100 MHz). For a 10 µs, 10 MHz chirp the same story holds: rectangular edges fail by 6.6 dB at 200 MHz; 100 ns raised-cosine edges pass by 10.8 dB.</p></div>
+  <h3>How to choose the edge</h3>
+  <div class="col"><p>(1) Find the offset where the mask is hardest (usually just beyond f<sub>1</sub>). (2) Choose t<sub>r</sub> so that 1/(π t<sub>r</sub>) is below that offset: for a corner at 20 MHz, t<sub>r</sub> ≥ 16 ns; take 2–3 times more for margin. (3) Use a smooth shape (raised cosine or Gaussian) when the far-out spectrum matters. (4) Check the cost: energy loss rises with t<sub>r</sub>/τ (0.49 dB at 5 %, 1.03 dB at 10 %), and a slow edge also blurs the range edge of a short pulse. (5) For chirps, edge shaping also reduces the ripples (Fresnel ripples) at the top of the chirp spectrum.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSp" width="640" height="340" aria-label="Spectrum of the shaped pulse on a logarithmic frequency axis, with the spectral mask"></canvas>
+    <div class="ctrl">
+      <label for="spS">Edge shape</label>
+      <select id="spS"><option value="rect">Rectangular (DAC speed)</option><option value="trap">Trapezoidal</option><option value="rc" selected>Raised cosine</option><option value="gauss">Gaussian</option></select>
+      <label for="spR"><span>Rise time t<sub>r</sub> (10–90 %)</span> <b id="spRv"></b></label><input id="spR" type="range" min="2" max="500" step="1" value="50">
+      <label for="spT"><span>Pulse length τ</span> <b id="spTv"></b></label><input id="spT" type="range" min="0.5" max="20" step="0.5" value="1">
+      <label for="spG">Signal in the pulse</label>
+      <select id="spG"><option value="cw" selected>CW pulse</option><option value="lfm">LFM chirp, 10 MHz</option></select>
+      <div class="readout" id="spOut"></div>
+    </div>
+    <p class="cap">Spectrum of one pulse (sampled at 1 GHz, 65 536-point FFT), 0 dB at its peak, against offset from the carrier on a log axis from 0.1 to 200 MHz. Dashed: the mask (corner f<sub>1</sub> = 2/τ + B/2, −40 dB/decade, floor −70 dB). Dot: worst margin. Rise time is not used for the rectangular edge and is limited to τ/4.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (raised cosine, 50 ns, 1 µs, CW): margin +7.1 dB, energy loss 0.49 dB.</li>
+    <li>Rectangular: −19.2 dB FAIL at 113 MHz, the naive case.</li>
+    <li>Trapezoid at 20 ns: fails by 0.6 dB; at 50 ns, +7.2 dB.</li>
+    <li>LFM chirp, rectangular, τ 10 µs: −6.6 dB FAIL; raised cosine 100 ns: +10.8 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Edge shape and rise time</td><td>FPGA envelope table, DAC</td><td class="n">t<sub>r</sub> 50 ns raised cosine</td><td>Mask met by +7 dB; neighbours' receivers protected</td></tr>
+    <tr><td>Energy cost</td><td>t<sub>r</sub>/τ</td><td class="n">0.5 dB at 5 %</td><td>0.5 dB less SNR, about 3 % less detection range</td></tr>
+    <tr><td>PA edge behaviour</td><td>Bias/drain switching, drive shaping</td><td class="n">PA rise time ≈ drive rise time</td><td>The PA does not re-sharpen the edge and undo the mask</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> a saturated PA passes the drive's phase but squares its amplitude; your gate or drain pulse timing decides the real edge at the antenna.</li>
+    <li><b>Modulator designers:</b> drain modulators (module 16) set the PA's on/off edges; their rise time should match the shaped drive.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A mask demands −40 dB at 5 MHz from a 2 µs pulse. Roughly what rise time?</summary><p>f<sub>1</sub> = 2/2 µs = 1 MHz; the 1/(π t<sub>r</sub>) corner must be well below 5 MHz: t<sub>r</sub> ≥ 64 ns, so about 150 ns raised cosine with margin.</p></details>
+    <details><summary>Why does a trapezoid's worst margin sit far out while the raised cosine's sits near the corner?</summary><p>The trapezoid's corners make a tail falling only 40 dB per decade, which eventually meets the mask's 40 dB-per-decade line plus its floor; the raised cosine has no corners, its tail falls faster.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="coh">
+  <div class="secno">Step 7</div>
+  <h2>Pulse-to-pulse phase coherence: its effect on MTI and Doppler</h2>
+  <div class="know"><h4>You already know</h4><p>A moving target shifts the echo's frequency by the Doppler frequency f<sub>d</sub> = 2v/λ (at 10 GHz, λ = 3 cm, so 100 m/s gives 6.7 kHz). The <a href="R3-detection-cfar.html">detection page (R3)</a> and the <a href="M09-digital-receiver.html">digital receiver module (09)</a> explain Doppler filtering; the <a href="M02-synthesiser-phase-noise.html">synthesiser module (02)</a> explains phase noise.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Pulse-to-pulse phase:</b> the phase of each transmitted pulse, compared with the reference. A radar measures Doppler by comparing the echo phase from one pulse to the next; any change of the transmitted phase is read as motion.</p>
+    <p><b>Phase jitter σ<sub>φ</sub>:</b> the random, rms pulse-to-pulse variation of the transmitted phase, in degrees. Causes: the reference and synthesiser phase noise integrated over the pulse interval, DDS reset errors, PA supply ripple through AM-PM (Step 9), modulator timing jitter.</p>
+    <p><b>Clutter:</b> echoes from the ground, sea or weather. It is huge (here 60 dB above the receiver noise) but nearly still, so it sits at zero Doppler.</p>
+    <p><b>Coherent processing interval (CPI):</b> the N pulses analysed together. <b>Doppler filtering:</b> an FFT across the N pulses, giving N Doppler bins; still clutter falls in bin 0, a moving target in another.</p>
+    <p><b>MTI</b> (moving target indication) <b>and improvement factor I:</b> the simplest Doppler filter subtracts each pulse from the last, cancelling anything still. I is the clutter rejection it achieves. Phase jitter limits it to I ≈ 1/σ<sub>φ</sub>² (σ in radians): 1° rms → 35.2 dB.</p>
+    <p><b>Jitter floor:</b> in a Doppler FFT, jitter spreads a fraction σ<sub>φ</sub>² of the clutter's power evenly over all bins. Relative to the clutter peak, the floor in each bin is σ<sub>φ</sub>² × (Σw²/(Σw)²), where w is the window: for a Hann window over 64 pulses that factor is 1.5/64 = −16.3 dB, so 1° rms gives −35.2 − 16.3 = −51.5 dB.</p>
+    <p><b>Sub-clutter visibility (SCV):</b> how far below the clutter a target can be and still be detected. Here we call a target visible if it stands 13 dB above the floor in its bin.</p>
+  </div>
+  <div class="col">
+    <p>Phase coherence is the exciter's most important property for any radar that looks for moving targets among clutter, and for SAR, which is a coherent sum over thousands of pulses (Part 3). The jitter acts like extra noise injected with the clutter: σ<sub>φ</sub> = 1° is equivalent to a noise 35 dB under the clutter. Because clutter is often 60 dB above the noise, that "jitter noise" is 25 dB above the receiver noise, and the receiver's real sensitivity is wasted in every Doppler bin.</p>
+  </div>
+  <div class="eq">I<sub>max</sub> ≈ 1/σ<sub>φ</sub>² &nbsp;&nbsp; floor = σ<sub>φ</sub>² · Σw²/(Σw)² &nbsp;&nbsp; non-coherent: floor ≈ −10·log<sub>10</sub>N<small>Worked: σ = 1° = 0.01745 rad → σ² = 3.05×10<sup>−4</sup> → −35.2 dB. N = 64, Hann → floor −51.5 dB. A target 40 dB below the clutter is then 11.5 dB above the floor: just under the 13 dB needed. At 0.1° the jitter floor is −71.5 dB (−70.2 dB with the receiver noise added) and the same target stands about 29 dB clear on the bench.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive transmitter, a free-running oscillator keyed per pulse (Step 0), starts each pulse at a random phase, uniform over 360°. The clutter is then spread evenly over all 64 Doppler bins, only 10·log 64 = 18 dB below its coherent peak: any target more than 18 dB under the clutter is invisible. (Such radars recover partly by measuring each pulse's phase and correcting on receive, "coherent on receive", with a few degrees of residual error.) A coherent exciter with 1° jitter already brings the floor to −51.5 dB.</p></div>
+  <h3>Side by side on one example: 64 pulses, Hann window, clutter 60 dB above noise, target 40 dB below clutter</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Jitter σ<sub>φ</sub> rms</th><th>MTI limit 1/σ²</th><th>Predicted floor</th><th>Bench floor</th><th>Target −40 dB visible?</th></tr>
+    <tr><td>0°</td><td class="n">∞</td><td class="n">−76.3 dB (noise)</td><td class="n">−76.3 dB</td><td>Yes</td></tr>
+    <tr><td>0.1°</td><td class="n">55.2 dB</td><td class="n">−70.2 dB</td><td class="n">−68.7 dB</td><td>Yes</td></tr>
+    <tr><td>1° (default)</td><td class="n">35.2 dB</td><td class="n">−51.4 dB</td><td class="n">−50.2 dB</td><td>Marginal</td></tr>
+    <tr><td>5°</td><td class="n">21.2 dB</td><td class="n">−37.5 dB</td><td class="n">−36.3 dB</td><td>No</td></tr>
+    <tr><td>Random (non-coherent)</td><td class="n">≈ 0 dB</td><td class="n">−18 dB</td><td class="n">n/a</td><td>No</td></tr>
+  </table></div>
+  <div class="col"><p>The bench floor differs from the prediction by about 1 dB because it is one random set of 64 pulses (the average of random numbers itself varies). With a uniform window the clutter's own window sidelobes (−13 dB) leak into nearby bins and hide targets regardless of jitter; with a Blackman window the window floor is far below, but the main lobe is wider, so slow targets near clutter are lost.</p></div>
+  <h3>How to choose the coherence budget</h3>
+  <div class="col"><p>(1) Take the strongest clutter-to-target ratio the radar must handle, say 50 dB, plus 13 dB for detection: the floor must be ≤ −63 dB. (2) With N = 64, Hann: σ² ≤ −63 + 16.3 = −46.7 dB → σ ≤ 0.27°. (3) Split it between the reference, synthesiser (phase noise integrated over the pulse interval, module 02), DDS reset, and PA supply effects. (4) A longer CPI (more pulses) lowers the floor by 10·log N but needs the clutter to stay still longer. (5) Remember the window: Σw²/(Σw)² is 1/N for uniform, 1.5/N for Hann, 1.73/N for Blackman.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCo" width="640" height="340" aria-label="Doppler spectrum of clutter plus one moving target, with the predicted jitter floor"></canvas>
+    <div class="ctrl">
+      <label for="coJ"><span>Phase jitter σ<sub>φ</sub> rms</span> <b id="coJv"></b></label><input id="coJ" type="range" min="0" max="10" step="0.1" value="1">
+      <label for="coN">Pulses in the CPI N</label>
+      <select id="coN"><option value="16">16</option><option value="32">32</option><option value="64" selected>64</option><option value="128">128</option><option value="256">256</option></select>
+      <label for="coW">Doppler window</label>
+      <select id="coW"><option value="uniform">Uniform</option><option value="hann" selected>Hann</option><option value="blackman">Blackman</option></select>
+      <label for="coS"><span>Target relative to clutter</span> <b id="coSv"></b></label><input id="coS" type="range" min="-70" max="0" step="1" value="-40">
+      <label for="coF"><span>Target Doppler (fraction of PRF)</span> <b id="coFv"></b></label><input id="coF" type="range" min="0.05" max="0.5" step="0.01" value="0.3">
+      <div class="readout" id="coOut"></div>
+    </div>
+    <p class="cap">One CPI of N pulses: clutter at zero Doppler, 60 dB above the receiver noise; one target at the chosen Doppler; every pulse's transmitted phase randomly offset with rms σ<sub>φ</sub> (a fixed random seed, so the picture is repeatable). FFT zero-padded for a smooth curve; 0 dB is the clutter peak. Dashed: predicted jitter-plus-noise floor. Dotted: receiver noise alone. Dot: target, with the 13 dB detection line above the floor.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (1°, 64, Hann, −40 dB): floor about −50 dB (predicted −51.4), target only about 10 dB above: marginal.</li>
+    <li>0.1°: bench floor −68.7 dB, the target stands 28.7 dB clear.</li>
+    <li>5°: floor −36 dB, the target is under it: invisible. MTI limit 21.2 dB.</li>
+    <li>1° with N 256: the predicted floor drops 6 dB compared with 64 pulses (10·log 4), to −57.5 dB.</li>
+    <li>0° with the uniform window: the clutter's own −13 dB sidelobes dominate near zero Doppler.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Pulse-to-pulse phase stability</td><td>Reference, synthesiser loop, DDS reset logic</td><td class="n">σ<sub>φ</sub> ≤ 0.3° rms</td><td>Clutter floor ≤ −62 dB (64 pulses, Hann): targets 50 dB under clutter seen</td></tr>
+    <tr><td>Close-in phase noise</td><td>Reference and loop bandwidth (module 02)</td><td class="n">dBc/Hz from 1/T<sub>CPI</sub> to PRF</td><td>Integrated → σ<sub>φ</sub> → same floor</td></tr>
+    <tr><td>PA supply ripple</td><td>Modulator, capacitor bank (module 16)</td><td class="n">ripple × AM-PM ≤ 0.3°</td><td>Same floor, plus discrete Doppler spurs at the ripple frequency</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Reference and synthesiser designers:</b> phase noise from about 10 Hz to the PRF integrates into σ<sub>φ</sub>.</li>
+    <li><b>PA and power designers:</b> a drain-voltage change of 1 % from pulse to pulse, through AM-PM, is a phase change from pulse to pulse.</li>
+    <li><b>FPGA designers:</b> resetting the DDS phase at the same clock edge for every pulse is part of coherence.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar needs a 45 dB MTI improvement. What jitter?</summary><p>1/σ² = 10<sup>4.5</sup> → σ = 0.0056 rad = 0.32° rms.</p></details>
+    <details><summary>Why does doubling N lower the jitter floor by 3 dB?</summary><p>The jitter power spreads over N bins while the clutter peak's coherent gain grows as N², so the floor relative to the peak falls as 1/N.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="agile">
+  <div class="secno">Step 8</div>
+  <h2>Frequency agility and settling</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M02-synthesiser-phase-noise.html">synthesiser module (02)</a>: a PLL's loop bandwidth sets how fast it follows a change; a wide loop is fast, a narrow one is slow but cleans up the VCO's noise less far out. A DDS changes frequency in a few clock cycles.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Frequency agility:</b> changing the transmit frequency from one pulse (or one burst of pulses) to the next, by a <b>hop</b> of size H. It defeats narrow-band jammers (Step 10), decorrelates sea clutter, and spreads interference.</p>
+    <p><b>Settling time t<sub>s</sub>:</b> the time from the hop command until the frequency stays within a <b>tolerance</b> of the new value, here 1 kHz unless stated.</p>
+    <p><b>Dead time:</b> the time between the hop command and the start of the next pulse; whatever error remains then is transmitted.</p>
+    <p><b>Acquisition and ringing:</b> for a big hop a PLL first slews (its phase detector is saturated, the frequency moves at a fixed rate, here 20 MHz/µs for a 100 kHz loop and 200 MHz/µs for a 1 MHz loop), then rings into lock with the second-order loop response, decaying as e<sup>−ζω<sub>n</sub>t</sup>, ζ = 0.707, ω<sub>n</sub> = 2π·BW/2.06.</p>
+    <p><b>Ping-pong synthesiser:</b> two PLLs, one in use while the other is tuned to the next frequency; a fast switch picks the settled one. Its hop time is the switch's (here 20 ns time constant), as long as the idle PLL had a whole pulse interval to settle.</p>
+  </div>
+  <div class="col">
+    <p>A residual frequency error Δf at the start of a pulse does three things. (1) It adds a phase drift across the pulse of 360°·Δf·τ: 1 kHz over 10 µs = 3.6°. (2) It looks like Doppler: Δf = 1 kHz at 10 GHz is the Doppler of a target moving at λ·Δf/2 = 15 m/s. If the error differs from pulse to pulse, clutter gets that spread of false Doppler (Step 7). (3) For a chirp it shifts the compressed peak by Δf/K in time; for a 10 µs, 50 MHz chirp, 1 kHz moves it only 3 cm, harmless. So agility is limited by Doppler and coherence, not by range.</p>
+  </div>
+  <div class="eq">t<sub>s</sub> ≈ t<sub>acq</sub> + ln(H<sub>c</sub>/(tol·√(1−ζ²))) / (ζ ω<sub>n</sub>) &nbsp;&nbsp; phase drift = 360°·∫Δf dt &nbsp;&nbsp; v<sub>false</sub> = λ·Δf/2<small>Worked: fractional-N PLL, 1 MHz loop, hop 500 MHz: slew 480 MHz at 200 MHz/µs = 2.4 µs, then ringing from 20 MHz to 1 kHz: ln(20 000/0.707)/(2.16×10<sup>6</sup>) = 4.75 µs; total 7.15 µs. Integer-N, 100 kHz loop: 24.9 + 36.9 = 61.8 µs.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive agile exciter uses the radar's existing low-noise integer-N synthesiser (100 kHz loop) and hops 500 MHz between pulses at a PRF of 10 kHz (100 µs between pulses). It needs 61.8 µs to settle to 1 kHz, so 62 % of every pulse interval is lost; if the pulse is sent after only 10 µs, it is transmitted while the frequency is still 300 MHz off and slewing. Widening the loop to make it faster raises the phase noise further from the carrier (module 02), so the radar trades clutter rejection for agility.</p></div>
+  <h3>Side by side on one example: hop 500 MHz, tolerance 1 kHz, 10 µs pulse</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Source</th><th>Settling time to 1 kHz</th><th>Minimum dead time</th><th>Cost</th></tr>
+    <tr><td>Integer-N PLL, 100 kHz loop</td><td class="n">61.8 µs</td><td class="n">62 µs</td><td>Lowest noise, slowest</td></tr>
+    <tr><td>Fractional-N PLL, 1 MHz loop</td><td class="n">7.15 µs</td><td class="n">7.2 µs</td><td>Fractional spurs, more far-out noise</td></tr>
+    <tr><td>DDS-based (DDS + fixed multiplier)</td><td class="n">0.10 µs</td><td class="n">0.1 µs</td><td>Band limited by DDS; spurs ×multiplication</td></tr>
+    <tr><td>Two PLLs, switched</td><td class="n">0.26 µs</td><td class="n">0.3 µs (if PRI ≥ 62 µs)</td><td>Two synthesisers and a fast switch</td></tr>
+  </table></div>
+  <h3>How to choose the agile source</h3>
+  <div class="col"><p>(1) Tolerance: from the Doppler budget, e.g. Δf ≤ 1 kHz (15 m/s false velocity at X band) and from Step 7's phase budget. (2) Dead time available: part of the pulse interval, often the receive window of the far ranges. (3) Then pick: if t<sub>s</sub> of the low-noise PLL fits, use it; else ping-pong, or a DDS-based fine loop for small hops. (4) Hop sizes vary: check the worst hop (the largest), not the typical. (5) Keep each Doppler CPI at one frequency: agility from pulse to pulse within a CPI destroys Doppler processing; most radars hop from CPI to CPI.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cAg" width="640" height="340" aria-label="Frequency error after a hop against time, on a log scale, with the tolerance and the pulse window"></canvas>
+    <div class="ctrl">
+      <label for="agT">Synthesiser</label>
+      <select id="agT"><option value="int">Integer-N PLL, 100 kHz loop</option><option value="frac" selected>Fractional-N PLL, 1 MHz loop</option><option value="dds">DDS-based</option><option value="pp">Two PLLs, switched</option></select>
+      <label for="agH"><span>Hop size H</span> <b id="agHv"></b></label><input id="agH" type="range" min="10" max="2000" step="10" value="500">
+      <label for="agD"><span>Dead time before the pulse</span> <b id="agDv"></b></label><input id="agD" type="range" min="-1" max="2" step="0.05" value="1">
+      <label for="agE"><span>Frequency tolerance</span> <b id="agEv"></b></label><input id="agE" type="range" min="-1" max="2" step="0.05" value="0">
+      <div class="readout" id="agOut"></div>
+    </div>
+    <p class="cap">|Frequency error| after the hop command at t = 0 (log scale, 1 Hz to 10 GHz). Dashed: tolerance. Shaded: the 10 µs pulse, starting after the dead time. The PLL curve slews, then rings (the dips are where the ringing crosses zero). Dead time and tolerance sliders are logarithmic. Readout: settling time, error while the pulse is sent, phase drift across the pulse, and what that error means as false Doppler at 10 GHz.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (fractional-N, 500 MHz, dead time 10 µs): settles in 7.15 µs; the pulse is clean (OK).</li>
+    <li>Integer-N, same hop: 61.8 µs; with 10 µs dead time the pulse is sent while still slewing: FAIL.</li>
+    <li>Integer-N with the dead time at 100 µs: OK, but 62 % of a 100 µs pulse interval is gone.</li>
+    <li>DDS-based: 0.10 µs, almost no dead time needed.</li>
+    <li>Fractional-N, dead time 2 µs: the pulse starts during slewing, with a phase drift of thousands of degrees.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Settling time</td><td>Loop bandwidth, charge-pump current, VCO pre-tuning, architecture</td><td class="n">≤ 7 µs to 1 kHz for 500 MHz</td><td>Dead time per hop; usable range window</td></tr>
+    <tr><td>Residual error at pulse start</td><td>Dead time vs t<sub>s</sub></td><td class="n">≤ 1 kHz</td><td>≤ 15 m/s false Doppler at X band; ≤ 3.6° drift in 10 µs</td></tr>
+    <tr><td>Hop range</td><td>VCO band switching, YIG vs VCO</td><td class="n">e.g. 8–12 GHz</td><td>Anti-jam gain = hop range / jammer bandwidth</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>VCO designers:</b> band-switched VCOs need a calibration step at each hop; its time adds to t<sub>s</sub>.</li>
+    <li><b>Switch designers:</b> in ping-pong designs your switch's settling and isolation (the idle PLL leaking through) are the specs.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why do most radars hop between CPIs rather than between pulses?</summary><p>Doppler filtering compares pulses at one frequency; a hop changes every echo's phase (and the clutter's), so pulses at different frequencies cannot be combined coherently in the usual way.</p></details>
+    <details><summary>A 2 kHz residual error at 10 GHz: what false velocity?</summary><p>λΔf/2 = 0.03 × 2000/2 = 30 m/s.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="flat">
+  <div class="secno">Step 9</div>
+  <h2>Amplitude and phase flatness across the band, and the effect of PA AM-PM</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 3: a phase ripple of a radians with n cycles across a chirp makes paired echoes at ±n range cells, 20·log(a/2) dB down. From the <a href="M03-power-amplifier.html">power-amplifier module (03)</a>: AM-PM is the change of a PA's output phase with its input level, in degrees per dB, largest near saturation.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Amplitude flatness:</b> the variation of the chain's gain across the signal band, in dB peak-to-peak (pp). It comes from filter passband ripple, sinc droop (Step 2), mismatch ripple between components and the PA's gain slope.</p>
+    <p><b>Phase flatness:</b> the variation of the chain's phase across the band after removing a straight line (a straight line is just delay), in degrees pp. Equivalent to group-delay ripple.</p>
+    <p><b>Ripple cycles n:</b> how many ripple periods fit in the signal band. A double reflection between two mismatches a length ℓ apart gives a ripple period of c/(2ℓ·√ε<sub>r</sub>) in frequency, so longer cables give more cycles.</p>
+    <p><b>Why frequency ripple becomes time ripple:</b> in a chirp, frequency and time are tied (f = K·t), so a gain that varies with frequency becomes an envelope that varies with time across the pulse, and a phase that varies with frequency becomes a phase that varies with time: exactly Step 3's ripple.</p>
+    <p><b>Echo levels:</b> amplitude ripple of pp dB is a voltage ripple ε = (10<sup>pp/20</sup> − 1)/(10<sup>pp/20</sup> + 1); echoes at 20·log(ε/2). 0.5 dB pp → ε = 0.0288 → −36.8 dB. Phase ripple of pp degrees has peak a = pp/2: 5° pp → −33.2 dB.</p>
+    <p><b>AM-PM conversion and PA drive:</b> if the PA input has an amplitude ripple of A dB, the output gets a phase ripple of k·A degrees, where k is the AM-PM coefficient (°/dB) at the operating point. A compressed PA also squeezes the amplitude ripple: here the output keeps 100 % (linear), 50 % (1 dB compression) or 10 % (saturated) of it.</p>
+  </div>
+  <div class="col">
+    <p>This is the step where amplifier and filter specs meet the radar's sidelobes. A saturated PA removes most of the amplitude ripple, which seems good, but turns it into phase ripple, which is not removed: a 0.5 dB pp input ripple through a 4 °/dB saturated PA becomes 2° pp of phase ripple and echoes at −41.2 dB, plus −56.8 dB from the 10 % of amplitude ripple left. Echoes from all the ripple sources (filter, PA, cables) add, in the worst case in phase.</p>
+  </div>
+  <div class="eq">ε = (10<sup>pp/20</sup> − 1)/(10<sup>pp/20</sup> + 1) &nbsp;&nbsp; echo<sub>AM</sub> = 20·log(ε/2) &nbsp;&nbsp; echo<sub>PM</sub> = 20·log(a/2) &nbsp;&nbsp; a<sub>AM-PM</sub> = k·(pp/2)·π/180<small>Amplitude and phase ripple in phase with each other give echoes of combined size √(ε² + a²)/2. Worked: 0.5 dB pp amplitude ripple into a linear PA: −36.8 dB echoes; with Hamming the bench PSLR is −34.6 dB instead of −42.7 dB, because the echoes add to the window's own sidelobes nearby.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive chain is built from parts that each meet "flatness ±0.5 dB" (1 dB pp) on their datasheets, with a long cable between driver and PA that gives 5 ripple cycles across 100 MHz. Three such parts in series can add to 3 dB pp in the worst case: echoes near −22 dB, far above the −42.7 dB the Hamming weighting promised. A datasheet flatness that is fine for a communications link is not fine for a pulse-compression radar.</p></div>
+  <h3>Side by side on one example: 10 µs, 100 MHz chirp, Hamming, 5 ripple cycles</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Impairment</th><th>Predicted echo</th><th>Bench PSLR</th></tr>
+    <tr><td>None</td><td class="n">none</td><td class="n">−42.7 dB</td></tr>
+    <tr><td>0.5 dB pp amplitude, linear PA</td><td class="n">−36.8 dB</td><td class="n">−34.6 dB</td></tr>
+    <tr><td>5° pp phase, linear PA</td><td class="n">−33.2 dB</td><td class="n">−33.3 dB</td></tr>
+    <tr><td>0.5 dB pp amplitude, saturated PA, 4 °/dB AM-PM</td><td class="n">−41.1 dB combined</td><td class="n">−39.1 dB</td></tr>
+    <tr><td>3 dB pp amplitude (three ±0.5 dB parts), linear</td><td class="n">−21.4 dB</td><td class="n">−21.3 dB</td></tr>
+  </table></div>
+  <h3>How to choose the flatness budget</h3>
+  <div class="col"><p>(1) Start from the PSLR target, e.g. −35 dB, and give the exciter-plus-PA chain an echo budget of −41 dB. (2) From echo = 20·log(ε/2): ε ≤ 0.018 → about 0.3 dB pp amplitude; a ≤ 0.018 rad → 2° pp phase. (3) Split between filters, mismatch ripple (keep VSWR low, keep long cables matched at both ends), sinc droop (equalise digitally) and the PA. (4) Choose the PA operating point knowing its AM-PM: near saturation, amplitude flatness at its input becomes phase flatness at its output. (5) Where hardware cannot reach it, measure the chain's response with a loop-back coupler at the antenna port and <b>pre-distort</b>: the DDS or AWG transmits a waveform with the inverse ripple. Calibration typically wins 10–20 dB, until temperature changes the chain.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cFl" width="640" height="340" aria-label="Compressed chirp with amplitude and phase ripple and PA AM-PM, compared with the ideal"></canvas>
+    <div class="ctrl">
+      <label for="flA"><span>Amplitude ripple (pp)</span> <b id="flAv"></b></label><input id="flA" type="range" min="0" max="3" step="0.05" value="0.5">
+      <label for="flP"><span>Phase ripple (pp)</span> <b id="flPv"></b></label><input id="flP" type="range" min="0" max="30" step="0.5" value="0">
+      <label for="flC"><span>Ripple cycles across the band</span> <b id="flCv"></b></label><input id="flC" type="range" min="1" max="20" step="1" value="5">
+      <label for="flS">PA operating point</label>
+      <select id="flS"><option value="lin" selected>Linear (keeps 100 % of AM)</option><option value="p1">1 dB compressed (keeps 50 %)</option><option value="sat">Saturated (keeps 10 %)</option></select>
+      <label for="flM"><span>PA AM-PM at that point</span> <b id="flMv"></b></label><input id="flM" type="range" min="0" max="10" step="0.5" value="0">
+      <div class="readout" id="flOut"></div>
+    </div>
+    <p class="cap">Chirp 10 µs, 100 MHz, Hamming weighting on receive. The ripple is applied across the band, which in a chirp is across the pulse. The PA converts the amplitude ripple at its input into phase ripple (AM-PM) and keeps only part of the amplitude ripple. Grey: ideal. Dashed markers: predicted echo position (±n × 1.5 m) and level.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (0.5 dB pp, linear, no AM-PM): echoes at ±7.5 m, predicted −36.8 dB; PSLR −34.6 dB.</li>
+    <li>Phase ripple 5° pp alone (amplitude 0): echoes at −33.2 dB.</li>
+    <li>0.5 dB pp, saturated PA, 4 °/dB: the AM-PM adds 2° pp of phase; combined echo −41.1 dB, PSLR −39.1 dB.</li>
+    <li>Amplitude 3 dB pp: PSLR −21.3 dB, the naive chain.</li>
+    <li>Ripple cycles 10: the echoes move out to ±15 m, the level stays the same.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Amplitude flatness</td><td>Filter ripple, match, sinc equalisation</td><td class="n">≤ 0.3 dB pp over the chirp</td><td>Echoes ≤ −41 dB</td></tr>
+    <tr><td>Phase flatness</td><td>Filter delay ripple, cable match</td><td class="n">≤ 2° pp</td><td>Echoes ≤ −41 dB</td></tr>
+    <tr><td>AM-PM</td><td>PA device, bias, operating point</td><td class="n">≤ 2 °/dB at operating point</td><td>Input amplitude ripple does not reappear as phase ripple</td></tr>
+    <tr><td>Pre-distortion</td><td>Loop-back coupler, AWG/DDS correction</td><td class="n">residual ≤ 0.1 dB, 0.5°</td><td>PSLR back near the window's −42.7 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> passband ripple and delay ripple across the chirp band, not just at f<sub>0</sub>.</li>
+    <li><b>PA designers:</b> publish AM-PM against drive level; the system engineer needs it at the operating point.</li>
+    <li><b>Interconnect designers:</b> two VSWR 1.5 ports 1 m apart give a ripple that a 100 MHz chirp sees as several cycles.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 0.2 dB pp ripple: what echo level?</summary><p>ε = (10<sup>0.01</sup> − 1)/(10<sup>0.01</sup> + 1) = 0.0115 → 20·log(0.00576) = −44.8 dB.</p></details>
+    <details><summary>Why can a saturated PA make the sidelobes worse even though it removes amplitude ripple?</summary><p>It converts the input amplitude ripple into output phase ripple through AM-PM, and phase ripple is just as damaging after compression.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="jam">
+  <div class="secno">Step 10</div>
+  <h2>Jammer waveform generation basics: noise, spot and swept</h2>
+  <div class="know"><h4>You already know</h4><p>A radar's receiver passes only its own bandwidth, B<sub>r</sub> (here 5 MHz, a 0.2 µs pulse). Noise in that bandwidth sets its sensitivity. A jammer is a transmitter whose waveform is designed to raise that noise.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>J/S:</b> jamming-to-signal ratio: the jammer power inside the radar's receiver bandwidth divided by the target echo power, in dB. Above about 10 dB the target is lost. Here, for illustration, 1 W of jammer power inside the radar's 5 MHz gives J/S = +20 dB at the geometry chosen.</p>
+    <p><b>Barrage noise:</b> noise spread over a wide band B<sub>j</sub> (here up to 2 GHz) to cover all the radar's possible frequencies. Only the fraction B<sub>r</sub>/B<sub>j</sub> enters the radar.</p>
+    <p><b>Spot noise:</b> noise in a narrow band B<sub>j</sub> placed on the radar's frequency. Much more of it enters the radar, but the jammer must know the frequency, and a frequency-agile radar (Step 8) escapes it.</p>
+    <p><b>Swept spot:</b> a spot of width B<sub>j</sub> swept across a span S. It hits the radar only a fraction (B<sub>j</sub> + B<sub>r</sub>)/S of the time, but very hard when it does.</p>
+    <p><b>PAPR:</b> peak-to-average power ratio. Gaussian noise has occasional peaks far above its average; to pass them a PA must run its average power PAPR dB below saturation. With a 100 W PA and a 10 dB PAPR, the average noise power is 10 W.</p>
+    <p><b>Clipping:</b> limiting the noise peaks digitally to a lower PAPR, so more average power fits through the PA. The clipped-off part becomes distortion: spectrum outside B<sub>j</sub> and a less noise-like amplitude. Distortion relative to the noise: 10 dB PAPR → −57.0 dB; 6 dB → −27.5 dB; 3 dB → −16.7 dB.</p>
+  </div>
+  <div class="col">
+    <p>A jammer exciter is the same hardware as a radar exciter, DDS, DAC, upconverter, used to make deliberately "bad" waveforms well. Noise is generated digitally (random numbers filtered to B<sub>j</sub>) and played through a DAC; spot noise can also be a VCO frequency-modulated by noise; a swept spot is a DDS whose FTW ramps. The purity questions of Steps 2–9 turn into "where does my power go": every watt outside the radar's bandwidth, or outside the time the radar is listening, is wasted.</p>
+  </div>
+  <div class="eq">J/S = J/S<sub>1 W</sub> + 10·log P<sub>avg</sub> + 10·log(min(1, B<sub>r</sub>/B<sub>j</sub>)) &nbsp;&nbsp; P<sub>avg</sub> = P<sub>sat</sub>/10<sup>PAPR/10</sup> &nbsp;&nbsp; swept duty = (B<sub>j</sub> + B<sub>r</sub>)/S<small>Worked: 100 W PA, PAPR 10 dB → 10 W average. Barrage over 1 GHz: 5/1000 → −23 dB → J/S = 20 + 10 − 23 = +7 dB. Spot over 10 MHz: −3 dB → +27 dB. Swept 10 MHz spot over 1 GHz: +27 dB for 1.5 % of the time, +8.8 dB averaged.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive jammer spreads its noise over the whole band the radar might use, 1 GHz, because it does not know the radar's frequency, and passes full Gaussian noise (10 dB PAPR) through its 100 W PA. Only 10 W average leaves the PA, only 0.5 % of it falls in the radar's 5 MHz, and J/S is +7 dB: below the 10 dB needed. Concentrating the power (spot, or tracking the radar's frequency) and reducing the PAPR are the two levers.</p></div>
+  <h3>Side by side on one example: 100 W PA, radar bandwidth 5 MHz, J/S +20 dB for 1 W in-band</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Waveform</th><th>B<sub>j</sub></th><th>PAPR</th><th>P<sub>avg</sub></th><th>J/S when on the radar</th><th>Time on the radar</th></tr>
+    <tr><td>Barrage</td><td class="n">1000 MHz</td><td class="n">10 dB</td><td class="n">10 W</td><td class="n">+7.0 dB</td><td class="n">100 %</td></tr>
+    <tr><td>Barrage, clipped</td><td class="n">1000 MHz</td><td class="n">6 dB</td><td class="n">25 W</td><td class="n">+11.0 dB</td><td class="n">100 %</td></tr>
+    <tr><td>Spot</td><td class="n">10 MHz</td><td class="n">10 dB</td><td class="n">10 W</td><td class="n">+27.0 dB</td><td class="n">100 % (if on frequency)</td></tr>
+    <tr><td>Swept spot over 1 GHz</td><td class="n">10 MHz</td><td class="n">10 dB</td><td class="n">10 W</td><td class="n">+27.0 dB</td><td class="n">1.5 %</td></tr>
+  </table></div>
+  <h3>How to choose the jamming waveform</h3>
+  <div class="col"><p>(1) If the radar's frequency is known and stable, spot noise gives the most J/S. (2) If it hops within a band, barrage covers it at a cost of 10·log(B<sub>j</sub>/B<sub>r</sub>). (3) Swept spot works against radars that integrate over several pulses or have slow automatic gain control, because each hit saturates them. (4) Clip to about 6–8 dB PAPR: 2.5 times the power for distortion about 27 dB down at 6 dB PAPR. (5) Against coherent, pulse-compression radars, noise is inefficient: the radar's processing gain (TB, Doppler integration) works against noise but not against a copy of its own pulse. That copy is what a <b>DRFM</b> (digital radio frequency memory) makes: it records the radar's pulse and replays it, delayed and Doppler-shifted, as false targets. That is the subject of the DRFM and jammer hardware module (13).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cJm" width="640" height="340" aria-label="Jammer power spectral density against frequency, with the radar's receiver band"></canvas>
+    <div class="ctrl">
+      <label for="jmT">Jamming waveform</label>
+      <select id="jmT"><option value="barrage" selected>Barrage noise</option><option value="spot">Spot noise</option><option value="swept">Swept spot</option></select>
+      <label for="jmB"><span>Noise bandwidth B<sub>j</sub></span> <b id="jmBv"></b></label><input id="jmB" type="range" min="0" max="3.3" step="0.05" value="3">
+      <label for="jmS"><span>Sweep span S</span> <b id="jmSv"></b></label><input id="jmS" type="range" min="50" max="2000" step="10" value="1000">
+      <label for="jmP"><span>PAPR after clipping</span> <b id="jmPv"></b></label><input id="jmP" type="range" min="3" max="12" step="0.5" value="10">
+      <div class="readout" id="jmOut"></div>
+    </div>
+    <p class="cap">Power spectral density of the jammer (dBm per MHz) around the radar's 9.5 GHz. Shaded: the radar's 5 MHz receiver band. For the swept spot the light band is the sweep span and the solid block one instant of the spot. The grey skirts are the clipping distortion, drawn at its computed level relative to the noise and spread over three times B<sub>j</sub>. Sweep span only acts on the swept spot, and only when it is wider than B<sub>j</sub>; the B<sub>j</sub> slider is logarithmic (1 MHz to 2 GHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (barrage, 1000 MHz, PAPR 10 dB): P<sub>avg</sub> 10 W, J/S +7.0 dB, the naive case.</li>
+    <li>Spot, B<sub>j</sub> 10 MHz: J/S +27.0 dB with the same PA.</li>
+    <li>Swept spot of 10 MHz over 1000 MHz: +27 dB, 1.5 % of the time, +8.8 dB averaged.</li>
+    <li>PAPR 6 dB: P<sub>avg</sub> 25 W, J/S +11.0 dB (4 dB more), distortion −27.5 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Noise bandwidth</td><td>DAC rate, digital filter</td><td class="n">B<sub>j</sub> 10 MHz to 2 GHz</td><td>J/S changes by 10·log(B<sub>r</sub>/B<sub>j</sub>)</td></tr>
+    <tr><td>PAPR / clipping</td><td>Digital clipper, PA back-off</td><td class="n">6 dB → 25 W from 100 W</td><td>+4 dB J/S, distortion −27.5 dB</td></tr>
+    <tr><td>Sweep speed and span</td><td>DDS ramp</td><td class="n">e.g. 1 GHz in 100 µs</td><td>Duty on the radar (B<sub>j</sub> + B<sub>r</sub>)/S</td></tr>
+    <tr><td>Set-on frequency accuracy</td><td>Receiver measurement, synthesiser settling</td><td class="n">within B<sub>j</sub>/2</td><td>Spot noise lands on the radar at all</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> the jammer PA runs on noise: your linearity sets the PAPR it can pass and how much spectrum it regrows.</li>
+    <li><b>DAC and FPGA designers:</b> noise generation, filtering and clipping are digital; the DAC's bandwidth sets the widest barrage.</li>
+    <li><b>Synthesiser designers:</b> a fast-settling LO lets a jammer follow an agile radar (Step 8 from the other side).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Barrage over 500 MHz instead of 1000 MHz: how much more J/S?</summary><p>10·log 2 = 3 dB: +10 dB instead of +7 dB.</p></details>
+    <details><summary>Why is noise jamming weak against a pulse-compression radar with TB = 1000?</summary><p>The radar's matched filter adds the echo coherently, gaining 30 dB over noise; the noise jammer gets no such gain, so its effective J/S is about 30 dB lower than a coherent copy of the pulse would achieve.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="summary">
+  <div class="secno">Step 11</div>
+  <h2>Summary: every exciter parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers from this page)</th></tr>
+    <tr><td>Waveform type and bandwidth B</td><td>DDS/AWG, DAC rate, IF filters</td><td>ΔR = c/2B: 10 µs CW 878 m; 10 µs 10 MHz chirp 13.3 m with the same +10 dB energy</td></tr>
+    <tr><td>Frequency resolution</td><td>DDS clock and accumulator width</td><td>1 GHz, 32 bits: 0.233 Hz steps; exact chirps and phase steps</td></tr>
+    <tr><td>Phase truncation P</td><td>LUT size, dither, FTW choice</td><td>−6.02·P dBc: 8 bits −48.5 dBc, 12 bits −72.1 dBc; clean FTWs remove it</td></tr>
+    <tr><td>DAC bits and SFDR</td><td>DAC choice, layout, clock</td><td>8 bits −67.8 dBc; real SFDR 70–80 dBc sets false-target level</td></tr>
+    <tr><td>Sinc droop and images</td><td>f<sub>out</sub>/f<sub>clk</sub>, reconstruction filter</td><td>2.42 dB droop and an image 3.5 dB down at 0.4 f<sub>clk</sub>; keep to 0.4 f<sub>clk</sub></td></tr>
+    <tr><td>Chirp phase error</td><td>Chirp source, PLL dynamics, filters</td><td>Quadratic 90°: width +6.6 %, PSLR −42.7 → −26.8 dB; VCO ramp 1 % → −14.7 dB</td></tr>
+    <tr><td>Periodic phase ripple</td><td>Delay ripple, reflections, supply ripple</td><td>5.7° peak → paired echoes −26 dB at ±n range cells</td></tr>
+    <tr><td>FMCW ramp linearity</td><td>VCO tuning law, PLL ramp, correction</td><td>0.1 % bow: 1000 m target 1.55 → 2.65 m and −2.6 dB; rule δ &lt; ΔR/(8R)</td></tr>
+    <tr><td>I/Q balance (image)</td><td>IQ modulator, DAC matching, calibration</td><td>0.5 dB / 3° → IRR 28.2 dB; with IF 100 MHz and 5-pole filter −82.6 dBc</td></tr>
+    <tr><td>LO leakage</td><td>Mixer isolation, DC offset</td><td>−30 dBc → −60.1 dBc after the filter at 100 MHz IF</td></tr>
+    <tr><td>Pulse edges</td><td>DAC envelope shaping</td><td>Rectangular −19.2 dB FAIL; 50 ns raised cosine +7.1 dB for 0.49 dB energy</td></tr>
+    <tr><td>Pulse-to-pulse phase jitter</td><td>Reference, synthesiser, DDS reset, PA supply</td><td>1° rms: MTI limit 35.2 dB, Doppler floor −51.5 dB (64 pulses, Hann)</td></tr>
+    <tr><td>Settling time</td><td>Synthesiser architecture, loop bandwidth</td><td>500 MHz hop: 61.8 µs (int-N), 7.15 µs (frac-N), 0.10 µs (DDS); 1 kHz = 15 m/s false Doppler</td></tr>
+    <tr><td>Amplitude and phase flatness</td><td>Filters, match, sinc equalisation</td><td>0.5 dB pp → echoes −36.8 dB; 5° pp → −33.2 dB</td></tr>
+    <tr><td>PA AM-PM</td><td>PA device and operating point</td><td>4 °/dB saturated turns 0.5 dB pp into 2° pp phase: echoes about −41 dB</td></tr>
+    <tr><td>Jammer bandwidth and PAPR</td><td>Digital noise generator, PA back-off</td><td>Barrage 1 GHz +7 dB, spot 10 MHz +27 dB; clipping to 6 dB PAPR: +4 dB, distortion −27.5 dB</td></tr>
+  </table></div>
+  <p class="col">Related pages: <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise (02)</a> · <a href="M03-power-amplifier.html">Power amplifier (03)</a> · <a href="M04-filters.html">Filters (04)</a> · <a href="M05-mixers-conversion.html">Mixers and conversion (05)</a> · <a href="M07-adc-dac-sampling.html">ADC, DAC and sampling (07)</a> · <a href="M09-digital-receiver.html">Digital receiver (09)</a> · <a href="R4-pulse-radar.html">Pulse radar (R4)</a> · <a href="P3-sar-imaging.html">SAR (Part 3)</a>. Coming: DRFM and jammer hardware (13), frequency reference and timing (14), power supplies and spurs (16).</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>AM-PM</dt><dd>Change of an amplifier's output phase with its input level, in degrees per dB.</dd>
+    <dt>AWG</dt><dd>Arbitrary waveform generator: a DAC playing precomputed samples from memory.</dd>
+    <dt>Barker code</dt><dd>A binary phase code (13 chips at most) whose compressed sidelobes are all equal at 1/13 of the peak (−22.3 dB).</dd>
+    <dt>Barrage noise</dt><dd>Jamming noise spread over a wide band to cover all the radar's possible frequencies.</dd>
+    <dt>Beat frequency</dt><dd>In FMCW, the difference between the transmitted and received frequency: f<sub>b</sub> = 2KR/c.</dd>
+    <dt>Chip</dt><dd>One equal-length segment of a phase-coded pulse, with its own phase.</dd>
+    <dt>Chirp (LFM)</dt><dd>A pulse whose frequency sweeps linearly through B during its length τ.</dd>
+    <dt>Chirp rate K</dt><dd>B/τ, the slope of the frequency against time, in Hz per second.</dd>
+    <dt>Clipping</dt><dd>Limiting a signal's peaks to reduce its PAPR; the removed part becomes distortion.</dd>
+    <dt>Clutter</dt><dd>Unwanted echoes from ground, sea or weather, usually strong and near zero Doppler.</dd>
+    <dt>Coherent</dt><dd>All clocks and LOs derived from one reference, so pulse phases are known at the receiver.</dd>
+    <dt>CPI</dt><dd>Coherent processing interval: the set of N pulses processed together for Doppler.</dd>
+    <dt>Cubic phase error</dt><dd>Phase error a·u³ across the pulse (a bowed frequency line); raises sidelobes on one side.</dd>
+    <dt>DDS</dt><dd>Direct digital synthesiser: phase accumulator, phase-to-amplitude table and DAC.</dd>
+    <dt>Dead time</dt><dd>Time between a hop command and the next pulse.</dd>
+    <dt>Dither</dt><dd>Small random signal added to the phase to break up truncation spurs into noise.</dd>
+    <dt>DRFM</dt><dd>Digital radio frequency memory: records a radar pulse and replays it modified (module 13).</dd>
+    <dt>Eclipse</dt><dd>The range zone c·τ/2 in which a radar cannot receive because it is still transmitting.</dd>
+    <dt>Envelope</dt><dd>The slowly varying amplitude of a pulse.</dd>
+    <dt>Exciter</dt><dd>Everything between the reference and the PA input that creates the transmitted waveform.</dd>
+    <dt>FMCW</dt><dd>Frequency-modulated continuous wave: a radar that transmits continuous ramps and measures range from the beat frequency.</dd>
+    <dt>Frequency agility</dt><dd>Changing the transmit frequency from pulse to pulse or CPI to CPI.</dd>
+    <dt>FTW</dt><dd>Frequency tuning word: the number a DDS adds to its phase each clock.</dd>
+    <dt>Image (DAC)</dt><dd>Copy of the DAC output at f<sub>clk</sub> ± f<sub>out</sub>, 2f<sub>clk</sub> ± f<sub>out</sub> ….</dd>
+    <dt>Image (mixer)</dt><dd>The unwanted sideband f<sub>LO</sub> − f<sub>IF</sub>; for a chirp, the mirrored chirp.</dd>
+    <dt>Improvement factor</dt><dd>The clutter rejection of an MTI filter; limited to about 1/σ<sub>φ</sub>² by phase jitter.</dd>
+    <dt>IQ modulator</dt><dd>Two mixers driven 90° apart that produce a single sideband from I and Q inputs.</dd>
+    <dt>IRR</dt><dd>Image rejection ratio: wanted over image, in dB.</dd>
+    <dt>ISLR</dt><dd>Integrated sidelobe ratio: energy outside the main lobe over energy inside it.</dd>
+    <dt>J/S</dt><dd>Jamming-to-signal ratio inside the radar's receiver bandwidth.</dd>
+    <dt>LO leakage</dt><dd>The LO appearing at a mixer's output (carrier feedthrough), in dBc.</dd>
+    <dt>LUT</dt><dd>Look-up table: here the memory that turns phase into sine amplitude.</dd>
+    <dt>Matched filter</dt><dd>Correlation of the echo with a copy of the transmitted waveform; maximises SNR and compresses the pulse.</dd>
+    <dt>MTI</dt><dd>Moving target indication: subtracting successive pulses to cancel still clutter.</dd>
+    <dt>Paired echoes</dt><dd>Small copies of a compressed peak either side of it, caused by a periodic amplitude or phase ripple.</dd>
+    <dt>PAPR</dt><dd>Peak-to-average power ratio of a waveform.</dd>
+    <dt>Phase accumulator</dt><dd>The DDS register that holds the output phase and adds the FTW every clock.</dd>
+    <dt>Phase jitter σ<sub>φ</sub></dt><dd>Random rms variation of the transmitted phase from pulse to pulse.</dd>
+    <dt>Phase truncation</dt><dd>Using only the top P bits of the accumulator to address the LUT; causes spurs near −6.02·P dBc.</dd>
+    <dt>Ping-pong synthesiser</dt><dd>Two synthesisers used alternately so one can settle while the other transmits.</dd>
+    <dt>Pre-distortion</dt><dd>Transmitting a deliberately altered waveform that cancels the chain's known errors.</dd>
+    <dt>PSLR</dt><dd>Peak sidelobe ratio: the highest sidelobe relative to the main peak, in dB.</dd>
+    <dt>Pulse compression</dt><dd>Matched filtering of a coded or chirped pulse to a peak about 1/B wide.</dd>
+    <dt>Quadratic phase error</dt><dd>Phase error a·u² across the pulse (a wrong chirp rate); widens the main lobe and fills its nulls.</dd>
+    <dt>Raised-cosine edge</dt><dd>A pulse edge shaped as half a cosine, with no corners.</dd>
+    <dt>Ramp nonlinearity δ</dt><dd>Largest departure of an FMCW ramp from a straight line, as a fraction of B.</dd>
+    <dt>Range resolution ΔR</dt><dd>c/2B: the separation at which two equal targets are seen as two.</dd>
+    <dt>Reconstruction filter</dt><dd>Low-pass filter after a DAC that removes the images.</dd>
+    <dt>Rise time t<sub>r</sub></dt><dd>Time for the envelope to go from 10 % to 90 % of full amplitude.</dd>
+    <dt>Settling time</dt><dd>Time after a hop until the frequency stays within a tolerance.</dd>
+    <dt>SFDR</dt><dd>Spurious-free dynamic range: carrier to highest spur, in dBc.</dd>
+    <dt>Sinc roll-off</dt><dd>The sin(x)/x droop of a DAC's output with frequency, from holding each sample for a clock period.</dd>
+    <dt>Spectral mask</dt><dd>Limit line of allowed emission against frequency offset.</dd>
+    <dt>Spot noise</dt><dd>Jamming noise in a narrow band placed on the radar's frequency.</dd>
+    <dt>Stepped frequency</dt><dd>A burst of narrow-band pulses at frequencies Δf apart, combined into one fine-resolution profile.</dd>
+    <dt>Swept spot</dt><dd>Spot noise swept across a wider span.</dd>
+    <dt>Time-bandwidth product</dt><dd>τ·B: the compression ratio of a pulse.</dd>
+    <dt>Waveform</dt><dd>The exact envelope, frequency and phase of the transmitted signal against time.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Levanon and Mozeson, <i>Radar Signals</i>; Richards, <i>Fundamentals of Radar Signal Processing</i>; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Cook and Bernfeld, <i>Radar Signals: An Introduction to Theory and Application</i>; Stimson, <i>Introduction to Airborne Radar</i>; Schleher, <i>Electronic Warfare in the Information Age</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+const mg=x=>(x>=0?'+':'')+x.toFixed(1)+' dB '+(x<0?'FAIL':'ok');
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(x<10?2:0)+' MHz');
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+
+/* ===== exciter maths engine (pure functions; shared by node checks and the page) ===== */
+const C0=299792458, PI=Math.PI, TWO_PI=2*Math.PI;
+const dB10=x=>10*Math.log10(x), dB20=x=>20*Math.log10(x);
+function fft(re,im,inv){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; } }
+  for(let len=2;len<=n;len<<=1){ const ang=(inv?2:-2)*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } }
+  if(inv){ for(let i=0;i<n;i++){ re[i]/=n; im[i]/=n; } } }
+/* window value at position x in [0,1] */
+function wv(name,x){ switch(name){
+  case 'hamming': return 0.54-0.46*Math.cos(TWO_PI*x);
+  case 'hann': return 0.5-0.5*Math.cos(TWO_PI*x);
+  case 'blackman': return 0.42-0.5*Math.cos(TWO_PI*x)+0.08*Math.cos(2*TWO_PI*x);
+  case 'bh4': return 0.35875-0.48829*Math.cos(TWO_PI*x)+0.14128*Math.cos(2*TWO_PI*x)-0.01168*Math.cos(3*TWO_PI*x);
+  default: return 1; } }
+function rng(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+function gauss(r){ const u=Math.max(r(),1e-12), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(TWO_PI*v); }
+
+/* correlation of signal s with reference h (both complex arrays), returns |out|^2 with zero lag at centre index */
+function xcorr(sr,si,hr,hi,N){ const ar=new Float64Array(N), ai=new Float64Array(N), br=new Float64Array(N), bi=new Float64Array(N);
+  for(let i=0;i<sr.length;i++){ ar[i]=sr[i]; ai[i]=si[i]; } for(let i=0;i<hr.length;i++){ br[i]=hr[i]; bi[i]=hi[i]; }
+  fft(ar,ai,false); fft(br,bi,false);
+  for(let k=0;k<N;k++){ const r=ar[k]*br[k]+ai[k]*bi[k], m=ai[k]*br[k]-ar[k]*bi[k]; ar[k]=r; ai[k]=m; }
+  fft(ar,ai,true); const p=new Float64Array(N); for(let k=0;k<N;k++){ const j=(k+N/2)%N; p[k]=ar[j]*ar[j]+ai[j]*ai[j]; } return p; }
+/* metrics of a compressed response p (power, centre index c0 nominal) */
+function lobe(p,step,hw){ const N=p.length; let ip=0; for(let i=1;i<N;i++) if(p[i]>p[ip]) ip=i; const pk=p[ip];
+  const h=pk/2; let l=ip; while(l>0&&p[l]>h) l--; let r=ip; while(r<N-1&&p[r]>h) r++;
+  const fl=l+(h-p[l])/(p[l+1]-p[l]), fr=r-1+(p[r-1]-h)/(p[r-1]-p[r]); const w3=(fr-fl)*step;
+  let nl=ip; while(nl>0&&p[nl-1]<p[nl]) nl--; let nr=ip; while(nr<N-1&&p[nr+1]<p[nr]) nr++; if(hw){ nl=ip-hw; nr=ip+hw; }
+  let side=0, eMain=0, eSide=0; for(let i=0;i<N;i++){ if(i>=nl&&i<=nr) eMain+=p[i]; else { eSide+=p[i]; if(p[i]>side) side=p[i]; } }
+  return {ip,pk,w3,pslr:dB10(side/pk),islr:dB10(eSide/eMain),nl,nr}; }
+
+/* ---- Step 1: waveform family ---- */
+const BARKER13=[1,1,1,1,1,-1,-1,1,1,-1,1,-1,1];
+function waveform(type,tau,B){ /* tau s, B Hz */
+  const out={type};
+  if(type==='step'){ const M=32, df=B/M, dR=C0/(2*B), span=8*dR, n=1601; const x=[],y=[];
+    for(let i=0;i<n;i++){ const r=-span+2*span*i/(n-1); let re=0,im=0; for(let k=0;k<M;k++){ const ph=TWO_PI*k*df*2*r/C0; re+=Math.cos(ph); im+=Math.sin(ph); } x.push(r); y.push((re*re+im*im)/(M*M)); }
+    const L=lobe(Float64Array.from(y),2*span/(n-1)); out.x=x; out.p=y; out.L=L; out.M=M; out.df=df; out.Bocc=B; out.span=span; out.unamb=C0/(2*df); return out; }
+  const FS=200e6; let Ns=Math.round(tau*FS); const sr=new Float64Array(Ns), si=new Float64Array(Ns);
+  for(let i=0;i<Ns;i++){ const t=i/FS, u=t/tau; let ph=0;
+    if(type==='lfm'||type==='fmcw') ph=PI*(B/tau)*(t-tau/2)*(t-tau/2);
+    else if(type==='barker') ph=BARKER13[Math.min(12,Math.floor(u*13))]>0?0:PI;
+    sr[i]=Math.cos(ph); si[i]=Math.sin(ph); }
+  let N=1; while(N<4*Ns) N<<=1; const p=xcorr(sr,si,sr,si,N); const step=C0/(2*FS);
+  const L=lobe(p,step); const Bocc=type==='cw'?1/tau:type==='barker'?13/tau:B; const dRn=C0/(2*Bocc);
+  const span=Math.min((type==='cw'||type==='barker')?1.15*C0*tau/2:10*dRn, (N/2-2)*step);
+  const x=[],y=[]; const c=N/2, half=Math.floor(span/step), dec=Math.max(1,Math.floor(2*half/1600));
+  for(let k=-half;k<=half;k+=dec){ let m=0; for(let j=0;j<dec&&k+j<=half;j++) m=Math.max(m,p[c+k+j]); x.push(k*step); y.push(m/L.pk); }
+  Object.assign(out,{x,p:y,L,Bocc,span,dRn}); return out; }
+
+/* ---- Step 2: DDS ---- */
+function dds(fReq,P,D){ const FCLK=1e9, N=8192, M=4294967296; const ftw=Math.round(fReq/FCLK*M); const f=ftw*FCLK/M;
+  const re=new Float64Array(N), im=new Float64Array(N); let acc=0; const q=Math.pow(2,D-1)-1, sh=Math.pow(2,32-P), L=Math.pow(2,P);
+  for(let n=0;n<N;n++){ const pi=Math.floor(acc/sh); let s=Math.sin(TWO_PI*pi/L); s=Math.round(s*q)/q; re[n]=s*wv('bh4',n/N); acc=(acc+ftw)%M; }
+  fft(re,im,false); const pw=new Float64Array(N/2); let kc=0; for(let k=0;k<N/2;k++){ pw[k]=re[k]*re[k]+im[k]*im[k]; if(pw[k]>pw[kc]) kc=k; }
+  const pk=pw[kc]; const spec=new Float64Array(N/2); for(let k=0;k<N/2;k++) spec[k]=dB10(Math.max(pw[k]/pk,1e-16));
+  let ks=-1, sp=-200; for(let k=1;k<N/2;k++){ if(Math.abs(k-kc)<=10) continue; if(spec[k]>sp){ sp=spec[k]; ks=k; } }
+  const truncFree=(ftw%sh)===0; return {ftw,f,spec,bin:FCLK/N,spur:sp,spurF:ks*FCLK/N,truncFree,FCLK}; }
+const sincdB=x=>x===0?0:dB20(Math.abs(Math.sin(PI*x)/(PI*x)));
+
+/* ---- Steps 3 and 9: chirp compression with errors ---- */
+const CH={FS:400e6,T:10e-6,B:100e6};
+function chirpCompress(phiFn,ampFn,winName){ const Ns=Math.round(CH.T*CH.FS), N=16384; const K=CH.B/CH.T;
+  const sr=new Float64Array(Ns), si=new Float64Array(Ns), hr=new Float64Array(Ns), hi=new Float64Array(Ns);
+  for(let i=0;i<Ns;i++){ const t=i/CH.FS, u=2*t/CH.T-1, ph0=PI*K*(t-CH.T/2)*(t-CH.T/2); const a=ampFn?ampFn(u):1, ph=ph0+(phiFn?phiFn(u):0), w=wv(winName,(i+0.5)/Ns);
+    sr[i]=a*Math.cos(ph); si[i]=a*Math.sin(ph); hr[i]=w*Math.cos(ph0); hi[i]=w*Math.sin(ph0); }
+  const p=xcorr(sr,si,hr,hi,N); const step=C0/(2*CH.FS); const L0=lobe(p,step); return {p,step,L:L0,N}; }
+function chirpRun(phiFn,ampFn,w){ const I=idealChirp(w); const r=chirpCompress(phiFn,ampFn,w); const hw=Math.round((I.L.nr-I.L.nl)/2); r.L=lobe(r.p,r.step,hw); r.I=I; return r; }
+let _ideal={}; function idealChirp(w){ if(!_ideal[w]) _ideal[w]=chirpCompress(null,null,w); return _ideal[w]; }
+function phaseErr(type,aRad,n){ if(type==='quad') return u=>aRad*u*u; if(type==='cubic') return u=>aRad*u*u*u; if(type==='sin') return u=>aRad*Math.sin(PI*n*(u+1)); return null; }
+
+/* ---- Step 4: FMCW nonlinearity ---- */
+const FM={B:150e6,Tr:100e-6,fs:80e6,N:65536};
+function fmShape(shape,d){ const B=FM.B,Tr=FM.Tr; const k=3*Math.sqrt(3)/2; /* returns {df(u), D(u)} with D = integral of df dt */
+  if(shape==='bow') return {df:u=>d*B*(1-u*u), D:u=>d*B*Tr/2*(u-u*u*u/3)};
+  if(shape==='s') return {df:u=>d*B*k*(u-u*u*u), D:u=>d*B*k*Tr/2*(u*u/2-u*u*u*u/4)};
+  const n=5; return {df:u=>d*B*Math.sin(PI*n*(u+1)), D:u=>-d*B*Tr/2*Math.cos(PI*n*(u+1))/(PI*n)}; }
+function fmProfile(shape,d,R,winName){ const K=FM.B/FM.Tr, tau=2*R/C0, fs=FM.fs, N=FM.N; const sh=fmShape(shape,d);
+  const Phi=t=>{ const u=2*t/FM.Tr-1; return TWO_PI*(K*t*t/2+sh.D(u)); };
+  const n0=Math.ceil(tau*fs), n1=Math.floor(FM.Tr*fs); const Ns=n1-n0; const re=new Float64Array(N), im=new Float64Array(N);
+  for(let i=0;i<Ns;i++){ const t=(n0+i)/fs; const ph=Phi(t)-Phi(t-tau); const w=wv(winName,(i+0.5)/Ns); re[i]=w*Math.cos(ph); im[i]=w*Math.sin(ph); }
+  fft(re,im,false); const df=fs/N, mpb=C0/(2*K)*df; /* metres per bin */
+  const kc=Math.round(K*tau/df); const p=new Float64Array(N); for(let k=0;k<N;k++){ p[k]=re[k]*re[k]+im[k]*im[k]; }
+  /* derivative spread of nonlinearity -> beat spread */
+  let mn=1e99,mx=-1e99; for(let i=0;i<=400;i++){ const u=-1+2*i/400, e=1e-4; const s=(sh.df(u+e)-sh.df(u-e))/(2*e)*2/FM.Tr; if(u>-1+2*tau/FM.Tr){ mn=Math.min(mn,s); mx=Math.max(mx,s);} }
+  return {p,kc,mpb,fb:K*tau,spread:(mx-mn)*tau/K*C0/2,sLo:mn*tau/K*C0/2,sHi:mx*tau/K*C0/2,Ns}; }
+
+/* ---- Step 6: pulse shaping ---- */
+function env(shape,t,tau,tr){ /* tr = 10-90 % rise time; edges inside tau */
+  if(shape==='rect') return (t>=0&&t<tau)?1:0;
+  if(shape==='trap'){ const te=tr/0.8; if(t<0||t>tau) return 0; if(t<te) return t/te; if(t>tau-te) return (tau-t)/te; return 1; }
+  if(shape==='rc'){ const te=tr/0.5903; if(t<0||t>tau) return 0; if(t<te) return 0.5-0.5*Math.cos(PI*t/te); if(t>tau-te) return 0.5-0.5*Math.cos(PI*(tau-t)/te); return 1; }
+  /* gauss: rectangle (flat length tau-te) smoothed by Gaussian with 10-90 % rise te */
+  const te=tr*1.5, s=tr/2.563, a=te/2, b=tau-te/2; if(t<-te||t>tau+te) return 0; const erf=x=>{ const z=Math.abs(x), k=1/(1+0.3275911*z); const y=1-(((((1.061405429*k-1.453152027)*k)+1.421413741)*k-0.284496736)*k+0.254829592)*k*Math.exp(-z*z); return x>=0?y:-y; };
+  return 0.5*(erf((t-a)/(Math.SQRT2*s))-erf((t-b)/(Math.SQRT2*s))); }
+function maskdB(f,tau,Bs){ const f1=2/tau+Bs/2; if(f<=f1) return 0; return Math.max(-70,-40*Math.log10(f/f1)); }
+function shapeSpec(shape,tau,te,sig){ const FS=1e9, N=65536, Bs=sig==='lfm'?10e6:0; const re=new Float64Array(N), im=new Float64Array(N); const off=1000; let e2=0;
+  for(let i=0;i<N;i++){ const t=(i-off)/FS; const a=env(shape==='rect'?'rect':shape,t,tau,te); if(a===0) continue; e2+=a*a; const ph=Bs?PI*(Bs/tau)*(t-tau/2)*(t-tau/2):0; re[i]=a*Math.cos(ph); im[i]=a*Math.sin(ph); }
+  fft(re,im,false); const df=FS/N; const half=N/2; const pw=new Float64Array(half); let pk=0;
+  for(let k=0;k<half;k++){ const a=re[k]*re[k]+im[k]*im[k], b=k?re[N-k]*re[N-k]+im[N-k]*im[N-k]:a; pw[k]=Math.max(a,b); if(pw[k]>pk) pk=pw[k]; }
+  for(let k=0;k<half;k++) pw[k]=dB10(Math.max(pw[k]/pk,1e-14));
+  let worst=1e9, wf=0; const f1=2/tau+Bs/2; for(let k=1;k<half;k++){ const f=k*df; if(f<=f1) continue; if(f>200e6) break; const m=maskdB(f,tau,Bs)-pw[k]; if(m<worst){ worst=m; wf=f; } }
+  const bw=lev=>{ let kk=half-1; while(kk>0&&pw[kk]<lev) kk--; return 2*kk*df; };
+  return {pw,df,worst,wf,f1,b20:bw(-20),b40:bw(-40),eLoss:dB10(e2/(tau*FS)),Bs}; }
+
+/* ---- Step 7: pulse-to-pulse coherence ---- */
+function coherence(jDeg,N,winName,sigDb,fd){ const r=rng(12345), sj=jDeg*PI/180, n0=1e-6, As=Math.pow(10,sigDb/20); const NF=Math.max(1024,8*N);
+  const re=new Float64Array(NF), im=new Float64Array(NF), re2=new Float64Array(N), im2=new Float64Array(N); let sw=0,sw2=0;
+  for(let n=0;n<N;n++){ const ph=sj*gauss(r), w=wv(winName,(n+0.5)/N); sw+=w; sw2+=w*w; const tp=TWO_PI*fd*n;
+    const nr=Math.sqrt(n0/2)*gauss(r), ni=Math.sqrt(n0/2)*gauss(r);
+    const xr=Math.cos(ph)+As*Math.cos(tp+ph)+nr, xi=Math.sin(ph)+As*Math.sin(tp+ph)+ni; re[n]=w*xr; im[n]=w*xi; re2[n]=w*xr; im2[n]=w*xi; }
+  fft(re,im,false); fft(re2,im2,false); const pk=sw*sw; const spec=new Float64Array(NF); for(let k=0;k<NF;k++){ const j=(k+NF/2)%NF; spec[k]=dB10(Math.max((re[j]*re[j]+im[j]*im[j])/pk,1e-16)); }
+  /* measured floor: mean power in N-point bins away from clutter (|f|>0.1) and target (+-2 bins) */
+  let s=0,c=0; const kt=Math.round(((fd%1)+1)%1*N)%N; for(let k=0;k<N;k++){ const fr=(k<N/2?k:k-N)/N; if(Math.abs(fr)<=0.1) continue; const dk=Math.min(Math.abs(k-kt),N-Math.abs(k-kt)); if(dk<=2) continue; s+=(re2[k]*re2[k]+im2[k]*im2[k])/pk; c++; }
+  const g=sw2/(sw*sw); return {spec,NF,floorMeas:c?dB10(s/c):NaN,floorJit:sj>0?dB10(sj*sj*g):-Infinity,floorNoise:dB10(n0*g),floorPred:dB10((sj*sj+n0)*g),tgt:sigDb,mti:sj>0?dB10(1/(sj*sj)):Infinity}; }
+
+/* ---- Step 8: frequency agility and settling ---- */
+const SYN={
+  int:{name:'Integer-N PLL, 100 kHz loop',BW:100e3,slew:2e13},
+  frac:{name:'Fractional-N PLL, 1 MHz loop',BW:1e6,slew:2e14},
+  dds:{name:'DDS-based synthesiser',lat:30e-9,tc:5e-9},
+  pp:{name:'Two PLLs, switched (ping-pong)',lat:0,tc:20e-9}};
+function settleModel(type,H){ const s=SYN[type];
+  if(s.BW){ const zeta=0.707, wn=TWO_PI*s.BW/2.06, a=zeta*wn, wd=wn*Math.sqrt(1-zeta*zeta), Hc=Math.min(H,20*s.BW), tacq=Math.max(0,(H-Hc)/s.slew);
+    const e=t=>{ if(t<tacq) return H-s.slew*t; const x=t-tacq; return Hc*Math.exp(-a*x)*(Math.cos(wd*x)-zeta/Math.sqrt(1-zeta*zeta)*Math.sin(wd*x)); };
+    const ts=tol=>tacq+Math.max(0,Math.log(Hc/(tol*Math.sqrt(1-zeta*zeta)))/a); return {e,ts}; }
+  const e=t=>t<s.lat?H:H*Math.exp(-(t-s.lat)/s.tc); const ts=tol=>s.lat+Math.max(0,s.tc*Math.log(H/tol)); return {e,ts}; }
+function agility(type,Hmhz,deadUs,tolKhz){ const H=Hmhz*1e6, tol=tolKhz*1e3, dead=deadUs*1e-6, tp=10e-6; const m=settleModel(type,H);
+  const ts=m.ts(tol); const e0=Math.abs(m.e(dead)); let emax=0, ph=0; const n=2000; for(let i=0;i<=n;i++){ const t=dead+tp*i/n, v=m.e(t); emax=Math.max(emax,Math.abs(v)); if(i<n) ph+=v*tp/n; }
+  return {m,ts,e0,emax,phDeg:360*ph,tp,ok:emax<=tol}; }
+
+/* ---- Step 10: jammer ---- */
+const JM={Br:5e6,Psat:100,ref:20};
+function clipLoss(cdB){ /* complex Gaussian (Rayleigh envelope) clipped at A^2 = c*Pavg: distortion power / Pavg */
+  const c=Math.pow(10,cdB/10); let s=0; const n=4000, rmax=Math.sqrt(c)+8; for(let i=0;i<n;i++){ const r=Math.sqrt(c)+(rmax-Math.sqrt(c))*(i+0.5)/n; s+=(r-Math.sqrt(c))*(r-Math.sqrt(c))*2*r*Math.exp(-r*r)*(rmax-Math.sqrt(c))/n; } return s; }
+function jammer(type,BjMHz,spanMHz,papr){ const Bj=BjMHz*1e6, span=spanMHz*1e6; const Pavg=JM.Psat/Math.pow(10,papr/10);
+  const inband=Math.min(1,JM.Br/Bj); const jsInst=JM.ref+dB10(Pavg)+dB10(inband); let frac=1; if(type==='swept') frac=Math.min(1,(Bj+JM.Br)/Math.max(span,Bj));
+  const jsAvg=jsInst+dB10(frac); return {Pavg,psd:dB10(Pavg*1e3/BjMHz),inband,jsInst,frac,jsAvg,clip:dB10(Math.max(clipLoss(papr),1e-12))}; }
+
+
+
+/* ---------- shared drawing bits ---------- */
+const z1=x=>Math.abs(x)<0.05?0:x;
+const dBs=x=>isFinite(x)?z1(x).toFixed(1)+' dB':'n/a';
+const dBc=x=>isFinite(x)?z1(x).toFixed(1)+' dBc':'n/a';
+const fmtM=x=>!isFinite(x)?'n/a':(Math.abs(x)>=1000?(x/1000).toFixed(2)+' km':(Math.abs(x)>=100?x.toFixed(0):Math.abs(x)>=10?x.toFixed(1):x.toFixed(2))+' m');
+function poolLine(xs,ys,X,xa,xb){ /* max-pool points per pixel column to keep canvases fast and peaks visible */
+  const out={x:[],y:[]}; let col=null, best=-Infinity, bx=0;
+  for(let i=0;i<xs.length;i++){ const xv=xs[i]; if(xv<xa||xv>xb||!isFinite(ys[i])) continue; const c=Math.round(X(xv));
+    if(c!==col){ if(col!==null){ out.x.push(bx); out.y.push(best); } col=c; best=ys[i]; bx=xv; } else if(ys[i]>best){ best=ys[i]; bx=xv; } }
+  if(col!==null){ out.x.push(bx); out.y.push(best); } return out; }
+function lbl(g,s,x,y,color){ const w=g.measureText(s).width; g.fillStyle=css('--panel'); g.globalAlpha=0.85; g.fillRect(x-2,y-11,w+4,14); g.globalAlpha=1; txt(g,s,x,y,color); }
+function lblR(g,s,xr,y,color){ lbl(g,s,xr-g.measureText(s).width,y,color); }
+
+/* ---------- Step 1: waveform types ---------- */
+function wfDraw(){ const type=$('wfT').value, tau=sl('wfTau')*1e-6, B=sl('wfB')*1e6;
+  setv('wfTau',sl('wfTau')+' µs'+(type==='step'?' per step':''));
+  setv('wfB',(type==='cw'||type==='barker')?'(not used)':sl('wfB')+' MHz');
+  const w=waveform(type,tau,B); const c=$('cWf'), g=ctx(c);
+  const T={x0:56,y0:22,w:c.width-72,h:100}, Bt={x0:56,y0:170,w:c.width-72,h:190};
+  /* top panel */
+  if(type==='barker'){ const P=plot(g,T.x0,T.y0,T.w,T.h,0,tau*1e6,-30,210,[],{ny:4,nx:4,fx:v=>v.toFixed(1),fy:v=>v.toFixed(0)+'°',yl:'phase of each chip',xl:'time, µs'});
+    g.strokeStyle=css('--trace'); g.lineWidth=2; g.beginPath(); for(let k=0;k<13;k++){ const ph=BARKER13[k]>0?0:180, xa=tau*1e6*k/13, xb=tau*1e6*(k+1)/13; k?g.lineTo(P.X(xa),P.Y(ph)):g.moveTo(P.X(xa),P.Y(ph)); g.lineTo(P.X(xb),P.Y(ph)); } g.stroke(); g.lineWidth=1; }
+  else if(type==='step'){ const M=32, Bm=B/1e6; const P=plot(g,T.x0,T.y0,T.w,T.h,0,M,-Bm*0.6,Bm*0.6,[],{ny:4,nx:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),yl:'frequency of each pulse, MHz from centre',xl:'pulse number'});
+    g.strokeStyle=css('--trace'); g.lineWidth=3; const fr=Math.min(0.9,tau/25e-6); for(let k=0;k<M;k++){ const f=-Bm/2+Bm*(k+0.5)/M; g.beginPath(); g.moveTo(P.X(k+0.05),P.Y(f)); g.lineTo(P.X(k+0.05+fr),P.Y(f)); g.stroke(); } g.lineWidth=1; }
+  else { const Bm=type==='cw'?1:B/1e6; const yr=type==='cw'?1:Bm*0.6; const x=[0,tau*1e6], y=type==='cw'?[0,0]:[-Bm/2,Bm/2];
+    plot(g,T.x0,T.y0,T.w,T.h,0,tau*1e6,-yr,yr,[{x,y,color:css('--trace'),w:2.2}],{ny:4,nx:4,fx:v=>v.toFixed(1),fy:v=>v.toFixed(type==='cw'?1:0),yl:'frequency, MHz from centre',xl:'time, µs'}); }
+  /* bottom panel */
+  const km=w.span>=2000, sc=km?1e-3:1; const ys=w.p.map(v=>10*Math.log10(Math.max(v,1e-9)));
+  const P=plot(g,Bt.x0,Bt.y0,Bt.w,Bt.h,-w.span*sc,w.span*sc,-60,0,[],{ny:6,nx:4,fx:v=>v.toFixed(km?1:0),fy:v=>v.toFixed(0),yl:'compressed output, dB',xl:'range offset, '+(km?'km':'m')});
+  const pl=poolLine(w.x.map(v=>v*sc),ys,P.X,-w.span*sc,w.span*sc); plot(g,Bt.x0,Bt.y0,Bt.w,Bt.h,-w.span*sc,w.span*sc,-60,0,[{x:pl.x,y:pl.y,color:css('--accent'),w:1.8}],{ny:6,nx:4,fx:v=>v.toFixed(km?1:0),fy:v=>v.toFixed(0),yl:'compressed output, dB',xl:'range offset, '+(km?'km':'m')});
+  hline(g,Bt.x0,Bt.w,P.Y(-3),css('--muted'),[2,3]);
+  const pslr=w.L.pslr<-100?'none (triangle)':dBs(w.L.pslr);
+  const E=type==='step'?dBs(10*Math.log10(tau/1e-6))+' per step':dBs(10*Math.log10(tau/1e-6));
+  const TB=type==='step'?'synthetic (32 pulses)':(w.Bocc*tau).toFixed(type==='cw'?0:1);
+  const rows=[['occupied B',fMHz(w.Bocc/1e6)],['TB',TB],['ΔR = c/2B',fmtM(C0/(2*w.Bocc))],['−3 dB width',fmtM(w.L.w3)],['PSLR',pslr],['ISLR',w.L.islr<-100?'none':dBs(w.L.islr)],['energy vs 1 µs CW',E]];
+  if(type==='step') rows.push(['repeat window c/2Δf',fmtM(w.unamb)]); else rows.push(['eclipse c·τ/2',type==='fmcw'?'none (CW)':fmtM(C0*tau/2)]);
+  ro($('wfOut'),rows); }
+bind(['wfT','wfTau','wfB'],wfDraw);
+
+/* ---------- Step 2: DDS ---------- */
+function ddsDraw(){ const fr=sl('ddF')*1e6, P=sl('ddP'), D=sl('ddD'), view=$('ddV').value;
+  setv('ddF',(fr/1e6).toFixed(1)+' MHz'); setv('ddP',P+' bits'); setv('ddD',D+' bits');
+  const d=dds(fr,P,D); const c=$('cDds'), g=ctx(c), A=area(c); const pred=-6.02*P, qbin=-(6.02*D+1.76)-10*Math.log10(4096)+10*Math.log10(2.0);
+  const n=d.spec.length; const xs=new Array(n), ys=Array.from(d.spec); for(let k=0;k<n;k++) xs[k]=k*d.bin/1e6;
+  if(view==='dig'){ const P0=plot(g,A.x0,A.y0,A.w,A.h,0,500,-140,0,[],{ny:7,nx:5,fx:v=>v.toFixed(0),yl:'dBc',xl:'MHz'});
+    const pl=poolLine(xs,ys,P0.X,0,500); plot(g,A.x0,A.y0,A.w,A.h,0,500,-140,0,[{x:pl.x,y:pl.y,color:css('--trace'),w:1.2}],{ny:7,nx:5,fx:v=>v.toFixed(0),yl:'dBc',xl:'MHz'});
+    hline(g,A.x0,A.w,P0.Y(pred),css('--accent'),[6,4]); hline(g,A.x0,A.w,P0.Y(qbin),css('--muted'),[2,3]);
+    lblR(g,'−6.02·P = '+pred.toFixed(1)+' dBc',A.x0+A.w-4,P0.Y(pred)-4,css('--accent'));
+    if(d.spurF>0) dot(g,P0.X(d.spurF/1e6),P0.Y(d.spur),css('--bad'),4);
+  } else { const P0=plot(g,A.x0,A.y0,A.w,A.h,0,2000,-140,0,[],{ny:7,nx:4,fx:v=>v.toFixed(0),yl:'dBc (DAC output, sinc included)',xl:'MHz'});
+    const fc=1000, zones=[[xs.map(f=>f),1],[xs.map(f=>fc-f),1],[xs.map(f=>fc+f),1],[xs.map(f=>2*fc-f),1]];
+    const sinc=xs.map(f=>0); const curves=[]; zones.forEach((z,i)=>{ let zx=z[0], zy=ys.map((v,k)=>v+sincdB(zx[k]/fc)-sincdB(d.f/1e9)); if(i===1||i===3){ zx=zx.slice().reverse(); zy=zy.slice().reverse(); }
+      const pl=poolLine(zx,zy,P0.X,0,2000); curves.push({x:pl.x,y:pl.y,color:i?css('--trace2'):css('--trace'),w:1.2}); });
+    plot(g,A.x0,A.y0,A.w,A.h,0,2000,-140,0,curves,{ny:7,nx:4,fx:v=>v.toFixed(0),yl:'dBc (DAC output, sinc included)',xl:'MHz'});
+    const sx=[],sy=[]; for(let f=1;f<2000;f+=4){ sx.push(f); sy.push(sincdB(f/fc)-sincdB(d.f/1e9)); } plot(g,A.x0,A.y0,A.w,A.h,0,2000,-140,0,[{x:sx,y:sy,color:css('--muted'),w:1,dash:[4,4]}],{ny:7,nx:4,fx:v=>v.toFixed(0),yl:'dBc (DAC output, sinc included)',xl:'MHz'});
+    const fi=(fc-d.f/1e6), li=sincdB(fi/fc)-sincdB(d.f/1e9); dot(g,P0.X(fi),P0.Y(li),css('--accent'),4); lbl(g,'first image '+fi.toFixed(1)+' MHz, '+li.toFixed(1)+' dBc',clamp(P0.X(fi)+8,A.x0+4,A.x0+A.w-250),P0.Y(li)-6,css('--accent'));
+  }
+  const x=d.f/1e9, imgF=1e9-d.f, imgL=sincdB(1-x)-sincdB(x);
+  ro($('ddOut'),[['FTW','0x'+d.ftw.toString(16).toUpperCase().padStart(8,'0')],['f<sub>out</sub>',(d.f/1e6).toFixed(6)+' MHz'],['error',((d.f-fr)).toFixed(3)+' Hz'],['step','0.233 Hz'],['clean FTW',d.truncFree?'yes':'no'],['−6.02·P',dBc(pred)],['worst spur',dBc(d.spur)],['spur at',fMHz(d.spurF/1e6)],['DAC SQNR',(6.02*D+1.76).toFixed(1)+' dB'],['sinc loss',(sincdB(x)).toFixed(2)+' dB'],['image at',(imgF/1e6).toFixed(1)+' MHz'],['image level',dBc(imgL)],['view',view==='dig'?'digital':'analogue']]); }
+bind(['ddF','ddP','ddD','ddV'],ddsDraw);
+
+/* ---------- compressed-chirp plot used by Steps 3 and 9 ---------- */
+function chirpPlot(c,r,echo){ const g=ctx(c), A=area(c); const span=60, I=r.I, N=r.N, cen=N/2, step=r.step, half=Math.floor(span/step);
+  const xs=[], yi=[], ye=[]; for(let k=-half;k<=half;k++){ xs.push(k*step); yi.push(10*Math.log10(Math.max(I.p[cen+k]/I.L.pk,1e-12))); ye.push(10*Math.log10(Math.max(r.p[cen+k]/I.L.pk,1e-12))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-span,span,-70,0,[{x:xs,y:yi,color:css('--muted'),w:1.2},{x:xs,y:ye,color:css('--accent'),w:1.7}],{ny:7,nx:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),yl:'compressed output, dB (0 = ideal peak)',xl:'range offset, m'});
+  if(echo&&isFinite(echo.lev)){ [-1,1].forEach(s=>{ const xp=P.X(s*echo.pos); if(Math.abs(s*echo.pos)<span) vline(g,xp,A.y0,A.h,css('--trace2'),[3,4]); });
+    if(echo.lev>-70){ hline(g,A.x0,A.w,P.Y(echo.lev),css('--trace2'),[3,4]); lbl(g,'predicted echo '+echo.lev.toFixed(1)+' dB',A.x0+6,P.Y(echo.lev)-5,css('--trace2')); } }
+  return P; }
+
+/* ---------- Step 3: chirp phase error ---------- */
+function chDraw(){ const type=$('chE').value, a=sl('chA'), n=sl('chN'), w=$('chW').value;
+  setv('chA',type==='none'?'(not used)':a+'°'); setv('chN',type==='sin'?n+' cycles':'(not used)');
+  const r=chirpRun(type==='none'?null:phaseErr(type,a*Math.PI/180,n),null,w);
+  const lev=type==='sin'&&a>0?20*Math.log10(a*Math.PI/180/2):NaN, pos=n*C0/(2*CH.B);
+  chirpPlot($('cCh'),r,type==='sin'?{lev,pos}:null);
+  const br=r.L.w3/r.I.L.w3*100-100;
+  ro($('chOut'),[['ideal width',fmtM(r.I.L.w3)],['−3 dB width',fmtM(r.L.w3)],['broadening',(z1(br)>=0?'+':'')+z1(br).toFixed(1)+' %'],['ideal PSLR',dBs(r.I.L.pslr)],['PSLR',dBs(r.L.pslr)],['ISLR',dBs(r.L.islr)],['peak loss',dBs(10*Math.log10(r.L.pk/r.I.L.pk))],['pred. echo',type==='sin'?(a>0?dBs(lev):'none'):'(ripple only)'],['echo at',type==='sin'?'±'+fmtM(pos):'n/a']]); }
+bind(['chE','chA','chN','chW'],chDraw);
+
+/* ---------- Step 4: FMCW ---------- */
+const fmIdealCache={};
+function fmIdeal(R,w){ const k=R+'|'+w; if(!fmIdealCache[k]){ const r=fmProfile('bow',0,R,w); fmIdealCache[k]={pk:lobe(r.p,r.mpb).pk,w3:lobe(r.p,r.mpb).w3}; } return fmIdealCache[k]; }
+function fmDraw(){ const sh=$('fmS').value, d=sl('fmN')/100, R=sl('fmR'), w=$('fmW').value;
+  setv('fmN',sl('fmN').toFixed(2)+' %'); setv('fmR',R+' m');
+  const far=fmProfile(sh,d,R,w), near=fmProfile(sh,d,100,w); const If=fmIdeal(R,w), In=fmIdeal(100,w);
+  const Lf=lobe(far.p,far.mpb), Ln=lobe(near.p,near.mpb);
+  const span=clamp(Math.max(12,1.6*Math.max(Math.abs(far.sLo),Math.abs(far.sHi))),12,120);
+  const c=$('cFm'), g=ctx(c), A=area(c);
+  const line=(r,R0,pk)=>{ const xs=[],ys=[]; const k0=Math.max(0,Math.floor((R0-span)/r.mpb)), k1=Math.min(r.p.length/2-1,Math.ceil((R0+span)/r.mpb)); for(let k=k0;k<=k1;k++){ xs.push(k*r.mpb-R0); ys.push(10*Math.log10(Math.max(r.p[k]/pk,1e-12))); } return {xs,ys}; };
+  const P0=plot(g,A.x0,A.y0,A.w,A.h,-span,span,-60,0,[],{ny:6,nx:6,fx:v=>v.toFixed(0),yl:'range profile, dB (0 = ideal peak)',xl:'range from the target, m'});
+  shade(g,P0.X(far.sLo),P0.X(far.sHi),A.y0,A.h,css('--accent'),0.10);
+  const a=line(near,100,In.pk), b=line(far,R,If.pk); const pa=poolLine(a.xs,a.ys,P0.X,-span,span), pb=poolLine(b.xs,b.ys,P0.X,-span,span);
+  plot(g,A.x0,A.y0,A.w,A.h,-span,span,-60,0,[{x:pa.x,y:pa.y,color:css('--muted'),w:1.3},{x:pb.x,y:pb.y,color:css('--accent'),w:1.8}],{ny:6,nx:6,fx:v=>v.toFixed(0),yl:'range profile, dB (0 = ideal peak)',xl:'range from the target, m'});
+  lblR(g,'grey: 100 m   colour: '+R+' m',A.x0+A.w-6,A.y0+16,css('--muted'));
+  ro($('fmOut'),[['ΔR = c/2B','1.00 m'],['δ in Hz',fmt(d*FM.B,'Hz',0)],['far beat f<sub>b</sub>',fMHz(far.fb/1e6)],['ideal width',fmtM(If.w3)],['far width',fmtM(Lf.w3)],['far loss',dBs(10*Math.log10(Lf.pk/If.pk))],['near width',fmtM(Ln.w3)],['near loss',dBs(10*Math.log10(Ln.pk/In.pk))],['pred. spread',fmtM(far.spread)],['8·δ·R rule',fmtM(8*d*R)]]); }
+bind(['fmS','fmN','fmR','fmW'],fmDraw);
+
+/* ---------- Step 5: upconversion ---------- */
+function irrDb(gdB,pd){ const gg=Math.pow(10,gdB/20), p=pd*Math.PI/180; const den=1+gg*gg-2*gg*Math.cos(p); return den<=1e-15?150:10*Math.log10((1+2*gg*Math.cos(p)+gg*gg)/den); }
+function upDraw(){ const m=$('upM').value, fif=sl('upI'), gdB=sl('upG'), pd=sl('upP'), lo=sl('upL'), n=+$('upF').value; const Bs=50, BW=100, lim=-60;
+  setv('upI',fif+' MHz'); setv('upG',m==='iq'?gdB.toFixed(2)+' dB':'(not used)'); setv('upP',m==='iq'?pd.toFixed(1)+'°':'(not used)'); setv('upL',lo+' dBc');
+  const att=f=>n?10*Math.log10(1+Math.pow(2*Math.abs(f-fif)/BW,2*n)):0; const irr=m==='iq'?Math.min(irrDb(gdB,pd),150):0; const imL=-irr;
+  const c=$('cUp'), g=ctx(c), A=area(c); const xa=-450, xb=450, ya=-130, yb=10;
+  const fx=v=>(9400+v).toFixed(0);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,ya,yb,[],{ny:7,nx:6,fx,fy:v=>v.toFixed(0),yl:'dBc',xl:'MHz'});
+  const block=(fc,lev,filled,color)=>{ g.beginPath(); const x0=fc-Bs/2, x1=fc+Bs/2; g.moveTo(P.X(x0),P.Y(ya)); for(let f=x0;f<=x1+0.01;f+=1){ g.lineTo(P.X(f),P.Y(lev-(filled?att(f):0))); } g.lineTo(P.X(x1),P.Y(ya)); g.closePath();
+    if(filled){ g.globalAlpha=0.55; g.fillStyle=color; g.fill(); g.globalAlpha=1; } else { g.strokeStyle=color; g.lineWidth=1.3; g.stroke(); g.lineWidth=1; } };
+  block(fif,0,false,css('--trace')); block(-fif,imL,false,css('--bad')); block(fif,0,true,css('--trace')); block(-fif,imL,true,css('--bad'));
+  const loOut=lo-att(0); g.strokeStyle=css('--accent'); g.setLineDash([]); g.lineWidth=1.3; g.beginPath(); g.moveTo(P.X(0)-3,P.Y(lo)); g.lineTo(P.X(0)+3,P.Y(lo)); g.stroke(); g.lineWidth=3; g.beginPath(); g.moveTo(P.X(0),P.Y(ya)); g.lineTo(P.X(0),P.Y(loOut)); g.stroke(); g.lineWidth=1;
+  if(n){ const fxs=[],fys=[]; for(let f=xa;f<=xb;f+=2){ fxs.push(f); fys.push(-att(f)); } plot(g,A.x0,A.y0,A.w,A.h,xa,xb,ya,yb,[{x:fxs,y:fys,color:css('--trace2'),w:1.4}],{ny:7,nx:6,fx,fy:v=>v.toFixed(0),yl:'dBc',xl:'MHz'}); }
+  hline(g,A.x0,A.w,P.Y(lim),css('--bad'),[6,4]); lbl(g,'limit −60 dBc',A.x0+6,P.Y(lim)-5,css('--bad'));
+  lbl(g,'wanted',clamp(P.X(fif)-20,A.x0+4,A.x0+A.w-60),P.Y(0)-4,css('--trace')); lbl(g,'image',clamp(P.X(-fif)-18,A.x0+4,A.x0+A.w-60),P.Y(imL)-4,css('--bad')); lbl(g,'LO',P.X(0)+5,P.Y(lo)-4,css('--accent'));
+  const imOut=imL-att(-fif+Bs/2), worst=Math.max(imOut,loOut), mgn=lim-worst, edge=att(fif+Bs/2);
+  ro($('upOut'),[['IRR',m==='iq'?(irr>=150?'> 150 dB':dBs(irr)):'0 dB (real)'],['image, mixer',dBc(imL)],['image, output',dBc(imOut)],['LO, output',dBc(loOut)],['image offset',fMHz(2*fif)],['edge loss',(edge).toFixed(2)+' dB'],['margin',mg(mgn)]]); }
+bind(['upM','upI','upG','upP','upL','upF'],upDraw);
+
+/* ---------- Step 6: pulse shaping ---------- */
+function spDraw(){ const sh=$('spS').value, tau=sl('spT')*1e-6, sig=$('spG').value; let tr=sl('spR')*1e-9; const lim=tr>tau/4; if(lim) tr=tau/4;
+  setv('spR',sh==='rect'?'(not used)':(tr*1e9).toFixed(0)+' ns'+(lim?' (lim. τ/4)':'')); setv('spT',sl('spT').toFixed(1)+' µs');
+  const r=shapeSpec(sh,tau,tr,sig); const c=$('cSp'), g=ctx(c), A=area(c); const xa=-1, xb=Math.log10(200);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,-100,0,[],{ny:5,nx:1,fx:v=>'',fy:v=>v.toFixed(0),yl:'dB relative to peak',xl:'offset from carrier, MHz (log)'});
+  [0.1,1,10,100].forEach(f=>{ const x=P.X(Math.log10(f)); vline(g,x,A.y0,A.h,css('--grid'),[]); const s=f<1?'0.1':f.toFixed(0); txt(g,s,x-g.measureText(s).width/2,A.y0+A.h+15,css('--muted')); });
+  const xs=[],ys=[]; for(let k=1;k<r.pw.length;k++){ const f=k*r.df/1e6; if(f<0.1) continue; if(f>200) break; xs.push(Math.log10(f)); ys.push(r.pw[k]); }
+  const pl=poolLine(xs,ys,P.X,xa,xb); const mx=[],my=[]; for(let i=0;i<=300;i++){ const lf=xa+(xb-xa)*i/300; mx.push(lf); my.push(maskdB(Math.pow(10,lf)*1e6,tau,r.Bs)); }
+  plot(g,A.x0,A.y0,A.w,A.h,xa,xb,-100,0,[{x:pl.x,y:pl.y,color:css('--trace'),w:1.3},{x:mx,y:my,color:css('--bad'),w:1.6,dash:[6,4]}],{ny:5,nx:1,fx:v=>'',fy:v=>v.toFixed(0),yl:'dB relative to peak',xl:'offset from carrier, MHz (log)'});
+  if(r.wf>0){ const k=Math.round(r.wf/r.df); dot(g,P.X(Math.log10(r.wf/1e6)),P.Y(r.pw[k]),r.worst<0?css('--bad'):css('--good'),4); }
+  ro($('spOut'),[['mask f<sub>1</sub>',fMHz(r.f1/1e6)],['1/(π·t<sub>r</sub>)',sh==='rect'?'≈ 300 MHz':fMHz(1/(Math.PI*tr)/1e6)],['−20 dB BW',fMHz(r.b20/1e6)],['−40 dB BW',fMHz(r.b40/1e6)],['worst margin',mg(r.worst)],['at',fMHz(r.wf/1e6)],['energy loss',(z1(r.eLoss)).toFixed(2)+' dB']]); }
+bind(['spS','spR','spT','spG'],spDraw);
+
+/* ---------- Step 7: coherence ---------- */
+function coDraw(){ const j=sl('coJ'), N=+$('coN').value, w=$('coW').value, s=sl('coS'), fd=sl('coF');
+  setv('coJ',j.toFixed(1)+'° rms'); setv('coS',s+' dB'); setv('coF',fd.toFixed(2)+' PRF');
+  const r=coherence(j,N,w,s,fd); const c=$('cCo'), g=ctx(c), A=area(c); const xs=[]; for(let k=0;k<r.NF;k++) xs.push((k-r.NF/2)/r.NF);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-0.5,0.5,-100,0,[],{ny:5,nx:4,fx:v=>v.toFixed(2),fy:v=>v.toFixed(0),yl:'dB relative to clutter peak',xl:'Doppler, fraction of PRF'});
+  const pl=poolLine(xs,Array.from(r.spec),P.X,-0.5,0.5); plot(g,A.x0,A.y0,A.w,A.h,-0.5,0.5,-100,0,[{x:pl.x,y:pl.y,color:css('--trace'),w:1.3}],{ny:5,nx:4,fx:v=>v.toFixed(2),fy:v=>v.toFixed(0),yl:'dB relative to clutter peak',xl:'Doppler, fraction of PRF'});
+  hline(g,A.x0,A.w,P.Y(r.floorPred),css('--accent'),[6,4]); hline(g,A.x0,A.w,P.Y(r.floorNoise),css('--muted'),[2,3]);
+  let tk=0, tp=-200; for(let k=0;k<r.NF;k++){ const f=xs[k]; if(Math.abs(f-fd)<=1.5/N&&r.spec[k]>tp){ tp=r.spec[k]; tk=k; } }
+  const fl=r.floorMeas, mgn=tp-fl; dot(g,P.X(xs[tk]),P.Y(tp),mgn>=13?css('--good'):css('--bad'),4);
+  g.strokeStyle=css('--bad'); g.beginPath(); g.moveTo(P.X(xs[tk])-14,P.Y(fl+13)); g.lineTo(P.X(xs[tk])+14,P.Y(fl+13)); g.stroke();
+  lbl(g,'predicted floor '+r.floorPred.toFixed(1)+' dB',A.x0+6,P.Y(r.floorPred)+15,css('--accent'));
+  const verdict=mgn>=13?'visible':mgn>=8?'marginal':'hidden';
+  ro($('coOut'),[['MTI limit 1/σ²',isFinite(r.mti)?dBs(r.mti):'∞'],['jitter floor',isFinite(r.floorJit)?dBs(r.floorJit):'none'],['noise floor',dBs(r.floorNoise)],['pred. floor',dBs(r.floorPred)],['bench floor',dBs(fl)],['target peak',dBs(tp)],['above floor',dBs(mgn)],['target',verdict]]); }
+bind(['coJ','coN','coW','coS','coF'],coDraw);
+
+/* ---------- Step 8: agility ---------- */
+function agDraw(){ const type=$('agT').value, H=sl('agH'), dead=Math.pow(10,sl('agD')), tol=Math.pow(10,sl('agE'));
+  setv('agH',fMHz(H)); setv('agD',(dead<1?dead.toFixed(2):dead<10?dead.toFixed(1):dead.toFixed(0))+' µs'); setv('agE',(tol<1?tol.toFixed(2):tol<10?tol.toFixed(1):tol.toFixed(0))+' kHz');
+  const r=agility(type,H,dead,tol); const tsu=r.ts*1e6; const xraw=Math.max(1.1*(dead+10),Math.min(1.2*tsu,180)); const e10=Math.pow(10,Math.floor(Math.log10(xraw))); const xmax=[1,2,2.5,5,10].map(m=>m*e10).find(v=>v>=xraw);
+  const c=$('cAg'), g=ctx(c), A=area(c); const fy=v=>['1 Hz','10','100','1 k','10 k','100 k','1 M','10 M','100 M','1 G','10 G'][Math.round(v)]||'';
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,xmax,0,10,[],{ny:10,nx:5,fx:v=>(+v.toFixed(2)).toString(),fy,yl:'|frequency error|, Hz',xl:'time after hop command, µs'});
+  shade(g,P.X(dead),P.X(Math.min(dead+10,xmax)),A.y0,A.h,css('--accent'),0.12);
+  const xs=[],ys=[]; const n=1400; for(let i=0;i<=n;i++){ const t=xmax*i/n; xs.push(t); ys.push(Math.log10(Math.max(Math.abs(r.m.e(t*1e-6)),1))); }
+  plot(g,A.x0,A.y0,A.w,A.h,0,xmax,0,10,[{x:xs,y:ys,color:css('--trace'),w:1.5}],{ny:10,nx:5,fx:v=>(+v.toFixed(2)).toString(),fy,yl:'|frequency error|, Hz',xl:'time after hop command, µs'});
+  hline(g,A.x0,A.w,P.Y(Math.log10(tol*1e3)),css('--bad'),[6,4]); if(tsu<=xmax){ vline(g,P.X(tsu),A.y0,A.h,css('--trace2'),[3,4]); lbl(g,'t_s '+tsu.toFixed(2)+' µs',clamp(P.X(tsu)+5,A.x0+4,A.x0+A.w-110),A.y0+14,css('--trace2')); }
+  lbl(g,'pulse',P.X(dead)+4,A.y0+A.h-6,css('--accent'));
+  const ph=Math.abs(r.phDeg), phs=ph>1e4?'> 10 000°':ph.toFixed(1)+'°'; const v=0.03*r.emax/2; const dr=C0/2*r.e0/5e12;
+  ro($('agOut'),[['settling t<sub>s</sub>',fmt(r.ts,'s')],['pulse starts',fmt(dead*1e-6,'s')],['error at start',fmt(r.e0,'Hz',1)],['max in pulse',fmt(r.emax,'Hz',1)],['phase drift',phs],['false Doppler',v>=1000?(v/1000).toFixed(1)+' km/s':v.toFixed(v<1?3:1)+' m/s'],['chirp shift',fmtM(dr)],['t<sub>s</sub> / 100 µs PRI',isFinite(tsu)?(Math.min(100,tsu)).toFixed(0)+' %':'n/a'],['pulse',r.ok?'OK':'FAIL']]); }
+bind(['agT','agH','agD','agE'],agDraw);
+
+/* ---------- Step 9: flatness and AM-PM ---------- */
+const RET={lin:1,p1:0.5,sat:0.1};
+function flDraw(){ const pp=sl('flA'), php=sl('flP'), n=sl('flC'), st=$('flS').value, k=sl('flM'); const ret=RET[st];
+  setv('flA',pp.toFixed(2)+' dB'); setv('flP',php.toFixed(1)+'°'); setv('flC',n+' cycles'); setv('flM',k.toFixed(1)+' °/dB');
+  const cyc=u=>Math.cos(Math.PI*n*(u+1)); const ampFn=u=>Math.pow(10,ret*(pp/2)*cyc(u)/20); const phA=(php/2+k*pp/2)*Math.PI/180; const phiFn=u=>phA*cyc(u);
+  const r=chirpRun(phA>0?phiFn:null,pp>0?ampFn:null,'hamming');
+  const ppo=ret*pp, eps=(Math.pow(10,ppo/20)-1)/(Math.pow(10,ppo/20)+1); const eA=eps>0?20*Math.log10(eps/2):-Infinity, eP=phA>0?20*Math.log10(phA/2):-Infinity, eC=(eps>0||phA>0)?20*Math.log10(Math.hypot(eps,phA)/2):-Infinity;
+  const pos=n*C0/(2*CH.B); chirpPlot($('cFl'),r,{lev:eC,pos});
+  ro($('flOut'),[['output AM',ppo.toFixed(2)+' dB pp'],['output PM',(2*phA*180/Math.PI).toFixed(2)+'° pp'],['echo from AM',isFinite(eA)?dBs(eA):'none'],['echo from PM',isFinite(eP)?dBs(eP):'none'],['echo, combined',isFinite(eC)?dBs(eC):'none'],['echo at','±'+fmtM(pos)],['PSLR',dBs(r.L.pslr)],['ideal PSLR','-42.7 dB'],['ISLR',dBs(r.L.islr)]]); }
+bind(['flA','flP','flC','flS','flM'],flDraw);
+
+/* ---------- Step 10: jammer ---------- */
+function jmDraw(){ const type=$('jmT').value, Bj=Math.min(2000,Math.pow(10,sl('jmB'))), S=sl('jmS'), papr=sl('jmP');
+  setv('jmB',fMHz(Bj)); setv('jmS',type==='swept'?fMHz(S):'(not used)'); setv('jmP',papr.toFixed(1)+' dB');
+  const r=jammer(type,Bj,S,papr); const c=$('cJm'), g=ctx(c), A=area(c); const xa=-1250, xb=1250, ya=-10, yb=60;
+  const fx=v=>((9500+v)/1000).toFixed(2);
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,ya,yb,[],{ny:7,nx:5,fx,fy:v=>v.toFixed(0),yl:'jammer PSD, dBm per MHz',xl:'GHz'});
+  const rb=Math.max(3,P.X(2.5)-P.X(-2.5)); g.globalAlpha=0.25; g.fillStyle=css('--trace2'); g.fillRect(P.X(0)-rb/2,A.y0,rb,A.h); g.globalAlpha=1; lbl(g,'radar 5 MHz',P.X(0)+6,A.y0+14,css('--trace2'));
+  const blockAt=(fc,col,al)=>{ const x0=P.X(fc-Bj/2), x1=P.X(fc+Bj/2), y=P.Y(r.psd); g.globalAlpha=al; g.fillStyle=col; g.fillRect(x0,y,Math.max(2,x1-x0),P.Y(ya)-y); g.globalAlpha=1; };
+  const skirts=fc=>{ const lv=r.psd+r.clip-10*Math.log10(2); if(lv<ya) return; const y=P.Y(lv); g.globalAlpha=0.5; g.fillStyle=css('--muted'); [[fc-1.5*Bj,fc-Bj/2],[fc+Bj/2,fc+1.5*Bj]].forEach(([a,b])=>{ const x0=P.X(Math.max(a,xa)), x1=P.X(Math.min(b,xb)); if(x1>x0) g.fillRect(x0,y,x1-x0,P.Y(ya)-y); }); g.globalAlpha=1; };
+  let fc=0; if(type==='swept'){ shade(g,P.X(-S/2),P.X(S/2),A.y0,A.h,css('--accent'),0.10); fc=-S/4; lbl(g,'sweep span',P.X(-S/2)+4,A.y0+30,css('--accent')); }
+  skirts(fc); blockAt(fc,css('--accent'),0.7);
+  lbl(g,r.psd.toFixed(1)+' dBm/MHz',clamp(P.X(fc)-40,A.x0+4,A.x0+A.w-110),P.Y(r.psd)-6,css('--accent'));
+  ro($('jmOut'),[['P<sub>avg</sub>',r.Pavg.toFixed(1)+' W'],['PSD',r.psd.toFixed(1)+' dBm/MHz'],['share in 5 MHz',(100*r.inband).toFixed(r.inband<0.01?2:1)+' %'],['J/S on radar',(r.jsInst>=0?'+':'')+r.jsInst.toFixed(1)+' dB'],['time on radar',(100*r.frac).toFixed(1)+' %'],['J/S averaged',(r.jsAvg>=0?'+':'')+r.jsAvg.toFixed(1)+' dB'],['clip distortion',dBs(r.clip)],['J/S ≥ +10 dB',r.jsAvg>=10?'yes':'no'],['needs radar f?',type==='spot'?'yes':type==='swept'?'no (sweeps)':'no (covers)']]); }
+bind(['jmT','jmB','jmS','jmP'],jmDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+
+})();
+</script>

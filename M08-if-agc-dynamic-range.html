@@ -1,0 +1,1207 @@
+<meta charset="utf-8">
+<title>IF Chain Dynamic Range</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">IF Chain, AGC and Dynamic Range · RF Systems for Component Engineers</div>
+  <h1>IF chain, AGC, STC and dynamic range: keeping weak and strong signals alive from antenna to ADC</h1>
+  <p class="lede">A receiver has to hear a target echo a few dB above thermal noise and, in the same second, survive a clutter return or a nearby emitter 80 or 90 dB stronger. No single amplifier, mixer or converter has that much range. The IF chain is where the receiver designer shares the job out: how much gain goes in front of the mixer and how much after it, where the gain is turned down automatically (AGC), where it is turned down on a schedule (STC), and where the signal is compressed on purpose (log amplifiers and detectors). This page builds those choices from the definition of dynamic range, through the cascaded noise and linearity line-up, to AGC, STC, log detection, video bandwidth, saturation and recovery, and ends with what they do to radar detection near clutter, to ESM receivers with strong and weak emitters together, and to pulse measurement accuracy. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 The problem</a><a href="#dr">1 Dynamic range</a><a href="#lineup">2 Cascade line-up</a><a href="#sfdr">3 SFDR and blocking DR</a><a href="#dist">4 Gain distribution</a><a href="#agc">5 AGC</a><a href="#stc">6 STC</a><a href="#log">7 Log amps, detectors, video BW</a><a href="#sat">8 Saturation and recovery</a><a href="#sys">9 System effects</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>The problem: a 90 dB spread of signals and a 66 dB window</h2>
+  <div class="know"><h4>You already know</h4><p>Gain in dB adds along a chain; a passive part with loss L dB has noise figure L dB; the LNA sets most of the receiver noise figure (<a href="M01-lna-noise.html">LNA and receiver noise</a>); a mixer converts RF to an intermediate frequency (<a href="M05-mixers-conversion.html">Mixers and frequency conversion</a>); filters set which frequencies reach each stage (<a href="M04-filters.html">Filters and preselection</a>).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>IF (intermediate frequency):</b> the fixed frequency the mixer converts the received signal to, for example 160 MHz, so that most gain and filtering can be done at one frequency whatever the RF tuning.</p>
+    <p><b>IF chain:</b> everything between the mixer output and the digitiser or detector: IF amplifiers, IF filters, variable attenuators or variable-gain amplifiers (VGAs), and the gain control circuits.</p>
+    <p><b>Gain distribution (gain line-up):</b> how the total gain from antenna to ADC is split between the stages, stage by stage, in dB.</p>
+    <p><b>ADC full scale (FS):</b> the largest input an analogue-to-digital converter can digitise without clipping, given in dBm for a sine wave. Levels relative to it are written dBFS. The ADC module (module 07, ADC, DAC and sampling) covers converters in detail; here the ADC is just the last stage with a ceiling and a noise floor.</p>
+    <p><b>Video:</b> the baseband signal after a detector has removed the carrier, for example the pulse envelope. A video amplifier amplifies it.</p>
+  </div>
+  <div class="col">
+    <p>Why the receiver needs a gain plan at all: the antenna delivers signals from about −110 dBm to about −10 dBm, but the ADC at the end needs its input near its own full scale (+4 dBm in this page's example) to be heard above its own noise. So the chain must add roughly 30 to 40 dB of gain for weak signals, and yet must not push strong ones past any stage's limit. The table shows the spread for an illustrative X-band radar and an ESM receiver.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Signal at the antenna (illustrative)</th><th>Level</th><th>vs thermal noise in 10 MHz (−101 dBm)</th></tr>
+    <tr><td>Radar echo, 1 m² target at 30 km</td><td class="n">−110 dBm</td><td class="n">−9 dB (needs integration)</td></tr>
+    <tr><td>Radar echo, 1 m² target at 10 km</td><td class="n">−91 dBm</td><td class="n">+10 dB</td></tr>
+    <tr><td>Radar echo, 1 m² target at 1 km</td><td class="n">−51 dBm</td><td class="n">+50 dB</td></tr>
+    <tr><td>Ground clutter at 1 km (σ⁰ −20 dB)</td><td class="n">−43 dBm</td><td class="n">+58 dB</td></tr>
+    <tr><td>Ship or large building at 1 km (30 dBsm)</td><td class="n">−21 dBm</td><td class="n">+80 dB</td></tr>
+    <tr><td>ESM: radar main beam at 20 km</td><td class="n">−10 dBm</td><td class="n">+91 dB</td></tr>
+  </table></div>
+  <div class="diag" aria-label="Block diagram of the receive chain used on this page, with the gain of each stage">
+  <svg viewBox="0 0 900 210" role="img">
+    <g style="fill:none;stroke:var(--line);stroke-width:1.5">
+      <rect x="10" y="40" width="80" height="44" rx="4"/><rect x="110" y="40" width="64" height="44" rx="4"/><rect x="194" y="40" width="64" height="44" rx="4"/>
+      <rect x="278" y="40" width="64" height="44" rx="4"/><rect x="362" y="40" width="64" height="44" rx="4"/><rect x="446" y="40" width="64" height="44" rx="4"/>
+      <rect x="530" y="40" width="80" height="44" rx="4" style="stroke:var(--accent)"/><rect x="640" y="20" width="70" height="40" rx="4"/><rect x="640" y="110" width="90" height="40" rx="4" style="stroke:var(--trace2)"/>
+      <rect x="760" y="110" width="80" height="40" rx="4"/>
+    </g>
+    <g style="stroke:var(--muted);stroke-width:1.2">
+      <line x1="90" y1="62" x2="110" y2="62"/><line x1="174" y1="62" x2="194" y2="62"/><line x1="258" y1="62" x2="278" y2="62"/><line x1="342" y1="62" x2="362" y2="62"/>
+      <line x1="426" y1="62" x2="446" y2="62"/><line x1="510" y1="62" x2="530" y2="62"/><line x1="610" y1="62" x2="625" y2="62"/><line x1="625" y1="40" x2="625" y2="130"/>
+      <line x1="625" y1="40" x2="640" y2="40"/><line x1="625" y1="130" x2="640" y2="130"/><line x1="730" y1="130" x2="760" y2="130"/><line x1="394" y1="84" x2="394" y2="104"/>
+      <line x1="570" y1="84" x2="570" y2="180"/>
+    </g>
+    <text x="16" y="58">Limiter +</text><text x="16" y="74">preselector</text>
+    <text x="126" y="66">LNA</text><text x="202" y="58">Image</text><text x="202" y="74">filter</text>
+    <text x="286" y="66">Mixer</text><text x="368" y="58">IF</text><text x="368" y="74">amp 1</text>
+    <text x="452" y="58">IF</text><text x="452" y="74">filter</text><text x="536" y="58">IF amp 2</text><text x="536" y="74">/ VGA</text>
+    <text x="656" y="45">ADC</text><text x="646" y="128">Log amp /</text><text x="646" y="143">detector</text><text x="768" y="135">Video amp</text>
+    <text x="380" y="118" class="mut">LO</text>
+    <text class="mut" x="20" y="104">−1.5 dB</text><text class="mut" x="118" y="104">+20 dB</text><text class="mut" x="204" y="104">−2 dB</text><text class="mut" x="288" y="34">−7 dB</text>
+    <text class="mut" x="372" y="34">+15 dB</text><text class="mut" x="456" y="104">−3 dB</text><text class="mut" x="540" y="34">+10 dB (variable)</text>
+    <text class="mut" x="580" y="196">AGC loop or STC schedule sets this gain</text>
+    <text class="mut" x="650" y="76">FS +4 dBm</text><text class="mut" x="650" y="168">compresses 80 dB into ~2 V</text>
+  </svg></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p>The simplest receiver is one fixed gain from antenna to ADC. Take the line-up in the diagram: 31.5 dB total gain, ADC full scale +4 dBm, so anything stronger than 4 − 31.5 = −27.5 dBm at the antenna clips the ADC. At the bottom, the ADC's own noise referred to the antenna is about −111 dBm in 10 MHz, 10 dB under thermal noise, so the window is about −101 to −27.5 dBm: 73.5 dB of single-signal range. The table above spans −110 to −10 dBm: 100 dB. Add 10 dB more gain to reach the weak end and you lose 10 dB at the strong end; there is no fixed setting that covers both. The rest of this page is the set of tools for this: share gain correctly (Steps 2 to 4), change it with signal level (AGC, Step 5) or with time after the pulse (STC, Step 6), compress the signal on purpose (log amplifiers, Step 7), and survive the moments when nothing is enough (saturation and recovery, Step 8).</p></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every stage designer:</b> your stage's gain, noise figure, OIP3 and P1dB are four numbers in a spreadsheet the system engineer keeps. Step 2 shows how they combine.</li>
+    <li><b>IF amplifier and VGA designers:</b> your gain control range, its speed and its linearity at minimum gain decide what AGC and STC can do (Steps 5 and 6).</li>
+    <li><b>Detector and log amp designers:</b> your log range, slope, conformance and video bandwidth decide how accurately a pulse is measured (Step 7).</li>
+  </ul></div>
+</section>
+
+<!-- 1 -->
+<section id="dr">
+  <div class="secno">Step 1</div>
+  <h2>What dynamic range means: from the noise floor to compression</h2>
+  <div class="know"><h4>You already know</h4><p>Thermal noise power is kTB: −174 dBm in 1 Hz at 290 K. A stage with noise figure NF adds its own noise so the input-referred noise is −174 + NF + 10·log B. P1dB is the level at which gain has fallen 1 dB below its small-signal value.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Noise floor (N):</b> the input-referred noise power in the receiver bandwidth B: N = −174 + NF + 10·log<sub>10</sub>B dBm. Any signal much below it is invisible.</p>
+    <p><b>Minimum detectable signal (MDS):</b> the smallest input the receiver can detect reliably, the noise floor plus the signal-to-noise ratio the detector needs (often 10 to 13 dB for a single look).</p>
+    <p><b>Input P1dB (IP1dB):</b> the input level that compresses the gain by 1 dB. From a datasheet's output P1dB: IP1dB = OP1dB − G + 1 dB.</p>
+    <p><b>Linear (compression) dynamic range:</b> DR = IP1dB − N, in dB: the span of input levels the stage or chain handles with less than 1 dB of gain error and the signal above the noise.</p>
+  </div>
+  <div class="col">
+    <p>Why it matters: a weak signal needs to be above the noise; a strong one must not be compressed, because compression changes its amplitude (a pulse amplitude measurement is wrong), flattens its waveform (it creates harmonics and intermodulation, Step 3) and, in a coherent radar, changes its phase, which spoils Doppler processing. Dynamic range is the distance between those two limits. Worked example: NF 3 dB, B 10 MHz, gain 40 dB, OP1dB +20 dBm. Noise floor N = −174 + 3 + 70 = −101 dBm. IP1dB = 20 − 40 + 1 = −19 dBm. DR = −19 − (−101) = 82 dB.</p>
+  </div>
+  <div class="eq">N = −174 + NF + 10·log<sub>10</sub>B &nbsp;&nbsp; IP1dB = OP1dB − G + 1 &nbsp;&nbsp; DR = IP1dB − N<small>All levels in dBm referred to the input. Notice what sets each end: the bottom is set by NF and bandwidth, the top by the output capability (OP1dB) and the gain in front of it. Gain moves the top end down dB for dB.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Two naive moves. (1) "Add gain to see weaker signals." Raising the gain from 40 to 60 dB with the same output stage leaves the noise floor at −101 dBm, because the signal-to-noise ratio is fixed by the NF, but moves IP1dB from −19 to −39 dBm: DR falls from 82 to 62 dB and the weak signals are no easier to detect. (2) "Open the bandwidth to catch every signal." From 10 MHz to 1 GHz the noise floor rises 20 dB to −81 dBm and DR falls to 62 dB. Both lose 20 dB of range and gain nothing at the weak end.</p></div>
+  <h3>Side by side on one example: same stage, four bandwidths</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Bandwidth B</th><th>Noise floor N</th><th>IP1dB</th><th>Dynamic range</th><th>Typical use</th></tr>
+    <tr><td>1 MHz</td><td class="n">−111 dBm</td><td class="n">−19 dBm</td><td class="n">92 dB</td><td>long-pulse radar, narrow channel</td></tr>
+    <tr><td>10 MHz</td><td class="n">−101 dBm</td><td class="n">−19 dBm</td><td class="n">82 dB</td><td>0.1 µs pulses</td></tr>
+    <tr><td>100 MHz</td><td class="n">−91 dBm</td><td class="n">−19 dBm</td><td class="n">72 dB</td><td>wideband chirp, ESM channel</td></tr>
+    <tr><td>1 GHz</td><td class="n">−81 dBm</td><td class="n">−19 dBm</td><td class="n">62 dB</td><td>wide-open ESM</td></tr>
+  </table></div>
+  <div class="col"><p>Each decade of bandwidth costs 10 dB of dynamic range. Gain works the same way at the top end: 20 dB more gain in front of the same OP1dB costs 20 dB.</p></div>
+  <h3>How to choose the parameters that set dynamic range</h3>
+  <div class="col"><p>(1) Set B to the signal: about 1/τ for a pulse of width τ (Step 7 shows what too little bandwidth does to the pulse). (2) Set NF from the sensitivity requirement, using the LNA module. (3) Set the gain to the least that lifts the receiver noise clearly above the next stage's noise (Step 4 makes this exact: about 10 dB above the ADC noise). (4) Then choose the output stage so that OP1dB − G + 1 reaches the strongest signal that must stay linear. If no OP1dB is enough, the remaining range has to come from AGC, STC or a log amplifier.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cDr" width="640" height="340" aria-label="Output power against input power for an amplifier, with the noise floor and the 1 dB compression point marking the dynamic range"></canvas>
+    <div class="ctrl">
+      <label for="drN"><span>Noise figure NF</span> <b id="drNv"></b></label><input id="drN" type="range" min="0.5" max="10" step="0.5" value="3">
+      <label for="drB"><span>Bandwidth B</span> <b id="drBv"></b></label><input id="drB" type="range" min="5" max="9" step="0.1" value="7">
+      <label for="drG"><span>Gain G</span> <b id="drGv"></b></label><input id="drG" type="range" min="10" max="80" step="1" value="40">
+      <label for="drP"><span>Output P1dB</span> <b id="drPv"></b></label><input id="drP" type="range" min="-10" max="30" step="1" value="20">
+      <div class="readout" id="drOut"></div>
+    </div>
+    <p class="cap">Solid curve: output against input (compressing amplifier model). Dashed line: ideal linear gain. Horizontal green line: noise at the output, N + G. The shaded band on the input axis is the dynamic range, from the noise floor N to IP1dB (orange dot).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (NF 3 dB, 10 MHz, 40 dB, +20 dBm): N −101.0 dBm, IP1dB −19.0 dBm, DR 82.0 dB, the worked example.</li>
+    <li>Gain 60 dB: IP1dB −39.0 dBm and DR 62.0 dB; the noise floor does not move. This is naive move (1).</li>
+    <li>Bandwidth to 1 GHz (slider 9.0): N −81.0 dBm, DR 62.0 dB, the last row of the table.</li>
+    <li>NF 6 dB: DR falls 3 dB to 79.0 dB, from the bottom end only.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Noise figure</td><td>Device, input match, loss in front</td><td>NF 3 dB</td><td>Bottom of the window: N −101 dBm in 10 MHz; each dB of NF is a dB of DR and of sensitivity</td></tr>
+    <tr><td>Output P1dB</td><td>Device size, bias current, load line</td><td>OP1dB +20 dBm</td><td>Top of the window: IP1dB = OP1dB − G + 1; −19 dBm at 40 dB gain</td></tr>
+    <tr><td>Gain</td><td>Number of stages, feedback</td><td>G 40 dB</td><td>Every extra dB moves the top of the window down a dB and does not help the weak end</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Amplifier designers:</b> a datasheet that gives gain, NF and OP1dB lets the system engineer compute DR directly. Giving OP1dB at the minimum and maximum gain settings of a VGA matters as much as at nominal.</li>
+    <li><b>Filter designers:</b> your bandwidth is the B in 10·log B. A filter twice as wide as needed costs 3 dB of DR.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A stage has G 25 dB and OP1dB +15 dBm in a 5 MHz bandwidth with NF 2 dB. What is its DR?</summary><p>N = −174 + 2 + 67 = −105 dBm; IP1dB = 15 − 25 + 1 = −9 dBm; DR = 96 dB.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="lineup">
+  <div class="secno">Step 2</div>
+  <h2>The cascaded NF and IP3 line-up, stage by stage</h2>
+  <div class="know"><h4>You already know</h4><p>The Friis formula from the LNA module: F<sub>total</sub> = F<sub>1</sub> + (F<sub>2</sub> − 1)/G<sub>1</sub> + (F<sub>3</sub> − 1)/(G<sub>1</sub>G<sub>2</sub>) + …, with F and G as linear ratios. The third-order intercept IP3 from the LNA and mixer modules: the level where the extrapolated third-order product equals the wanted signal. OIP3 = IIP3 + G.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Cascade:</b> stages in series. A cascaded value (NF, IIP3, P1dB) is the value of the whole chain referred to its input.</p>
+    <p><b>Cascaded IIP3:</b> 1/IIP3<sub>total</sub> = 1/IIP3<sub>1</sub> + G<sub>1</sub>/IIP3<sub>2</sub> + G<sub>1</sub>G<sub>2</sub>/IIP3<sub>3</sub> + …, with IIP3 in milliwatts and G linear. Each stage's IIP3 is divided by the gain in front of it.</p>
+    <p><b>Level diagram:</b> a plot of signal, noise and distortion level (dBm) at the output of every stage, with each stage's limit marked. It shows at a glance which stage runs out of headroom first.</p>
+    <p><b>Headroom:</b> the distance in dB between the signal level at a stage and that stage's P1dB (or the ADC full scale).</p>
+  </div>
+  <div class="col">
+    <p>Why both formulas matter together: Friis says a stage's noise counts less the more gain there is in front of it, so you want gain early. The IIP3 formula says a stage's linearity counts more the more gain there is in front of it, so you want gain late. Gain is the same quantity in both, used in opposite directions. That tension is the whole subject of gain distribution (Step 4). Worked example with the chain in Step 0 (all numbers illustrative): limiter and preselector −1.5 dB, LNA 20 dB (NF 1.5 dB, OIP3 +25 dBm), image filter −2 dB, passive mixer −7 dB (NF 7 dB, IIP3 +15 dBm), IF amp 1 15 dB (NF 3 dB, OIP3 +30 dBm), IF filter −3 dB, IF amp 2 10 dB (NF 5 dB, OIP3 +35 dBm), ADC (NF 25 dB, full scale +4 dBm). The chain has 31.5 dB gain, cascaded NF 3.89 dB and cascaded IIP3 −4.5 dBm. The mixer alone contributes half the IIP3 budget, and the LNA 40 % of the noise.</p>
+  </div>
+  <div class="eq">F = F<sub>1</sub> + Σ<sub>k≥2</sub> (F<sub>k</sub> − 1)/(G<sub>1</sub>…G<sub>k−1</sub>) &nbsp;&nbsp; 1/IIP3 = Σ<sub>k</sub> (G<sub>1</sub>…G<sub>k−1</sub>)/IIP3<sub>k</sub> &nbsp;&nbsp; P<sub>IM3</sub> = 3P<sub>in</sub> − 2·IIP3<small>Linear ratios and milliwatts inside the sums; convert to dB only at the end. P<sub>IM3</sub> is the input-referred third-order product of two equal tones of P<sub>in</sub> each. The ADC appears in Friis as a stage with a large NF (here 25 dB, from full scale +4 dBm, 72 dB SNR and 250 MS/s).</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive line-up checks each part against its own datasheet: "the LNA is linear to +5 dBm IIP3, the mixer to +15 dBm, so the chain is fine to about +5 dBm." The cascade says otherwise: with 16.5 dB in front of it, the mixer's +15 dBm IIP3 is worth 15 − 16.5 = −1.5 dBm at the antenna, and the chain as a whole reaches only −4.5 dBm. Likewise "the ADC has 25 dB NF, so it must dominate the noise" is wrong in the other direction: with 31.5 dB in front, it adds only 0.4 dB. You cannot judge any stage without the gain around it.</p></div>
+  <h3>Side by side on one example: how each stage contributes (31.5 dB chain, passive mixer)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Stage</th><th>Gain in front</th><th>Share of noise (F − 1)</th><th>Share of 1/IIP3</th></tr>
+    <tr><td>Limiter + preselector</td><td class="n">0 dB</td><td class="n">29 %</td><td class="n">0 %</td></tr>
+    <tr><td>LNA</td><td class="n">−1.5 dB</td><td class="n">40 %</td><td class="n">8 %</td></tr>
+    <tr><td>Mixer</td><td class="n">16.5 dB</td><td class="n">6 %</td><td class="n">50 %</td></tr>
+    <tr><td>IF amp 1</td><td class="n">9.5 dB</td><td class="n">8 %</td><td class="n">10 %</td></tr>
+    <tr><td>IF amp 2</td><td class="n">21.5 dB</td><td class="n">1 %</td><td class="n">16 %</td></tr>
+    <tr><td>ADC</td><td class="n">31.5 dB</td><td class="n">15 %</td><td class="n">16 %</td></tr>
+  </table></div>
+  <div class="col"><p>The front end owns the noise; the back end owns the distortion. Image filter and IF filter shares are under 2 % and are left out of the table.</p></div>
+  <h3>How to read and use a level diagram</h3>
+  <div class="col"><p>(1) Start at the input with the strongest signal that must stay linear and the noise floor. (2) Add each stage's gain to get the level at its output. (3) At each stage, mark its OP1dB: the gap to the signal line is the headroom; the smallest gap is the stage that will compress first. (4) Track the noise line: it should rise by exactly the gain at each stage (a stage that lifts it by more is adding noise of its own). (5) At the ADC, the noise line should sit about 10 dB above the ADC's own noise, and the signal line should not reach full scale. The demo draws exactly this.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cLu" width="640" height="360" aria-label="Level diagram: signal, noise and third-order intermodulation level at the output of each stage, with each stage's P1dB marked"></canvas>
+    <div class="ctrl">
+      <label for="luS"><span>Signal at the antenna (each of two tones)</span> <b id="luSv"></b></label><input id="luS" type="range" min="-110" max="-10" step="1" value="-60">
+      <label for="luL"><span>LNA gain</span> <b id="luLv"></b></label><input id="luL" type="range" min="10" max="35" step="1" value="20">
+      <label for="luM"><span>Mixer IIP3</span> <b id="luMv"></b></label><input id="luM" type="range" min="0" max="30" step="1" value="15">
+      <label for="luI"><span>IF amp 2 gain (negative = pad)</span> <b id="luIv"></b></label><input id="luI" type="range" min="-10" max="30" step="1" value="10">
+      <div class="readout" id="luOut"></div>
+    </div>
+    <p class="cap">Orange: signal level (each of two equal tones). Green: noise in 10 MHz. Violet dashed: the IM3 product of the two tones. Red ticks: each stage's output P1dB (for the ADC, its full scale). Grey tick at the ADC: the ADC's own noise. The tick with the smallest gap to the orange line is the stage that compresses first.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: total gain 31.5 dB, NF 3.89 dB, IIP3 −4.5 dBm, input P1dB −27.5 dBm set by the ADC, the worked example.</li>
+    <li>LNA gain 30 dB with IF amp 2 at 0 dB (same total): NF improves only to 3.50 dB but IIP3 drops to −13.0 dBm; the mixer tick comes closest to the signal line.</li>
+    <li>Mixer IIP3 +25 dBm at defaults: chain IIP3 rises to about −1.9 dBm; the mixer was the largest single share.</li>
+    <li>Signal −20 dBm: the readout shows the ADC clipping and IM3 far above the noise.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Stage gain</td><td>Device, stage count, feedback</td><td>G ± tolerance over temperature</td><td>Weights every later stage's NF down and every later stage's IIP3 down</td></tr>
+    <tr><td>Mixer IIP3</td><td>Diode ring vs high-level ring vs Gilbert cell, LO drive</td><td>IIP3 +15 dBm at +13 dBm LO</td><td>Half the chain's IIP3 budget in this line-up; +25 dBm lifts chain IIP3 by 2.6 dB</td></tr>
+    <tr><td>IF amplifier OIP3</td><td>Bias current, output device size</td><td>OIP3 +35 dBm</td><td>Sets the top end once the mixer is fixed; matters most for the last stage before the ADC</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA designers:</b> your gain is not only "more is better": every dB above what the noise needs costs a dB of chain IIP3 through the mixer.</li>
+    <li><b>Mixer designers:</b> your IIP3 is usually the single largest term in the chain's linearity. See the mixer module for what LO drive buys.</li>
+    <li><b>IF amplifier designers:</b> give OIP3 and OP1dB at the actual IF and over temperature; the system engineer will put your part where its OIP3 is used, near the ADC.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A stage with IIP3 +10 dBm has 20 dB of gain in front of it. What is its IIP3 referred to the chain input?</summary><p>−10 dBm: divide by the gain in front (subtract 20 dB). If the rest of the chain were perfect, the chain IIP3 would be −10 dBm.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="sfdr">
+  <div class="secno">Step 3</div>
+  <h2>SFDR and blocking dynamic range: two more honest measures of range</h2>
+  <div class="know"><h4>You already know</h4><p>Two tones at f<sub>1</sub> and f<sub>2</sub> through a non-linear stage create third-order products at 2f<sub>1</sub> − f<sub>2</sub> and 2f<sub>2</sub> − f<sub>1</sub>. These land close to the wanted band, so no filter after the stage can remove them. The product rises 3 dB for every 1 dB rise of the tones (filters module, Step 6).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Spurious-free dynamic range (SFDR):</b> the range of input levels from the noise floor up to the level at which the IM3 product of two equal tones reaches the noise floor: SFDR = ⅔·(IIP3 − N). Inside this range, two signals never create a false third signal you can see.</p>
+    <p><b>Blocker:</b> a strong unwanted signal, in or near the band, that degrades a weak wanted one without itself being wanted.</p>
+    <p><b>Blocking dynamic range (BDR):</b> the ratio of the largest blocker the receiver tolerates, while still receiving a weak wanted signal, to the noise floor. On this page the tolerance limit is 1 dB compression of the wanted signal, so BDR ≈ IP1dB − N. Some datasheets use 3 dB desensitisation or quote it relative to the MDS; always read the definition.</p>
+    <p><b>Desensitisation:</b> the rise in noise floor or the loss of gain for a weak signal caused by a blocker.</p>
+  </div>
+  <div class="col">
+    <p>Why a second and third measure: the linear DR of Step 1 is a single-signal measure. Real receivers see many signals at once, and the first thing that goes wrong with two strong signals is not compression but intermodulation. For a cubic non-linearity IP1dB is about 9.6 dB below IIP3. Worked example: IIP3 −10 dBm, NF 3 dB, B 10 MHz. N = −101 dBm. SFDR = ⅔·(−10 + 101) = 60.7 dB, so the IM3 product reaches the noise when each tone is (2·IIP3 + N)/3 = −40.3 dBm. IP1dB ≈ −19.6 dBm, so BDR ≈ 81.4 dB. The two-signal range is 20.7 dB smaller than the single-signal range.</p>
+  </div>
+  <div class="eq">P<sub>IM3</sub> = 3P<sub>in</sub> − 2·IIP3 &nbsp;&nbsp; SFDR = ⅔·(IIP3 − N) &nbsp;&nbsp; P<sub>top</sub> = (2·IIP3 + N)/3 &nbsp;&nbsp; BDR ≈ IP1dB − N ≈ IIP3 − 9.6 − N<small>All input-referred, dBm and dB. SFDR rises only ⅔ dB per dB of IIP3 and falls ⅔ dB per dB of noise floor, so a decade of bandwidth costs 6.7 dB of SFDR, against 10 dB of linear DR.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive specification gives only P1dB and reads the 81 dB BDR as "the receiver handles anything from −101 to −20 dBm". Two signals of −30 dBm each, 11 dB below compression and comfortably inside that range, produce IM3 = 3 × (−30) − 2 × (−10) = −70 dBm: 31 dB above the noise floor. In a radar this is a false target at a fixed frequency in every range cell; in an ESM receiver it is a third emitter that does not exist. The receiver is "linear" by the P1dB test and useless by the SFDR test.</p></div>
+  <h3>Side by side on one example: same stage (IIP3 −10 dBm, NF 3 dB), four bandwidths</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Bandwidth</th><th>Noise floor</th><th>SFDR</th><th>Tone level where IM3 = N</th><th>BDR</th></tr>
+    <tr><td>1 MHz</td><td class="n">−111 dBm</td><td class="n">67.3 dB</td><td class="n">−43.7 dBm</td><td class="n">91.4 dB</td></tr>
+    <tr><td>10 MHz</td><td class="n">−101 dBm</td><td class="n">60.7 dB</td><td class="n">−40.3 dBm</td><td class="n">81.4 dB</td></tr>
+    <tr><td>100 MHz</td><td class="n">−91 dBm</td><td class="n">54.0 dB</td><td class="n">−37.0 dBm</td><td class="n">71.4 dB</td></tr>
+    <tr><td>1 GHz</td><td class="n">−81 dBm</td><td class="n">47.3 dB</td><td class="n">−33.7 dBm</td><td class="n">61.4 dB</td></tr>
+  </table></div>
+  <h3>How to choose the linearity target</h3>
+  <div class="col"><p>(1) Decide which measure the mission needs. A radar looking at one echo at a time in a clean band needs linear DR and phase linearity; a receiver that must see two or more signals at once (ESM, a radar with interferers) needs SFDR. (2) Write the required SFDR as the spread between the strongest pair of simultaneous signals and the weakest signal that must not be masked. (3) Solve for IIP3: IIP3 = N + 1.5 × SFDR. For 70 dB SFDR in 10 MHz with NF 3 dB that is −101 + 105 = +4 dBm at the antenna. (4) Check BDR separately against the strongest single blocker. (5) If the IIP3 is unreachable, narrow the bandwidth at the first point possible, or move gain later in the chain (Step 4).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSf" width="640" height="350" aria-label="Two-tone plot: fundamental and third-order product against input level, the noise floor, the intercept point, SFDR and blocking dynamic range"></canvas>
+    <div class="ctrl">
+      <label for="sfI"><span>Chain IIP3</span> <b id="sfIv"></b></label><input id="sfI" type="range" min="-30" max="30" step="1" value="-10">
+      <label for="sfN"><span>Chain NF</span> <b id="sfNv"></b></label><input id="sfN" type="range" min="1" max="15" step="0.5" value="3">
+      <label for="sfB"><span>Bandwidth B</span> <b id="sfBv"></b></label><input id="sfB" type="range" min="5" max="9" step="0.1" value="7">
+      <div class="readout" id="sfOut"></div>
+    </div>
+    <p class="cap">All levels referred to the input. Orange: one tone of the pair (slope 1, compressing near P1dB). Violet: the IM3 product (slope 3). The dashed extensions meet at IIP3. Green: noise floor. The violet bar is SFDR, measured at the tone level where IM3 reaches the noise; the red shaded band on the axis is BDR, from N to IP1dB.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: SFDR 60.7 dB, top tone level −40.3 dBm, BDR 81.4 dB, the worked example.</li>
+    <li>Raise IIP3 by 15 dB to +5 dBm: SFDR rises only 10 dB to 70.7 dB (⅔ dB per dB).</li>
+    <li>Bandwidth 1 GHz: SFDR 47.3 dB, the last table row.</li>
+    <li>The gap between BDR and SFDR stays near 20 dB at defaults; it grows as the noise floor falls.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>IIP3 of the chain</td><td>Mixer type and LO drive, IF amplifier bias, gain in front</td><td>IIP3 −10 dBm (chain, at antenna)</td><td>SFDR 60.7 dB in 10 MHz: two −30 dBm signals make a −70 dBm false signal</td></tr>
+    <tr><td>P1dB of the chain</td><td>Last-stage output power, ADC full scale, gain</td><td>IP1dB −19.6 dBm</td><td>BDR 81.4 dB: a single blocker up to −19.6 dBm is tolerated</td></tr>
+    <tr><td>Bandwidth at the first non-linear stage</td><td>Preselector and image filter bandwidth</td><td>3 dB bandwidth</td><td>Fewer signals reach the mixer: the SFDR you need falls because fewer pairs exist</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Amplifier and mixer designers:</b> quote IIP3 with the tone spacing and level used; a two-tone IIP3 at 1 MHz spacing can differ from one at 10 MHz because of bias-network memory.</li>
+    <li><b>ADC users:</b> the converter's SFDR in dBc at a stated input level is a different quantity from the receiver SFDR here; the ADC module explains the conversion.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The noise floor falls 6 dB (narrower bandwidth). What happens to SFDR and BDR?</summary><p>SFDR rises 4 dB (⅔ × 6); BDR rises 6 dB.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="dist">
+  <div class="secno">Step 4</div>
+  <h2>Gain distribution: where to put the gain</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 2: gain early helps noise (Friis), gain late helps linearity (cascaded IIP3). From Step 1: total gain moves the top of the window down dB for dB.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>RF gain:</b> the gain in front of the mixer (here the LNA gain, since the other RF parts are passive).</p>
+    <p><b>IF gain:</b> the gain after the mixer, before the ADC. In this page's line-up it is IF amp 1 (fixed 15 dB) plus IF amp 2, which is adjusted to keep the total fixed. A negative IF amp 2 gain means a pad (attenuator).</p>
+    <p><b>Total gain:</b> antenna to ADC. It decides where the receiver's noise sits relative to the ADC's own noise, and so how much the ADC adds to the NF, and where the ADC clips referred to the antenna.</p>
+    <p><b>Noise loading of the ADC:</b> the amount, in dB, by which the analogue noise at the ADC input exceeds the ADC's own noise. About 10 dB keeps the ADC's NF penalty near 0.4 dB.</p>
+  </div>
+  <div class="col">
+    <p>Why there is an optimum: with the total gain fixed, moving 1 dB from IF to RF lowers the noise contribution of everything after the LNA (better NF) but raises the signal at the mixer by 1 dB (worse IIP3, almost dB for dB once the mixer dominates). Worked example with the Step 2 chain, total 31.5 dB, passive mixer: LNA 10 dB gives NF 6.54 dB and IIP3 −0.4 dBm; LNA 20 dB gives NF 3.89 dB and IIP3 −4.5 dBm; LNA 30 dB gives NF 3.50 dB and IIP3 −13.0 dBm. From 20 to 30 dB the NF improves 0.4 dB and the IIP3 falls 8.5 dB: past a point, RF gain buys almost nothing for noise and costs a lot of linearity.</p>
+  </div>
+  <div class="eq">IF gain = total − (sum of fixed stages) − RF gain &nbsp;&nbsp; noise loading = (N + G<sub>total</sub>) − N<sub>ADC</sub> &nbsp;&nbsp; ADC clip at antenna = FS − G<sub>total</sub><small>N<sub>ADC</sub> = FS − SNR<sub>ADC</sub> − 10·log(f<sub>s</sub>/2) + 10·log B = 4 − 72 − 81 + 70 = −79 dBm in 10 MHz. The ADC module derives this.</small></div>
+  <h3>What goes wrong with the naive approach: all the gain in one place</h3>
+  <div class="col"><p>(a) All gain at RF: LNA 40 dB, IF amp 2 a 10 dB pad. NF 3.47 dB (only 0.4 dB better than the balanced line-up), IIP3 −22.8 dBm (18 dB worse), SFDR 51.8 dB, and the mixer, not the ADC, compresses first, at −30.5 dBm. A single −25 dBm interferer now compresses the mixer. (b) All gain at IF: LNA 10 dB, IF amp 2 20 dB. IIP3 is good (−0.4 dBm), but NF is 6.54 dB: 2.7 dB of sensitivity lost, worth 14 % of radar range. (c) Too little total gain (20 dB): the analogue noise now sits 1.6 dB below the ADC's own noise and NF rises to 7.29 dB. (d) Too much total gain (45 dB): the ADC now clips at −41 dBm and IIP3 is −13.4 dBm. A single gain block of 50 to 60 dB has a further practical problem: any feedback from output to input of more than −60 dB makes it oscillate, so large gain is always split and isolated.</p></div>
+  <h3>Side by side on one example: total 31.5 dB, three mixers, LNA gain 20 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Mixer</th><th>Mixer G / NF / IIP3</th><th>Chain NF</th><th>Chain IIP3</th><th>SFDR (10 MHz)</th></tr>
+    <tr><td>Passive diode ring</td><td class="n">−7 dB / 7 dB / +15 dBm</td><td class="n">3.89 dB</td><td class="n">−4.5 dBm</td><td class="n">63.7 dB</td></tr>
+    <tr><td>High-level passive ring</td><td class="n">−8 dB / 8 dB / +25 dBm</td><td class="n">4.00 dB</td><td class="n">−1.7 dBm</td><td class="n">65.5 dB</td></tr>
+    <tr><td>Active (Gilbert cell)</td><td class="n">+8 dB / 10 dB / +5 dBm</td><td class="n">3.86 dB</td><td class="n">−13.8 dBm</td><td class="n">57.6 dB</td></tr>
+  </table></div>
+  <div class="col"><p>The active mixer's conversion gain is the trap: it is gain after the LNA, so it raises the signal at every IF stage, and the IF amplifier must be turned into a 5 dB pad to hold the total. The high-level ring costs LO power (+17 to +23 dBm LO, see the mixer module) and buys 2.8 dB of IIP3.</p></div>
+  <h3>How to choose the gain distribution</h3>
+  <div class="col"><p>(1) Fix the NF requirement from sensitivity (here 4 dB). (2) Fix the total gain so the analogue noise sits about 10 dB above the ADC noise (here 31.5 dB gives 10.0 dB). (3) Raise the RF gain only until the NF requirement is just met, then stop: every extra dB is a dB of mixer IIP3 thrown away. With the passive mixer that is LNA 19 dB: NF 3.99 dB, IIP3 −3.8 dBm. (4) Choose the mixer for IIP3 per milliwatt of LO and per dB of NF. (5) Put the most linear amplifier last, where the signal is largest. (6) Do not optimise SFDR alone: SFDR keeps rising as RF gain falls because a deaf receiver has a high IIP3 relative to its noise. Meet the NF first.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cGd" width="640" height="390" aria-label="Chain NF, IIP3 and SFDR against LNA gain with the total gain held fixed"></canvas>
+    <div class="ctrl">
+      <label for="dgL"><span>RF (LNA) gain</span> <b id="dgLv"></b></label><input id="dgL" type="range" min="5" max="40" step="0.5" value="20">
+      <label for="dgT"><span>Total gain, antenna to ADC</span> <b id="dgTv"></b></label><input id="dgT" type="range" min="20" max="50" step="0.5" value="31.5">
+      <label for="dgM"><span>Mixer</span></label><select id="dgM"><option value="pas" selected>Passive diode ring</option><option value="hl">High-level passive ring</option><option value="act">Active (Gilbert cell)</option></select>
+      <label for="dgR"><span>NF requirement</span> <b id="dgRv"></b></label><input id="dgR" type="range" min="2.5" max="8" step="0.1" value="4">
+      <div class="readout" id="dgOut"></div>
+    </div>
+    <p class="cap">Each panel sweeps the LNA gain across the bottom axis with the total gain fixed (IF amp 2 absorbs the difference). Orange line: your current LNA gain. Green shading: LNA gains that meet the NF requirement. Green dot: the best choice, the highest IIP3 that still meets the NF requirement.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: NF 3.89 dB, IIP3 −4.5 dBm, SFDR 63.7 dB, ADC noise loading 10.0 dB; best LNA gain for 4 dB is 19 dB.</li>
+    <li>LNA 40 dB: IIP3 −22.8 dBm, SFDR 51.8 dB, the mixer compresses first: naive case (a).</li>
+    <li>Total 20 dB: NF 7.29 dB with any LNA gain; no point meets 4 dB. Naive case (c).</li>
+    <li>Active mixer: IIP3 −13.8 dBm at LNA 20 dB, the bottom table row; IF amp 2 becomes a pad.</li>
+    <li>High-level ring: best point moves to LNA 20 dB with IIP3 −1.7 dBm.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LNA gain</td><td>Stage count, device, feedback</td><td>G 19 to 20 dB (not "as high as possible")</td><td>Meets NF 4 dB with IIP3 −3.8 dBm; 10 dB more costs 9 dB of IIP3 for 0.4 dB of NF</td></tr>
+    <tr><td>Mixer conversion gain or loss</td><td>Passive vs active topology</td><td>−7 dB passive, +8 dB active</td><td>Active gain after the LNA costs about 9 dB of chain IIP3 at the same total gain</td></tr>
+    <tr><td>Total gain</td><td>IF gain, pads</td><td>G 31.5 dB</td><td>ADC noise loading 10 dB (NF penalty 0.4 dB) and ADC clip at −27.5 dBm referred to the antenna</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA designers:</b> expect a gain specification with a maximum as well as a minimum. Gain flatness and gain over temperature matter because the line-up is set to within a few dB.</li>
+    <li><b>IF amplifier designers:</b> the IF stage nearest the ADC needs the highest OIP3 in the chain; a few extra milliamps here buy more system SFDR than anywhere else.</li>
+    <li><b>Pad and attenuator designers:</b> pads are used deliberately to trim the total; their tolerance becomes ADC loading tolerance.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does SFDR keep rising when the LNA gain is turned down, even though the receiver is getting worse?</summary><p>SFDR is a ratio of IIP3 to noise. Lowering RF gain raises IIP3 by nearly 1 dB per dB but raises the noise floor less, so the ratio improves while the absolute sensitivity gets worse. Meet the NF first, then maximise IIP3.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="agc">
+  <div class="secno">Step 5</div>
+  <h2>AGC: loop speed, range and settling, and why radar and ESM often cannot use it</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 0: with a fixed gain the window from noise to ADC full scale is about 56 to 74 dB wide, smaller than the 90 to 100 dB the signals span. Changing the gain moves the window.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Automatic gain control (AGC):</b> a feedback loop that measures the output level with a detector, compares it with a reference level, and adjusts a variable attenuator or VGA to hold the output at the reference.</p>
+    <p><b>Reference level:</b> the output level the loop aims for, set some dB below ADC full scale to leave headroom for peaks. Here −60 dBm referred to the antenna at maximum gain, 15 dB below the full scale of −45 dBm.</p>
+    <p><b>Gain control range:</b> how far the loop can turn the gain down, in dB (here 10 to 70 dB).</p>
+    <p><b>Attack time τ<sub>a</sub>:</b> the time constant with which the loop reduces gain when the signal rises. <b>Decay (release) time τ<sub>d</sub>:</b> the time constant with which it restores gain when the signal falls. Usually τ<sub>d</sub> ≫ τ<sub>a</sub>, so the loop does not follow noise.</p>
+    <p><b>Settling time:</b> the time after a step for the gain to come within 1 dB of its final value. For a first-order loop working in dB: t<sub>settle</sub> = τ<sub>a</sub>·ln(Δ/1 dB), for a step Δ dB above the reference.</p>
+  </div>
+  <div class="col">
+    <p>Why AGC exists: communications receivers and CW tracking receivers see one signal whose level changes slowly (fading, range). Moving the window with the signal gives them a total range of the fixed window plus the control range: 56 + 50 = 106 dB. How it changes the outcome: the receiver's instantaneous dynamic range (what it handles at one moment) is unchanged; only its total range grows. Worked example: τ<sub>a</sub> = 10 µs, a signal steps from −80 to −30 dBm, 30 dB above the −60 dBm reference. Settling takes 10 × ln 30 = 34 µs, and for the first 7 µs the output is above the −45 dBm full scale: clipped.</p>
+  </div>
+  <div class="eq">dG/dt = −(P<sub>out</sub> − P<sub>ref</sub>)/τ &nbsp;&nbsp; (τ = τ<sub>a</sub> if P<sub>out</sub> &gt; P<sub>ref</sub>, else τ<sub>d</sub>) &nbsp;&nbsp; t<sub>settle</sub> = τ<sub>a</sub>·ln(Δ/1 dB)<small>G in dB, limited to between −range and 0. This is the first-order "log-domain" loop used in the demo; real loops add detector delay and may be second order, which adds overshoot.</small></div>
+  <h3>What goes wrong with the naive approach: a slow AGC in a pulsed receiver</h3>
+  <div class="col"><p>A communications-style AGC has τ<sub>a</sub> around 1 to 10 ms. A radar pulse lasts 0.1 to 10 µs and an echo from a target is over before the loop has moved 1 %. Three failures follow. (1) <b>Radar:</b> echoes from one transmitted pulse arrive from every range in turn, with clutter from 1 km 30 to 60 dB above a target at 15 km. One gain for the whole repetition interval must fit the strongest echo, so it buries the weak one. (2) <b>ESM:</b> pulses from many emitters interleave every few microseconds. A fast-attack, slow-decay AGC is grabbed by the strongest emitter and holds the gain down; the weak emitter's pulses fall into the ADC noise. In the demo's ESM scenario with τ<sub>a</sub> 1 µs and τ<sub>d</sub> 1 ms, only 1 of 12 weak pulses survives. (3) <b>Measurement:</b> any gain change during or between pulses changes measured pulse amplitude, which ESM uses to follow an emitter's antenna scan. If the gain is not reported with every pulse, the amplitude data are wrong.</p></div>
+  <h3>Side by side on one example: three AGC settings on the three scenarios</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Setting (τ<sub>a</sub> / τ<sub>d</sub>, range 50 dB)</th><th>Step 30 dB: settle</th><th>ESM: weak pulses kept</th><th>ESM: strong pulse clipped</th><th>Radar: target SNR</th></tr>
+    <tr><td>Slow: 10 µs / 100 µs</td><td class="n">34 µs</td><td class="n">12 of 12</td><td class="n">whole 2 µs pulse</td><td class="n">15.6 dB (kept)</td></tr>
+    <tr><td>Fast attack, slow decay: 1 µs / 1 ms</td><td class="n">2.5 µs</td><td class="n">1 of 12</td><td class="n">0.1 µs</td><td class="n">8.2 dB (lost)</td></tr>
+    <tr><td>Fast: 0.1 µs / 1 µs</td><td class="n">0.5 µs</td><td class="n">11 of 12</td><td class="n">0.1 µs</td><td class="n">15.6 dB (kept)</td></tr>
+  </table></div>
+  <div class="col"><p>The slow loop never reacts to a 2 µs pulse, so it behaves like fixed gain: weak pulses are fine but every strong pulse is clipped from start to end, so its amplitude and shape are lost. The fast-attack, slow-decay loop measures the strong emitter and loses the weak one. The fast loop keeps most of both, but now the gain changes within every pulse: the measured amplitude depends on the loop, and pulse shape is distorted. No setting is right for ESM; that is why ESM receivers use log amplifiers or wide-range ADCs instead (Steps 7 and 9), and why radars use STC (Step 6).</p></div>
+  <h3>How to choose the AGC parameters, when AGC is right</h3>
+  <div class="col"><p>(1) Use AGC for one slowly varying signal: a tracking channel locked on one target, a data link, a CW signal. (2) Set the range to the expected signal spread minus the instantaneous window (here 100 − 56 = about 45 to 50 dB). (3) Set τ<sub>a</sub> faster than the signal changes you must follow, but at least 10 times longer than the pulse or symbol so the loop does not distort it. (4) Set τ<sub>d</sub> 5 to 20 times τ<sub>a</sub>. (5) Set the reference 10 to 15 dB below full scale, so the overshoot during attack stays below clipping. (6) Report the gain with every measurement, so amplitude can be corrected.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cAg" width="640" height="380" aria-label="AGC loop in time: input level, output level against ADC full scale and reference, and the loop gain"></canvas>
+    <div class="ctrl">
+      <label for="agS"><span>Scenario</span></label><select id="agS"><option value="step" selected>Step: −80 → −30 dBm, CW</option><option value="esm">ESM: strong (−25) and weak (−75) pulses</option><option value="radar">Radar: one PRI, clutter then a small target</option></select>
+      <label for="agA"><span>Attack time τ<sub>a</sub></span> <b id="agAv"></b></label><input id="agA" type="range" min="-1" max="3" step="0.1" value="1">
+      <label for="agD"><span>Decay time τ<sub>d</sub></span> <b id="agDv"></b></label><input id="agD" type="range" min="-1" max="4" step="0.1" value="2">
+      <label for="agR"><span>Gain control range</span> <b id="agRv"></b></label><input id="agR" type="range" min="10" max="70" step="5" value="50">
+      <div class="readout" id="agOut"></div>
+    </div>
+    <p class="cap">Top: input level at the antenna (grey), output level referred to the antenna at maximum gain (orange, flat where clipped at full scale, red dashed line), reference (green dashed). Bottom: loop gain in dB. In the pulsed scenarios, triangles mark each weak pulse: green if its output SNR is at least 13 dB, red if lost.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (step, 10 µs / 100 µs, 50 dB): settles in about 34 µs = 10 × ln 30, clipped for about 7 µs.</li>
+    <li>ESM with τ<sub>a</sub> 1 µs and τ<sub>d</sub> 1 ms: 1 of 12 weak pulses kept; the gain hardly recovers between strong pulses and reaches −34.7 dB.</li>
+    <li>ESM with 10 µs / 100 µs: 12 of 12 kept, but each strong pulse clipped for its full 2 µs.</li>
+    <li>Radar with 1 µs / 1 ms: target SNR 8.2 dB, lost, because the gain was set by the clutter 40 µs earlier.</li>
+    <li>Range 10 dB on the step: the loop runs out of range and the output stays clipped.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Gain control range</td><td>Attenuator sections, PIN or FET VGA</td><td>50 dB range, ±0.5 dB step accuracy</td><td>Total range 56 + 50 = 106 dB for one slow signal; nothing for simultaneous signals</td></tr>
+    <tr><td>Control speed</td><td>Attenuator driver, detector video bandwidth, loop filter</td><td>Switching or settling time, e.g. 20 ns for a PIN attenuator</td><td>Sets the fastest possible τ<sub>a</sub>; with 0.1 µs the loop acts within a pulse</td></tr>
+    <tr><td>Phase and linearity versus gain setting</td><td>Attenuator topology</td><td>Insertion phase change over range, e.g. 5°; IIP3 at minimum attenuation</td><td>A coherent radar sees phase steps as false Doppler if the gain changes between pulses</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>VGA and attenuator designers:</b> datasheets should give phase change and IIP3 at every gain setting, and the settling time to within 0.5 dB, not only the switching time.</li>
+    <li><b>Detector designers:</b> the AGC detector's own response time and dynamic range set how fast and how far the loop can go.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A loop with τ<sub>a</sub> = 2 µs sees a 20 dB step above the reference. How long until it settles to 1 dB?</summary><p>2 × ln 20 = 6.0 µs.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="stc">
+  <div class="secno">Step 6</div>
+  <h2>STC: turning the gain down on a schedule, because near echoes are R⁴ stronger</h2>
+  <div class="know"><h4>You already know</h4><p>The radar equation: received power from a target of radar cross-section σ at range R is P<sub>r</sub> = P<sub>t</sub>G²λ²σ / ((4π)³R⁴L). An echo arrives at time t = 2R/c after the pulse leaves, so in one pulse repetition interval (PRI) the receiver hears near ranges first and far ranges later.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Clutter:</b> echoes from things that are not targets: ground, sea, rain, birds. Surface clutter has cross-section σ<sub>c</sub> = σ⁰·R·θ<sub>az</sub>·(cτ/2): σ⁰ is the reflectivity per square metre (for example −20 dB for farmland at low grazing angle), θ<sub>az</sub> the azimuth beamwidth in radians and cτ/2 the range cell depth.</p>
+    <p><b>Sensitivity time control (STC):</b> an attenuation that is large just after the transmit pulse and falls with time, following a law A(R) = n·10·log<sub>10</sub>(R<sub>0</sub>/R) dB for R &lt; R<sub>0</sub> and zero beyond. n = 4 is the "R⁴ law".</p>
+    <p><b>STC end range R<sub>0</sub>:</b> the range at which the attenuation reaches zero and the receiver returns to full sensitivity.</p>
+    <p><b>Signal-to-clutter ratio (SCR):</b> target power divided by clutter power in the same range cell. Separating a target from clutter needs Doppler processing (MTI), which needs the receiver to stay linear.</p>
+  </div>
+  <div class="col">
+    <p>Why STC exists: the same 1 m² target gives −51.0 dBm at 1 km and −91.0 dBm at 10 km (illustrative X-band radar: 20 kW, 32 dB antenna gain, 5 dB losses): 40 dB more at one tenth the range, the R⁴ law. Clutter in a range cell falls more slowly, as R⁻³, because the illuminated patch grows with range: −42.8 dBm at 1 km, −72.8 dBm at 10 km (σ⁰ −20 dB, 2.5° beam, 15 m cells). Both are strongest at short range, exactly when the gain must be highest for the far, weak echoes later in the same PRI. AGC cannot help (Step 5): the level changes by 40 dB in 60 µs. But the change is predictable from the time since the pulse left, so the receiver applies it on a schedule. How it changes the outcome: with an R⁴ law to R<sub>0</sub> = 10 km, the 1 m² target reads −91.0 dBm at every range inside 10 km, so a fixed detection threshold becomes a fixed size threshold, and near clutter that would have saturated the receiver (anything inside 1.2 km at full gain) is brought below full scale.</p>
+  </div>
+  <div class="eq">P<sub>r</sub> ∝ σ/R⁴ &nbsp;&nbsp; C ∝ σ⁰R/R⁴ = σ⁰/R³ &nbsp;&nbsp; A(R) = n·10·log<sub>10</sub>(R<sub>0</sub>/R) &nbsp;&nbsp; R = c·t/2<small>STC is applied after the LNA in this demo, so it attenuates the receiver's own noise as well; at short range the floor becomes the ADC noise, 10 dB below thermal. STC never changes SCR: target and clutter in the same cell are attenuated equally.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Without STC, at full gain: clutter inside 1.2 km exceeds the −45 dBm full scale and clips the ADC, so MTI cannot cancel it and any target there is lost; a 30 dBsm ship at 1 km gives −21 dBm, 24 dB into clipping; and a bird of 0.01 m² at 1 km gives −71 dBm, 30 dB above noise, a false track. The naive fix, a fixed 30 dB attenuator, stops the clipping but makes the 1 m² target at 10 km (−91 dBm) disappear 20 dB under the ADC noise.</p></div>
+  <h3>Side by side on one example: 1 m² target and σ⁰ −20 dB clutter, R<sub>0</sub> = 10 km</h3>
+  <div class="tw"><table class="t">
+    <tr><th>STC law</th><th>Target out at 1 km</th><th>at 5 km</th><th>at 10 km</th><th>Clutter out at 1 km</th><th>Target SNR at 1 km</th></tr>
+    <tr><td>None</td><td class="n">−51.0 dBm</td><td class="n">−78.9</td><td class="n">−91.0</td><td class="n">−42.8 (clipped)</td><td class="n">49.6 dB</td></tr>
+    <tr><td>R⁻² (n = 2)</td><td class="n">−71.0</td><td class="n">−85.0</td><td class="n">−91.0</td><td class="n">−62.8</td><td class="n">39.6 dB</td></tr>
+    <tr><td>R⁻³ (n = 3)</td><td class="n">−81.0</td><td class="n">−88.0</td><td class="n">−91.0</td><td class="n">−72.8 (constant)</td><td class="n">30.0 dB</td></tr>
+    <tr><td>R⁻⁴ (n = 4)</td><td class="n">−91.0 (constant)</td><td class="n">−91.0</td><td class="n">−91.0</td><td class="n">−82.8</td><td class="n">20.0 dB</td></tr>
+  </table></div>
+  <div class="col"><p>R⁻⁴ makes the target constant; R⁻³ makes surface clutter constant; R⁻² suits volume clutter such as rain, whose cross-section grows as R². The price of every law is short-range sensitivity: with R⁻⁴ the bird at 1 km falls to 0 dB SNR, which is the intent, but a small target that matters at short range is suppressed with it.</p></div>
+  <h3>How to choose the STC law and end range</h3>
+  <div class="col"><p>(1) Find the range inside which clutter (or the largest expected target) exceeds full scale at full gain: here 1.2 km. STC must cover at least that. (2) Choose the law by what must look constant: R⁻⁴ for a size threshold on point targets, R⁻³ to flatten surface clutter. (3) Set R<sub>0</sub> where the smallest target of interest is just detectable at full gain; beyond R<sub>0</sub> the receiver is at full sensitivity. (4) Check the attenuation depth the hardware needs: n·10·log(R<sub>0</sub>/R<sub>min</sub>), here 40 × log(10/0.15) = 73 dB for R⁻⁴ from 150 m. (5) Apply it as early as possible (at RF, before the LNA if the LNA itself would compress), with a smooth curve: a step in gain is a step in phase and amplitude that MTI sees as a false moving target.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSt" width="640" height="380" aria-label="Echo level against range for a target and ground clutter, before and after STC, with the noise floor and ADC full scale"></canvas>
+    <div class="ctrl">
+      <label for="stL"><span>STC law</span></label><select id="stL"><option value="none" selected>None</option><option value="r2">R⁻² (n = 2)</option><option value="r3">R⁻³ (n = 3)</option><option value="r4">R⁻⁴ (n = 4)</option></select>
+      <label for="stR"><span>STC end range R<sub>0</sub></span> <b id="stRv"></b></label><input id="stR" type="range" min="2" max="30" step="1" value="10">
+      <label for="stS"><span>Target RCS σ</span> <b id="stSv"></b></label><input id="stS" type="range" min="-20" max="30" step="1" value="0">
+      <label for="stT"><span>Target range</span> <b id="stTv"></b></label><input id="stT" type="range" min="0.5" max="30" step="0.5" value="5">
+      <label for="stC"><span>Clutter reflectivity σ⁰</span> <b id="stCv"></b></label><input id="stC" type="range" min="-40" max="-5" step="1" value="-20">
+      <div class="readout" id="stOut"></div>
+    </div>
+    <p class="cap">Range from 0 to 30 km (one PRI of 200 µs). Dashed: echoes at the antenna. Solid: after STC, referred to the antenna at full gain. Orange: target; violet: ground clutter (out to a 20 km horizon); green: noise floor after STC; red dashed: ADC full scale. Bottom strip: STC attenuation. The dot marks your target.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (no STC, 1 m² at 5 km, σ⁰ −20 dB): target −78.9 dBm, SNR 21.6 dB, clutter clips out to 1.2 km.</li>
+    <li>R⁻⁴: attenuation 12.0 dB at 5 km, target −91.0 dBm at every range inside 10 km, clipping range 0 km.</li>
+    <li>R⁻³: the solid clutter line is flat at −72.8 dBm out to R<sub>0</sub>.</li>
+    <li>Target σ −20 dB at 1 km with R⁻⁴: SNR 0 dB, the bird is gone; with no STC it is 29.6 dB.</li>
+    <li>The readout's SCR does not change with the STC law: STC protects the receiver, Doppler processing removes the clutter.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Attenuation range</td><td>PIN diode or FET attenuator sections</td><td>≥ 70 dB, monotonic</td><td>Covers R⁻⁴ from 150 m to 10 km; clutter no longer clips the ADC</td></tr>
+    <tr><td>Control law accuracy</td><td>Driver DAC, linearised attenuator curve</td><td>±0.5 dB from the commanded curve</td><td>Size threshold accurate to ±0.5 dB, about ±12 % in RCS</td></tr>
+    <tr><td>Phase vs attenuation</td><td>Attenuator topology, matched paths</td><td>&lt; 3° over the range</td><td>A target crossing range cells is not given false Doppler by the gain change</td></tr>
+    <tr><td>Position in the chain</td><td>Before or after the LNA</td><td>Attenuator power handling, NF at zero attenuation</td><td>Before the LNA protects it from compression but adds its loss to NF at long range</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Attenuator and VGA designers:</b> STC is the hardest gain-control job in a radar: 70 dB in about 70 µs, smoothly, with phase held. Specify phase change versus attenuation and the switching transient.</li>
+    <li><b>LNA designers:</b> if the STC sits after your LNA, your LNA must handle the near clutter at full gain without compressing (−43 dBm here). If it sits in front, its loss adds to your NF.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>With R⁻⁴ STC and R<sub>0</sub> = 20 km, what attenuation is applied at 2 km?</summary><p>40 × log(20/2) = 40 dB.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="log">
+  <div class="secno">Step 7</div>
+  <h2>Log amplifiers, DLVA and detectors; video bandwidth and pulse measurement</h2>
+  <div class="know"><h4>You already know</h4><p>A diode detector converts an RF signal to a DC or video voltage. At low levels its output is proportional to input power (square-law region); at higher levels it becomes proportional to voltage (linear region), then saturates.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Square-law detector:</b> a diode detector used in its square-law region, output volts ∝ input milliwatts. Its useful range is about 40 dB, from its tangential sensitivity to about −20 dBm.</p>
+    <p><b>Tangential sensitivity (TSS):</b> the input pulse level at which the pulse on the video output just sits on top of the noise, about 8 dB video SNR; a common detector figure of merit.</p>
+    <p><b>Logarithmic amplifier:</b> a circuit whose output voltage is proportional to the input level in dB: V = slope × (P − P<sub>min</sub>). It compresses 70 to 95 dB of input into about 2 V, instantly, with no loop.</p>
+    <p><b>DLVA (detector log video amplifier):</b> a wideband RF detector followed by a video amplifier with log response; works directly at RF, for example 2 to 18 GHz. <b>SDLA (successive-detection log amplifier):</b> a chain of limiting IF amplifiers with a detector at each stage, summed; wider log range and better accuracy, but only at an IF.</p>
+    <p><b>Log slope and log conformance:</b> volts per dB (here 25 mV/dB for the DLVA, 20 mV/dB for the SDLA) and the maximum deviation from the ideal straight line, in dB.</p>
+    <p><b>Video bandwidth B<sub>v</sub>:</b> the bandwidth of everything after the detector. It sets the rise time of the detected pulse: t<sub>r</sub> (10 to 90 %) ≈ 0.35/B<sub>v</sub>.</p>
+    <p><b>Pulse descriptor words (PDW):</b> what an ESM receiver measures for every pulse: time of arrival (TOA), pulse width (PW), pulse amplitude (PA), frequency and angle of arrival.</p>
+  </div>
+  <div class="col">
+    <p>Why log detection: it is the only way to fit 80 dB of simultaneous level spread into a detector and an ADC without any gain change, so a −70 dBm pulse and a −10 dBm pulse a microsecond apart are both measured. The cost: phase is lost (no Doppler, no coherent processing), and when two signals overlap in time the log amplifier reports the stronger one (Step 9). Why video bandwidth matters: the detector output cannot rise faster than t<sub>r</sub>. Worked example: B<sub>v</sub> = 10 MHz gives t<sub>r</sub> = 35 ns. On a square-law (linear-video) output, PW is measured between the two crossings of half the peak; the rise and fall are mirror images, so the delays cancel and a 200 ns pulse reads 199 ns (the demo samples in 1 ns steps). On a log output, PW is measured 3 dB below the peak; the log of an exponential rise reaches peak − 3 dB late while the fall drops 3 dB almost at once, so the same 200 ns pulse on a DLVA at −50 dBm reads 168 ns, 31 ns short. And TOA jitter: σ<sub>TOA</sub> ≈ t<sub>r</sub>/√(2·SNR<sub>v</sub>); at −50 dBm the video SNR is 41 dB and σ<sub>TOA</sub> = 0.22 ns.</p>
+  </div>
+  <div class="eq">t<sub>r</sub> ≈ 0.35/B<sub>v</sub> &nbsp;&nbsp; σ<sub>TOA</sub> ≈ t<sub>r</sub>/√(2·SNR<sub>v</sub>) &nbsp;&nbsp; SNR<sub>v</sub> = P − (−174 + NF + 10·log 2B<sub>v</sub>) &nbsp;&nbsp; V<sub>log</sub> = slope·(P − P<sub>min</sub>)<small>For a strong signal, the noise that matters after detection is the RF noise in twice the video bandwidth. Widening B<sub>v</sub> shortens t<sub>r</sub> but lets in more noise: σ<sub>TOA</sub> still improves as 1/√B<sub>v</sub>, until B<sub>v</sub> reaches half the RF bandwidth.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>(1) A square-law detector alone: about 40 dB of range, so in an ESM receiver either the strong pulses saturate it or the weak ones sit under its TSS. (2) A narrow video bandwidth "to reduce noise": at B<sub>v</sub> = 2 MHz, t<sub>r</sub> = 175 ns and a 200 ns pulse on the DLVA never reaches its full height: it reads PA 1.97 dB low and PW 85 ns, less than half the truth. An ESM library that sorts emitters by PW would put this pulse in the wrong class. (3) Assuming a log amplifier's PW reading is independent of amplitude: on the DLVA the same 200 ns pulse reads 203 ns at −70 dBm, 168 ns at −50 dBm and 158 ns at −30 dBm, because the 3 dB threshold sits further up a taller step.</p></div>
+  <h3>Side by side on one example: 200 ns pulse at −50 dBm, B<sub>v</sub> 10 MHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Detector</th><th>Range (illustrative)</th><th>PW read</th><th>PA error</th><th>Phase kept</th><th>Typical use</th></tr>
+    <tr><td>Square-law diode + video amp</td><td class="n">about 40 dB</td><td class="n">199 ns</td><td class="n">0.00 dB</td><td>no</td><td>crystal-video ESM, power monitors</td></tr>
+    <tr><td>DLVA (25 mV/dB, −80 to 0 dBm)</td><td class="n">about 74 dB above noise</td><td class="n">168 ns</td><td class="n">0.00 dB</td><td>no</td><td>wideband ESM front ends, RWR</td></tr>
+    <tr><td>SDLA (20 mV/dB, −90 to +5 dBm)</td><td class="n">about 84 dB above noise</td><td class="n">165 ns</td><td class="n">0.00 dB</td><td>limited IF output keeps phase for frequency measurement</td><td>IF log receivers, non-coherent radar video</td></tr>
+  </table></div>
+  <div class="col"><p>With a 50 ns pulse (shorter than about 1.5 t<sub>r</sub>) the logs also lose amplitude: DLVA PA −1.03 dB, SDLA −1.25 dB, square law −0.19 dB.</p></div>
+  <h3>How to choose the detector and video bandwidth</h3>
+  <div class="col"><p>(1) Take the shortest pulse to be measured, PW<sub>min</sub>. (2) Set B<sub>v</sub> ≥ about 2/PW<sub>min</sub> so the pulse reaches its full height: 10 MHz for 200 ns, 40 MHz for 50 ns. (3) Check TOA jitter at the weakest pulse against the requirement (for example 1 ns rms at 20 dB video SNR needs t<sub>r</sub> ≤ 14 ns, B<sub>v</sub> ≥ 25 MHz). (4) Choose the log range to cover the simultaneous level spread: 74 to 84 dB covers most ESM scenes. (5) Calibrate PW against amplitude for log video, or measure PW on a linear channel. (6) Ask for log conformance (±1 dB typical) and slope temperature drift; PA accuracy for scan analysis needs both.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cLg" width="640" height="340" aria-label="Detector transfer curves and the detected pulse in time with the pulse-width threshold"></canvas>
+    <div class="ctrl">
+      <label for="lgT"><span>Detector</span></label><select id="lgT"><option value="sq">Square-law diode + video amp</option><option value="dlva" selected>DLVA (log video)</option><option value="sdla">SDLA (IF log amp)</option></select>
+      <label for="lgP"><span>Pulse level at the detector</span> <b id="lgPv"></b></label><input id="lgP" type="range" min="-80" max="10" step="1" value="-50">
+      <label for="lgW"><span>Pulse width PW</span> <b id="lgWv"></b></label><input id="lgW" type="range" min="-1.7" max="0.7" step="0.05" value="-0.7">
+      <label for="lgB"><span>Video bandwidth B<sub>v</sub></span> <b id="lgBv"></b></label><input id="lgB" type="range" min="0" max="2.3" step="0.05" value="1">
+      <div class="readout" id="lgOut"></div>
+    </div>
+    <p class="cap">Left: output volts against input level for the three detectors (the selected one drawn heavy, the dot at your pulse level). Right: the detected pulse in time (orange), the ideal rectangular pulse (grey), the PW threshold (dashed: half the peak for square law, 3 dB below the peak for log) and the measured edges (green ticks).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (DLVA, −50 dBm, 200 ns, 10 MHz): t<sub>r</sub> 35 ns, PW read 168 ns (31 ns short), video SNR 41 dB, TOA σ 0.22 ns.</li>
+    <li>Square law at the same settings: PW 199 ns, error under 1 ns; the threshold at half height cancels the rise and fall.</li>
+    <li>B<sub>v</sub> 2 MHz (slider 0.3): DLVA PW 85 ns and PA −1.97 dB: the narrow-video failure.</li>
+    <li>DLVA at −30 dBm: PW 158 ns; at −70 dBm: 203 ns. Same pulse, amplitude-dependent width.</li>
+    <li>Square law at 0 dBm: the left plot shows it far into its linear and saturating region; the log types still track.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Log range</td><td>Number of detector stages (SDLA), diode and video amp design (DLVA)</td><td>−80 to 0 dBm, 80 dB</td><td>ESM sees −70 and −10 dBm pulses 1 µs apart with no gain change</td></tr>
+    <tr><td>Log slope and conformance</td><td>Stage gain matching, temperature compensation</td><td>25 mV/dB, ±1 dB</td><td>PA accuracy ±1 dB: emitter scan period and type from amplitude history</td></tr>
+    <tr><td>Video bandwidth</td><td>Video amplifier gain-bandwidth, detector capacitance</td><td>B<sub>v</sub> 10 MHz, t<sub>r</sub> 35 ns</td><td>Pulses from about 200 ns upwards measured to within tens of ns; TOA σ 0.22 ns at −50 dBm</td></tr>
+    <tr><td>Rise-time asymmetry, recovery</td><td>Video amp slew rate, log stage recovery</td><td>Rise and fall times, overdrive recovery</td><td>PW bias that depends on amplitude; blind time after strong pulses (Step 8)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Log amp and DLVA designers:</b> slope, intercept, conformance over temperature and frequency, rise and fall time, and overdrive recovery are each a line in the PDW error budget.</li>
+    <li><b>IF filter designers:</b> the IF filter in front of an SDLA sets the RF bandwidth, and its group delay (filters module, Step 4) adds to the rise time.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What video bandwidth gives a 10 to 90 % rise time of 10 ns?</summary><p>0.35/10 ns = 35 MHz.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="sat">
+  <div class="secno">Step 8</div>
+  <h2>Saturation and recovery: what happens after a signal too strong for everything</h2>
+  <div class="know"><h4>You already know</h4><p>From the limiter and duplexer module (<a href="M06-limiter-duplexer.html">Front-end protection and duplexing</a>): a limiter protects the LNA from damage and takes a recovery time to return to low loss after a high-power pulse.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Saturation:</b> a stage driven so hard that its output no longer rises with the input; the signal is clipped.</p>
+    <p><b>Overdrive OD:</b> how far, in dB, the input exceeds the stage's linear limit (its P1dB, or full scale for an ADC).</p>
+    <p><b>Recovery time:</b> the time after the overdriving signal ends until the stage's gain is back within 1 dB (or a stated amount) of normal. Causes: charge stored in transistors and diodes, bias networks pulled off their operating point, AC-coupling capacitors charged by the large signal (a baseline shift), and AGC or STC circuits that were driven to their limits.</p>
+    <p><b>Blind time:</b> the interval after a strong signal in which a weak one cannot be received or is measured wrongly.</p>
+  </div>
+  <div class="col">
+    <p>Why it matters: every chain eventually meets a signal it cannot hold, such as the radar's own transmit leakage, a ship at short range, or a jammer. What happens after it is as important as what happens during it. In the simple model used here the gain deficit after the overload decays exponentially: D(t) = OD·e<sup>−t/τ<sub>r</sub></sup>. Worked example: a stage with linear limit −45 dBm (input-referred) is hit by a −10 dBm pulse: OD = 35 dB. With τ<sub>r</sub> = 300 ns, it is back within 1 dB after 300 × ln 35 = 1.07 µs. A −80 dBm pulse arriving 1 µs after the strong one is read 1.25 dB low; one arriving 0.3 µs after is read 12.9 dB low, below the detection threshold of −88 dBm, and is lost.</p>
+  </div>
+  <div class="eq">OD = P<sub>strong</sub> − P<sub>limit</sub> &nbsp;&nbsp; D(t) = OD·e<sup>−t/τ<sub>r</sub></sup> &nbsp;&nbsp; t<sub>blind,1 dB</sub> = τ<sub>r</sub>·ln(OD)<small>An illustrative model: real stages often recover more slowly from deeper overdrive than the logarithm suggests, which is why datasheets quote recovery at a stated overdrive.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive specification asks only "survives +20 dBm without damage". A part can meet that and still take microseconds to recover. In a radar with a 1 km minimum range (6.7 µs after the pulse), a front end that takes 3.6 µs to recover from transmit leakage (τ<sub>r</sub> 1 µs, OD 35 dB) is fine; one with τ<sub>r</sub> 2 µs (7.1 µs) is blind to its own minimum range. In an ESM receiver that sees a strong pulse every 25 µs, a 3.6 µs blind time after each removes 14 % of all listening time.</p></div>
+  <h3>Side by side on one example: −10 dBm overload (OD 35 dB), weak pulse −80 dBm 1 µs later</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Recovery time constant τ<sub>r</sub></th><th>Blind time to 1 dB</th><th>Gain deficit at 1 µs</th><th>Weak pulse read as</th><th>Detected (threshold −88 dBm)</th></tr>
+    <tr><td>50 ns (fast IF amp, ADC over-range)</td><td class="n">0.18 µs</td><td class="n">0.0 dB</td><td class="n">−80.0 dBm</td><td>yes</td></tr>
+    <tr><td>300 ns (typical AC-coupled IF chain)</td><td class="n">1.07 µs</td><td class="n">1.25 dB</td><td class="n">−81.3 dBm</td><td>yes, 1.25 dB low</td></tr>
+    <tr><td>1 µs (slow log amp or AGC detector)</td><td class="n">3.56 µs</td><td class="n">12.9 dB</td><td class="n">−92.9 dBm</td><td>no</td></tr>
+  </table></div>
+  <h3>How to choose recovery requirements</h3>
+  <div class="col"><p>(1) List the overloads: own transmit leakage, near clutter, co-site emitters, jammers; for each, its level and duration. (2) Compute OD at each stage from the level diagram (Step 2). (3) Set the blind-time requirement from the mission: radar minimum range (t = 2R<sub>min</sub>/c), or the ESM listening fraction you can afford. (4) Turn it into τ<sub>r</sub> = t<sub>blind</sub>/ln(OD) for each stage and put the requirement on the datasheet as "recovery to within 1 dB in X ns after Y dB overdrive". (5) Reduce OD where you can: a limiter or STC in front (Steps 6 and module 06), DC-coupled or fast-restoring video, and ADC over-range detection so the processor can flag affected samples.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cRc" width="640" height="360" aria-label="A strong pulse overloads the chain; the gain deficit decays and a following weak pulse is read low or lost"></canvas>
+    <div class="ctrl">
+      <label for="rcS"><span>Strong pulse level</span> <b id="rcSv"></b></label><input id="rcS" type="range" min="-40" max="20" step="1" value="-10">
+      <label for="rcW"><span>Weak pulse level</span> <b id="rcWv"></b></label><input id="rcW" type="range" min="-95" max="-50" step="1" value="-80">
+      <label for="rcD"><span>Delay of weak pulse after strong pulse ends</span> <b id="rcDv"></b></label><input id="rcD" type="range" min="-1.3" max="1.3" step="0.05" value="0">
+      <label for="rcT"><span>Recovery time constant τ<sub>r</sub></span> <b id="rcTv"></b></label><input id="rcT" type="range" min="-2" max="0.3" step="0.05" value="-0.5">
+      <label for="rcL"><span>Linear limit of the stage (input-referred)</span> <b id="rcLv"></b></label><input id="rcL" type="range" min="-60" max="-20" step="1" value="-45">
+      <div class="readout" id="rcOut"></div>
+    </div>
+    <p class="cap">Top: levels at the antenna. The strong pulse (violet) ends at t = 0; the dashed red line is the stage's linear limit, the dashed green line the detection threshold (−88 dBm, 13 dB above noise). The weak pulse is drawn at its true level (grey outline) and as read (orange). Bottom: gain deficit after the overload, with the 1 dB line; the shaded part is the blind time.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (−10 dBm, −80 dBm, 1 µs, τ<sub>r</sub> 316 ns, limit −45 dBm): OD 35 dB, blind time about 1.1 µs, weak pulse read about 1.5 dB low, detected.</li>
+    <li>Delay 0.3 µs (slider −0.5): the weak pulse is read about 13 dB low and lost, as in the worked example.</li>
+    <li>τ<sub>r</sub> 50 ns (slider −1.3): blind time 0.18 µs, no visible deficit at 1 µs: the first table row.</li>
+    <li>Strong pulse at −45 dBm or below: OD 0, no blind time at all. Reducing OD (STC, limiter) is as good as faster recovery.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Overdrive recovery</td><td>DC coupling or fast baseline restore, bias network time constants, avoiding diode charge storage</td><td>Recovery to 1 dB in 300 ns after 35 dB overdrive</td><td>Blind time about 1.1 µs: 160 m of radar range, or 4 % of ESM listening time at one strong pulse per 25 µs</td></tr>
+    <tr><td>Overload level</td><td>Limiter threshold, P1dB of the first saturating stage</td><td>Linear limit −45 dBm (input-referred)</td><td>Sets OD; each 10 dB less OD shortens the blind time only logarithmically</td></tr>
+    <tr><td>ADC over-range flag</td><td>Converter choice, digital interface</td><td>Over-range bit, latency</td><td>Processor can discard or mark samples taken during recovery instead of reporting false PDWs</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Limiter designers:</b> your recovery time is the first and often the longest in the chain (module 06).</li>
+    <li><b>IF and video amplifier designers:</b> quote overload recovery with the overdrive level, the pulse width and the definition (to 1 dB of gain, or to within 10 % of baseline).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>OD is 20 dB and τ<sub>r</sub> is 100 ns. What is the blind time to 1 dB?</summary><p>100 × ln 20 = 300 ns.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="sys">
+  <div class="secno">Step 9</div>
+  <h2>System effects: small targets near clutter, strong and weak emitters together, and pulse accuracy</h2>
+  <div class="know"><h4>You already know</h4><p>From Steps 1 to 8: a linear channel has an instantaneous window from its noise floor to its clip level; AGC and STC move the window; a log amplifier widens it but drops phase; overload leaves a blind time.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous dynamic range (IDR):</b> the window the receiver handles at one moment without any gain change: from the noise floor to the clip level. <b>Total dynamic range:</b> IDR plus any gain control range.</p>
+    <p><b>Required IDR:</b> for a strong signal S and a weak signal W present together: (S − W) + the SNR the weak signal needs (13 dB here) + headroom for the strong one (6 dB here).</p>
+    <p><b>MTI (moving target indication) and Doppler processing:</b> radar processing that separates a moving target from stationary clutter in the same range cell by phase change from pulse to pulse. It needs a linear, coherent channel: clipping or a log amplifier destroys it.</p>
+    <p><b>Capture:</b> a log amplifier or limiter given two overlapping signals responds to the stronger one; the weaker is suppressed.</p>
+  </div>
+  <div class="col">
+    <p>Why the receiver architecture is decided here: the strong and weak signals that must coexist set a required IDR, and each architecture offers a different window. Worked example, radar: clutter in the target's own range cell at −40 dBm and a 1 m²-class target at −80 dBm, separated only by Doppler. Required IDR = 40 + 13 + 6 = 59 dB, and it must be coherent. A fixed-gain chain with a 12-bit ADC offers 55.6 dB (−100.6 to −45 dBm): the clutter clips. Worked example, ESM: a −30 dBm emitter and a −80 dBm emitter at the same moment on different frequencies: required 50 + 13 + 6 = 69 dB.</p>
+  </div>
+  <div class="eq">IDR<sub>required</sub> = (S − W) + SNR<sub>min</sub> + headroom &nbsp;&nbsp; IDR<sub>offered</sub> = P<sub>clip</sub> − N<sub>total</sub> &nbsp;&nbsp; weak margin = W + G − N<sub>out</sub>(G) − SNR<sub>min</sub><small>G is the gain change the architecture applies (0 or negative, dB). N<sub>out</sub>(G) combines the attenuated receiver noise with the fixed ADC noise (−111 dBm referred to the antenna at full gain). The 16-bit option assumes 20 dB less ADC noise relative to its full scale, used as 20 dB more headroom at the same gain.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive choice is a fixed-gain linear chain plus a slow AGC, the communications-receiver answer. In the radar example the AGC sets its gain for the strongest echo in the PRI (near clutter about 20 dB above the target cell's clutter, −20 dBm), so it turns the gain down 31 dB and the target's SNR falls to 0 dB: lost. In the ESM example it turns the gain down 21 dB for the −30 dBm emitter and the −80 dBm emitter reaches only 9.7 dB SNR: lost. Fixed gain clips the strong signal in both, and clipping makes harmonics and intermodulation that can hide the weak one.</p></div>
+  <h3>Side by side on one example: five architectures, both scenarios</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Architecture</th><th>Radar (−40 / −80 dBm): weak SNR</th><th>Radar verdict</th><th>ESM (−30 / −80 dBm): weak SNR</th><th>ESM verdict</th></tr>
+    <tr><td>Fixed gain, 12-bit ADC</td><td class="n">20.6 dB</td><td>lost: clutter clipped</td><td class="n">20.6 dB</td><td>lost: strong emitter clipped</td></tr>
+    <tr><td>Slow AGC, 12-bit ADC</td><td class="n">0.0 dB</td><td>lost: gain set by near clutter</td><td class="n">9.7 dB</td><td>lost</td></tr>
+    <tr><td>STC, 12-bit ADC</td><td class="n">17.5 dB</td><td>both usable (11 dB STC at this range)</td><td class="n">20.6 dB</td><td>lost: no range to schedule, acts as fixed gain</td></tr>
+    <tr><td>Fixed gain, 16-bit ADC</td><td class="n">20.6 dB</td><td>both usable</td><td class="n">20.6 dB</td><td>both usable</td></tr>
+    <tr><td>Log amplifier</td><td class="n">21.0 dB</td><td>lost: no phase, clutter not cancelled</td><td class="n">21.0 dB</td><td>lost: captured by the strong signal</td></tr>
+  </table></div>
+  <div class="col"><p>STC is the radar's answer because the strong signal is predictable in time; a wide-range converter is the ESM answer because nothing about the strong signal is predictable. A log amplifier works for ESM when the two signals are separated in time (interleaved pulses) or when a channeliser in front puts them in different channels, each with its own log amplifier; it fails only when they overlap in the same channel.</p></div>
+  <h3>Pulse descriptor accuracy against video SNR (B<sub>v</sub> 10 MHz, t<sub>r</sub> 35 ns)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Video SNR</th><th>TOA σ = t<sub>r</sub>/√(2·SNR)</th><th>PW σ ≈ √2·σ<sub>TOA</sub></th><th>PA σ ≈ 8.69/√(2·SNR) dB</th></tr>
+    <tr><td>15 dB</td><td class="n">4.40 ns</td><td class="n">6.22 ns</td><td class="n">1.09 dB</td></tr>
+    <tr><td>25 dB</td><td class="n">1.39 ns</td><td class="n">1.97 ns</td><td class="n">0.35 dB</td></tr>
+    <tr><td>35 dB</td><td class="n">0.44 ns</td><td class="n">0.62 ns</td><td class="n">0.11 dB</td></tr>
+  </table></div>
+  <div class="col"><p>These are the noise terms only. Add the bias terms from Steps 5, 7 and 8: amplitude shifts from AGC gain changes, PW bias of log video (−31 ns at −50 dBm in Step 7), amplitude lost to slow video on short pulses, and the gain deficit after an overload. In practice the bias terms are usually larger than the noise terms for strong pulses, and the noise terms dominate only near the sensitivity limit.</p></div>
+  <h3>How to choose the architecture</h3>
+  <div class="col"><p>(1) List the simultaneous signal pairs and compute the required IDR for each. (2) If the strong signal is predictable in time (own clutter, own transmit), use STC or blanking. (3) If phase is needed (Doppler, coherent ESM, direction finding by phase), stay linear: buy IDR with ADC bits, a channeliser, or two parallel ADCs at different gains for signals separated in time. (4) If only envelope parameters are needed and signals rarely overlap, a log amplifier gives the widest window per dollar. (5) Use AGC only for single, slowly varying signals. (6) Then go back to Steps 2 to 4 and set the gain line-up for the chosen window.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSy" width="640" height="360" aria-label="Dynamic range windows of five receiver architectures with the strong and weak signals marked"></canvas>
+    <div class="ctrl">
+      <label for="syC"><span>Scenario</span></label><select id="syC"><option value="radar" selected>Radar: target in clutter (Doppler-separated)</option><option value="esm">ESM: two emitters at the same time</option></select>
+      <label for="syA"><span>Architecture (highlighted)</span></label><select id="syA"><option value="fix">Fixed gain, 12-bit ADC</option><option value="agc">Slow AGC, 12-bit ADC</option><option value="stc" selected>STC, 12-bit ADC</option><option value="b16">Fixed gain, 16-bit ADC</option><option value="log">Log amplifier</option></select>
+      <label for="syS"><span>Strong signal (clutter or strong emitter)</span> <b id="sySv"></b></label><input id="syS" type="range" min="-70" max="0" step="1" value="-40">
+      <label for="syW"><span>Weak signal (target or weak emitter)</span> <b id="syWv"></b></label><input id="syW" type="range" min="-100" max="-50" step="1" value="-80">
+      <div class="readout" id="syOut"></div>
+    </div>
+    <p class="cap">Each column is one architecture's instantaneous window, referred to the antenna after its gain change: from its noise floor to its clip level. Violet line: the strong signal; orange line: the weak signal; the dotted orange line is 13 dB above the floor, where the weak signal must be. A tick or a cross under each column gives the verdict; the selected architecture is outlined and detailed in the readout.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (radar, STC, −40 / −80 dBm): STC 11 dB, weak SNR 17.5 dB, both usable; the required IDR is 59 dB.</li>
+    <li>Slow AGC in the radar scenario: gain −31 dB, weak SNR 0.0 dB, lost.</li>
+    <li>Switch to ESM with −30 dBm strong: only the 16-bit column shows a tick, as in the table.</li>
+    <li>ESM with the strong signal at −50 dBm: fixed gain, slow AGC and STC now get a tick too (−50 dBm is below the −45 dBm clip).</li>
+    <li>Radar with strong −70 dBm and weak −55 dBm: the log amplifier gets a tick, because a target 15 dB above its clutter needs no Doppler processing.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Instantaneous window</td><td>Gain line-up, ADC resolution and full scale</td><td>IDR 55.6 dB (12-bit) vs 75.6 dB (16-bit)</td><td>Radar target at −80 dBm under −40 dBm clutter needs 59 dB: only STC or the 16-bit chain gives it</td></tr>
+    <tr><td>Phase linearity versus level</td><td>Amplifier AM-PM, attenuator phase</td><td>AM-PM &lt; 1°/dB up to P1dB</td><td>MTI cancellation of clutter is limited by phase errors on the strong signal</td></tr>
+    <tr><td>Log amp capture ratio</td><td>Limiter stage design</td><td>Capture ratio, e.g. 1 dB</td><td>The weaker of two overlapping signals in one channel is lost</td></tr>
+    <tr><td>Video SNR at the weakest pulse</td><td>NF, video bandwidth</td><td>TSS, NF, B<sub>v</sub></td><td>TOA σ 1.4 ns and PA σ 0.35 dB at 25 dB SNR</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Receiver and IF designers:</b> the architecture decision comes first; your gain line-up is then designed to the window it needs.</li>
+    <li><b>Everyone in the chain:</b> AM-PM conversion and phase change over gain settings matter in a coherent radar as much as IIP3 does.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM receiver must see a −95 dBm emitter while a −25 dBm one is present. What IDR does it need?</summary><p>70 + 13 + 6 = 89 dB: beyond one 12-bit or 16-bit converter at fixed gain; it needs channelisation so the two are not in the same channel.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: every IF chain parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Noise figure (cascaded)</td><td>LNA NF and gain, loss in front, later stages weighted by gain</td><td>Bottom of every window: N = −174 + NF + 10·log B; −101 dBm at 3 dB, 10 MHz</td></tr>
+    <tr><td>Bandwidth</td><td>IF filter, preselector</td><td>Each decade costs 10 dB of linear DR and 6.7 dB of SFDR</td></tr>
+    <tr><td>P1dB / ADC full scale</td><td>Output stage, converter, total gain</td><td>Top of the window: IP1dB = OP1dB − G + 1; ADC clip −27.5 dBm at 31.5 dB gain</td></tr>
+    <tr><td>Cascaded IIP3</td><td>Mixer IIP3 and LO drive, IF amp OIP3, gain in front of each</td><td>SFDR = ⅔(IIP3 − N): −4.5 dBm gives 63.7 dB in 10 MHz</td></tr>
+    <tr><td>RF gain (LNA)</td><td>Stage count, device</td><td>Enough to meet NF (19 dB here); 10 dB more costs about 9 dB of IIP3 for 0.4 dB of NF</td></tr>
+    <tr><td>Mixer type</td><td>Passive ring, high-level ring, Gilbert cell</td><td>Chain IIP3 −4.5 / −1.7 / −13.8 dBm at the same total gain</td></tr>
+    <tr><td>Total gain</td><td>IF gain, pads</td><td>ADC noise loading 10 dB at 31.5 dB; too little raises NF to 7.3 dB, too much clips at −41 dBm</td></tr>
+    <tr><td>AGC range and speed</td><td>VGA or attenuator, detector, loop filter</td><td>Total range up to 106 dB for one slow signal; pulsed radar and ESM lose weak signals (1 of 12 kept with fast attack, slow decay)</td></tr>
+    <tr><td>STC law, depth, end range</td><td>Attenuator range, driver, timing</td><td>R⁻⁴ to 10 km makes a 1 m² target read −91 dBm at all ranges; stops clutter clipping inside 1.2 km; SCR unchanged</td></tr>
+    <tr><td>Log range and slope</td><td>DLVA or SDLA design</td><td>74 to 84 dB above noise with no gain change; no phase; capture by the stronger of two overlapping signals</td></tr>
+    <tr><td>Video bandwidth</td><td>Video amplifier, detector capacitance</td><td>t<sub>r</sub> = 0.35/B<sub>v</sub>; 2 MHz on a 200 ns pulse reads PW 85 ns and PA −2.0 dB; TOA σ ∝ 1/√B<sub>v</sub></td></tr>
+    <tr><td>Overload recovery</td><td>Coupling, bias networks, charge storage</td><td>Blind time τ<sub>r</sub>·ln(OD): 1.1 µs after 35 dB overdrive with τ<sub>r</sub> 300 ns</td></tr>
+    <tr><td>Instantaneous dynamic range</td><td>All of the above plus ADC resolution</td><td>Decides whether a −80 dBm target survives under −40 dBm clutter, or a −80 dBm emitter beside a −30 dBm one</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M01-lna-noise.html">LNA and receiver noise</a> (Friis and sensitivity in depth); <a href="M05-mixers-conversion.html">Mixers and frequency conversion</a> (mixer IIP3, LO drive and spurs); <a href="M04-filters.html">Filters and preselection</a> (bandwidth, blocking, group delay); <a href="M06-limiter-duplexer.html">Front-end protection and duplexing</a> (limiter recovery). Module 07, ADC, DAC and sampling, covers the converter's full scale, noise and SFDR used here. The radar pages R3 and R4 and the receiver/ESM and signal identification parts use these numbers in full systems.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>ADC full scale (FS, dBFS)</dt><dd>The largest sine-wave input an ADC digitises without clipping; levels relative to it are in dBFS.</dd>
+    <dt>AGC</dt><dd>Automatic gain control: a loop that adjusts gain to hold the output at a reference level.</dd>
+    <dt>Attack time τ<sub>a</sub></dt><dd>The time constant with which an AGC loop reduces gain when the signal rises.</dd>
+    <dt>Blind time</dt><dd>The interval after an overload during which a weak signal is lost or mismeasured.</dd>
+    <dt>Blocker</dt><dd>A strong unwanted signal that degrades reception of a weak wanted one.</dd>
+    <dt>Blocking dynamic range (BDR)</dt><dd>Largest tolerated blocker relative to the noise floor; on this page IP1dB − N.</dd>
+    <dt>Capture</dt><dd>A log amplifier's or limiter's response to the stronger of two overlapping signals, suppressing the weaker.</dd>
+    <dt>Cascade</dt><dd>Stages in series; a cascaded figure is that of the whole chain referred to its input.</dd>
+    <dt>Clutter</dt><dd>Echoes from ground, sea, rain or birds; surface clutter falls as R⁻³.</dd>
+    <dt>Decay time τ<sub>d</sub></dt><dd>The time constant with which an AGC loop restores gain when the signal falls.</dd>
+    <dt>Desensitisation</dt><dd>Rise in noise floor or loss of gain for a weak signal caused by a strong one.</dd>
+    <dt>DLVA</dt><dd>Detector log video amplifier: wideband RF detector with logarithmic video output.</dd>
+    <dt>Dynamic range (linear)</dt><dd>IP1dB − noise floor, in dB.</dd>
+    <dt>Gain distribution</dt><dd>How the total antenna-to-ADC gain is split stage by stage.</dd>
+    <dt>Headroom</dt><dd>Distance in dB from the signal level to a stage's P1dB or the ADC full scale.</dd>
+    <dt>IF</dt><dd>Intermediate frequency: the fixed frequency the mixer converts to.</dd>
+    <dt>IIP3 / OIP3</dt><dd>Input / output third-order intercept point; OIP3 = IIP3 + G.</dd>
+    <dt>IM3</dt><dd>Third-order intermodulation product at 2f<sub>1</sub> − f<sub>2</sub> or 2f<sub>2</sub> − f<sub>1</sub>.</dd>
+    <dt>Instantaneous dynamic range (IDR)</dt><dd>The window handled at one moment with no gain change.</dd>
+    <dt>Level diagram</dt><dd>Plot of signal, noise and distortion level after each stage, with each stage's limit.</dd>
+    <dt>Log amplifier</dt><dd>Circuit whose output voltage is proportional to the input level in dB.</dd>
+    <dt>Log conformance</dt><dd>Maximum deviation of a log amplifier from its ideal straight line, in dB.</dd>
+    <dt>MDS</dt><dd>Minimum detectable signal: noise floor plus the SNR the detector needs.</dd>
+    <dt>MTI</dt><dd>Moving target indication: separating moving targets from stationary clutter by pulse-to-pulse phase.</dd>
+    <dt>Noise floor N</dt><dd>Input-referred noise in the bandwidth: −174 + NF + 10·log B dBm.</dd>
+    <dt>Noise loading (of the ADC)</dt><dd>How far the analogue noise at the ADC input exceeds the ADC's own noise.</dd>
+    <dt>Overdrive OD</dt><dd>How far the input exceeds a stage's linear limit, in dB.</dd>
+    <dt>P1dB (IP1dB, OP1dB)</dt><dd>Input or output level at 1 dB gain compression.</dd>
+    <dt>PDW (TOA, PW, PA)</dt><dd>Pulse descriptor word: time of arrival, pulse width, pulse amplitude and other per-pulse measurements.</dd>
+    <dt>Recovery time</dt><dd>Time after an overload for gain to return within a stated amount of normal.</dd>
+    <dt>Reference level</dt><dd>The output level an AGC loop aims for.</dd>
+    <dt>Rise time t<sub>r</sub></dt><dd>10 to 90 % rise of the detected pulse, about 0.35/B<sub>v</sub>.</dd>
+    <dt>SCR</dt><dd>Signal-to-clutter ratio in the same range cell.</dd>
+    <dt>SDLA</dt><dd>Successive-detection log amplifier: limiting IF stages with a detector at each, summed.</dd>
+    <dt>SFDR</dt><dd>Spurious-free dynamic range: ⅔·(IIP3 − N).</dd>
+    <dt>Settling time</dt><dd>Time for an AGC loop's gain to come within 1 dB of final after a step: τ<sub>a</sub>·ln(Δ/1 dB).</dd>
+    <dt>Square-law detector</dt><dd>Diode detector whose output voltage is proportional to input power.</dd>
+    <dt>STC</dt><dd>Sensitivity time control: attenuation scheduled against time since the transmit pulse, n·10·log(R<sub>0</sub>/R).</dd>
+    <dt>TSS</dt><dd>Tangential sensitivity: pulse level just visible above the video noise, about 8 dB video SNR.</dd>
+    <dt>VGA</dt><dd>Variable-gain amplifier, the control element of AGC and sometimes STC.</dd>
+    <dt>Video, video bandwidth B<sub>v</sub></dt><dd>The detected baseband envelope; the bandwidth of everything after the detector.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>; Pozar, <i>Microwave Engineering</i>; Razavi, <i>RF Microelectronics</i>; Egan, <i>Practical RF System Design</i>; Wiley, <i>ELINT: The Interception and Analysis of Radar Signals</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+const mg=x=>(x>=0?'+':'')+x.toFixed(1)+' dB '+(x<0?'FAIL':'ok');
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(x<10?2:0)+' MHz');
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+
+/* ---------- models ---------- */
+// Pure models shared with the page (copied into the page script).
+const kT=-174;
+const nfloor=(nf,B)=>kT+nf+db(B);
+const psum=(...a)=>db(a.reduce((s,x)=>s+lin(x),0));
+
+// ---------- line-up ----------
+const MIX={pas:{n:'passive diode',G:-7,NF:7,I:15},hl:{n:'high-level passive',G:-8,NF:8,I:25},act:{n:'active (Gilbert)',G:8,NF:10,I:5}};
+function stagesOf(lnaG,mixG,mixNF,mixI,if2G){
+  const st=[
+    {n:'Limiter + preselector',G:-1.5,NF:1.5,OIP3:45,OP1:28},
+    {n:'LNA',G:lnaG,NF:1.5,OIP3:25,OP1:15},
+    {n:'Image filter',G:-2,NF:2,OIP3:60,OP1:40},
+    {n:'Mixer',G:mixG,NF:mixNF,OIP3:mixI+mixG,OP1:mixI-10+mixG},
+    {n:'IF amp 1',G:15,NF:3,OIP3:30,OP1:18},
+    {n:'IF filter',G:-3,NF:3,OIP3:60,OP1:40},
+    if2G>=0?{n:'IF amp 2',G:if2G,NF:5,OIP3:35,OP1:20}:{n:'IF pad',G:if2G,NF:-if2G,OIP3:60,OP1:40},
+    {n:'ADC',G:0,NF:25,OIP3:35,OP1:4}];
+  return st;
+}
+function cascade(st,B){
+  let F=1,Gc=1,inv=0,ip1=Infinity,lim='',out=[],Gdb=0;
+  st.forEach((s,i)=>{ const f=lin(s.NF), g=lin(s.G);
+    F+= (f-1)/Gc; inv+= Gc/lin(s.OIP3-s.G); Gc*=g; Gdb+=s.G;
+    const p=s.OP1-Gdb+(s.n==="ADC"?0:1); if(p<ip1){ip1=p;lim=s.n;}
+    out.push({n:s.n,Gcum:Gdb,NFcum:db(F),IIP3cum:-db(inv),OP1:s.OP1}); });
+  const NF=db(F), IIP3=-db(inv), N=nfloor(NF,B);
+  return {NF,IIP3,G:Gdb,ip1,lim,N,sfdr:2/3*(IIP3-N),bdr:ip1-N,per:out};
+}
+// contributions of each stage to F
+function nfShares(st){ let Gc=1,F=1,c=[]; st.forEach(s=>{const d=(lin(s.NF)-1)/Gc; c.push(d); F+=d; Gc*=lin(s.G);}); return c.map(x=>x/(F-1)); }
+function iip3Shares(st){ let Gc=1,inv=0,c=[]; st.forEach(s=>{const d=Gc/lin(s.OIP3-s.G); c.push(d); inv+=d; Gc*=lin(s.G);}); return c.map(x=>x/inv); }
+
+// ---------- step 1 ----------
+function dr1(nf,B,G,op1){ const N=nfloor(nf,B), ip1=op1-G+1; return {N,ip1,DR:ip1-N}; }
+
+// ---------- AGC sim ----------
+const AGC={FS:-45,NADC:-111,N:-101,REF:-60};
+function agcScenario(sc){
+  if(sc==='step'){ const T=2000,dt=0.5; return {T,dt,unit:'µs',sig:t=>(t>=200&&t<1200)?-30:-80,pulses:[]}; }
+  if(sc==='esm'){ const T=200,dt=0.02; const P=[];
+    for(let t=5;t<T;t+=25) P.push({t0:t,pw:2,lev:-25,k:'A'});
+    for(let t=3;t<T;t+=17) P.push({t0:t,pw:1,lev:-75,k:'B'});
+    return {T,dt,unit:'µs',pulses:P,sig:t=>{let s=-200;for(const p of P) if(t>=p.t0&&t<p.t0+p.pw) s=Math.max(s,p.lev); return s;}}; }
+  // radar: one PRI, clutter R^-3 from 2 µs to 100 µs, target at 80 µs
+  const T=200,dt=0.05; const P=[{t0:100,pw:1,lev:-85,k:'T'}];
+  return {T,dt,unit:'µs',pulses:P,sig:t=>{let s=-200; if(t>=2&&t<60) s=-30-30*Math.log10(t/2); if(t>=100&&t<101) s=psum(s,-85); return s;}};
+}
+function agcRun(sc,ta,td,range){
+  const S=agcScenario(sc); const n=Math.round(S.T/S.dt); let G=0; const t=[],x=[],g=[],o=[];
+  for(let i=0;i<=n;i++){ const tt=i*S.dt; const s=S.sig(tt); const inp=psum(s,AGC.N); const out=inp+G;
+    t.push(tt); x.push(inp); g.push(G); o.push(Math.min(out,AGC.FS));
+    const e=out-AGC.REF; const k=e>0?Math.min(1,S.dt/ta):Math.min(1,S.dt/td); G=Math.max(-range,Math.min(0,G-e*k)); }
+  return {S,t,x,g,o};
+}
+const nOut=G=>psum(AGC.N+G,AGC.NADC);
+function agcStats(sc,ta,td,range){
+  const R=agcRun(sc,ta,td,range), S=R.S; let clip=0; for(let i=0;i<R.t.length;i++) if(R.x[i]+R.g[i]>AGC.FS) clip+=S.dt;
+  const res={clip,R};
+  if(sc==='step'){ // settle within 1 dB of final gain after 200
+    const i0=Math.round(200/S.dt), i1=Math.round(1199/S.dt); const gf=R.g[i1]; let ts=NaN;
+    for(let i=i0;i<=i1;i++){ if(Math.abs(R.g[i]-gf)<=1){ts=(i-i0)*S.dt;break;} }
+    res.settle=ts; res.gfinal=gf;
+    // recovery after the step ends
+    const i2=Math.round(1200/S.dt); let tr=NaN; for(let i=i2;i<R.t.length;i++){ if(R.g[i]>=-1){tr=(i-i2)*S.dt;break;} } res.recover=tr;
+  } else {
+    let det=0,tot=0,minS=Infinity; S.pulses.forEach(p=>{ if(p.k==='A') return; tot++; const i=Math.round((p.t0+p.pw/2)/S.dt); const G=R.g[Math.round(p.t0/S.dt)]; const snr=p.lev+G-nOut(G); minS=Math.min(minS,snr); if(snr>=13) det++; });
+    res.det=det; res.tot=tot; res.minS=minS;
+    if(sc==='esm'){ // strong pulse amplitude error: mean output over strong pulses vs truth (gain unknown to processor if not reported)
+      let ce=0,cn=0; S.pulses.forEach(p=>{ if(p.k!=='A') return; for(let tt=p.t0;tt<p.t0+p.pw;tt+=S.dt){ const i=Math.round(tt/S.dt); if(R.x[i]+R.g[i]>AGC.FS) ce+=S.dt; } cn++; }); res.strongClipPer=ce/cn; }
+  }
+  return res;
+}
+
+// ---------- STC ----------
+const RAD={Pt:73,G:32,lam:0.0316,L:5,N:-101,FS:-45,NADC:-111,th:0.0436,dR:15,hor:20};
+function prDbm(sig,Rkm){ const R=Rkm*1000; return RAD.Pt+2*RAD.G+20*Math.log10(RAD.lam)+sig-db(Math.pow(4*Math.PI,3))-40*Math.log10(R)-RAD.L; }
+function clutDbsm(s0,Rkm){ return s0+db(Rkm*1000*RAD.th*RAD.dR); }
+function stcAtt(law,R0,Rkm,depth){ const n={none:0,r2:2,r3:3,r4:4}[law]; if(!n||Rkm>=R0) return 0; return Math.min(depth,n*10*Math.log10(R0/Rkm)); }
+function stcAt(law,R0,sig,s0,Rkm){ const A=stcAtt(law,R0,Rkm,70); const t=prDbm(sig,Rkm), c=Rkm<=RAD.hor?prDbm(clutDbsm(s0,Rkm),Rkm):-300; const no=psum(RAD.N-A,RAD.NADC);
+  return {A,t,c,to:t-A,co:c-A,no,snr:t-A-no,scr:t-c,tsat:t-A>RAD.FS,csat:c-A>RAD.FS}; }
+function clutSatRange(law,R0,s0){ let r=0; for(let R=0.1;R<=RAD.hor;R+=0.01){ const x=stcAt(law,R0,0,s0,R); if(x.csat) r=R; } return r; }
+
+// ---------- detectors ----------
+const DET={sq:{n:'square-law diode',N:-74},dlva:{n:'DLVA',N:-74,s:25,min:-80,max:0},sdla:{n:'SDLA',N:-79,s:20,min:-90,max:5}};
+function detV(type,p){ // p = total power dBm, returns volts
+  const d=DET[type];
+  if(type==='sq'){ const P=lin(p); return Math.min(2,10*P/Math.sqrt(1+P/0.01)); } // V, k=1 V/mW...
+  return d.s/1000*Math.max(0,Math.min(d.max-d.min,p-d.min));
+}
+function detSim(type,P,PW,Bv){ // PW µs, Bv MHz
+  const d=DET[type], tau=1/(2*Math.PI*Bv); // µs
+  const T=Math.max(2*PW+12*tau,0.3), t0=Math.max(0.2*T,4*tau)/1; const n=3000, dt=(T+t0)/n;
+  const vN=detV(type,d.N), vS=detV(type,psum(P,d.N));
+  const t=[],v=[]; let y=vN; for(let i=0;i<=n;i++){ const tt=-t0+i*dt; const x=(tt>=0&&tt<PW)?vS:vN; y+= (x-y)*(1-Math.exp(-dt/tau)); t.push(tt); v.push(y); }
+  let pk=-Infinity,ipk=0; v.forEach((y,i)=>{if(y>pk){pk=y;ipk=i;}});
+  let th; if(type==='sq') th=vN+(pk-vN)/2; else th=pk-0.003*d.s; // 3 dB below peak on log video
+  let a=NaN,b=NaN; for(let i=1;i<=n;i++){ if(isNaN(a)&&v[i-1]<th&&v[i]>=th) a=t[i-1]+dt*(th-v[i-1])/(v[i]-v[i-1]); if(!isNaN(a)&&v[i-1]>=th&&v[i]<th){ b=t[i-1]+dt*(v[i-1]-th)/(v[i-1]-v[i]); break; } }
+  const pwm=b-a;
+  const paErr=type==='sq'?db((pk-vN)/(vS-vN)):(pk-vS)/(d.s/1000);
+  const tr=0.35/Bv; const snrv=P-nfloor(type==='sdla'?8:10,2*Bv*1e6); const sig=tr/Math.sqrt(2*lin(snrv));
+  return {t,v,th,pk,vN,vS,a,b,pwm,paErr,tr,snrv,sig,tau};
+}
+
+// ---------- recovery ----------
+function rec(strong,weak,delay,tau,limit){ const OD=Math.max(0,strong-limit); const D=OD*Math.exp(-delay/tau); const blind=OD>1?tau*Math.log(OD):0; const th=-88; return {OD,D,blind,meas:weak-D,det:weak-D>=th,th}; }
+
+const SYS={N:-101,NA:-111,FS:-45};
+const ARCH={fix:'Fixed gain, 12-bit ADC',agc:'Slow AGC, 12-bit ADC',stc:'STC, 12-bit ADC',b16:'Fixed gain, 16-bit ADC',log:'Log amplifier (no phase)'};
+function sysEval(sc,a,S,W){
+  let G=0,top=SYS.FS,floorA=SYS.NA,coh=true,sfdr=70,note='';
+  if(a==='agc') G=Math.min(0,SYS.FS-6-(sc==='radar'?S+20:S));
+  if(a==='stc'){ if(sc==='radar') G=-Math.max(0,S-(SYS.FS-6)); else note='no range to schedule: acts as fixed gain'; }
+  if(a==='b16'){ top=-25; sfdr=85; }
+  if(a==='log'){ top=-15; floorA=-200; coh=false; }
+  const fl=psum(SYS.N+G,floorA), sIn=S+G, wIn=W+G, snr=wIn-fl, clip=sIn>top;
+  let ok=true, why='';
+  if(clip){ ok=false; why='strong signal clipped'; }
+  else if(snr<13){ ok=false; why='weak signal below noise after gain change'; }
+  else if(a==='log'&&sc==='radar'&&W-S<10){ ok=false; why='no phase: clutter cannot be cancelled'; }
+  else if(a==='log'&&sc==='esm'&&S-W>1){ ok=false; why='log amp captured by the stronger signal'; }
+  else if(sc==='esm'&&W<S-sfdr){ ok=false; why='weak signal below ADC spurs'; }
+  else why='both signals usable';
+  return {G,top:top+0,fl,sIn,wIn,snr,clip,ok,why,note,win:top-fl};
+}
+
+const tri=(g,x,y,col)=>{ g.fillStyle=col; g.beginPath(); g.moveTo(x,y-9); g.lineTo(x-5,y-1); g.lineTo(x+5,y-1); g.closePath(); g.fill(); };
+const fdb=x=>x.toFixed(1)+' dB', fdbm=x=>x.toFixed(1)+' dBm';
+const fus=x=>isFinite(x)?(x<1?(x*1000).toFixed(0)+' ns':(x<1000?x.toFixed(x<10?2:1)+' µs':(x/1000).toFixed(2)+' ms')):'n/a';
+const fB=B=>fmt(B,'Hz',B>=1e9?2:(B>=1e8?0:1));
+
+/* ---------- Step 1: dynamic range ---------- */
+function drDraw(){
+  const c=$('cDr'), g=ctx(c), A=area(c);
+  const nf=sl('drN'), B=Math.pow(10,sl('drB')), G=sl('drG'), op1=sl('drP');
+  setv('drN',nf.toFixed(1)+' dB'); setv('drB',fB(B)); setv('drG',G+' dB'); setv('drP',(op1>0?'+':'')+op1+' dBm');
+  const r=dr1(nf,B,G,op1), Ps=op1+2.16, rapp=pl=>pl-5*Math.log10(1+Math.pow(10,2*(pl-Ps)/10));
+  const yb=Math.ceil((op1+15)/10)*10, ya=yb-160;
+  const xs=[],y1=[],y2=[]; for(let x=-130;x<=10;x+=0.5){ xs.push(x); y1.push(x+G); y2.push(rapp(x+G)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-130,10,ya,yb,[{x:xs,y:y1,color:css('--muted'),dash:[4,3]},{x:xs,y:y2,color:css('--accent'),w:2.2}],{nx:7,ny:8,xl:'input power, dBm',yl:'output power, dBm'});
+  shade(g,P.X(Math.max(-130,r.N)),P.X(Math.min(10,r.ip1)),A.y0,A.h,css('--trace'),0.10);
+  hline(g,A.x0,A.w,P.Y(r.N+G),css('--trace')); { const s='output noise N+G = '+(r.N+G).toFixed(1)+' dBm'; txt(g,s,A.x0+A.w-g.measureText(s).width-6,P.Y(r.N+G)+14,css('--trace')); }
+  if(r.N>-130) vline(g,P.X(r.N),A.y0,A.h,css('--trace'));
+  if(r.ip1<10) vline(g,P.X(r.ip1),A.y0,A.h,css('--accent'));
+  dot(g,P.X(clamp(r.ip1,-130,10)),P.Y(op1),css('--accent'),5);
+  const lab='DR '+r.DR.toFixed(1)+' dB', mx=(P.X(Math.max(-130,r.N))+P.X(Math.min(10,r.ip1)))/2;
+  txt(g,lab,clamp(mx-g.measureText(lab).width/2,A.x0+4,A.x0+A.w-g.measureText(lab).width-4),A.y0+A.h-10,css('--ink'));
+  txt(g,'OP1dB '+op1+' dBm',clamp(P.X(r.ip1)+8,A.x0+4,A.x0+A.w-110),P.Y(op1)+16,css('--accent'));
+  ro($('drOut'),[['noise floor N',fdbm(r.N)],['input P1dB',fdbm(r.ip1)],['dynamic range',fdb(r.DR)],['output noise',fdbm(r.N+G)],['MDS (N + 13 dB)',fdbm(r.N+13)],['usable range MDS→P1dB',fdb(r.DR-13)]]);
+}
+bind(['drN','drB','drG','drP'],drDraw);
+
+/* ---------- Step 2: level diagram ---------- */
+const LUL=['in','lim','LNA','img','mix','IF1','IFf','IF2','ADC'];
+function luDraw(){
+  const c=$('cLu'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const S=sl('luS'), L=sl('luL'), MI=sl('luM'), I2=sl('luI');
+  setv('luS',S+' dBm'); setv('luL',L+' dB'); setv('luM','+'+MI+' dBm'); setv('luI',(I2>0?'+':'')+I2+' dB');
+  const st=stagesOf(L,-7,7,MI,I2), cs=cascade(st,1e7);
+  const xs=[0],sg=[S],no=[cs.N - (cs.NF - 0)],im=[3*S-2*cs.per[0].IIP3cum];
+  no[0]=-174+70; // source noise at input
+  cs.per.forEach((p,i)=>{ xs.push(i+1); sg.push(S+p.Gcum); no.push(-174+70+p.NFcum+p.Gcum); im.push(3*S-2*p.IIP3cum+p.Gcum); });
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-0.3,8.3,-160,40,[{x:xs,y:no,color:css('--trace'),w:2},{x:xs,y:im,color:css('--trace2'),dash:[5,3],w:1.8},{x:xs,y:sg,color:css('--accent'),w:2.4}],{nx:1,ny:10,fx:()=>'',yl:'level at stage output, dBm'});
+  g.fillStyle=css('--muted'); LUL.forEach((s,i)=>{ const w=g.measureText(s).width; g.fillText(s,P.X(i)-w/2,A.y0+A.h+15); });
+  let worst=Infinity, wi=0;
+  st.forEach((s,i)=>{ const x=P.X(i+1), y=P.Y(s.OP1); g.strokeStyle=css('--bad'); g.lineWidth=2.5; g.beginPath(); g.moveTo(x-12,y); g.lineTo(x+12,y); g.stroke(); g.lineWidth=1;
+    const h=s.OP1-sg[i+1]; if(h<worst){worst=h; wi=i;} });
+  { const x=P.X(8), y=P.Y(-174+25+70); g.strokeStyle=css('--muted'); g.lineWidth=2.5; g.beginPath(); g.moveTo(x-12,y); g.lineTo(x+12,y); g.stroke(); g.lineWidth=1; txt(g,'ADC noise',x-70,y+16,css('--muted')); }
+  for(let i=0;i<9;i++){ dot(g,P.X(i),P.Y(clamp(sg[i],-160,40)),css('--accent'),3); }
+  txt(g,'signal',P.X(0)+6,P.Y(sg[0])-6,css('--accent')); txt(g,'noise (10 MHz)',P.X(0)+6,P.Y(no[0])+14,css('--trace'));
+  { const v=clamp(im[0],-158,38); txt(g,im[0]<-160?'IM3 (below scale)':'IM3',P.X(0)+6,P.Y(v)-6,css('--trace2')); }
+  const comp=S>cs.ip1, sADC=S+cs.G-4, imr=(3*S-2*cs.IIP3)-cs.N;
+  const sh=nfShares(st), top=sh.indexOf(Math.max(...sh));
+  ro($('luOut'),[['total gain',fdb(cs.G)],['cascaded NF',cs.NF.toFixed(2)+' dB'],['cascaded IIP3',fdbm(cs.IIP3)],['input P1dB',fdbm(cs.ip1)+' ('+cs.lim+')'],['signal at ADC',(sADC).toFixed(1)+' dBFS'+(comp?' CLIPS':'')],['SNR at ADC',fdb(S-cs.N)],['IM3 vs noise',sdb(imr)],['least headroom',st[wi].n+' '+sdb(worst)],['largest noise share',st[top].n+' '+(100*sh[top]).toFixed(0)+' %']]);
+}
+bind(['luS','luL','luM','luI'],luDraw);
+
+/* ---------- Step 3: SFDR and BDR ---------- */
+function sfDraw(){
+  const c=$('cSf'), g=ctx(c), A=area(c);
+  const I=sl('sfI'), nf=sl('sfN'), B=Math.pow(10,sl('sfB'));
+  setv('sfI',(I>0?'+':'')+I+' dBm'); setv('sfN',nf.toFixed(1)+' dB'); setv('sfB',fB(B));
+  const N=nfloor(nf,B), ip1=I-9.6, sfdr=2/3*(I-N), top=(2*I+N)/3, bdr=ip1-N, Ps=ip1+1.164;
+  const fund=x=>x-5*Math.log10(1+Math.pow(10,2*(x-Ps)/10));
+  const xs=[],yf=[],yi=[],xe=[],ye=[],ie=[];
+  for(let x=-140;x<=40;x+=0.5){ xs.push(x); yf.push(fund(x)); yi.push(x<=ip1+3?3*x-2*I:NaN); if(x>=ip1-3&&x<=I){ xe.push(x); ye.push(x); ie.push(3*x-2*I);} }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-140,40,-160,40,[{x:xe,y:ye,color:css('--accent'),dash:[3,3]},{x:xe,y:ie,color:css('--trace2'),dash:[3,3]},{x:xs,y:yf,color:css('--accent'),w:2.2},{x:xs,y:yi,color:css('--trace2'),w:2.2}],{nx:9,ny:10,xl:'input level per tone, dBm',yl:'output referred to input, dBm'});
+  hline(g,A.x0,A.w,P.Y(N),css('--trace')); txt(g,'noise floor '+N.toFixed(1)+' dBm',A.x0+6,P.Y(N)+14,css('--trace'));
+  dot(g,P.X(I),P.Y(I),css('--ink'),4); txt(g,'IIP3 '+I+' dBm',clamp(P.X(I)-100,A.x0+4,A.x0+A.w-100),P.Y(I)-8,css('--ink'));
+  g.strokeStyle=css('--trace2'); g.lineWidth=5; g.beginPath(); g.moveTo(P.X(top),P.Y(N)); g.lineTo(P.X(top),P.Y(top)); g.stroke(); g.lineWidth=1;
+  { const s='SFDR '+sfdr.toFixed(1)+' dB'; txt(g,s,clamp(P.X(top)-g.measureText(s).width-10,A.x0+4,A.x0+A.w-110),(P.Y(N)+P.Y(top))/2,css('--trace2')); }
+  g.globalAlpha=0.25; g.fillStyle=css('--bad'); g.fillRect(P.X(Math.max(-140,N)),A.y0+A.h-10,P.X(Math.min(40,ip1))-P.X(Math.max(-140,N)),10); g.globalAlpha=1;
+  txt(g,'BDR '+bdr.toFixed(1)+' dB',clamp(P.X((N+ip1)/2)-40,A.x0+4,A.x0+A.w-100),A.y0+A.h-14,css('--bad'));
+  dot(g,P.X(ip1),P.Y(fund(ip1)),css('--bad'),4);
+  const naive=3*(-30)-2*I-N;
+  ro($('sfOut'),[['noise floor N',fdbm(N)],['SFDR',fdb(sfdr)],['tone level where IM3 = N',fdbm(top)],['IP1dB (IIP3 − 9.6)',fdbm(ip1)],['BDR',fdb(bdr)],['BDR − SFDR',fdb(bdr-sfdr)],['IM3 of two −30 dBm tones',sdb(naive)+' vs N']]);
+}
+bind(['sfI','sfN','sfB'],sfDraw);
+
+/* ---------- Step 4: gain distribution ---------- */
+function dist(l,T,mk){ const m=MIX[mk]; const if2=T-(-1.5+l-2+m.G+15-3); const st=stagesOf(l,m.G,m.NF,m.I,if2); const c=cascade(st,1e7); const ca=cascade(st.slice(0,7),1e7); return {if2,st,load:(-174+ca.NF+70+ca.G)-(-174+25+70),...c}; }
+function dgDraw(){
+  const c=$('cGd'), g=ctx(c);
+  const L=sl('dgL'), T=sl('dgT'), mk=$('dgM').value, req=sl('dgR');
+  setv('dgL',L.toFixed(1)+' dB'); setv('dgT',T.toFixed(1)+' dB'); setv('dgR',req.toFixed(1)+' dB');
+  const xs=[],nf=[],ip=[],sf=[]; let best=null;
+  for(let l=5;l<=40.001;l+=0.5){ const d=dist(l,T,mk); xs.push(l); nf.push(d.NF); ip.push(d.IIP3); sf.push(d.sfdr); if(d.NF<=req&&(!best||d.IIP3>best.IIP3)) best={l,...d}; }
+  const cur=dist(L,T,mk);
+  const x0=56,w=c.width-72,h=88,gap=34,y0s=[20,20+h+gap,20+2*(h+gap)];
+  const pan=[[nf,0,14,'chain NF, dB',css('--trace'),cur.NF],[ip,-35,15,'chain IIP3, dBm',css('--trace2'),cur.IIP3],[sf,40,75,'SFDR in 10 MHz, dB',css('--accent'),cur.sfdr]];
+  pan.forEach((p,k)=>{ const y0=y0s[k];
+    const P=plot(g,x0,y0,w,h,5,40,p[1],p[2],[{x:xs,y:p[0],color:p[4],w:2}],{nx:7,ny:2,fx:v=>k===2?v.toFixed(0):'',yl:p[3],xl:k===2?'LNA gain, dB (total gain held at '+T.toFixed(1)+' dB)':''});
+    let run=null; for(let i=0;i<xs.length;i++){ const ok=nf[i]<=req; if(ok&&run===null) run=xs[i]; if((!ok||i===xs.length-1)&&run!==null){ const e=ok?xs[i]:xs[i-1]; shade(g,P.X(run),P.X(e),y0,h,css('--good'),0.12); run=null; } }
+    vline(g,P.X(L),y0,h,css('--accent'),[]); dot(g,P.X(L),P.Y(clamp(p[5],p[1],p[2])),css('--accent'),4);
+    if(best){ const v=[best.NF,best.IIP3,best.sfdr][k]; dot(g,P.X(best.l),P.Y(clamp(v,p[1],p[2])),css('--good'),5); }
+    if(k===0) hline(g,x0,w,P.Y(req),css('--good'));
+  });
+  ro($('dgOut'),[['IF amp 2',cur.if2>=0?'+'+cur.if2.toFixed(1)+' dB':'pad '+cur.if2.toFixed(1)+' dB'],['chain NF',cur.NF.toFixed(2)+' dB'+(cur.NF>req?' (fails)':'')],['chain IIP3',fdbm(cur.IIP3)],['input P1dB',fdbm(cur.ip1)+' ('+cur.lim+')'],['SFDR (10 MHz)',fdb(cur.sfdr)],['ADC noise loading',fdb(cur.load)],['best LNA gain for NF req.',best?best.l.toFixed(1)+' dB → IIP3 '+best.IIP3.toFixed(1):'none meets it']]);
+}
+bind(['dgL','dgT','dgM','dgR'],dgDraw);
+
+/* ---------- Step 5: AGC ---------- */
+function agDraw(){
+  const c=$('cAg'), g=ctx(c);
+  const sc=$('agS').value, ta=Math.pow(10,sl('agA')), td=Math.pow(10,sl('agD')), rg=sl('agR');
+  setv('agA',fus(ta)); setv('agD',fus(td)); setv('agR',rg+' dB');
+  const s=agcStats(sc,ta,td,rg), R=s.R, S=R.S, nb=560;
+  const bx=[],bi=[],bo=[],bg=[]; for(let b=0;b<nb;b++){ const i0=Math.floor(b*R.t.length/nb), i1=Math.max(i0+1,Math.floor((b+1)*R.t.length/nb)); let mi=-300,mo=-300,mg2=0; for(let i=i0;i<i1;i++){ mi=Math.max(mi,R.x[i]); mo=Math.max(mo,R.o[i]); mg2=Math.min(mg2,R.g[i]); } bx.push(R.t[i0]); bi.push(mi); bo.push(mo); bg.push(mg2); }
+  const x0=56,w=c.width-72,h1=200,h2=96,y1=20,y2=y1+h1+36;
+  const P=plot(g,x0,y1,w,h1,0,S.T,-110,-10,[{x:bx,y:bi,color:css('--muted'),w:1.4},{x:bx,y:bo,color:css('--accent'),w:1.8}],{nx:5,ny:5,fx:()=>'',yl:'level referred to antenna at max gain, dBm'});
+  hline(g,x0,w,P.Y(AGC.FS),css('--bad'),[6,3]); txt(g,'ADC full scale −45',x0+w-140,P.Y(AGC.FS)-4,css('--bad'));
+  hline(g,x0,w,P.Y(AGC.REF),css('--trace'),[3,3]); txt(g,'reference −60',x0+w-110,P.Y(AGC.REF)+14,css('--trace'));
+  if(sc!=='step') S.pulses.forEach(p=>{ if(p.k==='A') return; const G=R.g[Math.round(p.t0/S.dt)], snr=p.lev+G-nOut(G); tri(g,P.X(p.t0+p.pw/2),P.Y(p.lev)-4,snr>=13?css('--good'):css('--bad')); });
+  const Q=plot(g,x0,y2,w,h2,0,S.T,-70,0,[{x:bx,y:bg,color:css('--trace2'),w:2}],{nx:5,ny:2,fx:v=>v.toFixed(0),xl:'time, µs',yl:'loop gain, dB'});
+  hline(g,x0,w,Q.Y(-rg),css('--muted'),[2,3]); txt(g,'limit −'+rg+' dB',x0+6,Q.Y(-rg)-4,css('--muted'));
+  const rows=[['scenario',{step:'30 dB step',esm:'ESM interleaved',radar:'radar PRI'}[sc]],['τa·ln 30 (formula)',fus(ta*Math.log(30))],['τd·ln 30 (decay)',fus(td*Math.log(30))],['time clipped',fus(s.clip)]];
+  if(sc==='step'){ rows.push(['settle to 1 dB (sim)',isFinite(s.settle)?fus(s.settle):'not within 1 ms']); rows.push(['final gain',fdb(s.gfinal)]); rows.push(['gain back to −1 dB after step',isFinite(s.recover)?fus(s.recover):'not within 0.8 ms']); rows.push(['range left',fdb(rg-30)+(rg<30?' OUT OF RANGE':'')]); }
+  else if(sc==='esm'){ rows.push(['weak pulses kept',s.det+' of '+s.tot]); rows.push(['worst weak-pulse SNR',fdb(s.minS)]); rows.push(['strong pulse clipped',fus(s.strongClipPer)+' of 2 µs']); rows.push(['deepest gain',fdb(Math.min(...R.g))]); }
+  else { rows.push(['target SNR',fdb(s.minS)+(s.det?' kept':' LOST')]); rows.push(['gain at target',fdb(R.g[Math.round(100/S.dt)])]); rows.push(['deepest gain',fdb(Math.min(...R.g))]); }
+  ro($('agOut'),rows);
+}
+bind(['agS','agA','agD','agR'],agDraw);
+
+/* ---------- Step 6: STC ---------- */
+function stDraw(){
+  const c=$('cSt'), g=ctx(c);
+  const law=$('stL').value, R0=sl('stR'), sg=sl('stS'), Rt=sl('stT'), s0=sl('stC');
+  setv('stR',R0+' km'); setv('stS',(sg>0?'+':'')+sg+' dBsm'); setv('stT',Rt.toFixed(1)+' km'); setv('stC',s0+' dB');
+  const xs=[],tb=[],ta=[],cb=[],ca=[],no=[],at=[];
+  for(let R=0.15;R<=30.001;R+=0.05){ const x=stcAt(law,R0,sg,s0,R); xs.push(R); tb.push(x.t); ta.push(x.to); cb.push(R<=RAD.hor?x.c:NaN); ca.push(R<=RAD.hor?x.co:NaN); no.push(x.no); at.push(x.A); }
+  const x0=56,w=c.width-72,h1=230,h2=70,y1=20,y2=y1+h1+34;
+  const P=plot(g,x0,y1,w,h1,0,30,-140,0,[{x:xs,y:tb,color:css('--accent'),dash:[4,3]},{x:xs,y:cb,color:css('--trace2'),dash:[4,3]},{x:xs,y:no,color:css('--trace'),w:1.6},{x:xs,y:ca,color:css('--trace2'),w:2},{x:xs,y:ta,color:css('--accent'),w:2.2}],{nx:6,ny:7,fx:()=>'',yl:'dBm, referred to antenna at full gain'});
+  hline(g,x0,w,P.Y(RAD.FS),css('--bad'),[6,3]); txt(g,'ADC full scale −45 dBm',x0+w-170,P.Y(RAD.FS)-5,css('--bad'));
+  vline(g,P.X(R0),y1,h1,css('--muted'),[2,3]); txt(g,'R₀',P.X(R0)+3,y1+12,css('--muted'));
+  const x=stcAt(law,R0,sg,s0,Rt); dot(g,P.X(Rt),P.Y(clamp(x.to,-140,0)),css('--accent'),5);
+  txt(g,'target',clamp(P.X(Rt)+7,x0,x0+w-50),P.Y(clamp(x.to,-140,0))-7,css('--accent'));
+  const Q=plot(g,x0,y2,w,h2,0,30,0,80,[{x:xs,y:at,color:css('--ink'),w:2}],{nx:6,ny:2,fx:v=>v.toFixed(0),xl:'range, km',yl:'STC attenuation, dB'});
+  const sat=clutSatRange(law,R0,s0);
+  ro($('stOut'),[['STC at target',fdb(x.A)],['target at antenna',fdbm(x.t)],['target after STC',fdbm(x.to)+(x.tsat?' CLIPS':'')],['noise after STC',fdbm(x.no)],['target SNR',fdb(x.snr)],['clutter after STC',Rt<=RAD.hor?fdbm(x.co):'beyond horizon'],['SCR (unchanged)',Rt<=RAD.hor?sdb(x.scr):'no clutter'],['clutter clips out to',sat>0?sat.toFixed(2)+' km':'nowhere'],['R₀',law==='none'?R0+' km (no STC)':R0+' km']]);
+}
+bind(['stL','stR','stS','stT','stC'],stDraw);
+
+/* ---------- Step 7: detectors and video bandwidth ---------- */
+const DETLO={sq:-64,dlva:-74,sdla:-79};
+function lgDraw(){
+  const c=$('cLg'), g=ctx(c);
+  const ty=$('lgT').value, P0=sl('lgP'), PW=Math.pow(10,sl('lgW')), Bv=Math.pow(10,sl('lgB'));
+  setv('lgP',P0+' dBm'); setv('lgW',fus(PW)); setv('lgB',Bv.toFixed(Bv<10?2:1)+' MHz');
+  const s=detSim(ty,P0,PW,Bv);
+  // left: transfer curves
+  const xa=[]; for(let p=-90;p<=10;p+=0.5) xa.push(p);
+  const curves=['sq','dlva','sdla'].map((k,i)=>({x:xa,y:xa.map(p=>detV(k,psum(p,DET[k].N))),color:[css('--muted'),css('--trace'),css('--trace2')][i],w:k===ty?2.6:1.2,dash:k===ty?[]:[4,3]}));
+  const PL=plot(g,48,20,200,270,-90,10,0,2.1,curves,{nx:2,ny:7,fy:v=>v.toFixed(1),xl:'input, dBm',yl:'detector output, V'});
+  dot(g,PL.X(P0),PL.Y(clamp(s.vS,0,2.1)),css('--accent'),5);
+  txt(g,'sq',PL.X(2),PL.Y(detV('sq',2))-6,css('--muted'));
+  // right: waveform
+  const scale=s.vS>0.1?1:1000, un=scale===1?'V':'mV';
+  const ymax=Math.max(s.vS,s.pk)*scale*1.25||1, t=s.t.map(x=>x*1000), v=s.v.map(x=>x*scale);
+  const ti=[t[0],0,0,PW*1000,PW*1000,t[t.length-1]], vi=[s.vN,s.vN,s.vS,s.vS,s.vN,s.vN].map(x=>x*scale);
+  const PR=plot(g,330,20,294,270,t[0],t[t.length-1],0,ymax,[{x:ti,y:vi,color:css('--muted'),w:1.2},{x:t,y:v,color:css('--accent'),w:2.2}],{nx:3,ny:5,fx:x=>x.toFixed(0),fy:x=>x<10?x.toFixed(2):x.toFixed(0),xl:'time, ns',yl:'video, '+un});
+  hline(g,330,294,PR.Y(s.th*scale),css('--ink'),[4,3]);
+  const ok=isFinite(s.pwm)&&P0>=DETLO[ty]-6;
+  if(ok){ [s.a,s.b].forEach(e=>{ g.strokeStyle=css('--good'); g.lineWidth=2.5; g.beginPath(); g.moveTo(PR.X(e*1000),PR.Y(s.th*scale)-10); g.lineTo(PR.X(e*1000),PR.Y(s.th*scale)+10); g.stroke(); g.lineWidth=1; }); }
+  const lo=DETLO[ty], st=P0<lo?'below detector noise':(ty==='sq'?(s.vS>=2?'saturated':(P0>-20?'past square law (linear region)':'square-law region')):(P0>DET[ty].max?'log saturated':'in log range'));
+  ro($('lgOut'),[['operating point',st],['rise time 0.35/Bv',fus(s.tr)],['PW measured',ok?fus(s.pwm):'no clean crossing'],['PW error',ok?((s.pwm-PW)*1000).toFixed(0)+' ns':'n/a: not detected'],['PA error',ok?sdb(s.paErr):'n/a: not detected'],['video SNR',fdb(s.snrv)],['TOA σ',s.snrv>8?(s.sig*1000).toFixed(2)+' ns':'too noisy']]);
+}
+bind(['lgT','lgP','lgW','lgB'],lgDraw);
+
+/* ---------- Step 8: saturation and recovery ---------- */
+function rcDraw(){
+  const c=$('cRc'), g=ctx(c);
+  const S=sl('rcS'), W=sl('rcW'), D=Math.pow(10,sl('rcD')), tau=Math.pow(10,sl('rcT')), Lm=sl('rcL');
+  setv('rcS',S+' dBm'); setv('rcW',W+' dBm'); setv('rcD',fus(D)); setv('rcT',fus(tau)); setv('rcL',Lm+' dBm');
+  const r=rec(S,W,D,tau,Lm), tmax=Math.min(25,Math.max(4,D+1.5,r.blind*1.3));
+  const x0=56,w=c.width-72,h1=200,h2=86,y1=20,y2=y1+h1+34;
+  const P=plot(g,x0,y1,w,h1,-1.5,tmax,-110,30,[],{nx:5,ny:7,fx:()=>'',yl:'level at antenna, dBm'});
+  const rect=(t0,t1,lev,col,fill)=>{ const xa=P.X(t0),xb=P.X(Math.min(t1,tmax)),y=P.Y(lev),yb=P.Y(-110); g.strokeStyle=col; g.fillStyle=col; g.lineWidth=1.5; if(fill){ g.globalAlpha=0.75; g.fillRect(xa,y,xb-xa,yb-y); g.globalAlpha=1; } else g.strokeRect(xa,y,xb-xa,yb-y); g.lineWidth=1; };
+  rect(-1,0,S,css('--trace2'),true); rect(D,D+0.5,W,css('--muted'),false); rect(D,D+0.5,r.meas,css('--accent'),true);
+  hline(g,x0,w,P.Y(Lm),css('--bad'),[6,3]); txt(g,'linear limit '+Lm+' dBm',x0+w-150,P.Y(Lm)-4,css('--bad'));
+  hline(g,x0,w,P.Y(r.th),css('--trace'),[3,3]); txt(g,'threshold −88 dBm',x0+w-130,P.Y(r.th)+14,css('--trace'));
+  txt(g,'strong',P.X(-1)+2,P.Y(S)-5,css('--trace2'));
+  const ts=[],ds=[]; for(let i=0;i<=400;i++){ const t=tmax*i/400; ts.push(t); ds.push(r.OD*Math.exp(-t/tau)); }
+  const dm=Math.max(5,Math.ceil(r.OD/5)*5);
+  const Q=plot(g,x0,y2,w,h2,-1.5,tmax,0,dm,[{x:ts,y:ds,color:css('--trace2'),w:2}],{nx:5,ny:2,fx:v=>v.toFixed(1),xl:'time after strong pulse ends, µs',yl:'gain deficit, dB'});
+  if(r.blind>0) shade(g,Q.X(0),Q.X(Math.min(r.blind,tmax)),y2,h2,css('--bad'),0.12);
+  hline(g,x0,w,Q.Y(1),css('--muted'),[2,3]); dot(g,Q.X(D),Q.Y(clamp(r.D,0,dm)),css('--accent'),4);
+  ro($('rcOut'),[['overdrive OD',fdb(r.OD)],['blind time to 1 dB',r.blind>0?fus(r.blind):'none'],['deficit at weak pulse',r.D.toFixed(2)+' dB'],['weak pulse read as',r.meas.toFixed(1)+' dBm'],['amplitude error',(-r.D).toFixed(2)+' dB'],['verdict',r.det?'detected':'LOST (below −88 dBm)'],['blind range equivalent',r.blind>0?(r.blind*150).toFixed(0)+' m':'0 m']]);
+}
+bind(['rcS','rcW','rcD','rcT','rcL'],rcDraw);
+
+/* ---------- Step 9: architectures ---------- */
+const AK=['fix','agc','stc','b16','log'], ALAB=['fixed 12b','AGC 12b','STC 12b','fixed 16b','log amp'];
+function syDraw(){
+  const c=$('cSy'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:48});
+  const sc=$('syC').value, a=$('syA').value, S=sl('syS'), W=sl('syW');
+  setv('syS',S+' dBm'); setv('syW',W+' dBm');
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,5,-130,10,[],{nx:1,ny:7,fx:()=>'',yl:'level referred to antenna, dBm'});
+  const cw=A.w/5, res=AK.map(k=>sysEval(sc,k,S,W));
+  res.forEach((r,i)=>{ const xa=A.x0+i*cw+12, xb=A.x0+(i+1)*cw-12, yt=P.Y(clamp(r.top-r.G,-130,10)), yf=P.Y(clamp(r.fl-r.G,-130,10));
+    g.globalAlpha=0.16; g.fillStyle=r.ok?css('--good'):css('--bad'); g.fillRect(xa,yt,xb-xa,yf-yt); g.globalAlpha=1;
+    g.strokeStyle=AK[i]===a?css('--accent'):css('--line'); g.lineWidth=AK[i]===a?3:1; g.strokeRect(xa,yt,xb-xa,yf-yt); g.lineWidth=1;
+    g.strokeStyle=css('--accent'); g.setLineDash([2,3]); g.beginPath(); g.moveTo(xa,P.Y(r.fl-r.G+13)); g.lineTo(xb,P.Y(r.fl-r.G+13)); g.stroke(); g.setLineDash([]);
+    g.fillStyle=css('--muted'); const s=ALAB[i]; g.fillText(s,(xa+xb)/2-g.measureText(s).width/2,A.y0+A.h+15);
+    g.fillStyle=r.ok?css('--good'):css('--bad'); g.font='bold 15px "IBM Plex Mono",monospace'; const m=r.ok?'✓':'✗'; g.fillText(m,(xa+xb)/2-5,A.y0+A.h+34); g.font='12px "IBM Plex Mono",monospace';
+    if(r.G<0){ g.fillStyle=css('--muted'); const t='gain '+r.G.toFixed(0); g.fillText(t,(xa+xb)/2-g.measureText(t).width/2,yt-5); } });
+  g.lineWidth=2; g.strokeStyle=css('--trace2'); g.beginPath(); g.moveTo(A.x0,P.Y(S)); g.lineTo(A.x0+A.w,P.Y(S)); g.stroke();
+  g.strokeStyle=css('--accent'); g.beginPath(); g.moveTo(A.x0,P.Y(W)); g.lineTo(A.x0+A.w,P.Y(W)); g.stroke(); g.lineWidth=1;
+  txt(g,'strong '+S,A.x0+4,P.Y(S)-5,css('--trace2')); txt(g,'weak '+W,A.x0+4,P.Y(W)+14,css('--accent'));
+  const r=res[AK.indexOf(a)], req=S-W+19;
+  ro($('syOut'),[['architecture',ARCH[a]],['gain change',fdb(r.G)],['window at antenna',(r.fl-r.G).toFixed(1)+' to '+(r.top-r.G).toFixed(1)+' dBm'],['IDR offered',fdb(r.top-r.fl)],['IDR required',fdb(req)],['strong signal',r.clip?'CLIPPED':'fits'],['weak SNR',fdb(r.snr)],['verdict',(r.ok?'OK: ':'FAIL: ')+r.why],['note',r.note||'none']]);
+}
+bind(['syC','syA','syS','syW'],syDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

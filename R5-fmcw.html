@@ -1,0 +1,473 @@
+<title>FMCW Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Radar Basics · R5 of 6 · RF Systems for Component Engineers</div>
+  <h1>The FMCW radar, end to end</h1>
+  <p class="lede">R4 followed a pulse radar. An FMCW radar does the same jobs (measure range, measure speed, survive strong close echoes, find a small target) with a completely different trick: it never stops transmitting, and it measures range as a frequency instead of a time. This page builds it up block by block, shows why the trick lets a 150 MHz-wide radar run on a slow ADC, and explains the three problems that are special to FMCW: transmitter leakage into the receiver, phase noise, and ramp nonlinearity.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#idea">0 What changes from a pulse radar</a><a href="#blocks">1 The blocks</a><a href="#dechirp">2 Dechirp: range becomes a frequency</a><a href="#bins">3 FFT bins are the range cells</a><a href="#leak">4 Leakage, phase noise and the IF high-pass</a><a href="#lin">5 Ramp nonlinearity</a><a href="#seq">6 Speed: the chirp sequence</a><a href="#comp">7 Your components</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="idea">
+  <div class="secno">Step 0</div>
+  <h2>What changes from a pulse radar</h2>
+  <div class="know"><h4>You already know</h4>From the FMCW page and R1: in an FMCW radar the transmit frequency rises linearly (a <b>chirp</b> or <b>ramp</b>), the slope S = B/T (bandwidth over ramp time), and the frequency difference between transmitted and received signal is proportional to range. From R4: a pulse radar is blind while it transmits, and it measures range as a time.</div>
+  <div class="col">
+    <p>Four differences drive everything on this page:</p>
+    <ol>
+      <li><b>It transmits all the time.</b> There is no "transmit, then listen". So there is no blind time and no blind range from switching (R4 Step 3), and the transmit power can be low (milliwatts to watts) because the energy comes from the long ramp, not from a high peak.</li>
+      <li><b>It receives at the same time as it transmits.</b> So it cannot use a T/R switch to protect the receiver. It usually uses two antennas, and some transmit power always leaks straight into the receiver (Step 4).</li>
+      <li><b>Range is measured as a frequency, not a time.</b> The echo is a delayed copy of the chirp. Mixing it with the chirp being transmitted right now gives a low "beat" frequency proportional to range (Step 2).</li>
+      <li><b>The range cells come from an FFT, not from ADC samples.</b> In R3 a range cell was one ADC sample after the pulse. In FMCW a range cell is one frequency bin of an FFT of the beat signal (Step 3).</li>
+    </ol>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th></th><th>Pulse radar (R4)</th><th>FMCW radar (this page)</th></tr>
+    <tr><td>Transmits</td><td>Short, high-power pulses</td><td>Continuously, low power, frequency ramps</td></tr>
+    <tr><td>Range measured as</td><td>Time of arrival</td><td>Beat frequency</td></tr>
+    <tr><td>Range cell</td><td>One ADC sample</td><td>One FFT bin</td></tr>
+    <tr><td>Range resolution</td><td>c·τ/2 (or c/2B with compression)</td><td>c/2B</td></tr>
+    <tr><td>Short range</td><td>Blind zone (R4 Step 3)</td><td>Works down to very short range</td></tr>
+    <tr><td>Main headache</td><td>Peak power, blind range, STC</td><td>TX leakage, phase noise, ramp linearity</td></tr>
+    <tr><td>Typical uses</td><td>Long-range surveillance, high power</td><td>Short and medium range: automotive, altimeters, level gauges, drones and small surveillance radars</td></tr>
+  </table></div>
+</section>
+
+<!-- 1 -->
+<section id="blocks">
+  <div class="secno">Step 1</div>
+  <h2>The blocks, and why each one is there</h2>
+  <div class="diag"><svg viewBox="0 0 860 220" role="img" aria-label="FMCW radar block diagram">
+    <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+    <g font-family="IBM Plex Mono, monospace" font-size="12" text-anchor="middle">
+      <g fill="var(--panel)" stroke="var(--trace2)"><rect x="10" y="20" width="110" height="44" rx="4"/><rect x="150" y="20" width="110" height="44" rx="4"/><rect x="290" y="20" width="90" height="44" rx="4"/><rect x="410" y="20" width="90" height="44" rx="4"/><rect x="530" y="20" width="90" height="44" rx="4"/></g>
+      <g fill="var(--panel)" stroke="var(--trace)"><rect x="530" y="150" width="90" height="44" rx="4"/><rect x="410" y="150" width="90" height="44" rx="4"/><rect x="290" y="150" width="90" height="44" rx="4"/><rect x="150" y="150" width="110" height="44" rx="4"/><rect x="10" y="150" width="110" height="44" rx="4"/></g>
+      <g fill="var(--ink)">
+        <text x="65" y="40">Reference</text><text x="65" y="55">clock</text>
+        <text x="205" y="40">Ramp gen.</text><text x="205" y="55">PLL / DDS</text>
+        <text x="335" y="40">VCO</text><text x="335" y="55">(chirp)</text>
+        <text x="455" y="40">Coupler</text><text x="455" y="55">/ splitter</text>
+        <text x="575" y="40">PA</text>
+        <text x="575" y="170">LNA</text>
+        <text x="455" y="170">Mixer</text><text x="455" y="185">(dechirp)</text>
+        <text x="335" y="170">IF HPF</text><text x="335" y="185">+ amp + LPF</text>
+        <text x="205" y="170">ADC</text>
+        <text x="65" y="170">FFT →</text><text x="65" y="185">range cells</text>
+      </g>
+      <path d="M700 30 l40 -20 v40 z" fill="none" stroke="var(--ink)"/><text x="760" y="30" fill="var(--muted)" text-anchor="start">TX antenna</text>
+      <path d="M700 160 l40 -20 v40 z" fill="none" stroke="var(--ink)"/><text x="760" y="160" fill="var(--muted)" text-anchor="start">RX antenna</text>
+      <g stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#a5)"><path d="M120 42 H146"/><path d="M260 42 H286"/><path d="M380 42 H406"/><path d="M500 42 H526"/><path d="M620 42 H700"/><path d="M700 172 H624"/><path d="M530 172 H504"/><path d="M455 64 V146"/><path d="M410 172 H384"/><path d="M290 172 H264"/><path d="M150 172 H124"/></g>
+      <path d="M720 52 C 740 100, 740 110, 720 140" stroke="var(--bad)" stroke-dasharray="4 3" fill="none"/><text x="790" y="105" fill="var(--bad)" font-size="11">leakage</text>
+      <text x="470" y="110" fill="var(--muted)" font-size="11" text-anchor="start">LO = copy of the TX chirp</text>
+    </g></svg></div>
+  <div class="tw"><table class="t">
+    <tr><th>Block</th><th>What it does</th><th>Why it is needed</th><th>Key specs</th></tr>
+    <tr><td>Ramp generator (PLL with ramping divider, or DDS)</td><td>Makes the frequency rise in a straight line over T</td><td>Range is read from a frequency: any bend in the ramp becomes a range error (Step 5)</td><td>Linearity, ramp speed, reset/settling time</td></tr>
+    <tr><td>VCO</td><td>The oscillator that actually sweeps</td><td>Its phase noise ends up on every echo and on the leakage (Step 4)</td><td>Phase noise, tuning range, tuning linearity</td></tr>
+    <tr><td>Coupler / splitter</td><td>Sends most power to the PA, a sample to the mixer LO</td><td>The receiver needs a copy of the chirp being transmitted right now</td><td>Coupling, isolation</td></tr>
+    <tr><td>PA and TX antenna</td><td>Transmit the chirp</td><td>Power × ramp time sets the energy on target (R1)</td><td>Output power, flatness over B</td></tr>
+    <tr><td>RX antenna and LNA</td><td>Receive and amplify</td><td>Noise figure sets the noise floor; the LNA sees the leakage all the time, so it must not compress</td><td>NF, P1dB, isolation from TX antenna</td></tr>
+    <tr><td>Mixer (dechirp)</td><td>Multiplies the echo by the current chirp</td><td>Turns the delay into a low beat frequency (Step 2)</td><td>Conversion loss, LO-RF isolation, DC offset, flicker noise</td></tr>
+    <tr><td>IF high-pass, amplifier, low-pass</td><td>Shapes the beat signal before the ADC</td><td>High-pass suppresses leakage and equalises near and far echoes; low-pass is the anti-alias filter that sets maximum range (Steps 3–4)</td><td>Corner frequencies, slope, gain</td></tr>
+    <tr><td>ADC</td><td>Samples the beat signal</td><td>Only needs to cover the beat bandwidth, a few MHz, not the RF bandwidth</td><td>Rate, bits</td></tr>
+    <tr><td>FFT (FPGA / DSP)</td><td>Turns beat frequencies into range cells</td><td>Each frequency bin is one range cell (Step 3)</td><td>Length, window</td></tr>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="dechirp">
+  <div class="secno">Step 2</div>
+  <h2>Dechirp: how range becomes a low frequency</h2>
+  <div class="col">
+    <p><b>The problem.</b> To resolve 1 m in range, a radar needs about 150 MHz of bandwidth (c/2B, R1). A pulse radar with 150 MHz of bandwidth needs an ADC sampling at more than 300 MHz, and a lot of processing. FMCW avoids that with one mixer.</p>
+    <p><b>The trick, step by step.</b></p>
+    <ol>
+      <li>The transmitter sweeps from f<sub>0</sub> up by B in time T. Slope S = B / T.</li>
+      <li>An echo from range R arrives τ = 2R/c later. It is the same ramp, shifted right by τ.</li>
+      <li>At any moment, the echo's frequency is behind the transmitter's by S · τ, because the transmitter has kept climbing for τ seconds.</li>
+      <li>The mixer multiplies the echo with the current transmit signal. Its output contains the difference frequency, the <b>beat frequency</b> f<sub>b</sub> = S · τ = 2SR/c.</li>
+      <li>The beat is constant for the whole ramp (straight lines stay parallel), so it is a clean, steady tone whose frequency says the range.</li>
+    </ol>
+  </div>
+  <div class="eq">f<sub>b</sub> = S · τ = (B / T) · (2R / c) &nbsp;&nbsp; R = c · f<sub>b</sub> / (2S)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: B = 150 MHz, T = 100 µs (S = 1.5 MHz/µs)</th><th>Delay τ</th><th>Beat f<sub>b</sub></th></tr>
+    <tr><td>Target at 10 m</td><td class="n">67 ns</td><td class="n">100 kHz</td></tr>
+    <tr><td>Target at 100 m</td><td class="n">0.67 µs</td><td class="n">1 MHz</td></tr>
+    <tr><td>Target at 1 km</td><td class="n">6.7 µs</td><td class="n">10 MHz</td></tr>
+  </table></div>
+  <div class="col"><p><b>Why this matters for hardware.</b> The radar uses 150 MHz of RF bandwidth, yet everything after the mixer only has to handle 0–10 MHz for targets out to 1 km. A 20 MS/s ADC is enough. This "bandwidth compression" is why FMCW radars are cheap and small, and why the IF chain and ADC of an FMCW radar look nothing like those of a pulse radar.</p></div>
+  <div class="bench">
+    <canvas id="cCh" width="640" height="330" aria-label="Transmitted and received chirps and the beat frequency"></canvas>
+    <div class="ctrl">
+      <label for="chB">Sweep bandwidth B <b id="chBv"></b></label><input id="chB" type="range" min="10" max="1000" step="10" value="150">
+      <label for="chT">Ramp time T <b id="chTv"></b></label><input id="chT" type="range" min="10" max="500" step="5" value="100">
+      <label for="chR">Target range <b id="chRv"></b></label><input id="chR" type="range" min="1" max="3000" step="1" value="1000">
+      <div class="readout" id="chOut"></div>
+    </div>
+    <p class="cap">Try it: top, frequency against time for the transmitted ramp (purple) and the echo (teal, delayed by τ, drawn exaggerated so it is visible). The orange arrow is the frequency gap, which is the beat. Bottom: the beat signal the mixer produces during one ramp. Things to check: (1) double the range: the beat doubles; (2) halve T with B fixed: the slope doubles and the beat doubles; (3) at 3 km with B = 150 MHz and T = 100 µs the beat is 30 MHz: a 20 MS/s ADC can no longer take it (Step 3).</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="bins">
+  <div class="secno">Step 3</div>
+  <h2>FFT bins are the range cells</h2>
+  <div class="col">
+    <p><b>From a tone to a range.</b> The ADC samples the beat signal during the ramp. An FFT of those samples shows a peak at each beat frequency, one per target. Each FFT bin corresponds to a range, so <b>each bin is a range cell</b>, and the CFAR of R3 runs along the bins exactly as it ran along the samples of a pulse radar.</p>
+    <p><b>Where c/2B comes from.</b> An FFT over a record of length T has bins 1/T apart in frequency. One bin of beat frequency equals a range step of</p>
+  </div>
+  <div class="eq">ΔR = c · (1/T) / (2S) = c · (1/T) / (2B/T) = c / (2B)</div>
+  <div class="col">
+    <p>The ramp time cancels: range resolution depends only on the swept bandwidth. With B = 150 MHz, ΔR = 1.0 m; each bin is 10 kHz wide (1/100 µs) and each 10 kHz of beat is 1 m of range.</p>
+    <p><b>Maximum range is set by the IF and the ADC.</b> A real ADC at f<sub>s</sub> can represent beat frequencies up to f<sub>s</sub>/2. So R<sub>max</sub> = c · (f<sub>s</sub>/2) / (2S). With f<sub>s</sub> = 20 MS/s: 10 MHz → 1 km. An anti-alias low-pass before the ADC is essential: an echo from 3 km (30 MHz beat) would otherwise fold back and appear at a false short range, the FMCW version of R4's second-time-around echo.</p>
+    <p><b>The window.</b> A plain FFT has −13 dB sidelobes, so a strong target's sidelobes can hide a weak one a few bins away. A window (Hann, −31 dB) lowers the sidelobes but widens each peak, so two targets need about 2 bins of separation instead of 1. This is exactly the taper trade of R2, now in the frequency domain.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cFft" width="640" height="300" aria-label="Beat spectrum with range bins"></canvas>
+    <div class="ctrl">
+      <label for="ffB">Sweep bandwidth B <b id="ffBv"></b></label><input id="ffB" type="range" min="25" max="600" step="25" value="150">
+      <label for="ffR">Target 1 range <b id="ffRv"></b></label><input id="ffR" type="range" min="5" max="95" step="0.1" value="40.5">
+      <label for="ffD">Target 2 is further by <b id="ffDv"></b></label><input id="ffD" type="range" min="0.2" max="10" step="0.1" value="3">
+      <label for="ffA">Target 2 weaker by <b id="ffAv"></b></label><input id="ffA" type="range" min="0" max="50" step="1" value="20">
+      <label for="ffW">Window</label><select id="ffW"><option value="rect">Rectangular (none)</option><option value="hann" selected>Hann</option></select>
+      <div class="readout" id="ffOut"></div>
+    </div>
+    <p class="cap">Try it: the FFT of one ramp's beat signal, with its frequency axis converted to range (bins c/2B apart). Things to check: (1) with B = 150 MHz the bins are 1 m apart; set target 2 only 1 m further: they merge; (2) raise B to 600 MHz: bins are 25 cm and the two separate; (3) set target 2 to 35 dB weaker and choose the rectangular window: it disappears into the sidelobes of the strong target; switch to Hann, the sidelobes drop and it appears.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="leak">
+  <div class="secno">Step 4</div>
+  <h2>Leakage, phase noise and the IF high-pass</h2>
+  <div class="col">
+    <p><b>The problem.</b> The receiver is always on while the transmitter is always on. Some transmit power leaks straight into the receiver: through the space between the two antennas, through the PCB, through reflections from the radome and mounting. To the radar this leakage looks like an enormous target at almost zero range, typically 30–60 dB stronger than any real echo. It appears at a beat frequency near zero.</p>
+    <p><b>Why that is worse than it sounds: phase noise.</b> The VCO's phase noise is on every signal it makes. A strong leakage tone carries a phase-noise skirt that spreads over neighbouring beat frequencies, which are other range cells, and can bury weak targets there, just as phase noise spread clutter over Doppler bins in R4 Step 7.</p>
+    <p><b>The rescue: range correlation.</b> The mixer's LO is the same VCO, delayed by only a tiny time τ<sub>L</sub> relative to the leakage. Phase noise that is the same on both inputs cancels in the mixer. Only the part that changed during τ<sub>L</sub> survives. The surviving fraction is</p>
+  </div>
+  <div class="eq">surviving phase noise = L(f) + 10·log<sub>10</sub>(4 · sin²(π · f · τ<sub>L</sub>)) &nbsp;&nbsp; ≈ L(f) + 20·log<sub>10</sub>(2π f τ<sub>L</sub>) for small τ<sub>L</sub></div>
+  <div class="tw"><table class="t">
+    <tr><th>Leakage path delay τ<sub>L</sub></th><th>Cancellation at 100 kHz offset</th><th>at 1 MHz offset</th></tr>
+    <tr><td>1 ns (short on-board path)</td><td class="n">−64 dB</td><td class="n">−44 dB</td></tr>
+    <tr><td>10 ns (radome reflection, cable)</td><td class="n">−44 dB</td><td class="n">−24 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p>So a short leakage path is mostly harmless; a long one (a reflection from the radome or vehicle bumper) keeps more of its phase noise. Keeping leakage paths short and isolation high is one of the main layout tasks in an FMCW radar.</p>
+    <p><b>The IF high-pass does the job STC did in R4.</b> Echo power falls as R⁻⁴, and beat frequency rises in proportion to R. So, on the beat-frequency axis, echoes fall at 40 dB per decade of frequency. A high-pass filter rising at +40 dB per decade (a second-order high-pass, 12 dB per octave) below its corner frequency does two things at once:</p>
+    <ul>
+      <li>it suppresses the leakage near zero frequency, so the LNA, IF amplifier and ADC are not filled by it, and</li>
+      <li>it equalises echoes: a target at half the range has 12 dB more echo, but its beat frequency is an octave lower, so the high-pass removes 12 dB. Inside the corner range every target of the same RCS arrives at the ADC at the same level. That is exactly R4's R⁴-law STC, done by a filter instead of a timer.</li>
+    </ul>
+  </div>
+  <div class="bench">
+    <canvas id="cLk" width="640" height="320" aria-label="IF spectrum with leakage, phase noise skirt and targets"></canvas>
+    <div class="ctrl">
+      <label for="lkP">Leakage level <b id="lkPv"></b></label><input id="lkP" type="range" min="-60" max="0" step="1" value="-20">
+      <label for="lkD">Leakage path delay <b id="lkDv"></b></label><input id="lkD" type="range" min="0.1" max="30" step="0.1" value="1">
+      <label for="lkL">VCO phase noise at 100 kHz <b id="lkLv"></b></label><input id="lkL" type="range" min="-120" max="-60" step="1" value="-90">
+      <label for="lkH">IF high-pass</label><select id="lkH"><option value="off">Off</option><option value="on" selected>On, 2nd order</option></select>
+      <label for="lkC">High-pass corner <b id="lkCv"></b></label><input id="lkC" type="range" min="50" max="5000" step="50" value="1000">
+      <div class="readout" id="lkOut"></div>
+    </div>
+    <p class="cap">Try it: the IF spectrum after the mixer (B = 150 MHz, T = 100 µs, so 1 MHz = 100 m), on a log frequency axis. Red: the leakage and its surviving phase-noise skirt. Teal markers: 1 m² targets at 30 m and 800 m, and a small 0.01 m² drone at 100 m. Dashed: thermal noise per range bin. Things to check: (1) raise the leakage delay to 20 ns and worsen the phase noise to −70 dBc/Hz: the surviving skirt climbs up to the drone and buries it; (2) set the delay back to 1 ns: range correlation cancels the skirt again; (3) switch the high-pass off: the leakage is far above everything at the ADC input; switch it on and the 30 m target and the drone's 1 m² neighbours inside the corner range come out at the same level, while the leakage is pushed down by 100 dB or more.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="lin">
+  <div class="secno">Step 5</div>
+  <h2>Ramp nonlinearity: why the ramp must be straight</h2>
+  <div class="col">
+    <p><b>The problem.</b> Step 2 assumed the ramp is a perfectly straight line, so the echo and the transmitter stay parallel and the beat is a single steady tone. A real VCO's frequency is not exactly proportional to its tuning voltage, so an open-loop ramp bends. If the transmitter's frequency has an error e(t) along the ramp, the beat picks up e(t) − e(t − τ), which for a smooth error is about τ times the slope of the error. The beat is no longer one tone; it wanders, and its FFT peak spreads over several bins.</p>
+    <p><b>Why it hurts far targets most.</b> The wandering is proportional to τ, the target's delay. A near target barely notices; a far target is smeared over many bins, losing peak height (SNR) and resolution.</p>
+  </div>
+  <div class="eq">peak spread ≈ 8 · δ · τ bins &nbsp;&nbsp; (for a bowed ramp whose frequency error peaks at δ in the middle)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: B = 150 MHz, T = 100 µs, bow δ = 1 % of B = 1.5 MHz</th><th>τ</th><th>Spread</th></tr>
+    <tr><td>Target at 10 m</td><td class="n">67 ns</td><td class="n">0.8 bin: hardly visible</td></tr>
+    <tr><td>Target at 1 km</td><td class="n">6.7 µs</td><td class="n">80 bins: target destroyed</td></tr>
+    <tr class="sum"><td>To keep 1 km within 1 bin</td><td colspan="2">δ &lt; 1 / (8τ) = 19 kHz, about 0.01 % of B</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>How radars get a straight ramp.</b> (1) A <b>PLL</b> whose divider ratio is stepped along the ramp (fractional-N ramping): the loop forces the VCO to follow, so the linearity is set by the reference, not by the VCO; the loop bandwidth must be wide enough to follow the ramp. (2) A <b>DDS</b> generating the ramp digitally, then multiplied or mixed up to RF. (3) An open-loop VCO with a measured pre-distortion table, cheaper but drifting with temperature.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cNl" width="640" height="300" aria-label="Beat spectrum smeared by ramp nonlinearity"></canvas>
+    <div class="ctrl">
+      <label for="nlD">Ramp bow δ <b id="nlDv"></b></label><input id="nlD" type="range" min="0" max="2" step="0.01" value="0.2">
+      <label for="nlR">Target range <b id="nlRv"></b></label><input id="nlR" type="range" min="5" max="1000" step="5" value="500">
+      <div class="readout" id="nlOut"></div>
+    </div>
+    <p class="cap">Try it: the FFT peak of one target (B = 150 MHz, T = 100 µs, Hann window), for a ramp that bows by δ (as % of B) in the middle, against an ideal straight ramp (grey). Things to check: (1) δ = 0: one clean peak; (2) δ = 0.2 % at 500 m: the peak spreads over several bins and drops; (3) keep δ, move the target to 20 m: almost perfect again: nonlinearity hurts far targets.</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="seq">
+  <div class="secno">Step 6</div>
+  <h2>Measuring speed: the chirp sequence</h2>
+  <div class="col">
+    <p><b>The problem.</b> A moving target adds a Doppler shift f<sub>d</sub> = 2v/λ to the beat, so f<sub>b</sub> = 2SR/c + f<sub>d</sub>. One ramp cannot tell the two apart. For a slow ramp (T of milliseconds) the Doppler shift can be as large as the range term, and the target appears at the wrong range (range-Doppler coupling).</p>
+    <p><b>Old fix: up and down ramps (triangle).</b> On the rising ramp the beat is f<sub>R</sub> + f<sub>d</sub>, on the falling ramp f<sub>R</sub> − f<sub>d</sub>. The sum gives range, the difference gives speed. It works for one target, but with several targets the radar must pair up the peaks correctly, which fails in a busy scene.</p>
+    <p><b>Modern fix: a fast chirp sequence, exactly like R4's pulses.</b> Use short ramps (tens of µs), so f<sub>d</sub> is tiny compared with one range bin and range is read correctly from each ramp. Then send N ramps in a row. Between two ramps the target moves v·T<sub>c</sub>, and the beat's phase in its range bin turns by 360° × 2v·T<sub>c</sub>/λ: the same phase step as R4 Step 6, with the ramp period T<sub>c</sub> in place of the PRI. A second FFT across the N ramps, in every range bin, gives a range-Doppler map, exactly as in R4 Step 7.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: 10 GHz, T<sub>c</sub> = 100 µs, N = 128 ramps, target at 15 m/s</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Doppler f<sub>d</sub></td><td>2 × 15 / 0.03</td><td class="n">1 kHz (0.1 of a 10 kHz range bin: negligible)</td></tr>
+    <tr><td>Phase step per ramp</td><td>360° × 2 × 15 × 100 µs / 0.03</td><td class="n">36°</td></tr>
+    <tr><td>Unambiguous speed</td><td>± λ / (4 T<sub>c</sub>)</td><td class="n">± 75 m/s</td></tr>
+    <tr><td>Speed resolution</td><td>λ / (2 N T<sub>c</sub>)</td><td class="n">1.17 m/s</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSq" width="640" height="300" aria-label="Beat phase across a sequence of ramps and the resulting speed spectrum"></canvas>
+    <div class="ctrl">
+      <label for="sqV">Target speed <b id="sqVv"></b></label><input id="sqV" type="range" min="-150" max="150" step="0.5" value="15">
+      <label for="sqT">Ramp period T<sub>c</sub> <b id="sqTv"></b></label><input id="sqT" type="range" min="20" max="400" step="5" value="100">
+      <label for="sqN">Ramps N</label><select id="sqN"><option>32</option><option>64</option><option selected>128</option><option>256</option></select>
+      <div class="readout" id="sqOut"></div>
+    </div>
+    <p class="cap">Try it: left, the beat phasor in the target's range bin on the first 12 ramps; right, the FFT across all N ramps, as speed. Things to check: (1) 15 m/s: 36° per ramp, peak at 15 m/s; (2) 100 m/s with T<sub>c</sub> = 100 µs: beyond ±75 m/s, so it appears at −50 m/s (aliased); shorten T<sub>c</sub> to 50 µs and it is correct again; (3) more ramps sharpen the peak (finer speed resolution).</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="comp">
+  <div class="secno">Step 7</div>
+  <h2>Where your components show up in an FMCW radar</h2>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>VCO / PLL ramp generator:</b> ramp linearity sets how far targets stay sharp (Step 5); phase noise sets how much the leakage skirt covers near targets (Step 4); ramp reset and settling time eat into the duty cycle of a chirp sequence.</li>
+    <li><b>Antennas, layout and radome:</b> TX-RX isolation sets the leakage level; the length of the leakage paths sets how much phase noise survives (Step 4).</li>
+    <li><b>LNA and mixer:</b> must not compress on the leakage, which is present all the time; mixer DC offset and flicker (1/f) noise sit exactly where near targets' beats are.</li>
+    <li><b>IF high-pass and low-pass:</b> the high-pass corner and slope do the job of STC; the low-pass is the anti-alias filter that sets maximum range (Steps 3–4).</li>
+    <li><b>ADC:</b> needs only the beat bandwidth (MHz, not hundreds of MHz), but its dynamic range must cover what the high-pass leaves.</li>
+    <li><b>PA:</b> gain flatness across B causes amplitude ripple along the ramp, which raises range sidelobes.</li>
+  </ul></div>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Chirp, ramp, slope S</dt><dd>A linear frequency sweep / its rate B/T in Hz per second.</dd>
+    <dt>Dechirp</dt><dd>Mixing the echo with the current transmit chirp to get a beat frequency.</dd>
+    <dt>Beat frequency</dt><dd>f<sub>b</sub> = 2SR/c (+ f<sub>d</sub>): the difference between transmit and echo frequency.</dd>
+    <dt>Range bin</dt><dd>One FFT bin of the beat signal; the FMCW range cell, c/2B wide.</dd>
+    <dt>Leakage</dt><dd>Transmit power reaching the receiver directly, appearing as a huge near-zero-range target.</dd>
+    <dt>Range correlation</dt><dd>Cancellation of phase noise in the mixer when LO and signal come from the same source with a short delay.</dd>
+    <dt>IF high-pass (as STC)</dt><dd>A high-pass on the beat signal that suppresses leakage and equalises near and far echoes.</dd>
+    <dt>Ramp nonlinearity</dt><dd>Departure of the frequency sweep from a straight line, which smears far targets.</dd>
+    <dt>Fractional-N ramping, DDS</dt><dd>Ways of generating a linear ramp: a PLL whose divider steps along the ramp / direct digital synthesis.</dd>
+    <dt>Triangle sweep</dt><dd>Alternating up and down ramps to separate range and Doppler for single targets.</dd>
+    <dt>Chirp sequence</dt><dd>Many short ramps in a row, processed with a second FFT for Doppler.</dd>
+    <dt>Range-Doppler coupling</dt><dd>Doppler shift appearing as a range error in a single ramp.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, <a href="R6-measuring-targets.html">R6 · Measuring range, speed and angle</a>:</b> resolution against accuracy against ambiguity, multiple PRFs, pulse compression, monopulse angle measurement, and MTI.</p>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>; Stove, "Linear FMCW radar techniques", IEE Proc. F, 1992; Jankiraman, <i>FMCW Radar Design</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+
+const LAM=0.0299792458;
+function dft(sig,bins,N){ // sig: array of [re,im]; returns power at fractional bins list
+  return bins.map(k=>{ let re=0,im=0; for(let n=0;n<N;n++){ const a=-2*Math.PI*k*n/N, c=Math.cos(a), s=Math.sin(a); re+=sig[n][0]*c-sig[n][1]*s; im+=sig[n][0]*s+sig[n][1]*c; } return re*re+im*im; }); }
+const hann=N=>Array.from({length:N},(_,n)=>0.5-0.5*Math.cos(2*Math.PI*n/N));
+
+/* 2 CHIRP */
+bind(['chB','chT','chR'],function(){
+  const B=+$('chB').value*1e6, T=+$('chT').value*1e-6, R=+$('chR').value, S=B/T, tau=2*R/c0, fb=S*tau;
+  $('chBv').textContent=fmt(B,'Hz',0); $('chTv').textContent=fmt(T,'s',0); $('chRv').textContent=fmt(R,'m',R<1000?0:2);
+  const c=$('cCh'), g=ctx(c), x0=60, y0=14, w=c.width-74, h=170, td=Math.max(tau,0.08*T), X=t=>x0+w*t/(1.25*T), Y=f=>y0+h-h*f/(B*1.1);
+  frame(g,x0,y0,w,h,4); g.fillStyle=css('--muted'); g.fillText('freq.',4,y0+h/2); g.fillText('f0',x0-20,Y(0)+4); g.fillText('f0+B',x0-42,Y(B)+12); g.fillText('time →',x0+w-50,y0+h+14);
+  g.strokeStyle=css('--trace2'); g.lineWidth=2.2; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(T),Y(B)); g.stroke();
+  g.strokeStyle=css('--trace'); g.setLineDash([6,4]); g.beginPath(); g.moveTo(X(td),Y(0)); g.lineTo(X(Math.min(T+td,1.25*T)),Y(B*Math.min(1,(1.25*T-td)/T))); g.stroke(); g.setLineDash([]); g.lineWidth=1;
+  const tm=0.6*T, f1=S*tm, f2=B*(tm-td)/T; g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(X(tm),Y(f1)); g.lineTo(X(tm),Y(f2)); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--accent'); g.fillText('beat f_b = S·τ',X(tm)+6,(Y(f1)+Y(f2))/2+4); g.fillStyle=css('--trace2'); g.fillText('transmitted',X(0.1*T),Y(0.3*B)); g.fillStyle=css('--trace'); g.fillText('echo (delay '+(tau<0.08*T?'exaggerated':'to scale')+')',X(td+0.35*T)+8,Y(0.35*B)+14);
+  // beat waveform
+  const by=y0+h+40, bh=c.height-by-24, span=Math.min(T,12/Math.max(fb,1)), Xb=t=>x0+w*t/span;
+  g.strokeStyle=css('--line'); g.strokeRect(x0,by,w,bh); g.strokeStyle=css('--accent'); g.beginPath(); for(let i=0;i<=600;i++){ const t=span*i/600, v=Math.cos(2*Math.PI*fb*t); i?g.lineTo(Xb(t),by+bh/2-v*bh*0.4):g.moveTo(Xb(t),by+bh/2-v*bh*0.4); } g.stroke();
+  g.fillStyle=css('--muted'); g.fillText('beat signal at the mixer output (first '+fmt(span,'s',2)+')',x0,by-4);
+  ro($('chOut'),[['Slope S',fmt(S*1e-6,'Hz',2).replace('Hz','Hz/µs')],['Delay τ',fmt(tau,'s',3)],['Beat f<sub>b</sub>',fmt(fb,'Hz',2)],['Cycles per ramp',(fb*T).toFixed(0)],['Real ADC rate needed',fmt(2*fb,'Hz',1)+'+'],['Range resolution c/2B',fmt(c0/(2*B),'m',2)]]);
+});
+
+/* 3 FFT */
+bind(['ffB','ffR','ffD','ffA','ffW'],function(){
+  const B=+$('ffB').value*1e6, R1=+$('ffR').value, dR=+$('ffD').value, A=+$('ffA').value, win=$('ffW').value, res=c0/(2*B), Rd=100;
+  $('ffBv').textContent=fmt(B,'Hz',0); $('ffRv').textContent=R1.toFixed(1)+' m'; $('ffDv').textContent=dR.toFixed(1)+' m'; $('ffAv').textContent=A+' dB';
+  const N=Math.max(16,Math.round(Rd/res)), w=win==='hann'?hann(N):new Array(N).fill(1), a2=Math.pow(10,-A/20), u1=R1/res, u2=(R1+dR)/res;
+  const sig=[]; for(let n=0;n<N;n++){ const p1=2*Math.PI*u1*n/N, p2=2*Math.PI*u2*n/N; sig.push([w[n]*(Math.cos(p1)+a2*Math.cos(p2)),w[n]*(Math.sin(p1)+a2*Math.sin(p2))]); }
+  const over=4, ks=[]; for(let k=0;k<N*over;k++) ks.push(k/over); const P=dft(sig,ks,N), pk=Math.max(...P), pd=P.map(v=>db(v/pk+1e-12));
+  const c=$('cFft'), g=ctx(c), x0=50, y0=12, gw=c.width-64, gh=c.height-46, lo=-60, X=r=>x0+gw*r/Rd, Y=v=>y0+gh*(-Math.max(lo,v))/(-lo);
+  frame(g,x0,y0,gw,gh,6); g.fillStyle=css('--muted'); for(let v=0;v>=lo;v-=20) g.fillText(v+' dB',x0-46,Y(v)+4); for(let r=0;r<=Rd;r+=20) g.fillText(r+' m',X(r)-10,y0+gh+16);
+  if(N<=200){ g.strokeStyle=css('--grid'); for(let k=0;k<=N;k++){ g.beginPath(); g.moveTo(X(k*res),y0+gh-6); g.lineTo(X(k*res),y0+gh); g.stroke(); } }
+  g.strokeStyle=css('--accent'); g.lineWidth=1.6; g.beginPath(); pd.forEach((v,i)=>{ const r=ks[i]*res; i?g.lineTo(X(r),Y(v)):g.moveTo(X(r),Y(v)); }); g.stroke(); g.lineWidth=1;
+  [[R1,0,'T1'],[R1+dR,-A,'T2']].forEach(([r,l,t])=>{ g.fillStyle=css('--trace'); g.beginPath(); g.moveTo(X(r),Y(l)-10); g.lineTo(X(r)-4,Y(l)-18); g.lineTo(X(r)+4,Y(l)-18); g.fill(); g.fillText(t,X(r)+(t==='T1'?-22:6),Math.max(y0+12,Y(l)-6)); });
+  // resolved? find a dip between and a local peak near T2
+  const i1=Math.round(u1*over), i2=Math.round(u2*over); let sep=false;
+  if(i2<pd.length){ const s1=[]; for(let n=0;n<N;n++){ const p1=2*Math.PI*u1*n/N; s1.push([w[n]*Math.cos(p1),w[n]*Math.sin(p1)]); }
+    const only=db(dft(s1,[u2],N)[0]/pk+1e-12), both=pd[i2]; let dip=Infinity; for(let i=i1;i<=i2;i++) dip=Math.min(dip,pd[i]);
+    sep=(both-only>6)&&(both-dip>3); }
+  ro($('ffOut'),[['Bin width = range resolution',fmt(res,'m',2)],['Bins over 100 m',N],['Target separation',(dR/res).toFixed(1)+' bins'],['Window',win==='hann'?'Hann: sidelobes −31 dB, wider peak':'none: sidelobes −13 dB'],['Target 2 seen separately?',i2>=pd.length?'beyond display':sep?'yes':'no']]);
+});
+
+/* 4 LEAKAGE */
+bind(['lkP','lkD','lkL','lkH','lkC'],function(){
+  const Pl=+$('lkP').value, tL=+$('lkD').value*1e-9, L100=+$('lkL').value, hp=$('lkH').value==='on', fc=+$('lkC').value*1e3;
+  $('lkPv').textContent=Pl+' dBm'; $('lkDv').textContent=(tL*1e9).toFixed(1)+' ns'; $('lkLv').textContent=L100+' dBc/Hz'; $('lkCv').textContent=fmt(fc,'Hz',0)+' = '+(fc/1e4).toFixed(0)+' m';
+  const S=1.5e12, bin=1e4, fL=S*tL, noise=-124, Lf=f=>Math.max(L100-40,L100+20*Math.log10(1e5/f)), corr=f=>db(4*Math.pow(Math.sin(Math.PI*f*tL),2)+1e-30), H=f=>hp&&f<fc?40*Math.log10(f/fc):0;
+  const skirt=f=>Pl+Lf(f)+corr(f)+db(bin);
+  const echo=(R,s)=>30+50+20*Math.log10(LAM)+s-30*Math.log10(4*Math.PI)-40*Math.log10(R);
+  const tg=[[30,0,'1 m² at 30 m'],[100,-20,'drone 0.01 m² at 100 m'],[800,0,'1 m² at 800 m']];
+  const c=$('cLk'), g=ctx(c), x0=56, y0=12, gw=c.width-70, gh=c.height-48, fmin=1e3, fmax=2e7, lo=-170, hi=10, X=f=>x0+gw*Math.log10(f/fmin)/Math.log10(fmax/fmin), Y=v=>y0+gh*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0,y0,gw,gh,6); g.fillStyle=css('--muted'); for(let v=-150;v<=0;v+=30) g.fillText(v,x0-34,Y(v)+4); g.fillText('dBm',x0-34,y0+8);
+  [1e3,1e4,1e5,1e6,1e7].forEach(f=>{ g.fillText(fmt(f,'Hz',0),X(f)-14,y0+gh+14); g.fillText(fmt(f/1e4,'m',f<1e4?1:0),X(f)-14,y0+gh+28>c.height?y0+gh+28:y0+gh+28); });
+  g.strokeStyle=css('--muted'); g.setLineDash([4,4]); g.beginPath(); for(let i=0;i<=200;i++){ const f=fmin*Math.pow(fmax/fmin,i/200), v=noise+H(f); i?g.lineTo(X(f),Y(v)):g.moveTo(X(f),Y(v)); } g.stroke(); g.setLineDash([]);
+  g.strokeStyle=css('--bad'); g.lineWidth=1.6; g.beginPath(); for(let i=0;i<=300;i++){ const f=fmin*Math.pow(fmax/fmin,i/300); if(f<fL*1.5) continue; const v=10*Math.log10(Math.pow(10,skirt(f)/10)+Math.pow(10,noise/10))+H(f); g.lineTo(X(f),Y(v)); } g.stroke(); g.lineWidth=1;
+  const lx=Math.max(fmin,fL); g.fillStyle=css('--bad'); g.fillRect(X(lx)-2,Y(Pl+H(lx)),4,Y(lo)-Y(Pl+H(lx))); g.fillText('leakage',X(lx)+6,Y(Pl+H(lx))+12);
+  let dr=0; tg.forEach(([R,s,lab])=>{ const f=2*S*R/c0, v=echo(R,s)+H(f); g.fillStyle=css('--trace'); g.fillRect(X(f)-2,Y(v),4,Y(lo)-Y(v)); g.fillText(lab,X(f)-30,Y(v)-6); });
+  const fdr=2*S*100/c0, drone=echo(100,-20), floor=10*Math.log10(Math.pow(10,skirt(fdr)/10)+Math.pow(10,noise/10)), lkAdc=Pl+H(lx), strongest=Math.max(...tg.map(([R,s])=>echo(R,s)+H(2*S*R/c0)));
+  ro($('lkOut'),[['Leakage beat',fmt(fL,'Hz',1)],['Phase-noise cancellation at 1 MHz',corr(1e6).toFixed(1)+' dB'],['Skirt at the drone (1 MHz)',skirt(fdr).toFixed(1)+' dBm'],['Drone above noise + skirt',(drone-floor).toFixed(1)+' dB: '+(drone-floor>13?'detectable':'buried')],['Leakage at ADC',lkAdc.toFixed(1)+' dBm'],['Leakage above strongest target',(lkAdc-strongest).toFixed(1)+' dB']]);
+});
+
+/* 5 NONLINEARITY */
+bind(['nlD','nlR'],function(){
+  const d=+$('nlD').value/100, R=+$('nlR').value, B=150e6, T=100e-6, S=B/T, delta=d*B, tau=2*R/c0, fb=S*tau, N=1024, fs=N/T, kb=fb/fs*N;
+  $('nlDv').textContent=(d*100).toFixed(2)+' % of B ('+fmt(delta,'Hz',0)+')'; $('nlRv').textContent=fmt(R,'m',0);
+  const w=hann(N), e=t=>delta*4*(t/T)*(1-t/T), ideal=[], real=[]; let ph=0;
+  for(let n=0;n<N;n++){ const t=n/fs; const be=fb+e(t)-e(Math.max(0,t-tau)); if(n) ph+=2*Math.PI*be/fs; const p0=2*Math.PI*fb*t; ideal.push([w[n]*Math.cos(p0),w[n]*Math.sin(p0)]); real.push([w[n]*Math.cos(ph),w[n]*Math.sin(ph)]); }
+  const span=Math.max(12,Math.min(150,8*delta*tau*1.6+10)), ks=[]; for(let k=kb-span;k<=kb+span;k+=0.25) ks.push(k);
+  const Pi=dft(ideal,ks,N), Pr=dft(real,ks,N), pk=Math.max(...Pi), pi=Pi.map(v=>db(v/pk+1e-12)), pr=Pr.map(v=>db(v/pk+1e-12));
+  const c=$('cNl'), g=ctx(c), x0=50, y0=12, gw=c.width-64, gh=c.height-46, lo=-50, X=k=>x0+gw*(k-(kb-span))/(2*span), Y=v=>y0+gh*(-Math.max(lo,v))/(-lo);
+  frame(g,x0,y0,gw,gh,5); g.fillStyle=css('--muted'); for(let v=0;v>=lo;v-=10) g.fillText(v,x0-30,Y(v)+4);
+  [-span,-span/2,0,span/2,span].forEach(o=>g.fillText((R+o*c0/(2*B)).toFixed(0)+' m',X(kb+o)-14,y0+gh+16));
+  const line=(arr,col,wd)=>{ g.strokeStyle=col; g.lineWidth=wd; g.beginPath(); arr.forEach((v,i)=>{ i?g.lineTo(X(ks[i]),Y(v)):g.moveTo(X(ks[i]),Y(v)); }); g.stroke(); g.lineWidth=1; };
+  line(pi,css('--muted'),1.2); line(pr,css('--accent'),2);
+  const loss=Math.max(...pr), above=pr.filter(v=>v>loss-3).length*0.25;
+  ro($('nlOut'),[['Target delay τ',fmt(tau,'s',2)],['Predicted spread 8δτ',(8*delta*tau).toFixed(1)+' bins'],['Peak drop vs ideal',loss.toFixed(1)+' dB'],['Width at −3 dB',above.toFixed(1)+' bins (ideal ≈ 1.4)'],['δ for ≤ 1 bin at this range',fmt(1/(8*tau),'Hz',0)]]);
+});
+
+/* 6 CHIRP SEQUENCE */
+bind(['sqV','sqT','sqN'],function(){
+  const v=+$('sqV').value, Tc=+$('sqT').value*1e-6, N=+$('sqN').value; $('sqVv').textContent=v.toFixed(1)+' m/s'; $('sqTv').textContent=fmt(Tc,'s',0);
+  const step=2*Math.PI*2*v*Tc/LAM, vmax=LAM/(4*Tc), c=$('cSq'), g=ctx(c), cx=150, cy=150, Rr=100;
+  g.strokeStyle=css('--grid'); g.beginPath(); g.arc(cx,cy,Rr,0,7); g.stroke(); g.fillStyle=css('--muted'); g.fillText('beat phase, ramp by ramp',cx-80,22);
+  for(let k=0;k<12;k++){ const p=0.5+k*step; g.strokeStyle=css(k===0?'--accent':'--trace'); g.globalAlpha=k===0?1:Math.max(.25,1-k*0.06); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Rr*Math.cos(p),cy-Rr*Math.sin(p)); g.stroke(); g.globalAlpha=1; }
+  const w=hann(N), sig=[]; for(let k=0;k<N;k++) sig.push([w[k]*Math.cos(k*step),w[k]*Math.sin(k*step)]);
+  const M=256, ks=[]; for(let i=0;i<M;i++) ks.push((i/M-0.5)*N); const P=dft(sig,ks,N), pk=Math.max(...P), pd=P.map(x=>db(x/pk+1e-12));
+  const x0=300, y0=20, gw=c.width-314, gh=c.height-56, lo=-50, X=i=>x0+gw*i/(M-1), Y=vv=>y0+gh*(-Math.max(lo,vv))/(-lo);
+  frame(g,x0,y0,gw,gh,5); g.fillStyle=css('--muted'); [-1,0,1].forEach(q=>{ const t=(q*vmax).toFixed(0)+' m/s'; g.fillText(t,X((q+1)/2*(M-1))-(q===1?g.measureText(t).width:q===0?18:0),y0+gh+16); });
+  g.strokeStyle=css('--accent'); g.lineWidth=1.8; g.beginPath(); pd.forEach((vv,i)=>{ i?g.lineTo(X(i),Y(vv)):g.moveTo(X(i),Y(vv)); }); g.stroke(); g.lineWidth=1;
+  let im=0; pd.forEach((vv,i)=>{ if(vv>pd[im]) im=i; }); const vapp=(im/M-0.5)*2*vmax;
+  ro($('sqOut'),[['Phase step per ramp',(((step*180/Math.PI)%360+540)%360-180).toFixed(1)+'°'],['Doppler f<sub>d</sub>',fmt(2*v/LAM,'Hz',0)],['Unambiguous speed','± '+vmax.toFixed(1)+' m/s'],['Speed resolution',(LAM/(2*N*Tc)).toFixed(2)+' m/s'],['Peak appears at',vapp.toFixed(1)+' m/s'+(Math.abs(vapp-v)>LAM/(N*Tc)?' (aliased)':'')]]);
+});
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

@@ -1,0 +1,1204 @@
+<meta charset="utf-8">
+<title>ADC, DAC and Sampling</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">ADC, DAC and Sampling · RF Systems for Component Engineers</div>
+  <h1>ADC, DAC and sampling, from one sample to radar, ESM and jammer performance</h1>
+  <p class="lede">The analogue-to-digital converter (ADC) is where your analogue chain ends and the digital receiver begins; the digital-to-analogue converter (DAC) is where a transmitter's waveform is born. Everything the analogue chain did right can be lost at this boundary: a tone can turn up at the wrong frequency, the noise floor can rise above your LNA's, a spur can become a false target, and a jammer can radiate its own images. This page builds the converter from first principles: what a sample is, why the sample rate limits the bandwidth, how the number of bits sets the noise, where spurs come from, how the clock's jitter caps the signal-to-noise ratio, how much gain must sit in front of the ADC, and what a DAC's hold does to the output spectrum. Then it traces each converter number to radar dynamic range, ESM sensitivity, SAR data and jammer purity. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from a design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 Where the converter sits</a><a href="#sample">1 Sampling and aliasing</a><a href="#zones">2 Nyquist zones and undersampling</a><a href="#quant">3 Quantisation, SNR and ENOB</a><a href="#sfdr">4 SFDR and interleaving spurs</a><a href="#nsd">5 Full scale, NSD, processing gain</a><a href="#jitter">6 Aperture jitter</a><a href="#match">7 Matching the ADC to the chain</a><a href="#dac">8 DAC sinc, images, reconstruction</a><a href="#radar">9 Radar dynamic range and clutter</a><a href="#esm">10 ESM, SAR and jammer purity</a><a href="#summary">11 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>Where the converter sits in each chain, and what it is asked to do</h2>
+  <div class="know"><h4>You already know</h4><p>A receiver chain amplifies, filters and frequency-converts a signal until it is at a convenient intermediate frequency (IF) or at baseband (centred on 0 Hz). You know noise figure, gain, compression and spurs from the LNA, filter and mixer modules. What this page adds is the last block of that chain: the box that turns a voltage into a stream of numbers, and its mirror image in the transmitter that turns numbers back into a voltage.</p></div>
+  <div class="term"><h4>Definitions used on this page</h4>
+    <p><b>ADC (analogue-to-digital converter):</b> a circuit that, at regular instants, measures its input voltage and outputs that value as a binary number. Each measurement is a <b>sample</b>.</p>
+    <p><b>DAC (digital-to-analogue converter):</b> the reverse: it receives a number at regular instants and outputs the matching voltage, holding it until the next number arrives.</p>
+    <p><b>Sample rate f<sub>s</sub></b> (samples per second, written MSPS or GSPS for millions or billions per second): how many samples are taken each second. The time between samples is the <b>sample period</b> T<sub>s</sub> = 1/f<sub>s</sub>. Example: 100 MSPS means one sample every 10 ns.</p>
+    <p><b>Resolution N</b> (bits): how many binary digits each sample has. N bits can express 2<sup>N</sup> different values. Example: 12 bits gives 4 096 values.</p>
+    <p><b>Digital receiver:</b> the processing after the ADC (filtering, frequency shifting, FFTs, pulse compression, detection) done as arithmetic on the samples instead of with analogue parts.</p>
+  </div>
+  <div class="col"><p>In every chain the converter is asked the same three questions. <b>Bandwidth:</b> how wide a slice of spectrum can it see at once? That is set by the sample rate (Steps 1 and 2). <b>Noise:</b> how small a signal can it see? That is set by the number of bits, its own noise and the clock (Steps 3, 5, 6 and 7). <b>Spurs:</b> how strong a signal can it see without inventing signals that are not there? That is set by its linearity and, in fast converters, by mismatch between interleaved cores (Step 4). For a DAC the questions are mirrored: how clean is the waveform it produces, and where do its copies (images) land (Step 8)?</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>Chain</th><th>Where the converter sits</th><th>Typical illustrative numbers</th><th>Which question dominates</th></tr>
+    <tr><td>Pulse-Doppler radar receiver</td><td>ADC at an IF of 30 to 300 MHz, or I/Q ADCs at baseband</td><td>14 to 16 bits, 100 to 500 MSPS, signal bandwidth 1 to 50 MHz</td><td>Noise and spurs: strong ground clutter and a weak target in the same range cell (Step 9)</td></tr>
+    <tr><td>ESM / digital wideband receiver</td><td>ADC sampling a wide IF, or directly at RF</td><td>8 to 14 bits, 1 to 20 GSPS, instantaneous bandwidth 0.4 to 8 GHz</td><td>Bandwidth against noise: wider view costs bits and sensitivity (Step 10)</td></tr>
+    <tr><td>SAR (synthetic aperture radar)</td><td>I/Q ADCs after dechirp or at baseband</td><td>8 to 12 bits, 300 MSPS to 2 GSPS, chirp bandwidth 100 MHz to 1 GHz</td><td>Bandwidth and data rate; bright targets must not clip (Step 10)</td></tr>
+    <tr><td>Exciter / jammer transmitter</td><td>DAC creating the waveform at IF or directly at RF</td><td>12 to 16 bits, 1 to 12 GSPS</td><td>Purity: images, spurs and noise radiated by the transmitter (Steps 8 and 10)</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest view</h3>
+  <div class="col"><p>The simplest view is "the ADC is a fast voltmeter: pick the most bits and the fastest rate you can buy". Three numbers show why that fails. (1) A 16-bit ADC promises 98 dB of signal-to-noise ratio on paper, but sampled with a clock that wanders by 500 fs (femtoseconds, 10<sup>−15</sup> s) it delivers only 50 dB on a 1 GHz input: the extra bits are wasted (Step 6). (2) A 100 MSPS ADC fed with an unfiltered 70 MHz interferer shows it at 30 MHz, right on top of the wanted signal, with no way to tell them apart afterwards (Step 1). (3) A radar ADC with 66 dB SNR, used with 40 dB of processing gain, sees a spur only 75 dB below the clutter as a target 15 dB above its noise floor: a false alarm on every scan (Step 9).</p></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A converter runs at 250 MSPS with 14 bits. How long is one sample period, and how many output values are possible?</summary><p>T<sub>s</sub> = 1/250×10<sup>6</sup> = 4 ns. 2<sup>14</sup> = 16 384 values.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="sample">
+  <div class="secno">Step 1</div>
+  <h2>Sampling from first principles: the Nyquist rate, aliasing and the anti-alias filter</h2>
+  <div class="know"><h4>You already know</h4><p>From the mixer module: multiplying a signal by a tone of frequency f<sub>LO</sub> shifts it to f ± f<sub>LO</sub>. Sampling turns out to be the same thing done with a train of very short pulses: it multiplies the input by every multiple of f<sub>s</sub> at once.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Nyquist frequency</b> f<sub>s</sub>/2: half the sample rate. The highest frequency that can be represented without ambiguity. At 100 MSPS it is 50 MHz.</p>
+    <p><b>Nyquist rate</b> 2·f<sub>max</sub>: the lowest sample rate that can represent a signal whose highest frequency is f<sub>max</sub>. A 0 to 30 MHz signal needs at least 60 MSPS.</p>
+    <p><b>Alias:</b> a tone at f, sampled at f<sub>s</sub>, gives exactly the same samples as a tone at |f − k·f<sub>s</sub>| for any whole number k. The lowest of these, between 0 and f<sub>s</sub>/2, is where it appears in the digital data. That apparent frequency is the alias.</p>
+    <p><b>Anti-alias filter:</b> a low-pass (or band-pass) filter in front of the ADC that attenuates everything that would alias onto the wanted band. Its <b>passband edge</b> f<sub>max</sub> is the highest wanted frequency; its <b>cut-off</b> f<sub>c</sub> is where it is 3 dB down; its <b>order</b> (number of poles) sets how fast it rolls off.</p>
+    <p><b>dBFS</b> (decibels relative to full scale): a level measured against the largest sine wave the ADC can take without clipping. 0 dBFS is that full-scale sine; −10 dBFS is 10 dB below it.</p>
+  </div>
+  <div class="col"><p>Why the limit exists: a sample is only a value at one instant. Draw a 30 MHz sine and a 70 MHz sine and sample both every 10 ns (100 MSPS). At every sample instant the 70 MHz sine has advanced 0.7 of a cycle, which is the same as going back 0.3 of a cycle: the samples are the samples of a 30 MHz sine, with the phase reversed. Nothing in the data can tell them apart. In general the apparent frequency is</p></div>
+  <div class="eq">f<sub>alias</sub> = | f − k·f<sub>s</sub> |, with k the whole number that brings the result into 0 … f<sub>s</sub>/2<small>Example at f<sub>s</sub> = 100 MSPS: 30 MHz → 30 MHz; 70 MHz → |70 − 100| = 30 MHz; 130 MHz → |130 − 100| = 30 MHz; 170 MHz → |170 − 200| = 30 MHz. Four different inputs, one output.</small></div>
+  <div class="col"><p>So the sample rate must be at least twice the highest frequency present (the Nyquist criterion), and "present" means everything that reaches the ADC pins, not just what you want. An interferer at 70 MHz, or the third harmonic of your own IF amplifier, aliases into the wanted band and is then indistinguishable from a real signal. Only an analogue filter before the ADC can remove it; once sampled, it is too late.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: sample at exactly the Nyquist rate with no filter. A 0 to 30 MHz radar IF sampled at 60 MSPS has no room for any filter: the filter would have to pass 30 MHz and block 30.001 MHz. Naive approach 2: sample at 100 MSPS and fit a modest filter. Suppose an interferer at 70 MHz arrives at −10 dBFS, and the system needs every alias below −80 dBFS (that is, 70 dB of rejection at 70 MHz) so that it stays under the noise of a 12-bit converter in a narrow channel. A 5-pole Butterworth filter with f<sub>c</sub> = 35 MHz gives only 30.1 dB at 70 MHz, so the alias appears at 30 MHz at −40.1 dBFS: 40 dB too strong. The interferer is now a convincing signal.</p></div>
+  <h3>Side by side on one example: 0 to 30 MHz wanted, interferer at −10 dBFS, every alias must be below −80 dBFS</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Sample rate</th><th>Worst interferer that lands on 30 MHz</th><th>Filter (Butterworth, f<sub>c</sub> 35 MHz)</th><th>Rejection there</th><th>Alias level</th><th>Droop at 30 MHz</th></tr>
+    <tr><td>100 MSPS</td><td class="n">70 MHz</td><td>3 poles</td><td class="n">18.1 dB</td><td class="n">−28.1 dBFS ✗</td><td class="n">1.45 dB</td></tr>
+    <tr><td>100 MSPS</td><td class="n">70 MHz</td><td>5 poles</td><td class="n">30.1 dB</td><td class="n">−40.1 dBFS ✗</td><td class="n">0.84 dB</td></tr>
+    <tr><td>100 MSPS</td><td class="n">70 MHz</td><td>7 poles</td><td class="n">42.1 dB</td><td class="n">−52.1 dBFS ✗</td><td class="n">0.47 dB</td></tr>
+    <tr><td>100 MSPS</td><td class="n">70 MHz</td><td>12 poles</td><td class="n">72.2 dB</td><td class="n">−82.2 dBFS ✓</td><td class="n">0.11 dB</td></tr>
+    <tr><td>200 MSPS</td><td class="n">170 MHz</td><td>5 poles</td><td class="n">68.6 dB</td><td class="n">−78.6 dBFS ✗ (just)</td><td class="n">0.84 dB</td></tr>
+    <tr><td>200 MSPS</td><td class="n">170 MHz</td><td>6 poles</td><td class="n">82.4 dB</td><td class="n">−92.4 dBFS ✓</td><td class="n">0.63 dB</td></tr>
+  </table></div>
+  <div class="col"><p>The table shows the real lever. A Butterworth filter falls at 6·N dB per octave (per doubling of frequency) once well past f<sub>c</sub>. At 100 MSPS the filter has only one octave (35 to 70 MHz) to fall 70 dB, which needs 12 poles. Doubling the sample rate to 200 MSPS moves the first dangerous frequency to 170 MHz, more than two octaves away, and 6 poles are enough. Signals between 30 and 170 MHz still pass the filter, but they now land between 30 and 100 MHz in the digital data, outside the wanted band, where a digital filter removes them for free. An elliptic filter (module 04) reaches the same rejection with roughly half the poles of a Butterworth, at the price of passband ripple and more group-delay variation.</p></div>
+  <div class="term"><h4>One more definition</h4><p><b>Oversampling ratio:</b> f<sub>s</sub> / (2·f<sub>max</sub>). At 100 MSPS for a 30 MHz signal it is 1.67; at 200 MSPS it is 3.33. The <b>transition band</b> of the anti-alias filter runs from f<sub>max</sub> to f<sub>s</sub> − f<sub>max</sub>: 30 to 70 MHz at 100 MSPS, 30 to 170 MHz at 200 MSPS.</p></div>
+  <h3>How to choose the sample rate and the anti-alias filter</h3>
+  <div class="col"><p>(1) Write down the wanted band (0 to f<sub>max</sub>) and the strongest signal that can arrive outside it, with its level in dBFS. (2) Write down how far below full scale an alias must be (often "below the noise in the narrowest channel"). The difference is the rejection needed at f<sub>s</sub> − f<sub>max</sub>. (3) Pick f<sub>s</sub> so that the transition band, f<sub>max</sub> to f<sub>s</sub> − f<sub>max</sub>, is wide enough for a filter you can build with acceptable loss, droop and group delay. Raising f<sub>s</sub> widens the transition band and simplifies the filter, but costs power, data rate and, as Step 6 shows, makes clock jitter matter more for nothing. (4) Keep the filter's passband droop at f<sub>max</sub> small (well under 1 dB) or correct it digitally.</p></div>
+  <h3 class="try">Try it: what the samples see</h3>
+  <div class="col"><p>The first bench shows one input sine (solid), the samples taken from it (dots), and the lowest-frequency sine that passes through the same dots (dashed): that dashed sine is what the digital receiver believes it received. The controls are the two quantities just defined: the sample rate and the input frequency.</p></div>
+  <div class="bench">
+    <canvas id="cAl" width="640" height="300" aria-label="An input sine, its samples and the alias sine through the samples"></canvas>
+    <div class="ctrl">
+      <label for="alFs"><span>Sample rate f<sub>s</sub></span> <b id="alFsv"></b></label><input id="alFs" type="range" min="20" max="200" step="1" value="100">
+      <label for="alF"><span>Input frequency</span> <b id="alFv"></b></label><input id="alF" type="range" min="1" max="400" step="1" value="30">
+      <div class="readout" id="alOut"></div>
+    </div>
+    <p class="cap">Solid: the real input over 200 ns. Dots: the samples. Dashed: the alias, the sine at the apparent frequency through the same dots. When the input is below f<sub>s</sub>/2 the two curves coincide at the dots and the alias is the input itself.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>At 100 MSPS set 30 MHz, then 70, 130 and 170 MHz: the apparent frequency stays 30 MHz each time, as in the worked example.</li>
+    <li>Set exactly 50 MHz at 100 MSPS (2 samples per cycle): the readout reports it at the Nyquist frequency, where the sample values depend on the phase and can even be all zero.</li>
+    <li>At 70 MHz, the readout says "spectrum inverted": a tone rising above 70 MHz moves down below 30 MHz. Step 2 uses this.</li>
+  </ul></div>
+  <h3 class="try">Try it: the anti-alias filter</h3>
+  <div class="col"><p>The second bench draws the Butterworth anti-alias filter of the table against frequency, the wanted band (green), the band that folds onto it (red, from f<sub>s</sub> − f<sub>max</sub> upwards), and one interferer. Its alias is drawn at its apparent frequency, at the level left after the filter. All six controls were defined above: sample rate, passband edge f<sub>max</sub>, filter order, cut-off f<sub>c</sub>, interferer frequency and its level in dBFS. The pass mark is the −80 dBFS of the worked example.</p></div>
+  <div class="bench">
+    <canvas id="cAa" width="640" height="320" aria-label="Anti-alias filter response, folding bands and an interferer with its alias"></canvas>
+    <div class="ctrl">
+      <label for="aaFs"><span>Sample rate f<sub>s</sub></span> <b id="aaFsv"></b></label><input id="aaFs" type="range" min="50" max="400" step="5" value="100">
+      <label for="aaFm"><span>Passband edge f<sub>max</sub></span> <b id="aaFmv"></b></label><input id="aaFm" type="range" min="5" max="80" step="1" value="30">
+      <label for="aaN"><span>Filter order (poles)</span> <b id="aaNv"></b></label><input id="aaN" type="range" min="1" max="12" step="1" value="5">
+      <label for="aaFc"><span>Cut-off f<sub>c</sub></span> <b id="aaFcv"></b></label><input id="aaFc" type="range" min="10" max="150" step="1" value="35">
+      <label for="aaI"><span>Interferer frequency</span> <b id="aaIv"></b></label><input id="aaI" type="range" min="10" max="600" step="5" value="70">
+      <label for="aaP"><span>Interferer level</span> <b id="aaPv"></b></label><input id="aaP" type="range" min="-40" max="0" step="1" value="-10">
+      <div class="readout" id="aaOut"></div>
+    </div>
+    <p class="cap">Solid curve: the filter's response, read as the level after the filter in dBFS for a 0 dBFS input. Green: wanted band. Red: frequencies that fold onto the wanted band. Orange stem: the interferer after the filter. Second stem: where its alias lands (purple when outside the wanted band, red when inside it). Dashed line: the −80 dBFS requirement. Dotted verticals: Nyquist zone edges.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (100 MSPS, 5 poles, 35 MHz, 70 MHz at −10 dBFS): 30.1 dB rejection, alias −40.1 dBFS at 30 MHz, FAIL: row 2 of the table.</li>
+    <li>Raise the order to 12: 72.2 dB and −82.2 dBFS, pass, with only 0.11 dB droop at 30 MHz.</li>
+    <li>Back to 5 poles, set f<sub>s</sub> 200 MSPS and the interferer to 170 MHz: 68.6 dB, alias −78.6 dBFS, just failing; 6 poles passes.</li>
+    <li>At 200 MSPS move the interferer to 70 MHz: it no longer lands in the wanted band (its alias is at 70 MHz), so the digital filter can remove it.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Anti-alias rejection</td><td>Filter family, order, cut-off, Q<sub>u</sub> (module 04)</td><td>Rejection at f<sub>s</sub> − f<sub>max</sub> in dB</td><td>Every dB missing is a dB of alias: 30 dB instead of 70 dB turns a −10 dBFS interferer into a −40 dBFS false signal</td></tr>
+    <tr><td>Sample rate</td><td>ADC part and clock frequency (modules 02, 14)</td><td>Maximum MSPS</td><td>Sets the transition band: 100 → 200 MSPS cuts the filter from 12 to 6 poles in the example</td></tr>
+    <tr><td>Harmonics of the IF amplifier</td><td>Amplifier linearity (OIP2, OIP3)</td><td>HD2, HD3 in dBc</td><td>The amplifier's 3rd harmonic of a 30 MHz IF is at 90 MHz and aliases to 10 MHz at 100 MSPS, inside the band; the filter must come after the amplifier to remove it</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the anti-alias filter is the last analogue filter in the receiver and the only defence against aliases. Its stop band starts at f<sub>s</sub> − f<sub>max</sub>, not at f<sub>s</sub>/2.</li>
+    <li><b>Amplifier designers:</b> the ADC driver amplifier sits after or between filter sections; its harmonics and its output noise above f<sub>s</sub>/2 alias too. Broadband noise from 50 to 1 000 MHz, unfiltered, folds 20 times onto the 0 to 50 MHz band (Step 7).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ADC runs at 250 MSPS. Where does a 310 MHz tone appear?</summary><p>|310 − 250| = 60 MHz, which is below f<sub>s</sub>/2 = 125 MHz, so it appears at 60 MHz.</p></details>
+    <details><summary>A 0 to 40 MHz signal is sampled at 125 MSPS. Where does the anti-alias filter's stop band have to start?</summary><p>At f<sub>s</sub> − f<sub>max</sub> = 85 MHz: anything at 85 MHz aliases to 40 MHz, the band edge. The transition band is 40 to 85 MHz, just over one octave.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="zones">
+  <div class="secno">Step 2</div>
+  <h2>Nyquist zones and bandpass (under)sampling</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1: a tone at f appears at |f − k·f<sub>s</sub>|. From the mixer module: a low-side LO keeps the spectrum the right way round and a high-side LO turns it over. Sampling does both, depending on where the signal sits.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Nyquist zone n:</b> the frequency strip from (n − 1)·f<sub>s</sub>/2 to n·f<sub>s</sub>/2. At 100 MSPS zone 1 is 0 to 50 MHz, zone 2 is 50 to 100 MHz, zone 3 is 100 to 150 MHz, and so on. Every zone folds onto zone 1.</p>
+    <p><b>Spectral inversion:</b> signals in even zones (2, 4, …) appear mirrored in zone 1: the upper edge of the band becomes the lower edge. Odd zones keep their orientation.</p>
+    <p><b>Bandpass sampling (undersampling):</b> deliberately sampling a band-limited signal in zone 2 or higher, at a rate far below twice its highest frequency, so that the ADC does the job of the last mixer. It works only if the whole band sits inside one zone.</p>
+    <p><b>Analogue input bandwidth:</b> the frequency at which the ADC's own sampling circuit (track-and-hold) has lost 3 dB. An ADC can only undersample a zone that lies inside this bandwidth.</p>
+  </div>
+  <div class="col"><p>Why it works: Step 1 showed that the samples cannot tell 30 MHz from 130 MHz. Usually that is a problem; here it is a tool. If a band-pass filter guarantees that only 120 to 140 MHz reaches the ADC, then everything in the samples between 20 and 40 MHz must have come from 120 to 140 MHz. The ADC has shifted the band down by f<sub>s</sub>, exactly as a mixer with a 100 MHz LO would, and the IF stage and mixer can be removed.</p></div>
+  <div class="eq">valid f<sub>s</sub> for a band f<sub>L</sub> … f<sub>H</sub> (width B = f<sub>H</sub> − f<sub>L</sub>):  2·f<sub>H</sub>/n ≤ f<sub>s</sub> ≤ 2·f<sub>L</sub>/(n − 1), for whole n from 1 to ⌊f<sub>H</sub>/B⌋<small>Example: a 70 MHz IF, 20 MHz wide (60 to 80 MHz). n = 2: 80 ≤ f<sub>s</sub> ≤ 120 MSPS. n = 3: 53.3 ≤ f<sub>s</sub> ≤ 60 MSPS. n = 4: 40 ≤ f<sub>s</sub> ≤ 40 MSPS (one value, no margin at all). n = 1 is ordinary sampling: f<sub>s</sub> ≥ 160 MSPS.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "a 60 to 80 MHz band needs 160 MSPS". It works, but it buys twice the sample rate needed, and twice the data. Naive approach 2: pick a rate halfway between, say 70 MSPS. The zone edge is then at 70 MHz, right in the middle of the band: 60 to 70 MHz (zone 2) appears inverted at 0 to 10 MHz, and 70 to 80 MHz (zone 3) appears upright also at 0 to 10 MHz. The two halves of the band land on top of each other and cannot be separated. Naive approach 3: pick 40 MSPS, the lowest valid rate. The band now fills zone 4 exactly, edge to edge, so the band-pass filter must cut from full pass to full stop in zero hertz: impossible to build.</p></div>
+  <h3>Side by side on one example: 60 to 80 MHz band (70 MHz IF, 20 MHz wide)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>f<sub>s</sub></th><th>Zone of the band</th><th>Appears at</th><th>Inverted?</th><th>Guard to zone edges</th><th>Verdict</th></tr>
+    <tr><td class="n">160 MSPS</td><td>1 (0 to 80)</td><td class="n">60 to 80 MHz</td><td>no</td><td class="n">0 MHz above</td><td>works only with a steep low-pass; double the data</td></tr>
+    <tr><td class="n">100 MSPS</td><td>2 (50 to 100)</td><td class="n">20 to 40 MHz</td><td>yes</td><td class="n">10 and 20 MHz</td><td>✓ comfortable</td></tr>
+    <tr><td class="n">93.3 MSPS</td><td>2 (46.7 to 93.3)</td><td class="n">13.3 to 33.3 MHz</td><td>yes</td><td class="n">13.3 each side</td><td>✓ centred: 70 MHz = 3·f<sub>s</sub>/4</td></tr>
+    <tr><td class="n">56 MSPS</td><td>3 (56 to 84)</td><td class="n">4 to 24 MHz</td><td>no</td><td class="n">4 MHz each side</td><td>✓ but a tight filter</td></tr>
+    <tr><td class="n">70 MSPS</td><td>straddles 2 and 3</td><td class="n">two halves on 0 to 10 MHz</td><td>both</td><td class="n">−10 MHz</td><td>✗ band folds onto itself</td></tr>
+    <tr><td class="n">40 MSPS</td><td>4 (60 to 80)</td><td class="n">0 to 20 MHz</td><td>yes</td><td class="n">0 MHz</td><td>✗ no room for a filter</td></tr>
+  </table></div>
+  <div class="col"><p>A popular choice puts the band centre at an odd multiple of f<sub>s</sub>/4 (here 70 MHz = 3 × 93.3/4). The band then lands centred at f<sub>s</sub>/4 in zone 1, with equal guard on each side, and the digital frequency shift to baseband becomes multiplying by the repeating sequence 1, 0, −1, 0, which needs no multipliers. Two costs grow with the zone number: the ADC's analogue input bandwidth must reach the band, and the jitter limit of Step 6 depends on the input frequency (140 MHz), not on the sample rate.</p></div>
+  <h3>How to choose the sample rate for bandpass sampling</h3>
+  <div class="col"><p>(1) Fix the band f<sub>L</sub> to f<sub>H</sub> including the band-pass filter's transition bands, not just the signal. (2) List the valid windows from the equation for n = 1 up to ⌊f<sub>H</sub>/B⌋. (3) Pick a rate inside a window, preferably in its middle, so the band has guard bands on both sides for the filter skirts and for drift. (4) Check that the ADC's analogue input bandwidth exceeds f<sub>H</sub> and that the jitter budget at f<sub>H</sub> is met (Step 6). (5) Note whether the band is inverted; the digital receiver simply flips it back.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench shows zones 1 to 10 as alternating strips, the signal band (the three controls set the sample rate, the band centre and the band width), and where the band appears in zone 1. Red means the band crosses a zone edge.</p></div>
+  <div class="bench">
+    <canvas id="cNz" width="640" height="300" aria-label="Nyquist zones, a signal band and its alias in the first zone"></canvas>
+    <div class="ctrl">
+      <label for="nzFs"><span>Sample rate f<sub>s</sub></span> <b id="nzFsv"></b></label><input id="nzFs" type="range" min="20" max="400" step="0.1" value="100">
+      <label for="nzFc"><span>Band centre</span> <b id="nzFcv"></b></label><input id="nzFc" type="range" min="5" max="1000" step="1" value="70">
+      <label for="nzB"><span>Band width B</span> <b id="nzBv"></b></label><input id="nzB" type="range" min="1" max="100" step="1" value="20">
+      <div class="readout" id="nzOut"></div>
+    </div>
+    <p class="cap">Top strip: the real spectrum with zones shaded and numbered. Bottom strip: zone 1, the digital view. The band's upper edge is marked with a triangle so you can see when it is inverted. Valid sample-rate windows for the current band are listed in the readout.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (100 MSPS, 70 MHz, 20 MHz): zone 2, appears at 20 to 40 MHz, inverted, guards 10 and 20 MHz: row 2 of the table.</li>
+    <li>Set f<sub>s</sub> 70 MSPS: the band straddles the 70 MHz zone edge and turns red.</li>
+    <li>Set f<sub>s</sub> 56 MSPS: zone 3, 4 to 24 MHz, not inverted; then 93.3 MSPS: centred at 23.3 MHz with 13.3 MHz guard each side.</li>
+    <li>Move the band to 140 MHz and narrow it to 10 MHz at 100 MSPS (the check-yourself case): zone 3, upright, at 35 to 45 MHz; the readout shows 145 MHz as the input frequency the jitter budget (Step 6) must use. At 20 MHz wide the band would touch the 150 MHz zone edge with no guard.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Band-pass filter before the ADC</td><td>Centre, width, skirt steepness (module 04)</td><td>Rejection at the zone edges</td><td>Defines which zone is sampled; anything passing from other zones lands on the wanted band</td></tr>
+    <tr><td>IF frequency plan</td><td>Mixer LO (module 05)</td><td>IF centre and bandwidth</td><td>Choosing 70 MHz with 93.3 MSPS removes a mixer and an LO; choosing 70 MSPS ruins the band</td></tr>
+    <tr><td>ADC analogue input bandwidth</td><td>ADC choice</td><td>Full-power bandwidth (−3 dB)</td><td>Must exceed the highest zone used; a 1 GHz input-bandwidth part cannot undersample zone 5 at 500 MSPS (1.0 to 1.25 GHz) without loss</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> undersampling replaces a mixer with a band-pass filter whose skirts must fall inside the guard bands. 4 MHz of guard at 70 MHz (f<sub>s</sub> 56 MSPS) is a much harder filter than 13 MHz (f<sub>s</sub> 93.3 MSPS).</li>
+    <li><b>Synthesiser designers:</b> the ADC clock becomes the "LO" of this conversion. Its phase noise and spurs are transferred onto the signal, scaled by the input frequency over the clock frequency (Step 6).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 140 MHz IF, 10 MHz wide, is sampled at 100 MSPS. Which zone, where does it appear, and is it inverted?</summary><p>135 to 145 MHz lies in zone 3 (100 to 150 MHz), odd, so upright. It appears at 35 to 45 MHz.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="quant">
+  <div class="secno">Step 3</div>
+  <h2>Quantisation and resolution: the ideal SNR = 6.02·N + 1.76 dB, and ENOB</h2>
+  <div class="know"><h4>You already know</h4><p>Signal-to-noise ratio (SNR) is signal power divided by noise power, in dB. You know thermal noise from the LNA module. This step adds a second kind of noise that exists even in a perfect, noiseless converter: the rounding error.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Full-scale range (FSR):</b> the peak-to-peak input voltage the ADC can code. Example: 2 V<sub>pp</sub>, from −1 V to +1 V.</p>
+    <p><b>LSB (least significant bit):</b> the voltage step between two adjacent codes, q = FSR/2<sup>N</sup>. 12 bits over 2 V<sub>pp</sub>: q = 2/4 096 = 488 µV.</p>
+    <p><b>Quantisation error:</b> the difference between the true input and the code's voltage. With a busy input it is spread evenly between −q/2 and +q/2, so its rms (root-mean-square) value is q/√12. For 12 bits: 488/3.46 = 141 µV rms.</p>
+    <p><b>Quantisation noise:</b> that error treated as a noise. It is noise-like only if the input is busy; if the input repeats exactly, the error repeats too and becomes spurs (harmonics) instead.</p>
+    <p><b>SINAD</b> (signal to noise and distortion): signal power over everything else (noise plus harmonics and spurs). <b>ENOB</b> (effective number of bits): the N of an ideal converter with the same SINAD, ENOB = (SINAD − 1.76)/6.02.</p>
+    <p><b>Dither:</b> a small random noise added before the ADC on purpose, to keep the quantisation error random when the input itself is not busy.</p>
+  </div>
+  <div class="col"><p>Deriving the famous formula needs only two numbers. A full-scale sine has a peak of FSR/2, so its rms value is FSR/(2√2). The quantisation noise is q/√12 = FSR/(2<sup>N</sup>·√12). Divide and convert to dB:</p></div>
+  <div class="eq">SNR<sub>ideal</sub> = 20·log<sub>10</sub>[ (FSR/2√2) / (FSR/(2<sup>N</sup>√12)) ] = 20·log<sub>10</sub>(2<sup>N</sup>) + 20·log<sub>10</sub>(√1.5) = 6.02·N + 1.76 dB<small>Each extra bit halves q and buys 6.02 dB. For 12 bits: 6.02 × 12 + 1.76 = 74.0 dB; check: 20·log(0.7071 V / 141 µV) = 74.0 dB. The noise is spread from 0 to f<sub>s</sub>/2, which matters in Step 5. A signal at −A dBFS has an SNR A dB lower: 12 bits at −20 dBFS gives 54.0 dB.</small></div>
+  <div class="col"><p>A real ADC adds its own thermal noise, its nonlinearity and its clock jitter, so the datasheet SNR is lower than 6.02·N + 1.76. ENOB turns the measured SINAD back into "bits that are really working". A 12-bit ADC with SINAD 68.5 dB has ENOB = (68.5 − 1.76)/6.02 = 11.1 bits.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "16 bits means 98 dB". The 16-bit converters on the market at 100 MSPS or more give about 76 to 80 dB SNR: the last three bits are buried in the converter's own noise. Their value is that the quantisation step is far below that noise, so the noise is smooth and well behaved, not that the noise is 98 dB down. Naive approach 2: a small, clean tone with no noise. Feed an 8-bit ADC a sine at exactly f<sub>s</sub>/32. Every 32 samples the same codes repeat, so the quantisation error repeats too: instead of a flat floor at −49.9 dBc spread over 2 048 FFT bins, the error collects in a few harmonics only about 50 to 60 dB below the signal. In a radar or ESM receiver those are false signals. Naive approach 3: a signal far below full scale. At −60 dBFS an 8-bit converter uses barely one code step: the output is a crude square wave, rich in harmonics.</p></div>
+  <h3>Side by side on one example: ideal against typical datasheet values (illustrative, about 100 MSPS)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Bits N</th><th>LSB at 2 V<sub>pp</sub></th><th>Ideal SNR</th><th>Typical datasheet SINAD</th><th>ENOB</th><th>Bits lost</th></tr>
+    <tr><td class="n">8</td><td class="n">7.81 mV</td><td class="n">49.9 dB</td><td class="n">46 dB</td><td class="n">7.4</td><td class="n">0.6</td></tr>
+    <tr><td class="n">10</td><td class="n">1.95 mV</td><td class="n">62.0 dB</td><td class="n">58 dB</td><td class="n">9.3</td><td class="n">0.7</td></tr>
+    <tr><td class="n">12</td><td class="n">488 µV</td><td class="n">74.0 dB</td><td class="n">68 dB</td><td class="n">11.0</td><td class="n">1.0</td></tr>
+    <tr><td class="n">14</td><td class="n">122 µV</td><td class="n">86.0 dB</td><td class="n">74 dB</td><td class="n">12.0</td><td class="n">2.0</td></tr>
+    <tr><td class="n">16</td><td class="n">30.5 µV</td><td class="n">98.1 dB</td><td class="n">80 dB</td><td class="n">13.0</td><td class="n">3.0</td></tr>
+  </table></div>
+  <div class="col"><p>The more bits, the more of them are lost to thermal noise: an LSB of 30.5 µV is smaller than the noise of the converter's own input resistors. Dither is the fix for the second and third naive cases: added noise breaks up the repeating pattern and turns the harmonics back into flat noise. It is not free. Quantisation noise is only q²/12, so 0.33 LSB rms of dither (0.11 q²) more than doubles the noise power and costs about 3.7 dB of SNR on an 8-bit converter, and 1 LSB rms costs about 11 dB. That is why practical receivers either add the dither outside the wanted band and filter it off digitally, or let the receiver's own thermal noise do the job: Step 7 arranges about 1 LSB rms of it anyway, because that noise sets the system noise floor whether or not it dithers.</p></div>
+  <h3>How to choose the resolution</h3>
+  <div class="col"><p>(1) Find the instantaneous dynamic range the system needs: the strongest signal that must not clip, minus the weakest signal that must be seen, per sample bandwidth (Steps 5, 9). (2) Look up the datasheet SNR and SFDR, not the bit count: they are what is delivered. (3) Make sure the ADC's input sees some noise (at least about one LSB rms, Step 7) so the quantisation error stays random. (4) Do not pay for bits below the noise: going from 14 to 16 bits typically buys 6 dB of SNR, not 12.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench quantises a sine with an ideal converter and takes a 4 096-point FFT (Fast Fourier Transform: the spectrum of the samples, split into 2 048 frequency bins). The controls are the resolution N, the signal amplitude in dBFS, the dither level in LSB rms, and the tone frequency: either 127/4 096 of f<sub>s</sub> (an odd, non-repeating ratio) or exactly f<sub>s</sub>/32 (the repeating case).</p></div>
+  <div class="bench">
+    <canvas id="cQn" width="640" height="380" aria-label="Quantised sine in time and its spectrum"></canvas>
+    <div class="ctrl">
+      <label for="qnN"><span>Resolution N</span> <b id="qnNv"></b></label><input id="qnN" type="range" min="2" max="16" step="1" value="8">
+      <label for="qnA"><span>Amplitude</span> <b id="qnAv"></b></label><input id="qnA" type="range" min="-60" max="0" step="1" value="-1">
+      <label for="qnD">Dither</label><select id="qnD"><option value="0">none</option><option value="0.33">0.33 LSB rms</option><option value="1">1 LSB rms</option></select>
+      <label for="qnT">Tone frequency</label><select id="qnT"><option value="127">127/4096 × fs (non-repeating)</option><option value="128">fs/32 exactly (repeats every 32 samples)</option></select>
+      <div class="readout" id="qnOut"></div>
+    </div>
+    <p class="cap">Top: 64 samples, the ideal sine (thin) and the quantised codes (steps), scaled to the signal's own amplitude. Bottom: spectrum in dBFS per FFT bin; the dashed line is where an ideal N-bit converter's flat noise floor per bin should be (−6.02·N − 1.76 − 33.1 dB).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Set 12 bits, −1 dBFS: measured SNR about 73 dB (the ideal 74.0 dB minus the 1 dB of back-off), ENOB about 11.8 at −1 dBFS.</li>
+    <li>Each bit up or down moves the floor by 6.02 dB: compare 10 bits (62.0 dB ideal) and 14 bits (86.0 dB).</li>
+    <li>8 bits with "f<sub>s</sub>/32 exactly": SINAD still looks fine (49.4 dB), but the floor empties and the largest spur rises from −67.4 dBc to −54.5 dBc. Add 0.33 LSB rms dither: the spur falls to about −69 dBc and SINAD to 45.5 dB; 1 LSB rms gives 37.8 dB, the 11 dB cost described above.</li>
+    <li>8 bits at −50 dBFS without dither: the steps become a crude square wave and the readout's spur level approaches the signal.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Resolution</td><td>ADC part</td><td>N bits; SNR and SINAD in dBFS; ENOB</td><td>Sets the converter's floor: 12 → 14 bits buys about 6 dB of real SNR at 100 MSPS (table), i.e. 6 dB more instantaneous dynamic range</td></tr>
+    <tr><td>Noise at the ADC input</td><td>Gain of the chain before the ADC (Step 7)</td><td>Noise in LSB rms</td><td>About 1 LSB rms or more keeps quantisation error random; much less turns it into spurs on weak, clean signals</td></tr>
+    <tr><td>Signal level</td><td>Gain, AGC</td><td>Back-off from full scale in dB</td><td>SNR falls dB for dB with back-off: 20 dB below full scale costs 20 dB of SNR</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>IF amplifier and LNA designers:</b> your noise reaching the ADC is not only a cost; a little of it is the dither that keeps the ADC linear for weak signals.</li>
+    <li><b>Anyone writing a test plan:</b> measure ADC spectra with an input at a non-repeating ratio (an odd number of cycles in the record, "coherent sampling") or the spectrum will show quantisation spurs that are not there in service.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 14-bit ADC has a datasheet SINAD of 72.0 dB. What is its ENOB, and how much better is it than an ideal 12-bit converter?</summary><p>ENOB = (72.0 − 1.76)/6.02 = 11.7 bits. An ideal 12-bit converter has 74.0 dB, so this 14-bit part is 2 dB worse than an ideal 12-bit one.</p></details>
+    <details><summary>What is the rms quantisation noise of a 10-bit ADC with a 1.5 V<sub>pp</sub> range?</summary><p>q = 1.5/1 024 = 1.46 mV; rms = 1.46/√12 = 0.42 mV.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="sfdr">
+  <div class="secno">Step 4</div>
+  <h2>SFDR, harmonics and interleaving spurs</h2>
+  <div class="know"><h4>You already know</h4><p>From the LNA and mixer modules: a nonlinear stage creates harmonics (2f, 3f, …) and intermodulation products, and spurious-free dynamic range compares the signal with the strongest of them. An ADC is a nonlinear stage too; Step 1 adds that its harmonics then alias.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>HD2, HD3</b> (second and third harmonic distortion): the level of the converter's own 2f and 3f products, in dBc (dB relative to the carrier, the wanted tone). Typical: −75 to −90 dBc.</p>
+    <p><b>SFDR</b> (spurious-free dynamic range): the ratio between the wanted tone and the largest other single tone in the output spectrum, whatever its cause. Quoted in dBc (relative to the tone) or dBFS (relative to full scale; the two differ by the tone's back-off).</p>
+    <p><b>Spur:</b> an unwanted single-frequency line in the output. Unlike noise it does not spread out: it sits in one FFT bin.</p>
+    <p><b>Interleaving:</b> building a fast ADC from M slower cores, each running at f<sub>s</sub>/M and taking every M-th sample in turn. Four 250 MSPS cores make a 1 GSPS converter.</p>
+    <p><b>Core mismatch:</b> the cores are never identical. They differ in <b>offset</b> (a constant voltage added, in mV), <b>gain</b> (in %) and <b>timing skew</b> (each core samples slightly early or late, in ps).</p>
+  </div>
+  <div class="col"><p>Harmonics alias like any other tone. At f<sub>s</sub> = 100 MSPS a 30 MHz input has HD2 at 60 MHz, which appears at 40 MHz, and HD3 at 90 MHz, which appears at 10 MHz. The 4th (120 MHz) appears at 20 MHz and the 5th (150 MHz) at 50 MHz. In a wideband ESM receiver every one of those is a candidate false emitter.</p>
+  <p>Interleaving adds a new family. If the cores' offsets differ, the output carries a pattern that repeats every M samples whatever the input: a fixed spur at f<sub>s</sub>/M (and its multiples). If gains or timing differ, the wanted tone is modulated by that repeating pattern, and copies (images) of the input appear at k·f<sub>s</sub>/M ± f<sub>in</sub>. For two cores:</p></div>
+  <div class="eq">gain spur ≈ 20·log<sub>10</sub>(ΔG/2) dBc;  skew spur ≈ 20·log<sub>10</sub>(π·f<sub>in</sub>·Δt) dBc;  both at f<sub>s</sub>/2 − f<sub>in</sub>;  offset spur at f<sub>s</sub>/2, ≈ 20·log<sub>10</sub>(ΔV<sub>os</sub>/V<sub>peak,FS</sub>) − 3 dBFS<small>Example, 2 cores, f<sub>s</sub> 1 GSPS, f<sub>in</sub> 203 MHz: ΔG = 0.1 % → 20·log(0.0005) = −66.0 dBc; Δt = 1 ps → 20·log(π × 203×10<sup>6</sup> × 10<sup>−12</sup>) = −63.9 dBc. The two add in power (they are 90° apart) to −61.8 dBc at 500 − 203 = 297 MHz. An offset difference of 0.5 mV on a 1 V peak full scale gives −66.0 − 3.0 = −69.0 dBFS at 500 MHz (the 3 dB is because a tone exactly at f<sub>s</sub>/2 has no partner at −f<sub>s</sub>/2 to share its power with).</small></div>
+  <div class="col"><p>The skew term grows by 6 dB for every doubling of input frequency: a skew that is harmless at 100 MHz may dominate at 1 GHz. This is why interleaved converters carry background calibration that trims offset, gain and timing while running.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "choose the ADC on SNR". SNR deliberately excludes harmonics and spurs. A converter with 64 dB SNR and 50 dB SFDR has a spur 14 dB above its total noise; after the processing gain of Step 5 the noise in each bin falls by 30 dB or more, but the spur does not, so it stands out like a real signal. Naive approach 2: an uncalibrated interleaved ADC. With 1 % gain mismatch and 5 ps skew at a 2 GHz input, the image spur is at −46.0 dBc from gain and −30.1 dBc from skew: a 10 GSPS converter used this way has the spurious performance of a 5-bit one.</p></div>
+  <h3>Side by side on one example: a 200 MHz tone at −1 dBFS (illustrative)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Converter</th><th>Mismatch</th><th>Gain spur</th><th>Skew spur</th><th>Offset spur</th><th>SFDR set by</th></tr>
+    <tr><td>Single core, 500 MSPS</td><td>none</td><td class="n">none</td><td class="n">none</td><td class="n">none</td><td>HD2/HD3, e.g. −80 dBc</td></tr>
+    <tr><td>2 cores, 1 GSPS, uncalibrated</td><td>0.5 %, 3 ps</td><td class="n">−52.0 dBc</td><td class="n">−54.5 dBc</td><td class="n">depends on ΔV<sub>os</sub></td><td>interleaving image</td></tr>
+    <tr><td>2 cores, 1 GSPS, calibrated</td><td>0.01 %, 0.1 ps</td><td class="n">−86.0 dBc</td><td class="n">−84.0 dBc</td><td class="n">trimmed</td><td>back to harmonics</td></tr>
+    <tr><td>4 cores, uncalibrated</td><td>0.5 %, 3 ps</td><td class="n">≈ −52 dBc (×3 positions)</td><td class="n">≈ −54 dBc</td><td class="n">at f<sub>s</sub>/4, f<sub>s</sub>/2</td><td>interleaving images at f<sub>s</sub>/4 ± f<sub>in</sub>, f<sub>s</sub>/2 − f<sub>in</sub></td></tr>
+  </table></div>
+  <h3>How to choose for SFDR</h3>
+  <div class="col"><p>(1) Read the SFDR over the whole input band you will use, at your input level, not at the datasheet's favourite frequency. (2) For interleaved parts, read the interleaving spur specification after calibration and check the input frequency at which it is quoted: the skew term worsens 6 dB per octave. (3) Plan the frequency so the predictable spurs land outside the band of interest: offset spurs sit at k·f<sub>s</sub>/M, and harmonics at known folded positions. (4) Compare the SFDR with the noise floor after processing gain (Step 5): that, not SNR, decides whether spurs are seen.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench simulates a 12-bit, 1 GSPS converter with thermal noise (SNR about 64 dB) and takes an 8 192-point FFT. The controls are the input frequency, HD2 and HD3, the number of interleaved cores M (1 means no interleaving, so the three mismatch controls then do nothing), and the three mismatches defined above: gain difference in %, timing skew in ps and offset difference in mV, each between neighbouring cores.</p></div>
+  <div class="bench">
+    <canvas id="cSf" width="640" height="320" aria-label="Simulated ADC spectrum with harmonics and interleaving spurs"></canvas>
+    <div class="ctrl">
+      <label for="sfF"><span>Input frequency</span> <b id="sfFv"></b></label><input id="sfF" type="range" min="10" max="490" step="1" value="203">
+      <label for="sfH2"><span>HD2</span> <b id="sfH2v"></b></label><input id="sfH2" type="range" min="-100" max="-50" step="1" value="-80">
+      <label for="sfH3"><span>HD3</span> <b id="sfH3v"></b></label><input id="sfH3" type="range" min="-100" max="-50" step="1" value="-75">
+      <label for="sfM">Interleaved cores M</label><select id="sfM"><option value="1">1 (single core)</option><option value="2" selected>2</option><option value="4">4</option></select>
+      <label for="sfG"><span>Gain mismatch</span> <b id="sfGv"></b></label><input id="sfG" type="range" min="0" max="2" step="0.01" value="0.1">
+      <label for="sfT"><span>Timing skew</span> <b id="sfTv"></b></label><input id="sfT" type="range" min="0" max="5" step="0.05" value="1">
+      <label for="sfO"><span>Offset mismatch</span> <b id="sfOv"></b></label><input id="sfO" type="range" min="0" max="5" step="0.05" value="0.5">
+      <div class="readout" id="sfOut"></div>
+    </div>
+    <p class="cap">Spectrum in dBFS per bin, 0 to 500 MHz. Labels mark the folded HD2 and HD3, the interleaving images (k·f<sub>s</sub>/M ± f<sub>in</sub>) and the offset spurs (k·f<sub>s</sub>/M). The dashed line is the SFDR level: the largest spur.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (203 MHz, M = 2, 0.1 %, 1 ps, 0.5 mV): the image at 297 MHz near −62 dBc (the −61.8 dBc of the worked example) and the offset spur at 500 MHz near −68 dBc; SFDR about 62 dB.</li>
+    <li>Set skew 0 and gain 0: the image disappears and SFDR is set by the offset spur; set offset 0 too and SFDR falls back to HD3 (−75 dBc, folded to 391 MHz).</li>
+    <li>With 1 ps skew, no gain mismatch and no offset, move the input from 100 to 200 to 400 MHz: the image rises about 6 dB per doubling (−70, −64, −58 dBc), because the skew term is proportional to frequency.</li>
+    <li>Choose M = 4: new images appear at 250 ± f<sub>in</sub> and offset spurs at 250 MHz.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>ADC linearity</td><td>ADC part; driver amplifier linearity; drive level</td><td>HD2, HD3, SFDR in dBc at stated f<sub>in</sub> and level</td><td>A −75 dBc spur from a strong return is a false target or false emitter once noise has been integrated down (Step 9)</td></tr>
+    <tr><td>Interleaving mismatch</td><td>ADC part, calibration mode, clock distribution symmetry</td><td>Interleaving spur, dBc or dBFS</td><td>Uncalibrated: images at −50 dBc; calibrated: −85 dBc</td></tr>
+    <tr><td>Clock duty cycle and routing</td><td>Clock buffer, layout (module 14)</td><td>Not on the ADC datasheet; appears as skew</td><td>1 ps of skew costs −63.9 dBc at 203 MHz and −58 dBc at 400 MHz</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>ADC driver amplifier designers:</b> the driver's HD2 and HD3 add to the ADC's; at the ADC's full scale the driver must be 10 dB more linear than the ADC to leave the ADC's SFDR intact.</li>
+    <li><b>Clock and layout engineers:</b> in an interleaved ADC, a clock edge that is 1 ps late on one core is a spur at −64 dBc at 200 MHz.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 2-core ADC runs at 2 GSPS. Where do the offset spur and the image of a 700 MHz input appear?</summary><p>Offset spur at f<sub>s</sub>/2 = 1 000 MHz. Image at f<sub>s</sub>/2 − f<sub>in</sub> = 300 MHz (gain and skew).</p></details>
+    <details><summary>What skew gives −70 dBc at 1 GHz with 2 cores?</summary><p>π·f·Δt = 10<sup>−70/20</sup> = 3.16×10<sup>−4</sup>, so Δt = 3.16×10<sup>−4</sup>/(π × 10<sup>9</sup>) = 0.1 ps.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="nsd">
+  <div class="secno">Step 5</div>
+  <h2>Full scale, noise spectral density in dBFS/Hz, and processing gain</h2>
+  <div class="know"><h4>You already know</h4><p>From the LNA module: thermal noise is −174 dBm/Hz at 290 K, and noise in a bandwidth B is that plus 10·log<sub>10</sub>(B). Step 3: the converter's SNR is measured over its whole Nyquist band, 0 to f<sub>s</sub>/2. This step turns that SNR into a density, so it can be compared with your analogue noise.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Full-scale power P<sub>FS</sub></b> (dBm): the power of a 0 dBFS sine at the ADC input, set by the input range and impedance. Example: 2 V<sub>pp</sub> differential into 100 Ω is (0.707 V)²/100 Ω = 5 mW = +7 dBm; this page uses +4 dBm as an illustrative value.</p>
+    <p><b>Noise spectral density (NSD):</b> the converter's noise per hertz. Because the SNR's noise is spread over f<sub>s</sub>/2: NSD = −SNR − 10·log<sub>10</sub>(f<sub>s</sub>/2) in dBFS/Hz, and NSD + P<sub>FS</sub> in dBm/Hz.</p>
+    <p><b>ADC noise figure:</b> how many dB the ADC's NSD (in dBm/Hz) lies above −174 dBm/Hz: NF<sub>ADC</sub> = NSD<sub>dBm/Hz</sub> + 174.</p>
+    <p><b>Processing gain:</b> the SNR improvement from keeping only the bandwidth the signal needs. Filtering digitally to a bandwidth B gives 10·log<sub>10</sub>(f<sub>s</sub>/(2B)). An FFT of K points splits 0 to f<sub>s</sub>/2 into K/2 bins, so the noise per bin is 10·log<sub>10</sub>(K/2) below the total.</p>
+    <p><b>Decimation:</b> filtering digitally to a narrower band and then keeping fewer samples (a digital down-converter, DDC, does this with a frequency shift first).</p>
+  </div>
+  <div class="eq">NSD = −SNR − 10·log<sub>10</sub>(f<sub>s</sub>/2) dBFS/Hz;  NF<sub>ADC</sub> = P<sub>FS</sub> + NSD + 174 dB;  SNR in B = SNR + 10·log<sub>10</sub>(f<sub>s</sub>/2B)<small>Example: SNR 70 dB at 500 MSPS: NSD = −70 − 84.0 = −154.0 dBFS/Hz; with P<sub>FS</sub> +4 dBm that is −150.0 dBm/Hz, so NF<sub>ADC</sub> = 24.0 dB. In a 5 MHz channel: SNR = 70 + 17.0 = 87.0 dB. A 4 096-point FFT puts the noise per bin at −70 − 33.1 = −103.1 dBFS.</small></div>
+  <div class="col"><p>NF<sub>ADC</sub> of 24 dB looks terrible next to an LNA's 2 dB, and it is: an ADC is a noisy stage. That is why Step 7 puts gain in front of it, exactly as an LNA is put in front of a mixer. Processing gain is not free extra sensitivity for the system: it only reveals that the noise per hertz was low all along. Two converters with the same NSD give the same SNR in the same channel, whatever their quoted SNR and rate.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "the higher-SNR converter is the quieter one". Compare three illustrative parts. A 14-bit, 250 MSPS ADC with SNR 72 dB has NSD −153.0 dBFS/Hz. A 12-bit, 1 GSPS ADC with SNR 65 dB has −152.0 dBFS/Hz, only 1 dB worse in any given channel despite a 7 dB lower SNR and two fewer bits, while seeing four times the bandwidth. Naive approach 2: "processing gain also lowers spurs". It does not: a spur is a single frequency and stays in one bin. With a 4 096-point FFT the noise per bin falls to −103.1 dBFS but a −90 dBFS spur stays at −90 dBFS, now 13 dB above the floor.</p></div>
+  <h3>Side by side on one example: three converters, full scale +4 dBm, a 5 MHz channel</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Converter (illustrative)</th><th>SNR</th><th>f<sub>s</sub>/2</th><th>NSD</th><th>NF<sub>ADC</sub></th><th>SNR in 5 MHz</th></tr>
+    <tr><td>16-bit, 125 MSPS</td><td class="n">78 dB</td><td class="n">62.5 MHz</td><td class="n">−156.0 dBFS/Hz</td><td class="n">22.0 dB</td><td class="n">89.0 dB</td></tr>
+    <tr><td>14-bit, 250 MSPS</td><td class="n">72 dB</td><td class="n">125 MHz</td><td class="n">−153.0 dBFS/Hz</td><td class="n">25.0 dB</td><td class="n">86.0 dB</td></tr>
+    <tr><td>12-bit, 1 GSPS</td><td class="n">65 dB</td><td class="n">500 MHz</td><td class="n">−152.0 dBFS/Hz</td><td class="n">26.0 dB</td><td class="n">85.0 dB</td></tr>
+  </table></div>
+  <h3>How to choose with NSD</h3>
+  <div class="col"><p>(1) Convert every candidate's SNR to NSD at the rate you will run it. (2) Compare NSD, not SNR, for a given channel bandwidth. (3) Turn NSD into NF<sub>ADC</sub> with the full-scale power and carry it into the cascade (Step 7). (4) Compare SFDR with the noise per bin or per channel after processing gain; that margin decides whether spurs appear as signals.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench draws a simulated FFT spectrum of an ADC with the chosen datasheet SNR, sample rate, FFT size and full-scale power, with a −1 dBFS test tone and a shaded channel of width B around it. Every control is one of the quantities defined above.</p></div>
+  <div class="bench">
+    <canvas id="cNs" width="640" height="320" aria-label="Simulated FFT noise floor against sample rate and FFT size"></canvas>
+    <div class="ctrl">
+      <label for="nsS"><span>Datasheet SNR</span> <b id="nsSv"></b></label><input id="nsS" type="range" min="50" max="80" step="1" value="70">
+      <label for="nsFs"><span>Sample rate f<sub>s</sub></span> <b id="nsFsv"></b></label><input id="nsFs" type="range" min="100" max="4000" step="50" value="500">
+      <label for="nsK">FFT size K</label><select id="nsK"><option value="1024">1 024</option><option value="4096" selected>4 096</option><option value="16384">16 384</option><option value="65536">65 536</option></select>
+      <label for="nsB"><span>Channel bandwidth B</span> <b id="nsBv"></b></label><input id="nsB" type="range" min="1" max="200" step="1" value="5">
+      <label for="nsFS"><span>Full-scale power P<sub>FS</sub></span> <b id="nsFSv"></b></label><input id="nsFS" type="range" min="-2" max="10" step="0.5" value="4">
+      <div class="readout" id="nsOut"></div>
+    </div>
+    <p class="cap">Grey: noise per FFT bin (each pixel column shows the range of the bins it covers). Dashed: average noise per bin. Shaded: the channel B. The total noise over 0 to f<sub>s</sub>/2 is always −SNR dBFS; only how finely it is sliced changes.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (70 dB, 500 MSPS, 4 096, 5 MHz, +4 dBm): NSD −154.0 dBFS/Hz = −150.0 dBm/Hz, NF<sub>ADC</sub> 24.0 dB, noise per bin −103.1 dBFS, SNR in 5 MHz 87.0 dB.</li>
+    <li>Change only the FFT size: the floor moves 6 dB for each factor of 4 (−97.1, −103.1, −109.1, −115.2 dBFS) but NSD and NF<sub>ADC</sub> stay fixed.</li>
+    <li>Set SNR 65 dB at 1 000 MSPS: NSD −152.0 dBFS/Hz and 85.0 dB in 5 MHz: the third row of the table.</li>
+    <li>Raise P<sub>FS</sub> by 3 dB: NSD in dBFS/Hz stays, but NSD in dBm/Hz and NF<sub>ADC</sub> rise 3 dB. A bigger full scale is a noisier ADC in absolute terms.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Noise density</td><td>ADC part and sample rate</td><td>SNR at f<sub>s</sub>, or NSD in dBFS/Hz</td><td>With P<sub>FS</sub> it gives NF<sub>ADC</sub> (24 dB in the example), the number that enters the receiver cascade</td></tr>
+    <tr><td>Full-scale power</td><td>ADC input range, termination, balun ratio</td><td>V<sub>pp</sub> and input impedance</td><td>Sets the largest signal (dBm) and, dB for dB, NF<sub>ADC</sub></td></tr>
+    <tr><td>Processing bandwidth</td><td>DDC, FFT length, matched filter</td><td>Channel bandwidth B</td><td>SNR in B = SNR + 10·log(f<sub>s</sub>/2B): +17 dB for 5 MHz out of 250 MHz</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Balun and matching designers:</b> the transformer ratio and termination in front of the ADC set P<sub>FS</sub> in dBm; a 1:2 impedance step-up lowers the power needed for full scale by 3 dB and so lowers NF<sub>ADC</sub> by 3 dB, at the cost of 3 dB less headroom.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ADC has 60 dB SNR at 3 GSPS and full scale +2 dBm. What is its NSD and its noise figure?</summary><p>NSD = −60 − 10·log(1.5×10<sup>9</sup>) = −60 − 91.8 = −151.8 dBFS/Hz = −149.8 dBm/Hz. NF<sub>ADC</sub> = −149.8 + 174 = 24.2 dB.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="jitter">
+  <div class="secno">Step 6</div>
+  <h2>Aperture jitter and the SNR limit it sets</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M02-synthesiser-phase-noise.html">synthesiser and phase-noise module</a>: phase noise integrated over a band gives rms phase error, and rms phase error divided by 2π·f is rms timing jitter. Here the clock's jitter becomes noise on the samples.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Sampling instant:</b> the moment the ADC's track-and-hold stops following the input and holds a value. It is triggered by an edge of the sample clock.</p>
+    <p><b>Clock jitter t<sub>c</sub></b> (rms, in fs or ps): the random variation of the clock edges from their ideal times, inherited from the clock source and its distribution.</p>
+    <p><b>Aperture jitter t<sub>a</sub></b>: the random variation added inside the ADC itself between the clock edge and the actual hold. Typical datasheet values: 50 to 150 fs rms.</p>
+    <p><b>Total jitter</b> t<sub>j</sub> = √(t<sub>a</sub>² + t<sub>c</sub>²): independent random timings add in power.</p>
+    <p><b>Slew rate:</b> how fast the input voltage changes. A sine of amplitude A at frequency f changes at up to 2π·f·A volts per second, at its zero crossings.</p>
+  </div>
+  <div class="col"><p>Why it matters: if the sample is taken t seconds late, the value is wrong by (slope × t). For a sine the rms slope is 2π·f·A/√2, so the rms error is 2π·f·t<sub>j</sub> times the signal's rms value. Divide and convert to dB:</p></div>
+  <div class="eq">SNR<sub>jitter</sub> = −20·log<sub>10</sub>(2π·f<sub>in</sub>·t<sub>j</sub>);  SNR<sub>total</sub> = −10·log<sub>10</sub>(10<sup>−SNR<sub>0</sub>/10</sup> + 10<sup>−SNR<sub>jitter</sub>/10</sup>)<small>f<sub>in</sub> is the input (analogue) frequency, not the sample rate. Example: 100 fs at 100 MHz gives 84.0 dB; at 1 GHz, 64.0 dB. Combined with a converter whose low-frequency SNR (SNR<sub>0</sub>) is 70 dB: 69.8 dB at 100 MHz but 63.0 dB at 1 GHz. From phase noise: t<sub>j</sub> = √(2·10<sup>A/10</sup>)/(2π·f<sub>clk</sub>), with A the integrated single-sideband phase noise in dBc: −70 dBc on a 500 MHz clock gives 142 fs.</small></div>
+  <div class="col"><p>This is the reason the input frequency, not the sample rate, sets the clock requirement. It also shows the hidden cost of undersampling (Step 2): sampling a 1 GHz IF at 200 MSPS needs the clock jitter of a 1 GHz input, ten times stricter than sampling 100 MHz.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach: take the sample clock from the FPGA (field-programmable gate array) that processes the data, because it is already there. An FPGA-generated clock typically has around 5 ps of jitter. At a 70 MHz IF that limits the SNR to 53.2 dB, whatever the converter: a 16-bit ADC now performs like an 8.5-bit one. At a 1 GHz input the limit is 30.1 dB.</p></div>
+  <h3>Side by side on one example: SNR<sub>jitter</sub> for four clock sources at three input frequencies</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Clock source (illustrative total jitter)</th><th>70 MHz</th><th>300 MHz</th><th>1 GHz</th></tr>
+    <tr><td>Low-noise crystal oscillator with a clean-up PLL, 50 fs</td><td class="n">93.2 dB</td><td class="n">80.5 dB</td><td class="n">70.1 dB</td></tr>
+    <tr><td>Good PLL synthesiser, 150 fs</td><td class="n">83.6 dB</td><td class="n">71.0 dB</td><td class="n">60.5 dB</td></tr>
+    <tr><td>Ordinary PLL or long distribution, 500 fs</td><td class="n">73.2 dB</td><td class="n">60.5 dB</td><td class="n">50.1 dB</td></tr>
+    <tr><td>FPGA-generated clock, 5 ps</td><td class="n">53.2 dB</td><td class="n">40.5 dB</td><td class="n">30.1 dB</td></tr>
+  </table></div>
+  <h3>How to choose the clock jitter budget</h3>
+  <div class="col"><p>(1) Take the highest input frequency the ADC will see (the top of the highest Nyquist zone used). (2) Decide how much SNR loss you accept, for example 1 dB below the converter's own SNR<sub>0</sub>. For SNR<sub>0</sub> = 70 dB, a 1 dB loss needs SNR<sub>jitter</sub> ≥ 75.9 dB. (3) Convert: t<sub>j</sub> ≤ 10<sup>−SNR<sub>jitter</sub>/20</sup>/(2π·f<sub>in</sub>). At 300 MHz that is 85 fs total. (4) Subtract the ADC's own aperture jitter in power: with t<sub>a</sub> = 80 fs, the clock may contribute only √(85.4² − 80²) ≈ 30 fs. (5) Turn that into a phase-noise mask for the synthesiser designer, integrated over the band the ADC is sensitive to (module 02).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench plots SNR against input frequency from 10 MHz to 10 GHz. Controls: the converter's low-frequency SNR<sub>0</sub> (its datasheet SNR at a low input), the ADC's aperture jitter, the clock's jitter, and the input frequency where the readout is taken.</p></div>
+  <div class="bench">
+    <canvas id="cJt" width="640" height="320" aria-label="SNR against input frequency for the chosen jitter"></canvas>
+    <div class="ctrl">
+      <label for="jtS"><span>Low-frequency SNR<sub>0</sub></span> <b id="jtSv"></b></label><input id="jtS" type="range" min="50" max="80" step="1" value="70">
+      <label for="jtA"><span>ADC aperture jitter t<sub>a</sub></span> <b id="jtAv"></b></label><input id="jtA" type="range" min="10" max="500" step="5" value="80">
+      <label for="jtC"><span>Clock jitter t<sub>c</sub></span> <b id="jtCv"></b></label><input id="jtC" type="range" min="10" max="2000" step="5" value="100">
+      <label for="jtF"><span>Input frequency f<sub>in</sub></span> <b id="jtFv"></b></label><input id="jtF" type="range" min="1" max="4" step="0.001" value="2.477">
+      <div class="readout" id="jtOut"></div>
+    </div>
+    <p class="cap">Dashed: SNR<sub>0</sub>. Purple: SNR<sub>jitter</sub> for the total jitter (falls 20 dB per decade). Orange: the combination. Grey dotted: the jitter limit with the ADC's aperture jitter alone (a perfect clock). The input-frequency slider is logarithmic (10 MHz to 10 GHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (70 dB, 80 fs, 100 fs, 300 MHz): total jitter 128 fs, SNR<sub>jitter</sub> 72.3 dB, total 68.0 dB: 2 dB lost.</li>
+    <li>The readout's "clock jitter allowed for 1 dB loss" is about 30 fs at 300 MHz, as in step (4) above; at 70 MHz it is far more relaxed.</li>
+    <li>Set the clock to 2 000 fs and f<sub>in</sub> to 70 MHz (slider 1.845): SNR<sub>jitter</sub> 61.1 dB and total 60.6 dB, a 70 dB converter reduced to about 9.8 effective bits; the table's 5 ps FPGA clock is 8 dB worse again.</li>
+    <li>Set t<sub>a</sub> 100 fs, t<sub>c</sub> 10 fs and f<sub>in</sub> 1 GHz (slider 3.00): SNR<sub>jitter</sub> ≈ 64 dB, the worked example.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Clock phase noise</td><td>Reference, PLL loop bandwidth, VCO (module 02), clock buffers</td><td>Integrated jitter in fs rms over a stated offset band</td><td>150 fs at a 300 MHz IF caps SNR at 71.0 dB; with a 70 dB ADC the total is 67.5 dB</td></tr>
+    <tr><td>Input frequency</td><td>Frequency plan (Step 2), IF choice</td><td>IF or RF at the ADC</td><td>SNR<sub>jitter</sub> falls 20 dB per decade: moving the IF from 70 to 700 MHz costs 20 dB of jitter limit</td></tr>
+    <tr><td>Aperture jitter</td><td>ADC part</td><td>t<sub>a</sub> in fs rms</td><td>Sets the floor no clock can fix: 80 fs alone limits a 1 GHz input to 66 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser and oscillator designers:</b> the ADC clock is an LO for a mixer that runs at every Nyquist zone at once (Step 2). Its phase noise is copied onto every signal, scaled by f<sub>in</sub>/f<sub>clk</sub>; its spurs appear as sidebands on every strong signal, including clutter.</li>
+    <li><b>Layout engineers:</b> a clock line that picks up 1 mV of noise on an edge slewing at 1 V/ns adds 1 ps of jitter.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 1.5 GHz input must be sampled with SNR<sub>jitter</sub> of at least 60 dB. What total jitter is allowed?</summary><p>t<sub>j</sub> ≤ 10<sup>−3</sup>/(2π × 1.5×10<sup>9</sup>) = 106 fs.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="match">
+  <div class="secno">Step 7</div>
+  <h2>Matching the ADC to the analogue chain: gain, noise above the LSB, and the ADC in the NF cascade</h2>
+  <div class="know"><h4>You already know</h4><p>From the <a href="M01-lna-noise.html">LNA module</a>: Friis's formula, F<sub>total</sub> = F<sub>1</sub> + (F<sub>2</sub> − 1)/G<sub>1</sub>, where F is noise factor (the linear form of noise figure) and G the linear gain before the stage. Step 5 gave the ADC a noise figure. Now the ADC simply joins the cascade as the last stage.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Analogue chain (front end):</b> everything between the antenna and the ADC: LNA, filters, mixers, IF amplifiers. Here summarised by its noise figure NF<sub>1</sub> and its total gain G.</p>
+    <p><b>Noise margin:</b> how far the analogue noise density at the ADC input (−174 + NF<sub>1</sub> + G dBm/Hz) lies above the ADC's own NSD in dBm/Hz.</p>
+    <p><b>Clip level at the antenna:</b> the input power that drives the ADC to full scale: P<sub>FS</sub> − G dBm. Any stronger signal clips: the ADC's output is stuck at its top or bottom code.</p>
+    <p><b>Headroom:</b> clip level minus the largest signal expected (clutter, a nearby emitter, own-transmitter leakage, a jammer).</p>
+    <p><b>Noise in LSB rms:</b> the analogue noise at the ADC input, over 0 to f<sub>s</sub>/2, expressed in LSBs (Step 3). About 1 LSB rms or more keeps the quantisation error random.</p>
+    <p><b>Instantaneous dynamic range:</b> the clip level minus the noise floor in a stated bandwidth, here 1 MHz, both referred to the antenna.</p>
+  </div>
+  <div class="eq">F<sub>total</sub> = F<sub>1</sub> + (F<sub>ADC</sub> − 1)/G;  clip at antenna = P<sub>FS</sub> − G;  noise margin = (−174 + NF<sub>1</sub> + G) − NSD<sub>dBm/Hz</sub><small>Example: NF<sub>1</sub> 3 dB, ADC from Step 5 (NF<sub>ADC</sub> 24.0 dB, P<sub>FS</sub> +4 dBm, 500 MSPS, 12 bits), G = 30 dB: F = 2.00 + 250/1 000 = 2.25, NF = 3.52 dB; analogue noise −141 dBm/Hz against the ADC's −150.0, a 9.0 dB margin; clip at −26 dBm; noise 1.29 LSB rms; dynamic range in 1 MHz 84.5 dB.</small></div>
+  <div class="col"><p>The trade is now visible: gain buries the ADC's noise under the front end's (good for sensitivity) but brings the clip level down by the same dB (bad for strong signals). Every dB of gain above "just enough" is a dB of dynamic range given away.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "the ADC is the last stage, so its noise doesn't matter". With only G = 10 dB in front, the system NF is 14.3 dB instead of 3 dB: the LNA's careful 3 dB is lost and the radar's range falls by a factor 10<sup>11.3/40</sup> ≈ 1.9. Naive approach 2: "more gain is always better". With G = 60 dB the NF is 3.00 dB, but the ADC clips at −56 dBm at the antenna. Ground clutter or a nearby emitter at −40 dBm saturates the converter, and a clipped ADC spreads the strong signal's energy across the whole spectrum, hiding everything.</p></div>
+  <h3>Side by side on one example: NF<sub>1</sub> 3 dB, ADC NF 24.0 dB, P<sub>FS</sub> +4 dBm, 12 bits, 500 MSPS</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Gain G</th><th>System NF</th><th>Noise margin over ADC</th><th>Noise at ADC</th><th>Clip at antenna</th><th>Verdict</th></tr>
+    <tr><td class="n">10 dB</td><td class="n">14.34 dB</td><td class="n">−11.0 dB</td><td class="n">0.13 LSB</td><td class="n">−6 dBm</td><td>✗ ADC-limited, quantisation not dithered</td></tr>
+    <tr><td class="n">20 dB</td><td class="n">6.54 dB</td><td class="n">−1.0 dB</td><td class="n">0.41 LSB</td><td class="n">−16 dBm</td><td>✗ 3.5 dB lost</td></tr>
+    <tr><td class="n">30 dB</td><td class="n">3.52 dB</td><td class="n">+9.0 dB</td><td class="n">1.29 LSB</td><td class="n">−26 dBm</td><td>✓ 0.5 dB lost, most headroom</td></tr>
+    <tr><td class="n">40 dB</td><td class="n">3.05 dB</td><td class="n">+19.0 dB</td><td class="n">4.07 LSB</td><td class="n">−36 dBm</td><td>✓ but 10 dB less headroom</td></tr>
+    <tr><td class="n">60 dB</td><td class="n">3.00 dB</td><td class="n">+39.0 dB</td><td class="n">40.7 LSB</td><td class="n">−56 dBm</td><td>✗ clips on any strong signal</td></tr>
+  </table></div>
+  <div class="col"><p>The 30 dB row follows the usual rule of thumb: put the analogue noise about 6 to 10 dB above the ADC's noise. A 10 dB margin costs 0.41 dB of NF, 6 dB costs 0.97 dB; each further 10 dB of gain buys almost nothing and costs 10 dB of headroom.</p></div>
+  <h3>How to choose the gain in front of the ADC</h3>
+  <div class="col"><p>(1) Start at the top: the largest signal that must not clip, P<sub>max</sub>, plus a few dB of back-off (crest factor, fading). That fixes the maximum gain: G<sub>max</sub> = P<sub>FS</sub> − back-off − P<sub>max</sub>. (2) Start at the bottom: the gain that puts the analogue noise 6 to 10 dB above NSD: G<sub>min</sub> ≈ NSD<sub>dBm/Hz</sub> + 174 − NF<sub>1</sub> + 6…10. (3) If G<sub>min</sub> ≤ G<sub>max</sub>, choose near G<sub>min</sub> to keep headroom. (4) If not, the converter cannot cover the dynamic range at once: use a lower-NSD ADC, sensitivity time control (radar, gain that rises with range), automatic gain control, or split the band into channels.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench plots, against the gain G from 0 to 70 dB, the system NF (top) and the clip level at the antenna with the largest expected signal (bottom). Controls: NF<sub>1</sub>, the gain G (marker), the ADC's full-scale power, its SNR and sample rate (which together set its NSD, as in Step 5), its resolution N (for the LSB count) and the largest signal expected at the antenna.</p></div>
+  <div class="bench">
+    <canvas id="cMt" width="640" height="360" aria-label="System noise figure and clip level against gain before the ADC"></canvas>
+    <div class="ctrl">
+      <label for="mtNF"><span>Front-end NF<sub>1</sub></span> <b id="mtNFv"></b></label><input id="mtNF" type="range" min="0.5" max="10" step="0.1" value="3">
+      <label for="mtG"><span>Gain before ADC G</span> <b id="mtGv"></b></label><input id="mtG" type="range" min="0" max="70" step="1" value="30">
+      <label for="mtFS"><span>ADC full scale P<sub>FS</sub></span> <b id="mtFSv"></b></label><input id="mtFS" type="range" min="-5" max="10" step="0.5" value="4">
+      <label for="mtS"><span>ADC SNR</span> <b id="mtSv"></b></label><input id="mtS" type="range" min="55" max="80" step="1" value="70">
+      <label for="mtFs"><span>Sample rate f<sub>s</sub></span> <b id="mtFsv"></b></label><input id="mtFs" type="range" min="100" max="3000" step="50" value="500">
+      <label for="mtN"><span>Resolution N</span> <b id="mtNv"></b></label><input id="mtN" type="range" min="8" max="16" step="1" value="12">
+      <label for="mtP"><span>Largest signal at antenna</span> <b id="mtPv"></b></label><input id="mtP" type="range" min="-80" max="0" step="1" value="-40">
+      <div class="readout" id="mtOut"></div>
+    </div>
+    <p class="cap">Top: system NF (orange) and NF<sub>1</sub> (dashed). Bottom: clip level at the antenna (purple) falling 1 dB per dB of gain, and the largest signal (red dashed); the green band marks gains that keep 3 dB back-off and a noise margin of at least 6 dB. The vertical line is the chosen G.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (3 dB, 30 dB, +4 dBm, 70 dB, 500 MSPS, 12 bits, −40 dBm): NF 3.52 dB, margin 9.0 dB, 1.29 LSB rms, clip −26 dBm, headroom 14 dB: the 30 dB row.</li>
+    <li>Set G to 10 dB: NF 14.34 dB and 0.13 LSB rms; to 60 dB: NF 3.00 dB but the clip level (−56 dBm) is below the −40 dBm signal: FAIL.</li>
+    <li>Set the largest signal to −20 dBm: the green band shrinks to nothing; no gain gives both 6 dB margin and 3 dB back-off with this converter.</li>
+    <li>Then lower the ADC SNR to 60 dB: NSD rises 10 dB and the noise margin at G 30 falls to −1 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Gain before the ADC</td><td>LNA, IF amplifier and attenuator line-up</td><td>Cascade gain in dB</td><td>30 dB: NF 3.52 dB, clip −26 dBm; 10 dB: NF 14.3 dB; 60 dB: clip −56 dBm</td></tr>
+    <tr><td>Front-end NF</td><td>LNA (module 01), filter loss before it (module 04)</td><td>NF in dB</td><td>Only reaches the system if the ADC margin is large; with a 9 dB margin, 3 dB becomes 3.52 dB</td></tr>
+    <tr><td>Noise bandwidth at the ADC</td><td>Anti-alias filter (Step 1)</td><td>Noise bandwidth</td><td>Analogue noise above f<sub>s</sub>/2 aliases: an unfiltered 2 GHz-wide amplifier noise folds 8 times onto a 250 MHz Nyquist band, raising the floor 9 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA and IF amplifier designers:</b> your gain is chosen here, from both ends: enough to hide the ADC, not so much that the strongest signal clips. Your OIP3 must also stay well above P<sub>FS</sub>, or the amplifier compresses before the ADC does.</li>
+    <li><b>Filter designers:</b> the anti-alias filter limits the noise bandwidth at the ADC as well as the aliases; without it the margin in this step is lost to folded noise.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ADC has NF 28 dB. The front end has NF 4 dB. What gain puts the analogue noise 10 dB above the ADC, and what is the system NF?</summary><p>G = 28 − 4 + 10 = 34 dB. F = 2.51 + (631 − 1)/2 512 = 2.76, NF = 4.41 dB (0.41 dB penalty).</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="dac">
+  <div class="secno">Step 8</div>
+  <h2>DAC sinc roll-off, images and reconstruction filters</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1: a sampled signal has copies at every k·f<sub>s</sub> ± f. In an ADC those copies are folded in before sampling, so the anti-alias filter must remove them first. In a DAC they come out afterwards, as real analogue tones at the output, so a filter must remove them after the converter. This is the reconstruction filter, the anti-alias filter's mirror image.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>DAC clock f<sub>clk</sub>:</b> the rate at which the DAC changes its output (its sample rate).</p>
+    <p><b>Zero-order hold, NRZ</b> (non-return-to-zero): the normal DAC output. Each value is held for the full clock period, giving a staircase.</p>
+    <p><b>Sinc roll-off:</b> holding each value for one period acts as a filter with response |sin(π·x)/(π·x)|, x = f/f<sub>clk</sub>. It is 0 dB at 0 Hz, −3.9 dB at f<sub>clk</sub>/2 and zero at f<sub>clk</sub>, 2·f<sub>clk</sub>, …</p>
+    <p><b>Image:</b> a copy of the wanted output tone at k·f<sub>clk</sub> ± f, weighted by the sinc. The first image is at f<sub>clk</sub> − f.</p>
+    <p><b>RZ</b> (return-to-zero): the output is held for half the period and returns to zero for the other half. Response 0.5·|sinc(x/2)|: 6 dB lower, but flatter, with its first null at 2·f<sub>clk</sub>.</p>
+    <p><b>Mix-mode</b> (also called RF mode): the second half of each period outputs the inverted value. Response |sinc(x/2)·sin(π·x/2)|: weak near 0 Hz, strongest around 0.7 to 1.5·f<sub>clk</sub>, so an image in the second or third zone can be used as the output.</p>
+    <p><b>Interpolation:</b> computing extra samples digitally (×2, ×4) so the DAC runs at I times the data rate f<sub>d</sub>. A digital filter removes the images that would have been at f<sub>d</sub> − f, so the first remaining image moves to I·f<sub>d</sub> − f.</p>
+    <p><b>Reconstruction filter:</b> the analogue low-pass (or band-pass) filter after the DAC that removes the images. <b>Inverse-sinc filter:</b> a digital pre-emphasis that cancels the sinc droop across the band.</p>
+  </div>
+  <div class="eq">H<sub>NRZ</sub>(f) = |sin(π·f/f<sub>clk</sub>)/(π·f/f<sub>clk</sub>)|;  first image at f<sub>clk</sub> − f, level 20·log[H(f<sub>clk</sub> − f)/H(f)] dBc before filtering<small>Example, f<sub>clk</sub> 1 GSPS, f = 400 MHz: droop at 400 MHz = 20·log(sinc 0.4) = −2.42 dB; image at 600 MHz = 20·log(sinc 0.6) = −5.94 dB, so the image is only 3.52 dB below the wanted tone. In mix-mode the same tone is at −5.19 dB and the 600 MHz image at −3.17 dB: the image is now the stronger one.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach: an NRZ DAC at 1 GSPS producing 400 MHz, with a 3-pole Butterworth low-pass at 450 MHz. The image at 600 MHz starts 3.52 dB below the wanted tone; the filter takes 1.74 dB off the wanted tone and 8.21 dB off the image. The image leaves at only −10.0 dBc. In a jammer or exciter that is a second transmitter on a frequency nobody asked for, at a tenth of the power of the first. A second, quieter fault: the 2.42 dB droop at 400 MHz makes a wideband waveform (a chirp from 0 to 400 MHz) lose amplitude towards its top edge, which raises the range sidelobes after pulse compression (module 04, Step 4).</p></div>
+  <h3>Side by side on one example: 400 MHz output from 1 GSPS data, 3-pole Butterworth at 450 MHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Method</th><th>DAC clock</th><th>First image</th><th>Image before filter</th><th>Image after filter</th><th>Droop at 400 MHz</th></tr>
+    <tr><td>NRZ, no interpolation</td><td class="n">1 GSPS</td><td class="n">600 MHz</td><td class="n">−3.5 dBc</td><td class="n">−10.0 dBc</td><td class="n">2.42 dB</td></tr>
+    <tr><td>NRZ, ×2 interpolation</td><td class="n">2 GSPS</td><td class="n">1 600 MHz</td><td class="n">−12.0 dBc</td><td class="n">−43.4 dBc</td><td class="n">0.58 dB</td></tr>
+    <tr><td>NRZ, ×4 interpolation</td><td class="n">4 GSPS</td><td class="n">3 600 MHz</td><td class="n">−19.1 dBc</td><td class="n">−71.5 dBc</td><td class="n">0.14 dB</td></tr>
+    <tr><td>RZ, no interpolation</td><td class="n">1 GSPS</td><td class="n">600 MHz</td><td class="n">−0.7 dBc</td><td class="n">−7.2 dBc</td><td class="n">6.60 dB (−6 dB inherent)</td></tr>
+    <tr><td>Mix-mode, output taken at 600 MHz</td><td class="n">1 GSPS</td><td>(400 MHz becomes the unwanted one)</td><td class="n">−2.0 dBc</td><td>needs a band-pass</td><td class="n">3.17 dB at 600 MHz</td></tr>
+  </table></div>
+  <div class="col"><p>Interpolation is the DAC's version of oversampling (Step 1): it widens the gap between the wanted tone and its first image, so a simple filter suffices and the droop shrinks. The cost is a faster DAC, more power and a faster clock with the jitter requirements of Step 6 (a DAC's clock jitter also becomes noise on the output, with the same −20·log(2π·f·t<sub>j</sub>) law). Mix-mode trades the first zone for the second and third, which lets a 1 GSPS DAC produce 600 to 1 400 MHz without an upconverter, as long as a band-pass filter removes the other zones.</p></div>
+  <h3>How to choose the DAC rate, mode and reconstruction filter</h3>
+  <div class="col"><p>(1) Decide the output band and which zone to use: zone 1 with NRZ for baseband or low IF, zone 2 or 3 with mix-mode for direct IF or RF output. (2) Pick f<sub>clk</sub> (data rate × interpolation) so the nearest image lies far enough away for a filter you can build: the same octave counting as Step 1. (3) Size the filter for the image rejection the spectrum mask needs (often −60 to −80 dBc for a transmitter), adding the sinc's own help. (4) Correct the droop across the band with an inverse-sinc filter if the waveform needs flat amplitude (chirps, multi-tone jamming). (5) Check the clock jitter at the highest output frequency.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench draws the DAC output spectrum from 0 to 3·f<sub>clk</sub>: the hold mode's envelope, the wanted tone, its images before (faint) and after (solid) the reconstruction filter, and the filter response. Controls: hold mode (NRZ, RZ, mix-mode), the input data rate f<sub>d</sub>, the output frequency f, the interpolation factor (DAC clock = factor × f<sub>d</sub>), and the Butterworth reconstruction filter's order and cut-off.</p></div>
+  <div class="bench">
+    <canvas id="cDa" width="640" height="320" aria-label="DAC output spectrum with sinc envelope, images and reconstruction filter"></canvas>
+    <div class="ctrl">
+      <label for="daM">Hold mode</label><select id="daM"><option value="nrz">NRZ (zero-order hold)</option><option value="rz">RZ (return to zero)</option><option value="mix">Mix-mode (RF mode)</option></select>
+      <label for="daFs"><span>Data rate f<sub>d</sub></span> <b id="daFsv"></b></label><input id="daFs" type="range" min="200" max="4000" step="50" value="1000">
+      <label for="daF"><span>Output frequency f</span> <b id="daFv"></b></label><input id="daF" type="range" min="10" max="1900" step="5" value="400">
+      <label for="daI">Interpolation</label><select id="daI"><option value="1">×1 (none)</option><option value="2">×2</option><option value="4">×4</option></select>
+      <label for="daN"><span>Filter order</span> <b id="daNv"></b></label><input id="daN" type="range" min="1" max="9" step="1" value="3">
+      <label for="daC"><span>Filter cut-off</span> <b id="daCv"></b></label><input id="daC" type="range" min="50" max="4000" step="10" value="450">
+      <div class="readout" id="daOut"></div>
+    </div>
+    <p class="cap">Grey curve: the hold-mode envelope, in dB relative to an NRZ DAC at 0 Hz. Dashed: the reconstruction filter. Orange stem: the wanted tone. Purple stems: images after the filter; faint stems: before the filter. Images removed by the digital interpolation filter are not drawn. The output frequency must stay below f<sub>d</sub>/2.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (NRZ, 1 GSPS, 400 MHz, ×1, 3 poles, 450 MHz): droop 2.42 dB, first image 600 MHz at −3.5 dBc before and −10.0 dBc after the filter: row 1 of the table.</li>
+    <li>Choose ×2, then ×4: the first image moves to 1 600 and 3 600 MHz and falls to −43.4 and −71.5 dBc.</li>
+    <li>Choose mix-mode at ×1: the 600 MHz image is stronger than the 400 MHz tone (the readout's "image vs wanted before filter" turns positive).</li>
+    <li>Choose RZ: the wanted tone drops by about 6 dB but the envelope is flatter across the first zone.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Reconstruction filter</td><td>Order, family, cut-off (module 04)</td><td>Rejection at f<sub>clk</sub> − f</td><td>3 poles at 1 GSPS: image −10 dBc; with ×4 interpolation: −71.5 dBc</td></tr>
+    <tr><td>DAC rate and interpolation</td><td>DAC part, clock synthesiser</td><td>Maximum update rate, interpolation modes</td><td>Moves the first image from 600 to 3 600 MHz; cuts droop from 2.42 to 0.14 dB</td></tr>
+    <tr><td>Hold mode</td><td>DAC configuration</td><td>NRZ / RZ / mix-mode response</td><td>Mix-mode makes 600 to 1 400 MHz usable from a 1 GSPS DAC without a mixer</td></tr>
+    <tr><td>DAC SFDR and NSD</td><td>DAC part, clock purity</td><td>SFDR in dBc, NSD in dBc/Hz</td><td>Every spur and the noise floor are amplified and radiated with the waveform (Step 10)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the reconstruction filter must pass the wanted band flat (or with a known droop that the inverse-sinc filter can cancel) and stop the first image; its group delay variation distorts wideband waveforms.</li>
+    <li><b>PA designers:</b> anything left after the reconstruction filter is amplified by your PA. An image at −10 dBc out of a 100 W PA is 10 W in the wrong place, and it also loads the PA's linearity budget.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An NRZ DAC runs at 2.5 GSPS producing 1 GHz. What is the droop, and where is the first image and how strong before filtering?</summary><p>x = 0.4, droop = −2.42 dB. Image at 1.5 GHz, x = 0.6, −5.94 dB: 3.52 dB below the wanted tone, the same ratios as the worked example because only f/f<sub>clk</sub> matters.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="radar">
+  <div class="secno">Step 9</div>
+  <h2>System effect 1: radar dynamic range and clutter</h2>
+  <div class="know"><h4>You already know</h4><p>From the radar pages R3 and R4: a target is declared when its echo exceeds a threshold set a fixed number of dB above the noise (about 13 dB for a high probability of detection with few false alarms). From Step 5: processing gain lowers the noise in each output cell, while a coherent signal keeps its level.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Clutter:</b> echoes from things the radar does not want (ground, sea, rain). In the same range cell as a target, clutter can be 60 to 90 dB stronger than the target.</p>
+    <p><b>Pulse-Doppler processing:</b> pulse compression followed by an FFT across many pulses. Stationary clutter collects at zero Doppler (zero frequency shift); a moving target collects in its own Doppler bin, where only noise competes with it, provided the ADC has not mixed the clutter into that bin.</p>
+    <p><b>Radar processing gain PG:</b> the total coherent gain of pulse compression and Doppler FFT, for the target relative to the noise. Example: time-bandwidth product 100 (20 dB) and a 128-pulse FFT (21.1 dB): PG ≈ 41 dB.</p>
+    <p><b>Thermal noise at the ADC:</b> the analogue chain's noise power over 0 to f<sub>s</sub>/2, in dBFS. It is fixed by the gain chosen in Step 7, so it does not change when only the ADC is swapped.</p>
+    <p><b>Spur not at the clutter's Doppler:</b> harmonics of a stationary clutter echo stay at zero Doppler and are removed with the clutter. But interleaving images, clock spurs that modulate the clutter, and intermodulation between clutter and strong moving echoes (rain, large aircraft) land in Doppler bins where targets are sought. Their level is set by the ADC's SFDR below the clutter.</p>
+    <p><b>Subclutter visibility (SCV):</b> how much weaker than the clutter in its cell a target may be and still be detected.</p>
+  </div>
+  <div class="eq">noise after processing = 10·log(10<sup>−SNR<sub>ADC</sub>/10</sup> + 10<sup>N<sub>th</sub>/10</sup>) − PG;  target SNR = P<sub>target</sub> − noise after processing;  spur-to-noise = (P<sub>clutter</sub> − SFDR) − noise after processing<small>Example (all dBFS): clutter −6, target −80, thermal −57, ADC SNR 66 (noise −66), SFDR 75, PG 40. Noise per sample −56.5; after PG −96.5; target SNR 16.5 dB: detected. Spur at −6 − 75 = −81 dBFS: 15.5 dB above the noise after processing, over the 13 dB threshold: a false target in every scan.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: set the gain so the clutter sits at −1 dBFS "to use all the bits". Clutter fluctuates by several dB from scan to scan; peaks clip, and a clipped clutter echo spreads energy across every Doppler bin, burying targets. Naive approach 2: judge the ADC by its SNR. In the example, raising the SNR from 66 to 72 dB improves the target's SNR by only 0.4 dB (thermal noise dominates), while the false target remains. Only raising the SFDR from 75 to 90 dBc removes it.</p></div>
+  <h3>Side by side on one example: the same scene (clutter −6 dBFS, target −80 dBFS, thermal −57 dBFS, PG 40 dB) with three converters</h3>
+  <div class="tw"><table class="t">
+    <tr><th>ADC (illustrative)</th><th>SNR / SFDR</th><th>Noise after PG</th><th>Target SNR</th><th>Spur above noise</th><th>Verdict</th></tr>
+    <tr><td>Fast, modest linearity</td><td class="n">60 / 70 dB</td><td class="n">−95.2 dBFS</td><td class="n">15.2 dB ✓</td><td class="n">19.2 dB ✗</td><td>false targets</td></tr>
+    <tr><td>Mid-range</td><td class="n">66 / 75 dB</td><td class="n">−96.5 dBFS</td><td class="n">16.5 dB ✓</td><td class="n">15.5 dB ✗</td><td>false targets</td></tr>
+    <tr><td>High-linearity</td><td class="n">72 / 90 dB</td><td class="n">−96.9 dBFS</td><td class="n">16.9 dB ✓</td><td class="n">0.9 dB ✓</td><td>clean</td></tr>
+  </table></div>
+  <h3>How to choose the ADC and level plan for a radar</h3>
+  <div class="col"><p>(1) Find the strongest clutter and set the gain so its peaks stay several dB below full scale (6 dB in the example). (2) Check that the thermal noise still sits above the ADC noise (Step 7). (3) Compute the noise after processing gain, then require the clutter-referred SFDR ≥ (clutter − noise after PG) − 13 dB, plus a margin: here at least −6 − (−96.5) − 13 = 77.5 dB, or 80.5 dB with a 3 dB margin. (4) If the requirement cannot be met, use sensitivity time control (less gain at short range where clutter is strongest), a cleaner clock, or a calibrated converter.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench draws a level diagram in dBFS for one range cell. Controls: clutter level, ADC SNR, ADC SFDR, radar processing gain PG, target level, and the thermal noise at the ADC, all defined above.</p></div>
+  <div class="bench">
+    <canvas id="cRd" width="640" height="340" aria-label="Radar level diagram: clutter, spur, target, noise before and after processing"></canvas>
+    <div class="ctrl">
+      <label for="rdC"><span>Clutter peak</span> <b id="rdCv"></b></label><input id="rdC" type="range" min="-40" max="6" step="1" value="-6">
+      <label for="rdS"><span>ADC SNR</span> <b id="rdSv"></b></label><input id="rdS" type="range" min="50" max="80" step="1" value="66">
+      <label for="rdSf"><span>ADC SFDR</span> <b id="rdSfv"></b></label><input id="rdSf" type="range" min="50" max="100" step="1" value="75">
+      <label for="rdG"><span>Processing gain PG</span> <b id="rdGv"></b></label><input id="rdG" type="range" min="0" max="60" step="1" value="40">
+      <label for="rdT"><span>Target level</span> <b id="rdTv"></b></label><input id="rdT" type="range" min="-120" max="-40" step="1" value="-80">
+      <label for="rdN"><span>Thermal noise at ADC</span> <b id="rdNv"></b></label><input id="rdN" type="range" min="-90" max="-30" step="1" value="-57">
+      <div class="readout" id="rdOut"></div>
+    </div>
+    <p class="cap">Left column: levels per sample at the ADC (full scale, clutter, ADC noise, thermal noise, total noise). Right column: levels in the target's Doppler cell after processing (target, spur, noise, detection threshold 13 dB above noise). Red marks a failure: clipping, a missed target or a spur above the threshold.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: noise after PG −96.5 dBFS, target SNR 16.5 dB (detected), spur 15.5 dB above noise (false target): row 2 of the table.</li>
+    <li>Raise SFDR to 90 dB: the spur drops to 0.5 dB above the noise; raise SNR to 72 instead: target SNR changes by only 0.4 dB and the false target stays.</li>
+    <li>Raise the clutter to +1 dBFS: the readout reports clipping.</li>
+    <li>Lower the thermal noise to −75 dBFS (too little gain): the ADC noise now dominates and the "loss from ADC noise" readout grows past 9 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>ADC SFDR</td><td>ADC part, driver linearity, clock spurs (module 02)</td><td>SFDR dBc, interleaving spurs</td><td>75 → 90 dBc removes a 15.5 dB false target in the example</td></tr>
+    <tr><td>Gain and STC</td><td>IF gain, attenuators (Step 7)</td><td>Gain range, switching speed</td><td>Keeps clutter 6 dB below full scale without burying the ADC noise</td></tr>
+    <tr><td>Clock spurs</td><td>Synthesiser spur levels</td><td>Spurs in dBc at offset</td><td>A −80 dBc clock spur at 1 kHz offset puts a copy of the clutter 80 dB down at a 1 kHz Doppler: a false moving target</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> clutter is the strongest signal the radar sees; every spur on the ADC clock or the LO is copied onto it at the same relative level, and that copy is what the Doppler filter cannot remove.</li>
+    <li><b>IF and driver amplifier designers:</b> your linearity at the clutter level sets the same kind of spurs before the ADC does.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Clutter is at −10 dBFS, noise after processing at −100 dBFS. What clutter-referred SFDR keeps spurs at least 3 dB below the 13 dB threshold?</summary><p>Spur must be ≤ −100 + 13 − 3 = −90 dBFS, so SFDR ≥ −10 − (−90) = 80 dBc.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="esm">
+  <div class="secno">Step 10</div>
+  <h2>System effect 2: ESM bandwidth against sensitivity, SAR data, and jammer waveform purity</h2>
+  <div class="know"><h4>You already know</h4><p>ESM (electronic support measures) receivers listen for other people's emitters across a wide band, for example 2 to 18 GHz. From Step 5: a wider sample rate spreads the converter's noise thinner per hertz only if the SNR holds up; from Step 7: the gain in front of the ADC is limited by the strongest signal.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous bandwidth (IBW):</b> the width of spectrum the receiver sees at one moment. For a real-sampling ADC, about 0.4·f<sub>s</sub> once the anti-alias filter's transition band is allowed for.</p>
+    <p><b>Probability of intercept (POI), simplified:</b> for a short emission at an unknown frequency in a 16 GHz band, the chance that it falls inside the IBW: IBW/16 GHz. A wider IBW sees more of the band at once.</p>
+    <p><b>Detection bandwidth B<sub>det</sub>:</b> the bandwidth the digital receiver uses to detect a pulse, matched to the pulse (about 1/pulse width: a 0.1 µs pulse needs about 10 MHz).</p>
+    <p><b>Required SNR:</b> the SNR in B<sub>det</sub> needed to declare a pulse (here 15 dB).</p>
+    <p><b>Sensitivity:</b> the weakest pulse detected: noise density at the antenna + 10·log(B<sub>det</sub>) + required SNR, where the noise density is −174 + system NF.</p>
+    <p><b>Converter classes</b> (illustrative, full scale +4 dBm): A 16-bit 250 MSPS SNR 76 dB; B 14-bit 1 GSPS SNR 68 dB; C 12-bit 4 GSPS SNR 58 dB; D 8-bit 20 GSPS SNR 42 dB.</p>
+  </div>
+  <div class="eq">G = P<sub>FS</sub> − 3 dB − P<sub>max</sub>;  NF<sub>sys</sub> = 10·log[F<sub>1</sub> + (F<sub>ADC</sub> − 1)/G];  S = −174 + NF<sub>sys</sub> + 10·log(B<sub>det</sub>) + SNR<sub>req</sub><small>Example: NF<sub>1</sub> 6 dB, P<sub>max</sub> −20 dBm (so G = 21 dB), B<sub>det</sub> 10 MHz, SNR<sub>req</sub> 15 dB. Class A: NF<sub>ADC</sub> 21.0, NF<sub>sys</sub> 6.97, S = −82.0 dBm, IBW 100 MHz (0.6 % of 2 to 18 GHz). Class B: −81.5 dBm, 400 MHz (2.5 %). Class C: −80.0 dBm, 1.6 GHz (10 %). Class D: NF<sub>ADC</sub> 36.0, NF<sub>sys</sub> 15.5, −73.5 dBm, 8 GHz (50 %). A thermal-only receiver (perfect ADC) would reach −83.0 dBm.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Naive approach 1: "take the widest IBW, then nothing is missed". Class D sees half the band at once but is 9.5 dB less sensitive than a thermal-limited receiver; an ESM receiver's detection range on a radar falls as 10<sup>−ΔS/20</sup>, so 9.5 dB costs two thirds of the range. Naive approach 2: "add gain to recover the sensitivity". Every dB of gain lowers the strongest signal the receiver can take without clipping, and in a wide IBW the chance that a strong nearby emitter is in view at the same time is high: class D with G = 41 dB clips at −37 dBm.</p></div>
+  <h3>Side by side on one example (NF<sub>1</sub> 6 dB, P<sub>max</sub> −20 dBm, B<sub>det</sub> 10 MHz, SNR<sub>req</sub> 15 dB)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Class</th><th>NSD</th><th>NF<sub>ADC</sub></th><th>System NF</th><th>Sensitivity</th><th>IBW</th><th>Share of 2 to 18 GHz</th></tr>
+    <tr><td>A 16-bit 250 MSPS</td><td class="n">−153.0 dBm/Hz</td><td class="n">21.0 dB</td><td class="n">6.97 dB</td><td class="n">−82.0 dBm</td><td class="n">100 MHz</td><td class="n">0.6 %</td></tr>
+    <tr><td>B 14-bit 1 GSPS</td><td class="n">−151.0 dBm/Hz</td><td class="n">23.0 dB</td><td class="n">7.45 dB</td><td class="n">−81.5 dBm</td><td class="n">400 MHz</td><td class="n">2.5 %</td></tr>
+    <tr><td>C 12-bit 4 GSPS</td><td class="n">−147.0 dBm/Hz</td><td class="n">27.0 dB</td><td class="n">9.00 dB</td><td class="n">−80.0 dBm</td><td class="n">1.6 GHz</td><td class="n">10 %</td></tr>
+    <tr><td>D 8-bit 20 GSPS</td><td class="n">−138.0 dBm/Hz</td><td class="n">36.0 dB</td><td class="n">15.51 dB</td><td class="n">−73.5 dBm</td><td class="n">8 GHz</td><td class="n">50 %</td></tr>
+  </table></div>
+  <div class="col"><p>The table is the ESM designer's central trade: each step to a wider IBW costs bits and therefore NSD, and the price is paid in sensitivity unless more gain is added, which is paid in strong-signal handling. Channelised digital receivers (module 11) split a wide IBW into narrow channels after the ADC, but they cannot recover NSD lost at the converter.</p></div>
+  <h3>How to choose the ESM converter</h3>
+  <div class="col"><p>(1) Fix the required sensitivity and the strongest signal that must be handled at the same time. (2) For each converter class, compute G from the strongest signal and the resulting NF<sub>sys</sub> and sensitivity. (3) Choose the widest IBW that still meets the sensitivity; if none does, split the band with a tuner (narrower IBW, scanning) and accept a lower POI. (4) Check SFDR against the sensitivity: spurs of the strongest signal must stay below the weakest one, here a span of −20 − (−82) = 62 dB.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench plots the sensitivity of all four classes against their IBW, for the front end, strongest signal, detection bandwidth and required SNR chosen. The selected class is highlighted; the dashed line is the thermal-only limit.</p></div>
+  <div class="bench">
+    <canvas id="cEs" width="640" height="320" aria-label="ESM sensitivity against instantaneous bandwidth for four converter classes"></canvas>
+    <div class="ctrl">
+      <label for="esC">Converter class</label><select id="esC"><option value="0">A 16-bit 250 MSPS</option><option value="1" selected>B 14-bit 1 GSPS</option><option value="2">C 12-bit 4 GSPS</option><option value="3">D 8-bit 20 GSPS</option></select>
+      <label for="esNF"><span>Front-end NF<sub>1</sub></span> <b id="esNFv"></b></label><input id="esNF" type="range" min="2" max="15" step="0.5" value="6">
+      <label for="esP"><span>Strongest signal P<sub>max</sub></span> <b id="esPv"></b></label><input id="esP" type="range" min="-60" max="0" step="1" value="-20">
+      <label for="esB"><span>Detection bandwidth B<sub>det</sub></span> <b id="esBv"></b></label><input id="esB" type="range" min="0" max="3" step="0.05" value="1">
+      <label for="esR"><span>Required SNR</span> <b id="esRv"></b></label><input id="esR" type="range" min="8" max="20" step="1" value="15">
+      <div class="readout" id="esOut"></div>
+    </div>
+    <p class="cap">Dots: sensitivity of each class against its IBW (log scale). Orange ring: the selected class. Dashed: thermal-only sensitivity (a perfect ADC). Labels give the share of 2 to 18 GHz seen at once. The detection-bandwidth slider is logarithmic (1 MHz to 1 GHz) and is capped at each class's IBW.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: class B at −81.5 dBm, gain 21 dB, NF<sub>sys</sub> 7.45 dB; A −82.0, C −80.0, D −73.5, thermal −83.0 dBm: the table.</li>
+    <li>Lower P<sub>max</sub> to −50 dBm: gain rises to 51 dB and all four classes close up on the thermal line; the price is clipping above −47 dBm.</li>
+    <li>Raise P<sub>max</sub> to 0 dBm: gain 1 dB and every class is ADC-limited; class D's sensitivity falls to −54.0 dBm, 29 dB worse than thermal.</li>
+    <li>Raise B<sub>det</sub> by a factor of 10: every sensitivity rises 10 dB; the ranking of the classes does not change.</li>
+  </ul></div>
+
+  <h3>SAR: bandwidth, data rate and bright targets</h3>
+  <div class="col"><p>A SAR (synthetic aperture radar) forms an image by pulse-compressing each echo in range and then combining thousands of echoes in azimuth (along the flight path). Range resolution is c/(2B): a 300 MHz chirp gives 0.5 m. The converter must capture that bandwidth: complex (I/Q) sampling at about 1.2·B, 360 MSPS per channel, or real sampling above 2·B. With 12 bits per sample on I and Q the raw rate is 2 × 12 × 360×10<sup>6</sup> = 8.64 Gbit/s, which is why SAR systems compress the raw data, for example block-adaptive quantisation (BAQ), which rescales each block of samples to its own level and keeps only 3 to 4 bits. Coarse quantisation works because the raw echo is noise-like (thousands of scatterers add up) and the processing gain is large: a 20 µs, 300 MHz chirp has a time-bandwidth product of 6 000, 37.8 dB, before azimuth compression adds roughly another 30 dB. The ADC's danger in SAR is the bright point target (a ship, a building corner): if it clips, its compressed response gains sidelobes and ghosts that smear across darker neighbours. The I/Q pair's gain and phase match (module 05) sets the image's ghost level just as the IRR does in a receiver.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>SAR quantity</th><th>Set by the converter</th><th>Illustrative number</th></tr>
+    <tr><td>Range resolution</td><td>Sampled bandwidth (f<sub>s</sub>, I/Q)</td><td>300 MHz → 0.5 m at 360 MSPS complex</td></tr>
+    <tr><td>Raw data rate</td><td>Bits × rate × channels</td><td>12 bits, 2 × 360 MSPS → 8.64 Gbit/s; BAQ to 3 bits → 2.16 Gbit/s</td></tr>
+    <tr><td>Image noise floor</td><td>Quantisation and ADC noise relative to the echo level</td><td>3-bit BAQ: quantisation noise about 14.6 dB below the average raw echo; in the image a floor about 15 dB below the average scene brightness, fine for most terrain, but it can hide dark areas such as calm water</td></tr>
+    <tr><td>Bright-target artefacts</td><td>Headroom above the average echo</td><td>Average set 10 to 15 dB below full scale so bright points do not clip</td></tr>
+  </table></div>
+
+  <h3>Jammer and exciter waveform purity</h3>
+  <div class="col"><p>A DAC-based jammer synthesises its waveform digitally, so every DAC impurity is amplified and radiated. Suppose the jammer radiates 1 kW ERP (effective radiated power, +60 dBm). (1) A DAC spur at −70 dBc is radiated at +60 − 70 = −10 dBm ERP, a clean signal on a frequency the jammer never meant to use, possibly inside a friendly band. (2) The DAC's noise floor, say −160 dBc/Hz, gives +60 − 160 + 70 = −30 dBm ERP in any 10 MHz channel, which can desensitise the platform's own ESM receiver a few metres away. (3) An unfiltered NRZ image (Step 8) at −3.5 dBc is a second jammer at +56.5 dBm. (4) Sinc droop and filter ripple across a wideband noise or chirp waveform shape the jamming spectrum, wasting power where the victim is not listening. The jammer's purity budget therefore flows straight back to the DAC's SFDR, NSD, clock jitter and the reconstruction filter.</p></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>ADC class</td><td>Converter part</td><td>Bits, f<sub>s</sub>, SNR</td><td>ESM: IBW 100 MHz → 8 GHz costs 8.5 dB of sensitivity in the example</td></tr>
+    <tr><td>Gain before an ESM ADC</td><td>Front-end gain plan (Step 7)</td><td>Gain, P1dB</td><td>Trades sensitivity against the strongest simultaneous signal</td></tr>
+    <tr><td>DAC SFDR and NSD</td><td>DAC part, clock (module 02)</td><td>dBc, dBc/Hz</td><td>Jammer at +60 dBm ERP: −70 dBc spur → −10 dBm radiated; −160 dBc/Hz → −30 dBm in 10 MHz</td></tr>
+    <tr><td>SAR quantisation</td><td>ADC bits, BAQ setting</td><td>Bits per sample</td><td>8.64 Gbit/s raw at 12 bits; headroom for bright targets</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>ESM front-end designers:</b> your NF only reaches the system if the gain plan buries the converter; for a wide-IBW converter that needs more gain, which makes your compression point and the limiter (module 06) matter more.</li>
+    <li><b>Transmit chain designers:</b> the PA and its filters see everything the DAC makes; a spur budget starts at the DAC.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Class C with gain 21 dB has NF<sub>sys</sub> 9.0 dB. What sensitivity does it reach for a 1 µs pulse (B<sub>det</sub> 1 MHz) at SNR<sub>req</sub> 15 dB?</summary><p>−174 + 9.0 + 60 + 15 = −90.0 dBm.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="summary">
+  <div class="secno">Step 11</div>
+  <h2>Summary: every converter parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (design choice)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Sample rate f<sub>s</sub></td><td>ADC part, clock frequency</td><td>Bandwidth seen at once (IBW ≈ 0.4·f<sub>s</sub>) and the anti-alias transition band: 100 → 200 MSPS cuts the filter from 12 to 6 poles</td></tr>
+    <tr><td>Anti-alias rejection</td><td>Filter order, family, cut-off</td><td>5-pole Butterworth at 100 MSPS: a −10 dBFS interferer aliases at −40 dBFS</td></tr>
+    <tr><td>Nyquist zone / IF choice</td><td>Frequency plan, band-pass filter</td><td>70 MHz at 93.3 MSPS lands centred at f<sub>s</sub>/4, inverted; 70 MSPS folds the band onto itself</td></tr>
+    <tr><td>Resolution N</td><td>ADC part</td><td>Ideal SNR 6.02·N + 1.76 dB: 74.0 dB at 12 bits; real parts lose 1 to 3 bits</td></tr>
+    <tr><td>SINAD / ENOB</td><td>ADC part, drive level</td><td>ENOB = (SINAD − 1.76)/6.02: 68.5 dB → 11.1 bits</td></tr>
+    <tr><td>HD2, HD3, SFDR</td><td>ADC and driver linearity</td><td>A spur at SFDR below clutter becomes a false target after processing gain: 75 dBc → 15.5 dB above noise</td></tr>
+    <tr><td>Interleaving mismatch</td><td>ADC architecture, calibration, clock symmetry</td><td>0.1 % gain + 1 ps skew at 203 MHz → −61.8 dBc image at f<sub>s</sub>/2 − f<sub>in</sub></td></tr>
+    <tr><td>Full-scale power P<sub>FS</sub></td><td>Input range, termination, balun</td><td>Sets clip level and, dB for dB, NF<sub>ADC</sub></td></tr>
+    <tr><td>NSD (dBFS/Hz)</td><td>SNR and f<sub>s</sub></td><td>SNR 70 dB at 500 MSPS → −154 dBFS/Hz → NF<sub>ADC</sub> 24 dB at +4 dBm full scale</td></tr>
+    <tr><td>Processing gain</td><td>DDC bandwidth, FFT length, pulse compression</td><td>+17 dB for 5 MHz out of 250 MHz; lowers noise per bin, not spurs</td></tr>
+    <tr><td>Aperture and clock jitter</td><td>ADC part; synthesiser phase noise (module 02)</td><td>SNR ≤ −20·log(2π·f<sub>in</sub>·t<sub>j</sub>): 100 fs → 84 dB at 100 MHz, 64 dB at 1 GHz</td></tr>
+    <tr><td>Gain before the ADC</td><td>LNA and IF gain plan</td><td>30 dB: NF 3.0 → 3.52 dB, clip −26 dBm; 10 dB: NF 14.3 dB; 60 dB: clip −56 dBm</td></tr>
+    <tr><td>DAC hold mode</td><td>NRZ / RZ / mix-mode</td><td>NRZ droop 2.42 dB at 0.4·f<sub>clk</sub>; mix-mode makes zone 2 and 3 usable</td></tr>
+    <tr><td>DAC rate and interpolation</td><td>DAC part, clock</td><td>×4 moves the first image from 600 to 3 600 MHz</td></tr>
+    <tr><td>Reconstruction filter</td><td>Order, family, cut-off</td><td>3 poles: image −10 dBc at ×1, −71.5 dBc at ×4</td></tr>
+    <tr><td>DAC SFDR and NSD</td><td>DAC part, clock purity</td><td>Jammer at +60 dBm ERP radiates −70 dBc spurs at −10 dBm</td></tr>
+    <tr><td>Converter class for ESM</td><td>Bits against rate</td><td>IBW 100 MHz → 8 GHz costs 8.5 dB of sensitivity at the same strongest signal</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M01-lna-noise.html">LNA and receiver noise</a> (Friis, sensitivity; the cascade the ADC joins in Step 7); <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (integrated jitter and clock spurs, Step 6); <a href="M04-filters.html">Filters and preselection</a> (anti-alias and reconstruction filters, Steps 1, 2 and 8); <a href="M05-mixers-conversion.html">Mixers, LO and frequency conversion</a> (frequency plans and I/Q balance, Steps 2 and 10). The radar pages R4 and R5, the SAR part and the receiver/ESM and transmit/jamming parts use these converter numbers in full chains.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>ADC</dt><dd>Analogue-to-digital converter: measures the input voltage at regular instants and outputs each value as a number.</dd>
+    <dt>Alias</dt><dd>The apparent frequency |f − k·f<sub>s</sub>| at which a tone at f appears after sampling.</dd>
+    <dt>Analogue input bandwidth</dt><dd>The input frequency at which the ADC's track-and-hold has lost 3 dB; limits the highest Nyquist zone usable.</dd>
+    <dt>Anti-alias filter</dt><dd>Analogue filter before the ADC that removes what would alias onto the wanted band; its stop band starts at f<sub>s</sub> − f<sub>max</sub>.</dd>
+    <dt>Aperture jitter t<sub>a</sub></dt><dd>Random timing uncertainty of the ADC's own sampling instant, in fs rms.</dd>
+    <dt>BAQ</dt><dd>Block-adaptive quantisation: SAR raw-data compression that rescales each block and keeps a few bits per sample.</dd>
+    <dt>Bandpass sampling</dt><dd>Sampling a band-limited signal in zone 2 or higher so that the ADC also frequency-converts it; also called undersampling.</dd>
+    <dt>Clipping</dt><dd>An input beyond full scale; the output sticks at the top or bottom code and the signal's energy spreads across the spectrum.</dd>
+    <dt>Clock jitter t<sub>c</sub></dt><dd>Random variation of the sample clock's edges from their ideal times, in fs rms.</dd>
+    <dt>Clutter</dt><dd>Radar echoes from ground, sea or rain that compete with the target.</dd>
+    <dt>DAC</dt><dd>Digital-to-analogue converter: outputs a voltage for each number and holds it until the next.</dd>
+    <dt>dBc</dt><dd>Decibels relative to the carrier (the wanted tone).</dd>
+    <dt>dBFS</dt><dd>Decibels relative to full scale (a full-scale sine is 0 dBFS).</dd>
+    <dt>Decimation</dt><dd>Digital filtering to a narrower band, then keeping fewer samples.</dd>
+    <dt>Dither</dt><dd>Small noise added before the ADC so the quantisation error stays random.</dd>
+    <dt>ENOB</dt><dd>Effective number of bits: (SINAD − 1.76)/6.02.</dd>
+    <dt>FFT, bin</dt><dd>Fast Fourier transform of K samples; it splits 0 to f<sub>s</sub>/2 into K/2 bins of width f<sub>s</sub>/K.</dd>
+    <dt>Full-scale range (FSR)</dt><dd>Peak-to-peak input voltage the ADC can code.</dd>
+    <dt>Full-scale power P<sub>FS</sub></dt><dd>Power of a 0 dBFS sine at the ADC input, in dBm.</dd>
+    <dt>HD2, HD3</dt><dd>Second and third harmonic distortion, in dBc.</dd>
+    <dt>Headroom</dt><dd>Clip level minus the largest expected signal.</dd>
+    <dt>IBW</dt><dd>Instantaneous bandwidth: the spectrum width a receiver sees at one moment; about 0.4·f<sub>s</sub> for real sampling.</dd>
+    <dt>Image (DAC)</dt><dd>Copy of the output tone at k·f<sub>clk</sub> ± f, weighted by the hold response.</dd>
+    <dt>Interleaving</dt><dd>Building a fast ADC from M slower cores taking samples in turn.</dd>
+    <dt>Interpolation</dt><dd>Computing extra samples so the DAC runs faster than the data, moving the first image away.</dd>
+    <dt>Inverse-sinc filter</dt><dd>Digital pre-emphasis that cancels the DAC's sinc droop.</dd>
+    <dt>LSB</dt><dd>Least significant bit: the voltage step between adjacent codes, FSR/2<sup>N</sup>.</dd>
+    <dt>Mix-mode</dt><dd>DAC mode that outputs the inverted value in the second half of each period, favouring zones 2 and 3.</dd>
+    <dt>MSPS, GSPS</dt><dd>Millions or billions of samples per second.</dd>
+    <dt>NF<sub>ADC</sub></dt><dd>ADC noise figure: P<sub>FS</sub> + NSD + 174 dB.</dd>
+    <dt>Noise margin</dt><dd>Analogue noise density at the ADC input minus the ADC's NSD, in dB.</dd>
+    <dt>NRZ</dt><dd>Non-return-to-zero (zero-order hold): each DAC value held for a full period.</dd>
+    <dt>NSD</dt><dd>Noise spectral density: −SNR − 10·log(f<sub>s</sub>/2) in dBFS/Hz.</dd>
+    <dt>Nyquist frequency</dt><dd>f<sub>s</sub>/2, the highest frequency represented without ambiguity.</dd>
+    <dt>Nyquist rate</dt><dd>2·f<sub>max</sub>, the lowest sample rate for a signal up to f<sub>max</sub>.</dd>
+    <dt>Nyquist zone</dt><dd>The strip (n − 1)·f<sub>s</sub>/2 to n·f<sub>s</sub>/2; even zones appear inverted.</dd>
+    <dt>Oversampling ratio</dt><dd>f<sub>s</sub>/(2·f<sub>max</sub>).</dd>
+    <dt>POI (simplified)</dt><dd>Share of the band seen at once, IBW divided by the total band.</dd>
+    <dt>Processing gain</dt><dd>SNR improvement from keeping only the needed bandwidth: 10·log(f<sub>s</sub>/2B), or 10·log(K/2) per FFT bin.</dd>
+    <dt>Quantisation noise</dt><dd>The rounding error treated as noise, q/√12 rms when the input is busy.</dd>
+    <dt>Reconstruction filter</dt><dd>Analogue filter after a DAC that removes the images.</dd>
+    <dt>RZ</dt><dd>Return-to-zero: DAC value held for half a period; 6 dB lower, flatter response.</dd>
+    <dt>Sample rate f<sub>s</sub></dt><dd>Samples per second; T<sub>s</sub> = 1/f<sub>s</sub> between samples.</dd>
+    <dt>SFDR</dt><dd>Spurious-free dynamic range: wanted tone over the largest spur, in dBc or dBFS.</dd>
+    <dt>SINAD</dt><dd>Signal to noise and distortion: signal over everything else.</dd>
+    <dt>Sinc roll-off</dt><dd>The |sin(πx)/(πx)| response of a hold, x = f/f<sub>clk</sub>.</dd>
+    <dt>Skew</dt><dd>Timing difference between interleaved cores, in ps.</dd>
+    <dt>SNR</dt><dd>Signal-to-noise ratio; for an ADC measured over 0 to f<sub>s</sub>/2, excluding harmonics.</dd>
+    <dt>Spectral inversion</dt><dd>A band appearing mirrored after sampling from an even zone.</dd>
+    <dt>Subclutter visibility</dt><dd>How much weaker than the clutter in its cell a target may be and still be detected.</dd>
+    <dt>Transition band</dt><dd>For the anti-alias filter, f<sub>max</sub> to f<sub>s</sub> − f<sub>max</sub>.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Kester (ed.), <i>Data Conversion Handbook</i>; Lyons, <i>Understanding Digital Signal Processing</i>; Oppenheim and Schafer, <i>Discrete-Time Signal Processing</i>; Tsui, <i>Digital Techniques for Wideband Receivers</i>; Skolnik, <i>Introduction to Radar Systems</i>; Cumming and Wong, <i>Digital Processing of Synthetic Aperture Radar Data</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+/* radix-2 FFT in place on re,im arrays */
+function fft(re,im,inv){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; } }
+  for(let len=2;len<=n;len<<=1){ const ang=(inv?2:-2)*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } }
+  if(inv){ for(let i=0;i<n;i++){ re[i]/=n; im[i]/=n; } } }
+
+const mg=x=>(x>=0?'+':'')+x.toFixed(1)+' dB '+(x<0?'FAIL':'ok');
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(x<10?2:0)+' MHz');
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+
+/* ---------- helpers for this page ---------- */
+function rng(s){ return function(){ s=(s+0x6D2B79F5)|0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function gauss(r){ let u=r(); if(u<1e-12) u=1e-12; return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*r()); }
+function aliasOf(f,fs){ let r=f%fs; if(r<0) r+=fs; return r>fs/2?fs-r:r; }
+function zoneOf(f,fs){ return Math.floor(f/(fs/2)+1e-9)+1; }
+const bwA=(f,fc,N)=>10*Math.log10(1+Math.pow(f/fc,2*N));   /* Butterworth attenuation, dB */
+const sinc=x=>Math.abs(x)<1e-12?1:Math.sin(Math.PI*x)/(Math.PI*x);
+const dB20=x=>20*Math.log10(Math.max(Math.abs(x),1e-12));
+const f1=x=>isFinite(x)?x.toFixed(1):'n/a', f2=x=>isFinite(x)?x.toFixed(2):'n/a';
+const sg=x=>isFinite(x)?(x>0?'+':'')+x.toFixed(1):'n/a';
+const fsU=x=>(x>=1000?(x/1000).toFixed(2)+' GSPS':x.toFixed(x<100?1:0)+' MSPS');
+const fsT=t=>(t>=1000?(t/1000).toFixed(2)+' ps':t.toFixed(0)+' fs');
+function stem(g,x,yb,yt,color,w){ g.strokeStyle=color; g.lineWidth=w||2; g.beginPath(); g.moveTo(x,yb); g.lineTo(x,yt); g.stroke(); g.lineWidth=1; dot(g,x,yt,color,3); }
+const ok=(b,s1,s2)=>b?(s1||'ok'):(s2||'FAIL');
+
+/* ---------- Step 1a: what the samples see ---------- */
+function alDraw(){
+  const c=$('cAl'), g=ctx(c), fs=sl('alFs'), f=sl('alF');
+  setv('alFs',fsU(fs)); setv('alF',fMHz(f));
+  const a=area(c,{l:46,t:22,r:16,b:40}); const T=200e-3; /* µs */
+  const ph=Math.PI/5, w=f/fs*TAU; let wa=((w%TAU)+TAU)%TAU; if(wa>Math.PI) wa-=TAU; const fa=wa/TAU*fs; /* signed apparent frequency, MHz */
+  const xs=[],y1=[],y2=[]; for(let i=0;i<=1600;i++){ const t=T*i/1600; xs.push(t*1000); y1.push(Math.sin(TAU*f*t+ph)); y2.push(Math.sin(TAU*fa*t+ph)); }
+  const P=plot(g,a.x0,a.y0,a.w,a.h,0,200,-1.2,1.2,[{x:xs,y:y1,color:css('--trace'),w:1.3},{x:xs,y:y2,color:css('--trace2'),dash:[6,4],w:1.8}],{ny:4,nx:4,fy:v=>v.toFixed(1),fx:v=>v.toFixed(0),xl:'time, ns',yl:'volts (normalised)'});
+  for(let n=0;n*1000/fs<=200+1e-9;n++){ const t=n/fs; dot(g,P.X(t*1000),P.Y(Math.sin(TAU*f*t+ph)),css('--accent'),3.5); }
+  const app=Math.abs(fa), z=zoneOf(f,fs), atNyq=Math.abs(app-fs/2)<1e-6;
+  ro($('alOut'),[['Nyquist frequency',fMHz(fs/2)],['Nyquist zone',z],['apparent frequency',fMHz(app)],['spectrum inverted',z%2===0?'yes':'no'],['samples per input cycle',(fs/f).toFixed(2)],['status',atNyq?'at the Nyquist frequency':(f<fs/2?'faithful (below f<sub>s</sub>/2)':'ALIASED')]]);
+}
+bind(['alFs','alF'],alDraw);
+
+/* ---------- Step 1b: anti-alias filter ---------- */
+function aaDraw(){
+  const c=$('cAa'), g=ctx(c), fs=sl('aaFs'), fm=sl('aaFm'), N=sl('aaN'), fc=sl('aaFc'), fi=sl('aaI'), Pi=sl('aaP');
+  setv('aaFs',fsU(fs)); setv('aaFm',fMHz(fm)); setv('aaN',N+' poles'); setv('aaFc',fMHz(fc)); setv('aaI',fMHz(fi)); setv('aaP',Pi+' dBFS');
+  const a=area(c); const xmax=Math.max(1.5*fs,1.15*fi);
+  const X=x=>a.x0+a.w*x/xmax;
+  shade(g,X(0),X(Math.min(fm,xmax)),a.y0,a.h,css('--good'),0.16);
+  for(let k=1;k*fs-fm<xmax;k++) shade(g,X(Math.max(0,k*fs-fm)),X(Math.min(xmax,k*fs+fm)),a.y0,a.h,css('--bad'),0.12);
+  const xs=[],ys=[]; for(let i=0;i<=600;i++){ const f=xmax*i/600; xs.push(f); ys.push(-bwA(f,fc,N)); }
+  const P=plot(g,a.x0,a.y0,a.w,a.h,0,xmax,-120,0,[{x:xs,y:ys,color:css('--trace'),w:1.8}],{ny:6,nx:5,fx:v=>v.toFixed(0),xl:'frequency, MHz',yl:'level after filter, dBFS (0 dBFS input)'});
+  hline(g,a.x0,a.w,P.Y(-80),css('--accent'),[5,4]); txt(g,'−80 dBFS requirement',a.x0+a.w-150,P.Y(-80)-5,css('--accent'));
+  for(let k=1;k*fs/2<xmax;k++) vline(g,X(k*fs/2),a.y0,a.h,css('--muted'),[2,4]);
+  const Ai=bwA(fi,fc,N), Li=Pi-Ai, fa=aliasOf(fi,fs), inBand=fa<=fm;
+  stem(g,X(fi),P.Y(-120),P.Y(Li),css('--accent'),2.5);
+  stem(g,X(fa),P.Y(-120),P.Y(Li),inBand?css('--bad'):css('--trace2'),2.5);
+  txt(g,'interferer',Math.min(X(fi)+5,a.x0+a.w-70),P.Y(Li)-6,css('--accent')); txt(g,'alias',X(fa)+5,P.Y(Li)+14,inBand?css('--bad'):css('--trace2'));
+  const valid=fm<fs/2;
+  ro($('aaOut'),[['alias of interferer',fMHz(fa)],['lands in wanted band',inBand?'yes':'no'],['rejection at interferer',f1(Ai)+' dB'],['level after filter',f1(Li)+' dBFS'],['vs −80 dBFS',inBand?sg(-80-Li)+' dB '+ok(Li<=-80):'outside band: removed digitally'],['droop at f<sub>max</sub>',f2(bwA(fm,fc,N))+' dB'],['oversampling ratio',(fs/(2*fm)).toFixed(2)],['transition band',valid?fMHz(fm)+' to '+fMHz(fs-fm):'none: f<sub>max</sub> ≥ f<sub>s</sub>/2']]);
+}
+bind(['aaFs','aaFm','aaN','aaFc','aaI','aaP'],aaDraw);
+
+/* ---------- Step 2: Nyquist zones ---------- */
+function nzDraw(){
+  const c=$('cNz'), g=ctx(c), fs=sl('nzFs'), fc=sl('nzFc'), B=sl('nzB');
+  setv('nzFs',fsU(fs)); setv('nzFc',fMHz(fc)); setv('nzB',fMHz(B));
+  const fL=Math.max(0.05,fc-B/2), fH=fc+B/2;
+  const x0=20,w=c.width-40, top=30, h1=110, bot=200, h2=60;
+  const xmax=Math.max(2*fs,fH*1.15), X=x=>x0+w*x/xmax, half=fs/2;
+  const zL=zoneOf(fL,fs), zH=Math.max(1,Math.ceil(fH/half-1e-9)), straddle=zL!==zH;
+  for(let z=1;(z-1)*half<xmax;z++){ const xa=X((z-1)*half), xb=X(Math.min(z*half,xmax)); g.fillStyle=z%2?css('--chip'):css('--panel'); g.fillRect(xa,top,xb-xa,h1); g.strokeStyle=css('--line'); g.strokeRect(xa,top,xb-xa,h1); if(xb-xa>18) txt(g,String(z),xa+3,top+14,css('--muted')); }
+  const col=straddle?css('--bad'):css('--trace');
+  g.globalAlpha=0.55; g.fillStyle=col; g.fillRect(X(fL),top+30,Math.max(2,X(fH)-X(fL)),h1-30); g.globalAlpha=1;
+  const tri=(x,y,cl)=>{ g.fillStyle=cl; g.beginPath(); g.moveTo(x,y); g.lineTo(x-6,y-9); g.lineTo(x+6,y-9); g.closePath(); g.fill(); };
+  tri(X(fH),top+30,css('--accent'));
+  txt(g,'real spectrum (zones numbered); 0 to '+fMHz(xmax),x0,top-8,css('--muted'));
+  /* zone 1 view */
+  const X2=x=>x0+w*x/half; g.fillStyle=css('--chip'); g.fillRect(x0,bot,w,h2); g.strokeStyle=css('--line'); g.strokeRect(x0,bot,w,h2);
+  g.fillStyle=col; g.globalAlpha=0.55; for(let i=0;i<=400;i++){ const a=aliasOf(fL+(fH-fL)*i/400,fs); g.fillRect(X2(a)-1,bot+12,2,h2-12); } g.globalAlpha=1;
+  tri(X2(aliasOf(fH,fs)),bot+12,css('--accent'));
+  txt(g,'digital view: zone 1, 0 to '+fMHz(half),x0,bot-8,css('--muted'));
+  for(let k=0;k<=4;k++){ const v=half*k/4, s=Number.isInteger(v)?v.toFixed(0):v.toFixed(1); txt(g,s,clamp(X2(v)-g.measureText(s).width/2,x0,x0+w-g.measureText(s).width),bot+h2+15,css('--muted')); }
+  txt(g,'MHz',x0+w-24,bot+h2+29,css('--muted'));
+  const aL=aliasOf(fL,fs), aH=aliasOf(fH,fs), inv=zL%2===0;
+  const gLo=fL-(zL-1)*half, gHi=zL*half-fH;
+  const nmax=Math.floor(fH/B), wins=[];
+  for(let n=1;n<=nmax&&wins.length<4;n++){ const lo=2*fH/n, hi=n===1?Infinity:2*fL/(n-1); if(lo<=hi) wins.push('n'+n+': '+(n===1?'≥ '+lo.toFixed(1):lo.toFixed(1)+' to '+hi.toFixed(1))); }
+  ro($('nzOut'),[['band',fMHz(fL)+' to '+fMHz(fH)],['zone',straddle?zL+' and '+zH+' (straddles)':zL],['appears at',straddle?'folds onto itself':fMHz(Math.min(aL,aH))+' to '+fMHz(Math.max(aL,aH))],['inverted',straddle?'partly':(inv?'yes':'no')],['guard to zone edges',straddle?'none':fMHz(gLo)+' / '+fMHz(gHi)],['status',straddle?'FAIL':'ok'],['jitter at f<sub>in</sub> up to',fMHz(fH)],['valid f<sub>s</sub> (MSPS)',wins.join('<br>')||'none']]);
+}
+bind(['nzFs','nzFc','nzB'],nzDraw);
+
+/* ---------- Step 3: quantisation ---------- */
+const QN=4096;
+function qnDraw(){
+  const c=$('cQn'), g=ctx(c), N=sl('qnN'), AdB=sl('qnA'), d=+$('qnD').value, k=+$('qnT').value;
+  setv('qnN',N+' bits'); setv('qnA',AdB+' dBFS');
+  const A=Math.pow(10,AdB/20), q=2/Math.pow(2,N), r=rng(777+N*31+k), re=new Float64Array(QN), im=new Float64Array(QN), xi=new Float64Array(QN);
+  const lim=1-q/2;
+  for(let n=0;n<QN;n++){ const x=A*Math.sin(TAU*k*n/QN+0.1); xi[n]=x; let v=x+(d?d*q*gauss(r):0); v=(Math.floor(v/q)+0.5)*q; re[n]=clamp(v,-lim,lim); }
+  const yq=Array.from(re.slice(0,64));
+  fft(re,im,false);
+  const P=new Float64Array(QN/2); for(let i=0;i<QN/2;i++) P[i]=4*(re[i]*re[i]+im[i]*im[i])/(QN*QN);
+  let tot=0,mx=0,mxi=1; for(let i=1;i<QN/2;i++){ if(i===k) continue; tot+=P[i]; if(P[i]>mx){mx=P[i];mxi=i;} }
+  const sinad=db(P[k]/tot), sfdr=db(P[k]/mx), enob=(sinad-1.76)/6.02;
+  /* time panel */
+  const t0=24,th=120, x0=56,w=c.width-72;
+  const xs=[],ys=[]; for(let i=0;i<=640;i++){ const n=64*i/640; xs.push(n); ys.push(A*Math.sin(TAU*k*n/QN+0.1)); }
+  const Pt=plot(g,x0,t0,w,th,0,64,-1.15*A,1.15*A,[{x:xs,y:ys,color:css('--muted'),w:1}],{ny:2,nx:4,fy:v=>(v/A).toFixed(1),fx:v=>v.toFixed(0),yl:'value / amplitude (time, 64 samples)'});
+  g.strokeStyle=css('--accent'); g.lineWidth=1.8; g.beginPath(); for(let n=0;n<64;n++){ const y=Pt.Y(clamp(yq[n],-1.15*A,1.15*A)); const xa=Pt.X(n), xb=Pt.X(n+1); n?g.lineTo(xa,y):g.moveTo(xa,y); g.lineTo(xb,y); } g.stroke(); g.lineWidth=1;
+  /* spectrum panel */
+  const s0=t0+th+42, sh=c.height-s0-38, fx=[],fy=[]; for(let i=1;i<QN/2;i++){ fx.push(i/QN); fy.push(db(Math.max(P[i],1e-30))); }
+  const Ps=plot(g,x0,s0,w,sh,0,0.5,-160,0,[{x:fx,y:fy,color:css('--trace'),w:1}],{ny:4,nx:5,fx:v=>v.toFixed(1),xl:'frequency / f_s',yl:'dBFS per bin'});
+  const fl=-(6.02*N+1.76)-db(QN/2); hline(g,x0,w,Ps.Y(fl),css('--trace2'),[6,4]); txt(g,'dashed: ideal floor '+fl.toFixed(1)+' dBFS per bin',x0+w-260,s0+16,css('--trace2'));
+  dot(g,Ps.X(mxi/QN),Ps.Y(db(mx)),css('--bad'),3.5);
+  ro($('qnOut'),[['LSB (2 V<sub>pp</sub>)',q*1000>=1?(q*1000).toFixed(2)+' mV':(q*1e6).toFixed(1)+' µV'],['ideal SNR at 0 dBFS',(6.02*N+1.76).toFixed(1)+' dB'],['ideal at this level',(6.02*N+1.76+AdB).toFixed(1)+' dB'],['measured SINAD',f1(sinad)+' dB'],['ENOB (at this level)',f2(enob)],['largest spur',f1(-sfdr)+' dBc'],['spur at',(mxi/QN).toFixed(4)+' f<sub>s</sub>']]);
+}
+bind(['qnN','qnA','qnD','qnT'],qnDraw);
+
+/* ---------- Step 4: SFDR and interleaving ---------- */
+const SN=8192, SFS=1000;
+const PAT={1:{g:[0],t:[0],o:[0]},2:{g:[.5,-.5],t:[.5,-.5],o:[.5,-.5]},4:{g:[.5,-.1,-.5,.1],t:[.3,-.5,.5,-.3],o:[.5,-.5,.2,-.2]}};
+function sfDraw(){
+  const c=$('cSf'), g=ctx(c), fin0=sl('sfF'), h2=sl('sfH2'), h3=sl('sfH3'), M=+$('sfM').value, G=sl('sfG'), T=sl('sfT'), O=sl('sfO');
+  let k=Math.round(fin0/SFS*SN); if(k%2===0) k+=1; if(k>=SN/2) k-=2; const fin=k*SFS/SN;
+  setv('sfF',fMHz(fin)); setv('sfH2',h2+' dBc'); setv('sfH3',h3+' dBc'); setv('sfG',G.toFixed(2)+' %'); setv('sfT',T.toFixed(2)+' ps'); setv('sfO',O.toFixed(2)+' mV');
+  const p=PAT[M], A=Math.pow(10,-1/20), a2=A*Math.pow(10,h2/20), a3=A*Math.pow(10,h3/20), q=2/4096, lim=1-q/2, r=rng(4242);
+  const re=new Float64Array(SN), im=new Float64Array(SN);
+  for(let n=0;n<SN;n++){ const cc=n%M, t=n/(SFS*1e6)+p.t[cc]*T*1e-12, ph=TAU*fin*1e6*t+0.3;
+    let x=A*Math.sin(ph)+a2*Math.sin(2*ph)+a3*Math.sin(3*ph); x=x*(1+p.g[cc]*G/100)+p.o[cc]*O*1e-3+4.24e-4*gauss(r);
+    re[n]=clamp((Math.floor(x/q)+0.5)*q,-lim,lim); }
+  fft(re,im,false);
+  const P=new Float64Array(SN/2+1); for(let i=0;i<=SN/2;i++) P[i]=(i===SN/2?2:4)*(re[i]*re[i]+im[i]*im[i])/(SN*SN);
+  let tot=0,mx=0,mxi=1; for(let i=1;i<=SN/2;i++){ if(i===k) continue; tot+=P[i]; if(P[i]>mx){mx=P[i];mxi=i;} }
+  const sig=db(P[k]), sfdr=sig-db(mx), sinad=sig-db(tot);
+  const a=area(c), xs=[],ys=[]; for(let i=1;i<=SN/2;i++){ xs.push(i*SFS/SN); ys.push(db(Math.max(P[i],1e-30))); }
+  const Pl=plot(g,a.x0,a.y0,a.w,a.h,0,500,-140,0,[{x:xs,y:ys,color:css('--trace'),w:1}],{ny:7,nx:5,fx:v=>v.toFixed(0),xl:'frequency, MHz',yl:'dBFS per bin'});
+  hline(g,a.x0,a.w,Pl.Y(db(mx)),css('--bad'),[5,4]);
+  const cand=[{f:aliasOf(2*fin,SFS),l:'HD2'},{f:aliasOf(3*fin,SFS),l:'HD3'}];
+  for(let m=1;m<M;m++){ cand.push({f:aliasOf(m*SFS/M,SFS),l:'offset'}); cand.push({f:aliasOf(m*SFS/M+fin,SFS),l:'image'}); cand.push({f:aliasOf(m*SFS/M-fin,SFS),l:'image'}); }
+  const binOf=f=>Math.round(f/SFS*SN); const used={};
+  cand.forEach(cd=>{ const b=binOf(cd.f); if(used[b]) return; used[b]=1; const lv=db(Math.max(P[b]||1e-30,1e-30)); if(lv>-118){ const s=cd.l; txt(g,s,clamp(Pl.X(cd.f)-g.measureText(s).width/2,a.x0,a.x0+a.w-g.measureText(s).width),Pl.Y(lv)-6,css('--trace2')); } });
+  let src='noise peak'; const fw=mxi*SFS/SN; cand.forEach(cd=>{ if(Math.abs(binOf(cd.f)-mxi)<=2 && src==='noise peak') src=cd.l==='image'?'interleaving image':(cd.l==='offset'?'offset spur':cd.l); });
+  const pg=M===2&&G>0?(20*Math.log10(G/100/2)).toFixed(1)+' dBc':'n/a', pt=M===2&&T>0?(20*Math.log10(Math.PI*fin*1e6*T*1e-12)).toFixed(1)+' dBc':'n/a', po=M===2&&O>0?(20*Math.log10(O*1e-3)-3.01).toFixed(1)+' dBFS':'n/a';
+  ro($('sfOut'),[['input (on an FFT bin)',fMHz(fin)],['SFDR',f1(sfdr)+' dBc'],['largest spur at',fMHz(fw)],['its source',src],['SINAD',f1(sinad)+' dB'],['formula: gain image',pg],['formula: skew image',pt],['formula: offset spur',po]]);
+}
+bind(['sfF','sfH2','sfH3','sfM','sfG','sfT','sfO'],sfDraw);
+
+/* ---------- Step 5: NSD and processing gain ---------- */
+function nsDraw(){
+  const c=$('cNs'), g=ctx(c), S=sl('nsS'), fs=sl('nsFs'), K=+$('nsK').value, B=sl('nsB'), PFS=sl('nsFS');
+  setv('nsS',S+' dB'); setv('nsFs',fsU(fs)); setv('nsB',fMHz(B)); setv('nsFS',(PFS>0?'+':'')+PFS.toFixed(1)+' dBm');
+  const half=fs/2, nb=Math.pow(10,-S/10)/(K/2), r=rng(K*7+fs*3+S*11), a=area(c), X=f=>a.x0+a.w*f/half;
+  const fT=0.3*half, Beff=Math.min(B,half);
+  shade(g,X(Math.max(0,fT-Beff/2)),X(Math.min(half,fT+Beff/2)),a.y0,a.h,css('--accent'),0.14);
+  const Pl=plot(g,a.x0,a.y0,a.w,a.h,0,half,-160,0,[],{ny:8,nx:5,fx:v=>v.toFixed(0),xl:'frequency, MHz',yl:'dBFS per bin'});
+  const cols=Math.round(a.w), lo=new Array(cols).fill(Infinity), hi=new Array(cols).fill(-Infinity);
+  for(let i=1;i<K/2;i++){ const v=db(nb*(-Math.log(Math.max(r(),1e-12)))); const cI=Math.min(cols-1,Math.floor(cols*i/(K/2))); if(v<lo[cI]) lo[cI]=v; if(v>hi[cI]) hi[cI]=v; }
+  g.strokeStyle=css('--muted'); g.beginPath(); for(let i=0;i<cols;i++){ if(!isFinite(lo[i])) continue; const x=a.x0+i+0.5; g.moveTo(x,Pl.Y(lo[i])); g.lineTo(x,Pl.Y(hi[i])+0.5); } g.stroke();
+  hline(g,a.x0,a.w,Pl.Y(db(nb)),css('--trace2'),[6,4]); txt(g,'dashed: average per bin '+db(nb).toFixed(1)+' dBFS',a.x0+a.w-250,Pl.Y(db(nb)-24),css('--trace2'));
+  stem(g,X(fT),Pl.Y(-160),Pl.Y(-1),css('--accent'),2);
+  const nsd=-S-db(half*1e6), nf=PFS+nsd+174, pgB=db(half/Beff);
+  txt(g,'0 dBFS = '+(PFS>0?'+':'')+PFS.toFixed(1)+' dBm, so NSD = '+(nsd+PFS).toFixed(1)+' dBm/Hz, NF(ADC) '+nf.toFixed(1)+' dB',a.x0+8,a.y0+16,css('--ink'));
+  ro($('nsOut'),[['NSD',f1(nsd)+' dBFS/Hz'],['NSD',f1(nsd+PFS)+' dBm/Hz'],['ADC noise figure',f1(nf)+' dB'],['bin width',fmt(fs*1e6/K,'Hz')],['noise per bin',f1(db(nb))+' dBFS'],['FFT processing gain',f1(db(K/2))+' dB'],['gain from channel B',f1(pgB)+' dB'],['SNR in B',f1(S+pgB)+' dB']]);
+}
+bind(['nsS','nsFs','nsK','nsB','nsFS'],nsDraw);
+
+/* ---------- Step 6: jitter ---------- */
+function jtDraw(){
+  const c=$('cJt'), g=ctx(c), S0=sl('jtS'), ta=sl('jtA'), tc=sl('jtC'), v=sl('jtF'), f=Math.pow(10,v); /* MHz */
+  setv('jtS',S0+' dB'); setv('jtA',fsT(ta)); setv('jtC',fsT(tc)); setv('jtF',fMHz(f));
+  const tj=Math.hypot(ta,tc)*1e-15, sj=F=>-20*Math.log10(TAU*F*1e6*tj), sa=F=>-20*Math.log10(TAU*F*1e6*ta*1e-15), comb=x=>-db(lin(-S0)+lin(-x));
+  const a=area(c), xs=[],yj=[],ya=[],yt=[],y0=[]; for(let i=0;i<=300;i++){ const lv=1+3*i/300, F=Math.pow(10,lv); xs.push(lv); yj.push(sj(F)); ya.push(sa(F)); yt.push(comb(sj(F))); y0.push(S0); }
+  const P=plot(g,a.x0,a.y0,a.w,a.h,1,4,20,100,[{x:xs,y:y0,color:css('--muted'),dash:[6,4]},{x:xs,y:ya,color:css('--muted'),dash:[2,3],w:1.2},{x:xs,y:yj,color:css('--trace2')},{x:xs,y:yt,color:css('--accent'),w:2.2}],{ny:8,nx:3,fx:v=>['10 MHz','100 MHz','1 GHz','10 GHz'][Math.round(v-1)],xl:'input frequency (log)',yl:'SNR, dB'});
+  vline(g,P.X(v),a.y0,a.h,css('--ink'),[3,3]); dot(g,P.X(v),P.Y(comb(sj(f))),css('--accent'),4.5);
+  const st=comb(sj(f)), need=-db(lin(-(S0-1))-lin(-S0)), tAll=Math.pow(10,-need/20)/(TAU*f*1e6)*1e15, tcAll=tAll>ta?Math.sqrt(tAll*tAll-ta*ta):NaN;
+  ro($('jtOut'),[['total jitter t<sub>j</sub>',fsT(tj*1e15)],['SNR<sub>jitter</sub>',f1(sj(f))+' dB'],['total SNR',f1(st)+' dB'],['loss vs SNR<sub>0</sub>',f2(S0-st)+' dB'],['ENOB',f2((st-1.76)/6.02)],['total jitter for 1 dB loss',fsT(tAll)],['clock jitter allowed',isFinite(tcAll)?fsT(tcAll):'none: ADC alone too high']]);
+}
+bind(['jtS','jtA','jtC','jtF'],jtDraw);
+
+/* ---------- Step 7: matching ---------- */
+function mtDraw(){
+  const c=$('cMt'), g=ctx(c), NF1=sl('mtNF'), G=sl('mtG'), PFS=sl('mtFS'), S=sl('mtS'), fs=sl('mtFs'), N=sl('mtN'), Pm=sl('mtP');
+  setv('mtNF',NF1.toFixed(1)+' dB'); setv('mtG',G+' dB'); setv('mtFS',(PFS>0?'+':'')+PFS.toFixed(1)+' dBm'); setv('mtS',S+' dB'); setv('mtFs',fsU(fs)); setv('mtN',N+' bits'); setv('mtP',Pm+' dBm');
+  const nsd=PFS-S-db(fs*1e6/2), Fa=lin(nsd+174), NFt=x=>db(lin(NF1)+(Fa-1)/lin(x)), marg=x=>(-174+NF1+x)-nsd;
+  const gHi=PFS-3-Pm, gLo=nsd+174-NF1+6;
+  const x0=56,w=c.width-72, t1=22,h1=120, t2=t1+h1+48, h2=c.height-t2-40, X=x=>x0+w*x/70;
+  if(gHi>=gLo && gHi>=0 && gLo<=70) shade(g,X(clamp(gLo,0,70)),X(clamp(gHi,0,70)),t1,t2+h2-t1,css('--good'),0.14);
+  const xs=[],yn=[],y1=[],yc=[],yp=[]; for(let i=0;i<=280;i++){ const x=70*i/280; xs.push(x); yn.push(NFt(x)); y1.push(NF1); yc.push(PFS-x); yp.push(Pm); }
+  plot(g,x0,t1,w,h1,0,70,0,30,[{x:xs,y:y1,color:css('--muted'),dash:[6,4]},{x:xs,y:yn,color:css('--accent'),w:2}],{ny:3,nx:7,fx:v=>v.toFixed(0),yl:'system NF, dB'});
+  const P2=plot(g,x0,t2,w,h2,0,70,-90,10,[{x:xs,y:yp,color:css('--bad'),dash:[6,4]},{x:xs,y:yc,color:css('--trace2'),w:2}],{ny:4,nx:7,fx:v=>v.toFixed(0),xl:'gain before ADC, dB',yl:'clip level at antenna, dBm'});
+  vline(g,X(G),t1,t2+h2-t1,css('--ink'),[3,3]);
+  const nt=NFt(G), Pn=-174+NF1+G+db(fs*1e6/2), lsb=Math.pow(2,N-1)/Math.SQRT2*Math.pow(10,(Pn-PFS)/20), clip=PFS-G, hr=clip-Pm;
+  { const L1='G '+G+' dB: NF '+nt.toFixed(2)+' dB', L2='noise '+lsb.toFixed(2)+' LSB rms ('+N+' bits)', tw=Math.max(g.measureText(L1).width,g.measureText(L2).width), xl=G<=35?X(G)+6:X(G)-6-tw; txt(g,L1,xl,t2+16,css('--ink')); txt(g,L2,xl,t2+30,css('--ink')); }
+  ro($('mtOut'),[['ADC NSD',f1(nsd)+' dBm/Hz'],['ADC noise figure',f1(nsd+174)+' dB'],['system NF',f2(nt)+' dB'],['penalty vs NF<sub>1</sub>',f2(nt-NF1)+' dB'],['noise margin over ADC',sg(marg(G))+' dB'],['analogue noise at ADC',lsb.toFixed(2)+' LSB rms'],['clip at antenna',f1(clip)+' dBm'],['headroom to largest',sg(hr)+' dB '+ok(hr>=3)],['dynamic range in 1 MHz',f1(clip-(-174+nt+60))+' dB'],['gain window (6 dB margin, 3 dB back-off)',gHi>=gLo?f1(Math.max(0,gLo))+' to '+f1(gHi)+' dB':'none']]);
+}
+bind(['mtNF','mtG','mtFS','mtS','mtFs','mtN','mtP'],mtDraw);
+
+/* ---------- Step 8: DAC ---------- */
+function Hdac(m,x){ if(m==='rz') return 0.5*Math.abs(sinc(x/2)); if(m==='mix') return Math.abs(sinc(x/2)*Math.sin(Math.PI*x/2)); return Math.abs(sinc(x)); }
+function daDraw(){
+  const c=$('cDa'), g=ctx(c), m=$('daM').value, fd=sl('daFs'), f=sl('daF'), I=+$('daI').value, N=sl('daN'), fc=sl('daC');
+  setv('daFs',fsU(fd)); setv('daF',fMHz(f)); setv('daN',N+' poles'); setv('daC',fMHz(fc));
+  const fk=fd*I, xmax=Math.max(3*fk,1.1*f), a=area(c), H=x=>dB20(Hdac(m,x)), Af=x=>bwA(x,fc,N);
+  const xs=[],ye=[],yf=[]; for(let i=0;i<=900;i++){ const x=xmax*i/900; xs.push(x); ye.push(Math.max(-100,H(x/fk))); yf.push(-Af(x)); }
+  const P=plot(g,a.x0,a.y0,a.w,a.h,0,xmax,-100,0,[{x:xs,y:ye,color:css('--muted'),w:1.4},{x:xs,y:yf,color:css('--trace'),dash:[6,4]}],{ny:5,nx:6,fy:v=>v.toFixed(0),fx:v=>v>=1000?(v/1000).toFixed(1)+'G':v.toFixed(0),xl:'frequency, MHz',yl:'dB re NRZ at 0 Hz'});
+  for(let k=1;k<=3;k++) vline(g,P.X(k*fk),a.y0,a.h,css('--line'),[2,4]);
+  const lw=H(f/fk), lwF=lw-Af(f); stem(g,P.X(f),P.Y(-100),P.Y(lwF),css('--accent'),2.5);
+  const fi1=Math.abs(fk-f), first={f:fi1,pre:H(fi1/fk)-lw,post:(H(fi1/fk)-Af(fi1))-lwF}; let worst=first.post, worstF=fi1;
+  for(let k=1;k<=3;k++) for(const s of [-1,1]){ const fi=Math.abs(k*fk+s*f); if(fi<=0||fi>xmax) continue;
+    const b=H(fi/fk), af=b-Af(fi); g.globalAlpha=0.3; stem(g,P.X(fi),P.Y(-100),P.Y(Math.max(-100,b)),css('--trace2'),2); g.globalAlpha=1; stem(g,P.X(fi),P.Y(-100),P.Y(Math.max(-100,af)),css('--trace2'),2.5);
+    const rel=af-lwF; if(rel>worst){ worst=rel; worstF=fi; } }
+  const valid=f<fd/2;
+  ro($('daOut'),[['DAC clock',fsU(fk)],['response at f',f2(lw)+' dB'],['droop vs 0 Hz',m==='mix'?'n/a (mix-mode)':f2(lw-H(0))+' dB'],['first image',fMHz(first.f)],['image vs wanted, before filter',sg(first.pre)+' dBc'],['image vs wanted, after filter',sg(first.post)+' dBc'],['worst image after filter',sg(worst)+' dBc at '+fMHz(worstF)],['filter loss at f',f2(Af(f))+' dB'],['f below f<sub>d</sub>/2',ok(valid,'ok','FAIL: aliased data')]]);
+}
+bind(['daM','daFs','daF','daI','daN','daC'],daDraw);
+
+/* ---------- Step 9: radar level diagram ---------- */
+function rdDraw(){
+  const c=$('cRd'), g=ctx(c), Pc=sl('rdC'), S=sl('rdS'), SF=sl('rdSf'), PG=sl('rdG'), Pt=sl('rdT'), Nth=sl('rdN');
+  setv('rdC',Pc+' dBFS'); setv('rdS',S+' dB'); setv('rdSf',SF+' dBc'); setv('rdG',PG+' dB'); setv('rdT',Pt+' dBFS'); setv('rdN',Nth+' dBFS');
+  const Na=-S, N0=db(lin(Na)+lin(Nth)), N1=N0-PG, thr=N1+13, sp=Pc-SF, clip=Pc>0, det=Pt>=thr, fal=sp>=thr;
+  const a=area(c,{l:56,t:40,r:16,b:20}), Y=v=>a.y0+a.h*(10-clamp(v,-150,10))/160;
+  frame(g,a.x0,a.y0,a.w,a.h,8); for(let k=0;k<=8;k++){ const v=10-20*k; const s=String(v); txt(g,s,a.x0-6-g.measureText(s).width,Y(v)+4,css('--muted')); }
+  txt(g,'dBFS',a.x0-46,a.y0-24,css('--muted'));
+  const cx1=a.x0+16, cx2=a.x0+a.w/2+16, bw=70;
+  txt(g,'at the ADC (per sample)',cx1,a.y0-10,css('--muted')); txt(g,'after processing (target cell)',cx2,a.y0-10,css('--muted'));
+  const column=(x,items)=>{ items.forEach(it=>{ g.strokeStyle=it.cl; g.lineWidth=3; g.setLineDash(it.dash||[]); g.beginPath(); g.moveTo(x,Y(it.v)); g.lineTo(x+bw,Y(it.v)); g.stroke(); g.setLineDash([]); g.lineWidth=1; });
+    const s=items.slice().sort((p,q)=>Y(p.v)-Y(q.v)); let last=-1e9; s.forEach(it=>{ it.ly=Math.max(Y(it.v)+4,last+14); last=it.ly; });
+    const over=s.length?s[s.length-1].ly-(a.y0+a.h-4):0; if(over>0) s.forEach(it=>it.ly-=over);
+    s.forEach(it=>{ g.strokeStyle=it.cl; g.beginPath(); g.moveTo(x+bw,Y(it.v)); g.lineTo(x+bw+10,it.ly-4); g.stroke(); txt(g,it.lab+' '+it.v.toFixed(1),x+bw+13,it.ly,it.cl); }); };
+  column(cx1,[{v:0,cl:css('--ink'),lab:'full scale'},{v:Pc,cl:clip?css('--bad'):css('--trace2'),lab:clip?'clutter CLIPS':'clutter'},{v:Na,cl:css('--muted'),lab:'ADC noise',dash:[4,3]},{v:Nth,cl:css('--muted'),lab:'thermal',dash:[1,3]},{v:N0,cl:css('--trace'),lab:'total noise'}]);
+  column(cx2,[{v:Pt,cl:det?css('--good'):css('--bad'),lab:det?'target':'target (missed)'},{v:sp,cl:fal?css('--bad'):css('--muted'),lab:fal?'spur: FALSE':'spur'},{v:N1,cl:css('--trace'),lab:'noise'},{v:thr,cl:css('--accent'),lab:'threshold',dash:[6,4]}]);
+  g.strokeStyle=css('--line'); g.beginPath(); g.moveTo(a.x0+a.w/2,a.y0); g.lineTo(a.x0+a.w/2,a.y0+a.h); g.stroke();
+  ro($('rdOut'),[['clutter headroom',clip?'CLIPS':f1(-Pc)+' dB'],['total noise per sample',f1(N0)+' dBFS'],['loss from ADC noise',f2(N0-Nth)+' dB'],['noise after PG',f1(N1)+' dBFS'],['target SNR',f1(Pt-N1)+' dB '+(det?'detected':'MISSED')],['spur above noise',f1(sp-N1)+' dB '+(fal?'FALSE TARGET':'ok')],['subclutter visibility',f1(Pc-thr)+' dB'],['SFDR needed (3 dB margin)',f1(Pc-N1-10)+' dBc']]);
+}
+bind(['rdC','rdS','rdSf','rdG','rdT','rdN'],rdDraw);
+
+/* ---------- Step 10: ESM classes ---------- */
+const CL=[{n:'A',fs:250,s:76},{n:'B',fs:1000,s:68},{n:'C',fs:4000,s:58},{n:'D',fs:20000,s:42}], EFS=4;
+function esDraw(){
+  const c=$('cEs'), g=ctx(c), sel=+$('esC').value, NF1=sl('esNF'), Pm=sl('esP'), Bd=Math.pow(10,sl('esB')), R=sl('esR');
+  setv('esNF',NF1.toFixed(1)+' dB'); setv('esP',Pm+' dBm'); setv('esB',fMHz(Bd)); setv('esR',R+' dB');
+  const G=Math.max(0,EFS-3-Pm);
+  const res=CL.map(k=>{ const ibw=0.4*k.fs, nsd=EFS-k.s-db(k.fs*1e6/2), F=lin(NF1)+(lin(nsd+174)-1)/lin(G), Be=Math.min(Bd,ibw); return {ibw,nsd,nf:db(F),Be,S:-174+db(F)+db(Be*1e6)+R}; });
+  const th=-174+NF1+db(Bd*1e6)+R, all=res.map(r=>r.S).concat([th]);
+  const yt=Math.ceil((Math.max(...all)+6)/10)*10, yb=Math.min(yt-40,Math.floor((Math.min(...all)-6)/10)*10);
+  const a=area(c), xs=[1,4], P=plot(g,a.x0,a.y0,a.w,a.h,1,4,yb,yt,[{x:xs,y:[th,th],color:css('--muted'),dash:[6,4]}],{ny:Math.round((yt-yb)/10),nx:3,fx:v=>['10 MHz','100 MHz','1 GHz','10 GHz'][Math.round(v-1)]||'',xl:'instantaneous bandwidth (log)',yl:'sensitivity, dBm (lower is better)'});
+  txt(g,'thermal only '+th.toFixed(1),a.x0+6,P.Y(th)-5,css('--muted'));
+  res.forEach((r,i)=>{ const x=P.X(Math.log10(r.ibw)), y=P.Y(r.S); dot(g,x,y,css('--trace'),5); if(i===sel){ g.strokeStyle=css('--accent'); g.lineWidth=2.5; g.beginPath(); g.arc(x,y,10,0,TAU); g.stroke(); g.lineWidth=1; }
+    const s=CL[i].n+' '+r.S.toFixed(1)+' dBm, '+(100*r.ibw/16000).toFixed(1)+' %'; txt(g,s,clamp(x-g.measureText(s).width/2,a.x0,a.x0+a.w-g.measureText(s).width),i%2?y+24:y-14,i===sel?css('--accent'):css('--ink')); });
+  const r=res[sel];
+  ro($('esOut'),[['IBW',fMHz(r.ibw)],['gain before ADC',f1(G)+' dB'],['clip at antenna',f1(EFS-G)+' dBm'],['ADC NSD',f1(r.nsd)+' dBm/Hz'],['ADC noise figure',f1(r.nsd+174)+' dB'],['system NF',f2(r.nf)+' dB'],['detection bandwidth used',fMHz(r.Be)+(r.Be<Bd?' (capped)':'')],['sensitivity',f1(r.S)+' dBm'],['vs thermal only',sg(r.S-th)+' dB'],['share of 2 to 18 GHz',(100*r.ibw/16000).toFixed(1)+' %']]);
+}
+bind(['esC','esNF','esP','esB','esR'],esDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

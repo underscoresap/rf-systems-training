@@ -1,0 +1,1460 @@
+<meta charset="utf-8">
+<title>T/R Modules and Phase Shifters</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">T/R Modules and Phase Shifters · RF Systems for Component Engineers</div>
+  <h1>The T/R module: how each module's tolerances become the beam</h1>
+  <p class="lede">An active electronically scanned array (AESA) is hundreds or thousands of identical transmit/receive (T/R) modules behind a grid of radiators. Each module amplifies, protects, attenuates and phase-shifts the signal for one element, and the beam is what they add up to. This page goes inside one module, then follows each of its datasheet lines out to the array: phase-shifter bits become gain loss and quantisation lobes, attenuator steps become the taper, module-to-module spread and temperature drift become the sidelobe floor, calibration pulls that floor back down, per-element power and noise figure add up to EIRP and G/T, isolation and switching time decide what the receiver survives and how close it can see, the scan angle changes the load on every PA, phase shifters squint the beam across a wide band, and heat and failed modules set how the array ages. Every term is defined before it is used, every step has worked numbers, and every chain is traced from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#module">0 Inside a T/R module</a><a href="#shifter">1 Phase-shifter types and bits</a><a href="#qlobe">2 Quantisation lobes</a><a href="#atten">3 Attenuator and taper</a><a href="#errors">4 Errors and temperature</a><a href="#cal">5 Calibration</a><a href="#eirp">6 EIRP and G/T</a><a href="#iso">7 Isolation and switching</a><a href="#scan">8 Scan impedance and the PA</a><a href="#ttd">9 True time delay and squint</a><a href="#thermal">10 Thermal design</a><a href="#fail">11 Failed elements</a><a href="#summary">12 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="module">
+  <div class="secno">Step 0</div>
+  <h2>What a T/R module is, and what is inside it</h2>
+  <div class="know"><h4>You already know</h4><p>Every block inside a T/R module is a component you may have designed: a power amplifier (<a href="M03-power-amplifier.html">PA module</a>), a low-noise amplifier (<a href="M01-lna-noise.html">LNA module</a>), a limiter and a circulator or T/R switch (<a href="M06-limiter-duplexer.html">limiter and duplexer module</a>), and MMIC switches, phase shifters and step attenuators. From the <a href="A0-antenna-fundamentals.html">antenna page</a>, Step 6, you know that an array steers its beam by giving element n the phase −360°·(d/λ)·n·sin θ<sub>0</sub>, and that random phase errors lose gain as exp(−σ²) and raise the sidelobes. This page does not repeat those pages; it shows what happens when a thousand of these blocks have to act as one.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Element:</b> one radiator of the array (a patch, a dipole, a notch). <b>Element spacing d:</b> the distance between neighbouring elements, usually about λ/2 at the highest frequency.</p>
+    <p><b>Phased array:</b> an antenna made of many elements whose signals are added with chosen phases, so that the beam can be pointed without moving anything. <b>Passive array:</b> one big transmitter and receiver feed all elements through phase shifters. <b>Active array (AESA):</b> every element has its own T/R module with its own PA and LNA.</p>
+    <p><b>T/R module:</b> the electronics behind one element (or a few). It contains a transmit path, a receive path, a shared <b>common leg</b> that holds the phase shifter and attenuator, and control logic.</p>
+    <p><b>Beamformer (manifold):</b> the passive network that splits the transmit drive to all modules and adds all received signals together. In a digital array the receive adding is done in numbers after an ADC per element or per group.</p>
+    <p><b>Circulator:</b> a three-port ferrite device that passes power one way round: PA → antenna → receiver. <b>T/R switch:</b> a switch that connects either the transmit or the receive path to the common leg (or to the antenna). <b>Duplexing</b> is the general word for sharing one antenna port between transmit and receive.</p>
+    <p><b>Control:</b> the logic that receives the beam-steering command (a phase and an attenuation number for this module), latches it at the right moment, switches between transmit and receive, pulses the PA bias, and reads a temperature sensor.</p>
+  </div>
+  <div class="col">
+    <p>The diagram shows the most common layout. Read it in transmit first: the beamformer delivers a small drive signal (about 0 dBm) to the module. It passes the attenuator and phase shifter in the common leg, the common-leg T/R switch sends it to the transmit path, a driver and the PA raise it to the module output (10 W here), and the circulator passes it to the radiator. In receive, the echo enters from the radiator, the circulator sends it to the receive path, the limiter protects the LNA, the LNA amplifies it, and the same T/R switch, attenuator and phase shifter pass it back to the beamformer. The phase shifter and attenuator are used twice, once in each direction, which is why they sit in the common leg.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Block diagram of a T/R module: beamformer port, attenuator, phase shifter, common-leg T/R switch, transmit path with driver and PA, receive path with limiter and LNA, circulator, radiator, and the control block">
+    <svg viewBox="0 0 860 390" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <g fill="none" stroke-width="1.4">
+        <g stroke="var(--line)">
+          <rect x="8" y="134" width="92" height="40" rx="3"/>
+          <rect x="470" y="50" width="78" height="40" rx="3"/><rect x="580" y="50" width="78" height="40" rx="3"/>
+          <rect x="470" y="218" width="78" height="40" rx="3"/><rect x="580" y="218" width="78" height="40" rx="3"/>
+          <circle cx="730" cy="154" r="26"/>
+          <path d="M800,124 L840,104 L840,204 L800,184 Z"/>
+        </g>
+        <g stroke="var(--accent)" stroke-width="2">
+          <rect x="124" y="134" width="92" height="40" rx="3"/><rect x="240" y="134" width="92" height="40" rx="3"/><rect x="356" y="134" width="82" height="40" rx="3"/>
+          <rect x="124" y="310" width="560" height="56" rx="3" stroke-dasharray="6 4"/>
+        </g>
+        <g stroke="var(--muted)" marker-end="url(#ar)">
+          <path d="M100,148 L122,148"/><path d="M216,148 L238,148"/><path d="M332,148 L354,148"/>
+          <path d="M438,146 L452,146 L452,70 L468,70"/><path d="M548,70 L578,70"/><path d="M658,70 L712,70 L716,132"/>
+          <path d="M756,154 L798,154"/>
+          <path d="M730,180 L730,238 L660,238"/><path d="M580,238 L550,238"/><path d="M470,238 L456,238 L456,166 L440,166"/>
+          <path d="M354,166 L334,166"/><path d="M238,166 L218,166"/><path d="M122,166 L102,166"/>
+        </g>
+        <g stroke="var(--accent)" stroke-dasharray="3 3" stroke-width="1">
+          <path d="M170,310 L170,176"/><path d="M286,310 L286,176"/><path d="M397,310 L397,176"/><path d="M619,310 L619,92"/><path d="M509,310 L509,260"/>
+        </g>
+      </g>
+      <g>
+        <text x="16" y="151">Beamformer</text><text x="16" y="166" class="mut">port, ≈ 0 dBm</text>
+        <text x="133" y="151">Attenuator</text><text x="133" y="166" class="mut">6 bit, 0.5 dB</text>
+        <text x="249" y="151">Phase shift</text><text x="249" y="166" class="mut">6 bit, 5.6°</text>
+        <text x="364" y="151">T/R switch</text><text x="364" y="166" class="mut">common leg</text>
+        <text x="480" y="67">Driver</text><text x="480" y="82" class="mut">+25 dB</text>
+        <text x="592" y="67">PA</text><text x="592" y="82" class="mut">10 W, GaN</text>
+        <text x="480" y="235">LNA</text><text x="480" y="250" class="mut">NF 1.8 dB</text>
+        <text x="590" y="235">Limiter</text><text x="590" y="250" class="mut">0.5 dB</text>
+        <text x="708" y="158">Circ.</text><text x="694" y="204" class="mut">0.4 dB</text>
+        <text x="790" y="96">Radiator</text>
+        <text x="470" y="36" class="mut">transmit path (PA module 03)</text>
+        <text x="470" y="282" class="mut">receive path (LNA 01, limiter 06)</text>
+        <text x="136" y="330">Control: serial beam-steer data → latch on a timing strobe; Tx/Rx sequencer;</text>
+        <text x="136" y="348">PA gate or drain pulsing; temperature sensor; DC regulation and protection</text>
+        <text x="136" y="120" class="mut">common leg: used in both directions (this page)</text>
+      </g>
+    </svg>
+  </div>
+  <div class="tw wide"><table class="t">
+    <tr><th>Block</th><th>Its job in the array</th><th>Typical X-band number (illustrative)</th><th>Where it goes on this page</th></tr>
+    <tr><td>Phase shifter</td><td>Sets the phase of this element so the beam points to θ<sub>0</sub></td><td class="n">6 bits, LSB 5.6°, 2.5° rms, IL 6 dB</td><td>Steps 1, 2, 9</td></tr>
+    <tr><td>Step attenuator</td><td>Sets the amplitude taper (low sidelobes) and equalises gain between modules</td><td class="n">6 bits × 0.5 dB = 31.5 dB, IL 4 dB</td><td>Step 3</td></tr>
+    <tr><td>Common-leg T/R switch</td><td>Connects the common leg to the Tx or Rx path</td><td class="n">IL 1 dB, isolation 40 dB, 20 ns</td><td>Step 7</td></tr>
+    <tr><td>Driver + PA</td><td>Raises the drive to the element's transmit power</td><td class="n">10 W, PAE 35 %, gain 45 dB total</td><td>Steps 6, 8, 10</td></tr>
+    <tr><td>Circulator</td><td>Separates transmit and receive at the antenna port; protects the PA from reflected power</td><td class="n">IL 0.4 dB, isolation 20 dB</td><td>Steps 7, 8</td></tr>
+    <tr><td>Limiter + LNA</td><td>Survive the transmit leakage, set the noise figure</td><td class="n">0.5 dB + NF 1.8 dB, gain 25 dB</td><td>Steps 6, 7</td></tr>
+    <tr><td>Control</td><td>Loads the steering words, times the switching, pulses the PA bias, reports temperature</td><td class="n">beam update ≈ 1 µs, Tx/Rx ≈ 100–200 ns</td><td>Steps 5, 7, 10</td></tr>
+  </table></div>
+  <h3>What goes wrong with the naive view: "a T/R module is a PA plus an LNA"</h3>
+  <div class="col">
+    <p>If you look at one module alone, the PA and LNA are the hard parts and the rest is plumbing. In the array the plumbing decides the beam. Three numbers from later steps show it. A 3-bit phase shifter loses only 0.22 dB of gain, but its rounding pattern puts a discrete lobe at −17 dB in a −35 dB design (Step 2). A module-to-module spread of 10° and 1 dB, which nobody would notice on a single module, lifts the sidelobe floor of a 64-element array to −31 dB (Step 4). And a T/R switch that takes 1 µs to settle makes the radar blind out to 150 m beyond the pulse itself (Step 7). None of these show up on a single-module test; all of them are set by single-module design choices.</p>
+  </div>
+  <h3>How the common leg is placed, and why</h3>
+  <div class="col"><p>The phase shifter and attenuator lose 6–10 dB together. On transmit they sit before the driver, where the signal is a milliwatt, so that loss costs only a few dB more driver gain instead of 10 W of PA output. On receive they sit after the LNA, so that the LNA's 25 dB of gain makes their loss almost invisible in the noise figure (Step 6 shows the numbers: 2.8 dB module noise figure with the loss after the LNA, nearly 14 dB with it before). The circulator and limiter, which must be in front of the LNA, are kept as low-loss as possible because every 0.1 dB there costs 0.1 dB of both EIRP and G/T.</p></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why can one phase shifter serve both transmit and receive?</summary><p>A passive phase shifter is reciprocal: it gives the same phase in both directions. Steering needs the same phase on transmit and receive (the beam points the same way), so one common-leg device, switched between the Tx and Rx paths, does both jobs and halves the parts count. If transmit and receive must point differently at the same time, the module needs separate phase shifters per path.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="shifter">
+  <div class="secno">Step 1</div>
+  <h2>Phase shifters: types, bits and quantisation error</h2>
+  <div class="know"><h4>You already know</h4><p>Antenna Step 6: element n needs phase −360°·(d/λ)·n·sin θ<sub>0</sub>; with d = λ/2 and θ<sub>0</sub> = 30° the step between neighbours is 90°. A random phase error of σ radians rms keeps a fraction exp(−σ²) of the gain in the beam (the Ruze relation).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Digital phase shifter, k bits:</b> a device with 2<sup>k</sup> phase states, built from k switched sections of 180°, 90°, 45°, 22.5°, 11.25° and 5.625°. <b>LSB (least significant bit):</b> the smallest step, 360°/2<sup>k</sup>.</p>
+    <p><b>Quantisation error:</b> the difference between the phase the beam needs at an element and the nearest state the shifter can make. It lies between −LSB/2 and +LSB/2.</p>
+    <p><b>rms (root mean square) error σ:</b> the square root of the average of the squared errors over all elements. A uniformly spread error between ±LSB/2 has rms LSB/√12.</p>
+    <p><b>State error (device error):</b> how far each real state is from its nominal value, measured on a network analyser over all 2<sup>k</sup> states; datasheets give it as "rms phase error". <b>Amplitude variation over states:</b> how much the insertion loss changes from state to state.</p>
+    <p><b>Insertion loss (IL):</b> the loss through the device in its reference state. <b>Switching time:</b> the time from a new command to the phase settling, set by the switch technology and drivers.</p>
+  </div>
+  <div class="col">
+    <p>A phase shifter cannot make any phase, only one of its 2<sup>k</sup> states. Every element therefore gets the nearest state, and the leftover quantisation error acts on the beam exactly like the random phase error of antenna Step 6, as long as it looks random across the array (Step 2 shows when it does not). The real device adds its own state error on top. The two are independent, so their squares add.</p>
+  </div>
+  <div class="eq">σ<sub>q</sub> = LSB/√12 = 360°/(2<sup>k</sup>·√12) &nbsp;&nbsp; σ = √(σ<sub>q</sub>² + σ<sub>dev</sub>²) &nbsp;&nbsp; gain kept ≈ exp(−σ²), σ in radians<small>4 bits: LSB 22.5°, σ<sub>q</sub> = 6.50° = 0.113 rad, exp(−0.0129) = 0.987, a gain loss of 0.056 dB. Add a 2.5° device error: σ = √(6.5² + 2.5²) = 7.0°, loss 0.065 dB. The loss applies on transmit and again on receive.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Two naive choices fail in opposite directions. <b>Fewest bits</b>, because each bit costs about 1 dB of loss and die area: a 2-bit shifter (180° and 90°) has LSB 90° and σ<sub>q</sub> = 26°, so the array loses 0.89 dB on transmit and again on receive, 1.8 dB of radar sensitivity, before Step 2's lobes. <b>Most bits</b>, because finer must be better: going from 4 to 6 bits cuts σ<sub>q</sub> from 6.5° to 1.6°, but with a 2.5° device error the total only falls from 7.0° to 3.2°, the gain improves by 0.05 dB, and the insertion loss rises from 4.1 to 5.9 dB. Below about σ<sub>q</sub> ≈ σ<sub>dev</sub>, more bits buy nothing.</p></div>
+  <h3>Side by side on one example: 64 elements, λ/2, steered to 20°, high-pass/low-pass MMIC (2.5° state error)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Bits</th><th>LSB</th><th>σ<sub>q</sub> (bench)</th><th>Total σ (bench)</th><th>Gain loss (one way)</th><th>Insertion loss</th></tr>
+    <tr><td>2</td><td class="n">90°</td><td class="n">25.7°</td><td class="n">25.9°</td><td class="n">0.91 dB</td><td class="n">2.3 dB</td></tr>
+    <tr><td>3</td><td class="n">45°</td><td class="n">12.9°</td><td class="n">13.1°</td><td class="n">0.23 dB</td><td class="n">3.2 dB</td></tr>
+    <tr><td>4</td><td class="n">22.5°</td><td class="n">6.5°</td><td class="n">7.0°</td><td class="n">0.065 dB</td><td class="n">4.1 dB</td></tr>
+    <tr><td>5</td><td class="n">11.25°</td><td class="n">3.2°</td><td class="n">4.3°</td><td class="n">0.024 dB</td><td class="n">5.0 dB</td></tr>
+    <tr><td>6</td><td class="n">5.625°</td><td class="n">1.6°</td><td class="n">3.2°</td><td class="n">0.012 dB</td><td class="n">5.9 dB</td></tr>
+  </table></div>
+  <h3>Side by side: six phase-shifter types at 6 bits (typical illustrative values)</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Type</th><th>How it makes phase</th><th>IL at 6 bits</th><th>State error rms</th><th>Bandwidth</th><th>Switching</th><th>Power</th></tr>
+    <tr><td>Switched line</td><td>Switches between a reference line and a longer line per bit</td><td class="n">6.6 dB</td><td class="n">3.0°</td><td>phase ∝ f (each bit is a true delay)</td><td class="n">20 ns</td><td>≤ 1 W</td></tr>
+    <tr><td>Loaded line</td><td>Switches small reactive loads on a line; used for the small bits only</td><td class="n">3.3 dB</td><td class="n">2.0°</td><td>≈ 10–20 %</td><td class="n">20 ns</td><td>≤ 1 W</td></tr>
+    <tr><td>Reflection (hybrid)</td><td>A 90° hybrid with switched reflective loads on two ports</td><td class="n">5.6 dB</td><td class="n">3.0°</td><td>≈ 30–50 %</td><td class="n">20 ns</td><td>≤ 1 W</td></tr>
+    <tr><td>High-pass / low-pass</td><td>Switches between a high-pass and a low-pass section; flat phase difference</td><td class="n">5.9 dB</td><td class="n">2.5°</td><td>≈ 40 % to an octave</td><td class="n">20 ns</td><td>≤ 1 W</td></tr>
+    <tr><td>Vector modulator</td><td>Splits into I and Q, weights each with a variable gain, adds; active</td><td class="n">gain 2 dB</td><td class="n">1.5° (after its table)</td><td>≈ an octave</td><td class="n">50 ns</td><td>small signal</td></tr>
+    <tr><td>Latching ferrite</td><td>Magnetises a ferrite toroid in a waveguide; passive</td><td class="n">1.0 dB</td><td class="n">2.0°</td><td>≈ 10–20 %</td><td class="n">2 µs</td><td>≥ 100 W</td></tr>
+  </table></div>
+  <div class="col"><p>The insertion loss is modelled as a fixed part plus a loss per bit (for example 0.5 + 0.9·k dB for high-pass/low-pass). In an AESA the shifter sits in the low-power common leg, so its loss costs driver and LNA gain, not transmit power or noise figure (Step 6). The ferrite's low loss and high power make it the choice for a passive array, where one shifter per element sits after the big transmitter; its 2 µs switching time limits how fast the beam can hop (Step 7). The vector modulator makes amplitude and phase at once from two DAC words, which saves the separate attenuator, but it only reaches its accuracy through a calibration table (Step 5).</p></div>
+  <h3>How to choose the number of bits and the type</h3>
+  <div class="col"><p>(1) Take the phase-error budget σ from the sidelobe and gain requirements (Step 4 shows how a budget is split). (2) Choose k so that the quantisation part is no bigger than the device part: σ<sub>q</sub> ≤ σ<sub>dev</sub> gives 2<sup>k</sup> ≥ 360°/(√12·σ<sub>dev</sub>). With σ<sub>dev</sub> = 2.5°: 2<sup>k</sup> ≥ 41.6, so k = 6 (5 bits leaves σ<sub>q</sub> = 3.2° > 2.5°). (3) Check the lobe rule of Step 2: with round-to-nearest the worst lobe is about 1/2<sup>2k</sup>, so −30 dB sidelobes need 5 bits or decorrelated rounding. (4) Pick the type by bandwidth, loss, power and switching time. More bits lower σ<sub>q</sub> by half per bit and add about 1 dB of loss; a type with lower state error makes the extra bits worth having.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPs" width="640" height="380" aria-label="Top: required and commanded phase at each of 64 elements. Bottom: quantisation error and total error per element"></canvas>
+    <div class="ctrl">
+      <label for="psB"><span>Number of bits k</span> <b id="psBv"></b></label><input id="psB" type="range" min="2" max="6" step="1" value="4">
+      <label for="psT"><span>Phase-shifter type</span></label>
+      <select id="psT"><option value="sl">Switched line</option><option value="ll">Loaded line</option><option value="rf">Reflection (hybrid)</option><option value="hl" selected>High-pass / low-pass</option><option value="vm">Vector modulator</option><option value="fe">Latching ferrite</option></select>
+      <label for="psA"><span>Steering angle θ<sub>0</sub></span> <b id="psAv"></b></label><input id="psA" type="range" min="0" max="60" step="0.5" value="20">
+      <button id="psR" type="button">New device draw</button>
+      <div class="readout" id="psOut"></div>
+    </div>
+    <p class="cap">64 elements at λ/2. Top: the dashed sawtooth is the phase each element needs (wrapped to 0–360°); the dots are the nearest available states. Bottom: green bars are the quantisation error, purple dots add the device state error (a random draw with the type's rms; "New device draw" makes another one). The readout compares the gain loss computed from the array with exp(−σ²).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (4 bits, high-pass/low-pass, 20°): quantisation 6.51°, total about 7.0°, gain loss 0.065 dB, row 3 of the first table.</li>
+    <li>2 bits: quantisation 25.7°, gain loss 0.91 dB. 6 bits: quantisation 1.63°, but the total stays near 3.2° because the 2.45° device error now dominates, and the insertion loss reads 5.9 dB.</li>
+    <li>Set θ<sub>0</sub> = 30°: the required step is exactly 90°, a multiple of the LSB for 2 bits and more, so the quantisation error is zero and only the device error is left. Move to 30.5° and the error returns.</li>
+    <li>Switch to vector modulator: the device error drops to about 1.5° and the readout shows a gain of 2 dB instead of a loss. Switch to ferrite: switching time 2 µs.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Number of bits</td><td>Sections in the MMIC, die area, control lines</td><td>k bits, LSB = 360°/2<sup>k</sup></td><td>σ<sub>q</sub> = LSB/√12: 4 bits 6.5°, 0.056 dB per way; lobe level ≈ 1/2<sup>2k</sup> (Step 2)</td></tr>
+    <tr><td>State accuracy</td><td>Section topology, switch FET size, layout symmetry</td><td>rms phase error over states</td><td>Adds in squares to σ<sub>q</sub>; sets where extra bits stop helping (2.5° → 6 bits)</td></tr>
+    <tr><td>Amplitude over states</td><td>Loss balance of the high-pass and low-pass arms</td><td>rms amplitude error over states</td><td>Random amplitude error σ<sub>a</sub> in the floor of Step 4</td></tr>
+    <tr><td>Insertion loss</td><td>Switch on-resistance, line loss, number of bits</td><td>IL at reference state</td><td>Driver and LNA gain must cover it (Step 6); 5.9 dB at 6 bits</td></tr>
+    <tr><td>Switching time</td><td>Switch technology, driver design</td><td>t<sub>sw</sub> (10–90 % phase)</td><td>Dead time at each beam change (Step 7); ferrite 2 µs vs MMIC 20 ns</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phase-shifter MMIC designers:</b> the rms state error over the band, not the number of bits, is the figure the array designer will ask for first.</li>
+    <li><b>Test engineers:</b> the module test measures all 2<sup>k</sup> states at several frequencies and temperatures; these measurements become the calibration tables of Step 5.</li>
+    <li><b>Firmware engineers:</b> the beam-steering computer works out the required phase for every element at every beam position and rounds it; the rounding method is a design choice (Step 2).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>How many bits keep σ<sub>q</sub> below 3°?</summary><p>360°/(2<sup>k</sup>·√12) ≤ 3° gives 2<sup>k</sup> ≥ 34.6, so k = 6 (σ<sub>q</sub> = 1.62°). Five bits give 3.25°, just too much.</p></details>
+    <details><summary>A 5-bit shifter has a 3° state error. What is the total rms and the gain loss?</summary><p>σ<sub>q</sub> = 11.25/3.464 = 3.25°; σ = √(3.25² + 3²) = 4.42° = 0.0772 rad; exp(−0.00596) = 0.994, a loss of 0.026 dB per way.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="qlobe">
+  <div class="secno">Step 2</div>
+  <h2>Quantisation lobes, and why randomised rounding removes them</h2>
+  <div class="know"><h4>You already know</h4><p>Step 1: the rms quantisation error σ<sub>q</sub> = LSB/√12 costs gain as exp(−σ²). Antenna Step 6: a random phase error spreads the lost power into a broad floor. A periodic error does something different: a grating with a regular period sends power into discrete directions, like a diffraction grating.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Periodic error:</b> an error that repeats in a regular pattern across the aperture. <b>Quantisation lobe:</b> a discrete sidelobe created by a periodic quantisation error.</p>
+    <p><b>Taper used on this bench:</b> a fixed −35 dB Taylor taper. The edge elements are driven 15.7 dB weaker than the centre, which pushes the array's own sidelobes down to −35 dB so that small lobes become visible. How a taper is made with attenuators is Step 3; here it is fixed.</p>
+    <p><b>Peak sidelobe level (PSL):</b> the highest lobe outside the main beam, in dB relative to the main-beam peak. <b>Average error floor:</b> the mean level of the scattered power, σ²/(η<sub>t</sub>·N), where η<sub>t</sub> is the taper efficiency (0.808 for this taper, Step 3) and N the number of elements.</p>
+    <p><b>Round to nearest:</b> every element gets the state nearest to its required phase. <b>Random phase offset:</b> each element has a fixed, known extra phase φ<sub>r,n</sub> (for example its own measured insertion phase, which is random anyway); the controller rounds φ<sub>n</sub> + φ<sub>r,n</sub> and the hardware path removes φ<sub>r,n</sub>. <b>Probabilistic rounding:</b> round up with a probability equal to the fractional part of φ<sub>n</sub>/LSB, otherwise down.</p>
+  </div>
+  <div class="col">
+    <p>The required phase φ<sub>n</sub> = −360°·(d/λ)·n·sin θ<sub>0</sub> grows by the same step from element to element. With round-to-nearest the error is a sawtooth function of φ<sub>n</sub>, and because φ<sub>n</sub> is a straight line in n, the error repeats across the aperture with a regular period. A periodic phase error is a phase grating: it puts a fraction of the power into discrete lobes instead of a floor. Mailloux gives the worst-case level of that lobe as about 1/2<sup>2k</sup>. The key difference from a random error: the lobe level does not depend on N. A bigger array lowers a random floor; it does nothing to a quantisation lobe.</p>
+  </div>
+  <div class="eq">periodic (round to nearest): P<sub>QL</sub> ≈ 1/2<sup>2k</sup> &nbsp;&nbsp; random: floor ≈ σ²/(η<sub>t</sub>·N)<small>3 bits: 1/64 = −18 dB; 4 bits: −24 dB; 5 bits: −30 dB. If the same 3-bit error were random, the floor for N = 128 would be (0.227 rad)²/(0.808 × 128) = −33 dB, and the highest of the random peaks lands typically 5–10 dB above the average floor.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive beam-steering computer rounds every element to the nearest state. For 128 elements, 3 bits and θ<sub>0</sub> = 20°, the rms error is 13°, the gain loss 0.22 dB, and Step 1 would call that acceptable. The pattern says otherwise: a single lobe at −23.25° reaches −16.9 dB, 18 dB above the −35 dB the taper was designed for. A jammer in that direction gets in 18 dB more easily than the specification promised.</p></div>
+  <h3>Side by side on one example: 128 elements, θ<sub>0</sub> = 20°, −35 dB Taylor taper</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Rounding</th><th>Bits</th><th>rms error</th><th>Gain loss</th><th>Peak sidelobe</th><th>Average floor</th></tr>
+    <tr><td>None (ideal phase)</td><td>–</td><td class="n">0°</td><td class="n">0 dB</td><td class="n">−35.4 dB</td><td class="n">none</td></tr>
+    <tr><td>Round to nearest</td><td>3</td><td class="n">13.0°</td><td class="n">0.22 dB</td><td class="n">−16.9 dB</td><td>lobe, not a floor</td></tr>
+    <tr><td>Random phase offset</td><td>3</td><td class="n">14.2°</td><td class="n">0.27 dB</td><td class="n">−24.4 dB</td><td class="n">−32.3 dB</td></tr>
+    <tr><td>Probabilistic rounding</td><td>3</td><td class="n">18.8°</td><td class="n">0.46 dB</td><td class="n">−21.8 dB</td><td class="n">−29.8 dB</td></tr>
+    <tr><td>Round to nearest</td><td>4</td><td class="n">6.5°</td><td class="n">0.06 dB</td><td class="n">−23.5 dB</td><td>lobe, not a floor</td></tr>
+    <tr><td>Random phase offset</td><td>4</td><td class="n">6.5°</td><td class="n">0.05 dB</td><td class="n">−31.1 dB</td><td class="n">−39.1 dB</td></tr>
+    <tr><td>Probabilistic rounding</td><td>4</td><td class="n">8.5°</td><td class="n">0.10 dB</td><td class="n">−28.8 dB</td><td class="n">−36.7 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Read the table in pairs. Decorrelating the error with a random offset keeps the same rms (13–14° at 3 bits) but turns one strong lobe into a low floor, buying 7.5 dB of peak sidelobe at 3 bits and 7.6 dB at 4 bits. Probabilistic rounding also removes the lobe, but its rms is √2 times larger (LSB/√6 instead of LSB/√12), so it loses more gain and sits 2–3 dB worse than the offset method.</p></div>
+  <h3>How to choose the rounding method and the bits</h3>
+  <div class="col"><p>(1) Compare 1/2<sup>2k</sup> with the peak-sidelobe requirement. If the lobe is below it, round to nearest is fine. (2) If not, either add bits (each bit lowers the lobe by 6 dB and adds about 1 dB of loss) or decorrelate. (3) The random-offset method is nearly free: every module already has a random insertion phase that calibration measures (Step 5); the controller simply rounds after adding the module's own measured phase instead of after removing it. (4) After decorrelation the residual is σ²/(η<sub>t</sub>·N): it falls 3 dB each time N doubles, so large arrays tolerate fewer bits than small ones. (5) Probabilistic rounding needs no stored offsets but changes the pattern at every beam update, which some tracking and clutter-cancelling modes dislike.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cQl" width="640" height="360" aria-label="Array pattern with quantised phase compared with ideal phase, with the periodic-lobe rule and the random-error floor marked"></canvas>
+    <div class="ctrl">
+      <label for="qlN"><span>Number of elements N</span> <b id="qlNv"></b></label><input id="qlN" type="range" min="16" max="256" step="16" value="128">
+      <label for="qlB"><span>Number of bits k</span> <b id="qlBv"></b></label><input id="qlB" type="range" min="2" max="6" step="1" value="3">
+      <label for="qlA"><span>Steering angle θ<sub>0</sub></span> <b id="qlAv"></b></label><input id="qlA" type="range" min="0" max="60" step="0.25" value="20">
+      <label for="qlM"><span>Rounding method</span></label>
+      <select id="qlM"><option value="ideal">None (ideal phase)</option><option value="round" selected>Round to nearest</option><option value="offset">Random phase offset</option><option value="prob">Probabilistic rounding</option></select>
+      <button id="qlR" type="button">New random draw</button>
+      <div class="readout" id="qlOut"></div>
+    </div>
+    <p class="cap">Dashed: the same array with ideal (unquantised) phase. Solid: with the chosen rounding. The orange dotted line is the 1/2<sup>2k</sup> rule for a periodic lobe; the purple dashed line is the average floor a random error of the same rms would give. The red dot marks the peak sidelobe. "New random draw" changes the offsets or the coin tosses; it has no effect on round-to-nearest, which is deterministic.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (128 elements, 3 bits, 20°, round to nearest): peak sidelobe −16.9 dB near −23°, close to the −18 dB rule; rms 13.0°.</li>
+    <li>Change to random phase offset: the lobe disappears, peak sidelobe about −24.4 dB, floor −32.3 dB. Then N = 256: the floor falls to −35.9 dB and the peak to about −27.8 dB; with round to nearest the lobe stays at −16.9 dB.</li>
+    <li>4 bits: round to nearest −23.5 dB, random offset −31.1 dB, as in the table.</li>
+    <li>θ<sub>0</sub> = 30° with round to nearest: the 90° step is a multiple of 45°, the error is zero and the peak sidelobe returns to −35.2 dB. Move to 30.25° and the lobe comes back.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Bits</td><td>Number of sections</td><td>k, LSB</td><td>Lobe ≈ 1/2<sup>2k</sup> with simple rounding: 3 bits −16.9 dB in a −35 dB design</td></tr>
+    <tr><td>Rounding method</td><td>Beam-steering firmware, stored offsets</td><td>not on the module datasheet</td><td>Random offset: 3 bits −24.4 dB, 4 bits −31.1 dB peak, same gain</td></tr>
+    <tr><td>Array size</td><td>Number of modules</td><td>N</td><td>Random floor −3 dB per doubling; quantisation lobe unchanged</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phase-shifter designers:</b> the customer's sidelobe specification may be met with fewer bits than the rms rule suggests, if the system decorrelates; ask how the beam steering rounds.</li>
+    <li><b>Module test:</b> the measured insertion phase of every module is the natural random offset; keep it in the calibration file even after trimming.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 4-bit array must have peak sidelobes below −28 dB. Is round-to-nearest enough?</summary><p>No: the periodic lobe is about 1/2<sup>8</sup> = −24 dB (−23.5 dB on the bench). Either use 5 bits (−30 dB rule) or decorrelate; with random offsets 128 elements reach −31.1 dB.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="atten">
+  <div class="secno">Step 3</div>
+  <h2>Attenuator steps and the amplitude taper</h2>
+  <div class="know"><h4>You already know</h4><p>Antenna Step 5: a uniformly driven aperture has a first sidelobe of −13.3 dB. Driving the edges weaker than the centre (a taper) lowers the sidelobes, widens the beam a little and costs some gain. You have designed or measured digital step attenuators: switched T or π pads in binary steps.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Amplitude taper:</b> the set of relative amplitudes w<sub>n</sub> given to the elements. <b>Taylor taper (n̄ = 5):</b> a standard taper that holds the first few sidelobes at a chosen design level and lets the far ones fall; "−35 dB Taylor" means the first sidelobes are at −35 dB.</p>
+    <p><b>Taper efficiency η<sub>t</sub>:</b> the gain of the tapered array divided by the gain of the same array driven uniformly: η<sub>t</sub> = (Σw<sub>n</sub>)²/(N·Σw<sub>n</sub>²).</p>
+    <p><b>Digital step attenuator, b bits with step LSB:</b> attenuation states 0, LSB, 2·LSB … up to the <b>range</b> LSB·(2<sup>b</sup> − 1). <b>Amplitude quantisation error:</b> the difference between the attenuation wanted and the nearest step, uniform within ±LSB/2, rms LSB/√12. <b>Clipping:</b> when an element needs more attenuation than the range, it gets the maximum instead.</p>
+    <p><b>Insertion phase versus attenuation state:</b> a real attenuator changes its phase slightly from state to state, given here in degrees per dB of attenuation.</p>
+  </div>
+  <div class="col">
+    <p>In receive, the attenuator in each module sets that element's weight, so the taper is simply a table of attenuation values. For a 64-element −35 dB Taylor taper the centre elements get 0 dB and the edge elements 15.74 dB. The attenuator then approximates each value with its nearest step. The step error is an amplitude error, and like the phase error of Step 1 it adds to the floor of Step 4. If the range is too small, the edge elements are clipped and the taper flattens towards uniform, which brings the high sidelobes back.</p>
+  </div>
+  <div class="eq">range = LSB·(2<sup>b</sup> − 1) &nbsp;&nbsp; σ<sub>a</sub> = LSB/√12 (dB) &nbsp;&nbsp; σ<sub>a,lin</sub> = 0.115·σ<sub>a,dB</sub> &nbsp;&nbsp; η<sub>t</sub> = (Σw)²/(N·Σw²)<small>6 bits × 0.5 dB: range 31.5 dB, σ<sub>a</sub> = 0.144 dB (the bench measures 0.129 dB on this taper). −35 dB Taylor, N = 64: η<sub>t</sub> = 0.808, a gain cost of 0.93 dB that is paid on purpose for the low sidelobes.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Two naive choices. <b>A short attenuator</b>, sized only for gain trimming: 3 bits × 0.5 dB gives 3.5 dB of range, so 34 of 64 elements are clipped, η<sub>t</sub> rises to 0.973 (the taper is almost gone) and the peak sidelobe is −17.0 dB instead of −35. <b>Coarse steps</b> to save bits: a 2 dB LSB leaves a 0.55 dB rms amplitude error and the peak sidelobe rises to −31.8 dB. Neither shows on a single-module test.</p>
+  <p>A transmit note. On transmit the PAs run in saturation for efficiency, and a saturated PA ignores a small drive change, so the attenuator cannot taper the transmit beam. Most AESAs transmit uniformly (η<sub>t</sub> = 1, −13 dB sidelobes) and taper only on receive. A transmit taper needs PAs of different sizes, different supply voltages or backed-off PAs (with poorer efficiency, Step 10).</p></div>
+  <h3>Side by side on one example: 64 elements, −35 dB Taylor taper (edge needs 15.74 dB)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Attenuator</th><th>Range</th><th>Clipped</th><th>rms amplitude error</th><th>Peak sidelobe</th></tr>
+    <tr><td>6 bits × 0.25 dB</td><td class="n">15.75 dB</td><td class="n">0</td><td class="n">0.073 dB</td><td class="n">−34.7 dB</td></tr>
+    <tr><td>6 bits × 0.5 dB</td><td class="n">31.5 dB</td><td class="n">0</td><td class="n">0.129 dB</td><td class="n">−34.4 dB</td></tr>
+    <tr><td>6 bits × 1 dB</td><td class="n">63 dB</td><td class="n">0</td><td class="n">0.306 dB</td><td class="n">−33.2 dB</td></tr>
+    <tr><td>6 bits × 2 dB</td><td class="n">126 dB</td><td class="n">0</td><td class="n">0.545 dB</td><td class="n">−31.8 dB</td></tr>
+    <tr><td>5 bits × 0.5 dB</td><td class="n">15.5 dB</td><td class="n">2</td><td class="n">0.129 dB</td><td class="n">−34.4 dB</td></tr>
+    <tr><td>4 bits × 0.5 dB</td><td class="n">7.5 dB</td><td class="n">22</td><td class="n">3.18 dB</td><td class="n">−22.0 dB</td></tr>
+    <tr><td>3 bits × 0.5 dB</td><td class="n">3.5 dB</td><td class="n">34</td><td class="n">5.44 dB</td><td class="n">−17.0 dB</td></tr>
+  </table></div>
+  <h3>Side by side: what the taper itself costs (64 elements, Taylor n̄ = 5, ideal attenuators)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Design sidelobe</th><th>Edge attenuation needed</th><th>Taper efficiency η<sub>t</sub></th><th>Gain cost</th></tr>
+    <tr><td>−25 dB</td><td class="n">7.98 dB</td><td class="n">0.911</td><td class="n">0.41 dB</td></tr>
+    <tr><td>−30 dB</td><td class="n">12.04 dB</td><td class="n">0.855</td><td class="n">0.68 dB</td></tr>
+    <tr><td>−35 dB</td><td class="n">15.74 dB</td><td class="n">0.808</td><td class="n">0.93 dB</td></tr>
+    <tr><td>−40 dB</td><td class="n">19.12 dB</td><td class="n">0.769</td><td class="n">1.14 dB</td></tr>
+    <tr><td>−45 dB</td><td class="n">22.22 dB</td><td class="n">0.737</td><td class="n">1.33 dB</td></tr>
+  </table></div>
+  <h3>How to choose the attenuator range, step and phase flatness</h3>
+  <div class="col"><p>(1) <b>Range</b> ≥ edge attenuation of the lowest-sidelobe taper + the module-to-module gain spread to be trimmed + the temperature compensation. For −35 dB: 15.7 + about 3 dB (±1.5 dB spread) + about 2 dB (temperature) ≈ 21 dB, so 6 bits × 0.5 dB (31.5 dB) with margin, 5 bits × 0.5 dB (15.5 dB) not. (2) <b>Step:</b> σ<sub>a</sub> = LSB/√12 must be a small part of the amplitude budget of Step 4; 0.5 dB gives 0.14 dB. (3) <b>Phase change per dB:</b> every attenuation change also shifts the phase. If the calibration table corrects the phase command for each attenuator state (Step 5), a few degrees per dB is harmless; if not, keep it below about 1°/dB. (4) A lower sidelobe target costs gain on every target (0.93 dB at −35, 1.33 dB at −45) and needs smaller random errors, so do not ask for more taper than the system needs.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cAt" width="640" height="400" aria-label="Top: attenuation per element, ideal Taylor line and attenuator steps. Bottom: resulting array pattern"></canvas>
+    <div class="ctrl">
+      <label for="atS"><span>Taylor design sidelobe</span> <b id="atSv"></b></label><input id="atS" type="range" min="20" max="50" step="1" value="35">
+      <label for="atL"><span>Attenuator LSB</span></label>
+      <select id="atL"><option value="0.25">0.25 dB</option><option value="0.5" selected>0.5 dB</option><option value="1">1 dB</option><option value="2">2 dB</option></select>
+      <label for="atB"><span>Attenuator bits b</span> <b id="atBv"></b></label><input id="atB" type="range" min="3" max="7" step="1" value="6">
+      <label for="atP"><span>Phase change per dB</span> <b id="atPv"></b></label><input id="atP" type="range" min="0" max="5" step="0.1" value="0">
+      <div class="readout" id="atOut"></div>
+    </div>
+    <p class="cap">64 elements at λ/2, receive taper. Top: the orange line is the ideal Taylor attenuation; the bars are the attenuator steps (red bars are clipped at the range, shown as a red dashed line). Bottom: dashed, the ideal taper; solid, the stepped one, including the insertion-phase change of each attenuator state. The orange dotted line is the design sidelobe level.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (−35 dB, 0.5 dB × 6 bits): 15.74 dB needed, 31.5 dB available, rms 0.129 dB, peak sidelobe −34.4 dB.</li>
+    <li>Bits 3: range 3.5 dB, 34 of 64 elements clipped, peak sidelobe −17.0 dB, η<sub>t</sub> 0.973. Bits 4: 22 clipped, −22.0 dB.</li>
+    <li>LSB 2 dB: rms error 0.545 dB, peak sidelobe −31.8 dB.</li>
+    <li>Design sidelobe −45 dB: 22.22 dB edge attenuation, η<sub>t</sub> 0.737 (−1.33 dB); with a 2 dB LSB only −33.4 dB is reached.</li>
+    <li>Phase change 5 °/dB with no correction: the edge elements, attenuated most, also carry the largest phase shift; the peak sidelobe rises to −29.0 dB (at 1 °/dB it is still −34.3 dB).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Range</td><td>Number of bits × LSB</td><td>attenuation range</td><td>Must cover taper + trim + temperature: 3.5 dB range gives −17.0 dB sidelobes in a −35 dB design</td></tr>
+    <tr><td>Step</td><td>LSB of the pads</td><td>LSB, step accuracy</td><td>σ<sub>a</sub> = LSB/√12: 2 dB LSB → 0.55 dB rms, −31.8 dB peak</td></tr>
+    <tr><td>Phase vs attenuation</td><td>Pad topology, switch parasitics, compensation</td><td>insertion-phase variation over states</td><td>Phase error correlated with the taper; corrected in the table or kept below ≈ 1°/dB</td></tr>
+    <tr><td>Taper depth</td><td>System sidelobe requirement</td><td>(system spec)</td><td>Gain cost 0.41 dB at −25 dB, 0.93 dB at −35 dB, 1.33 dB at −45 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Attenuator designers:</b> range and step are set by the array taper, not only by gain trimming; the phase change over states is a key parameter even though it is rarely the headline spec.</li>
+    <li><b>PA designers:</b> if the system wants a transmit taper, it will come to you: PA size or supply voltage per row of the array.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A −40 dB Taylor taper on 64 elements, modules spread ±1.5 dB, 2 dB temperature allowance. Which attenuator?</summary><p>Range ≥ 19.1 + 3 + 2 = 24.1 dB. 6 bits × 0.5 dB = 31.5 dB works, with σ<sub>a</sub> = 0.14 dB; 5 bits × 1 dB = 31 dB also covers the range but σ<sub>a</sub> = 0.29 dB is twice as large.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="errors">
+  <div class="secno">Step 4</div>
+  <h2>Amplitude and phase errors across modules and over temperature</h2>
+  <div class="know"><h4>You already know</h4><p>Steps 1–3: quantisation and attenuator steps leave errors that act on the beam. Antenna Step 6: random errors keep exp(−σ²) of the gain and scatter the rest into a floor. Here the errors come from the modules themselves: no two MMICs, bond wires and lines are identical, and they drift with temperature.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Random phase error σ<sub>φ</sub>:</b> the rms spread of insertion phase between modules, after the commanded phase is set. <b>Random amplitude error σ<sub>a</sub>:</b> the rms spread of gain between modules, in dB.</p>
+    <p><b>Common-mode drift:</b> the change that all modules share (the average module gets 0.5° more phase and 0.015 dB less gain per °C, for example). It does not change the pattern shape, only the overall gain.</p>
+    <p><b>Tracking:</b> how closely modules follow each other over temperature, given as the rms module-to-module spread of the drift, for example 0.1°/°C and 0.01 dB/°C. This spread grows with the distance from the calibration temperature.</p>
+    <p><b>Error floor:</b> the average sidelobe level caused by random errors, relative to the error-free peak. <b>Calibration temperature:</b> the temperature at which the errors were measured and removed (25 °C here; Step 5).</p>
+  </div>
+  <div class="col">
+    <p>A module has both an amplitude and a phase error, and both move part of the signal out of the beam. Writing the module's complex weight as (1 + a<sub>n</sub>)·e<sup>jφ<sub>n</sub></sup> with small random a<sub>n</sub> and φ<sub>n</sub>, the scattered power is proportional to σ<sub>a</sub>² + σ<sub>φ</sub>² (amplitude as a fraction, phase in radians). It spreads over all angles, so per direction it is divided by the number of elements and weighted by the taper. Temperature adds the tracking spread times the distance from the calibration temperature, independently of the static spread.</p>
+  </div>
+  <div class="eq">G/G<sub>0</sub> = exp(−σ<sub>φ</sub>²)/(1 + σ<sub>a</sub>²) &nbsp;&nbsp; floor = (σ<sub>a</sub>² + σ<sub>φ</sub>²)/(η<sub>t</sub>·N) &nbsp;&nbsp; σ(T) = √(σ<sub>0</sub>² + (c·|T − 25 °C|)²)<small>N = 64, −35 dB taper (η<sub>t</sub> = 0.808), 5° and 0.5 dB: σ<sub>φ</sub> = 0.0873 rad, σ<sub>a</sub> = 0.115 × 0.5 = 0.0576; σ² = 0.00762 + 0.00332 = 0.0109; floor = 0.0109/51.7 = 2.1×10<sup>−4</sup> = −36.7 dB. Gain loss only 0.05 dB. The highest random lobe usually lands 5–10 dB above the floor: the bench shows −27.3 dB.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive check looks only at gain. Modules straight from production typically spread 10° and 1 dB; the gain loss is just 0.19 dB, so the array "works". But the floor for 64 elements is −30.7 dB and the peak sidelobe −22.9 dB: the −35 dB taper of Step 3, and the 0.93 dB of gain paid for it, are wasted. The second naive check is done at 25 °C only. With typical tracking (0.1°/°C, 0.01 dB/°C), a perfectly calibrated array at 85 °C already has 6° and 0.6 dB of spread: floor −35.2 dB, peak about −26 dB.</p></div>
+  <h3>Side by side on one example: 64 elements, −35 dB Taylor taper, one random draw</h3>
+  <div class="tw"><table class="t">
+    <tr><th>σ<sub>φ</sub>, σ<sub>a</sub></th><th>Expected gain loss</th><th>Average floor</th><th>Peak sidelobe (bench draw)</th></tr>
+    <tr><td>0°, 0 dB</td><td class="n">0 dB</td><td class="n">none</td><td class="n">−35.2 dB</td></tr>
+    <tr><td>2°, 0.2 dB</td><td class="n">0.01 dB</td><td class="n">−44.7 dB</td><td class="n">−31.7 dB</td></tr>
+    <tr><td>5°, 0.5 dB</td><td class="n">0.05 dB</td><td class="n">−36.7 dB</td><td class="n">−27.3 dB</td></tr>
+    <tr><td>10°, 1 dB</td><td class="n">0.19 dB</td><td class="n">−30.7 dB</td><td class="n">−22.9 dB</td></tr>
+    <tr><td>20°, 2 dB</td><td class="n">0.75 dB</td><td class="n">−24.7 dB</td><td class="n">−17.9 dB</td></tr>
+  </table></div>
+  <h3>Side by side: temperature only (calibrated perfectly at 25 °C, 64 elements)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Tracking class</th><th>Spread per °C</th><th>At −40 °C</th><th>At +85 °C</th><th>Floor at +85 °C</th></tr>
+    <tr><td>Tight</td><td class="n">0.05°, 0.005 dB</td><td class="n">3.3°, 0.33 dB</td><td class="n">3.0°, 0.30 dB</td><td class="n">−41.2 dB</td></tr>
+    <tr><td>Typical</td><td class="n">0.10°, 0.010 dB</td><td class="n">6.5°, 0.65 dB</td><td class="n">6.0°, 0.60 dB</td><td class="n">−35.2 dB</td></tr>
+    <tr><td>Loose</td><td class="n">0.20°, 0.020 dB</td><td class="n">13.0°, 1.30 dB</td><td class="n">12.0°, 1.20 dB</td><td class="n">−29.1 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Two rules come out. Each halving of σ lowers the floor by 6 dB, and each doubling of N lowers it by 3 dB (256 elements with 5° and 0.5 dB: −42.8 dB). And the common-mode drift, which is usually ten times larger than the tracking spread, costs only overall gain: −0.015 dB/°C on each path is −0.9 dB at 85 °C, on transmit and again on receive.</p></div>
+  <h3>How to choose the error budget</h3>
+  <div class="col"><p>(1) Start from the peak-sidelobe requirement and leave 8–10 dB between it and the floor, because random peaks rise that far above the average. (2) Solve the floor formula for σ² = floor·η<sub>t</sub>·N. Example: −30 dB peak with N = 64 needs a floor near −39 dB: σ² ≤ 1.26×10<sup>−4</sup> × 51.7 = 0.0065. (3) Split it between contributors, as squares: phase quantisation (Step 1), attenuator steps (Step 3), calibration residual (Step 5) and temperature tracking. For example 3.5° (0.0037) and 0.35 dB (0.0016) total 0.0054, inside the budget. (4) Whatever the module cannot meet over temperature must be taken out by calibration tables over temperature (Step 5) or by a tighter tracking specification on the MMICs.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cEr" width="640" height="360" aria-label="Array pattern with random module amplitude and phase errors compared with the error-free pattern, with the average error floor"></canvas>
+    <div class="ctrl">
+      <label for="erN"><span>Number of elements N</span> <b id="erNv"></b></label><input id="erN" type="range" min="16" max="256" step="16" value="64">
+      <label for="erP"><span>Static phase spread σ<sub>φ</sub> at 25 °C</span> <b id="erPv"></b></label><input id="erP" type="range" min="0" max="20" step="0.5" value="5">
+      <label for="erA"><span>Static gain spread σ<sub>a</sub> at 25 °C</span> <b id="erAv"></b></label><input id="erA" type="range" min="0" max="2" step="0.05" value="0.5">
+      <label for="erT"><span>Operating temperature</span> <b id="erTv"></b></label><input id="erT" type="range" min="-40" max="85" step="1" value="25">
+      <label for="erK"><span>Module tracking class</span></label>
+      <select id="erK"><option value="tight">Tight (0.05°/°C, 0.005 dB/°C)</option><option value="typ" selected>Typical (0.1°/°C, 0.01 dB/°C)</option><option value="loose">Loose (0.2°/°C, 0.02 dB/°C)</option></select>
+      <button id="erR" type="button">New random draw</button>
+      <div class="readout" id="erOut"></div>
+    </div>
+    <p class="cap">Broadside beam, −35 dB Taylor taper. Dashed: no errors. Solid: one random set of module errors with the total rms shown in the readout. The purple dashed line is the average floor (σ<sub>a</sub>² + σ<sub>φ</sub>²)/(η<sub>t</sub>·N). Each "New random draw" gives another production lot with the same spread: the peak moves, the floor does not.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (64, 5°, 0.5 dB, 25 °C): floor −36.7 dB, peak sidelobe −27.3 dB, expected gain loss 0.05 dB.</li>
+    <li>10° and 1 dB: floor −30.7 dB, peak −22.9 dB, expected gain loss only 0.19 dB, the naive case.</li>
+    <li>Keep 5° and 0.5 dB, set N = 256: floor −42.8 dB.</li>
+    <li>Set both spreads to 0 and the temperature to 85 °C: typical tracking gives 6.0° and 0.60 dB, floor −35.2 dB; loose gives −29.1 dB. The common gain drift reads −0.90 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Phase spread</td><td>Process control, line lengths, bond-wire repeatability, trimming</td><td>insertion phase spread between parts</td><td>σ<sub>φ</sub> 10° on 64 elements: floor −30.7 dB, peak about −23 dB</td></tr>
+    <tr><td>Gain spread</td><td>Process control, bias control</td><td>gain spread between parts</td><td>Adds as σ<sub>a</sub>², 1 dB = 0.115 in the formula</td></tr>
+    <tr><td>Phase and gain tracking</td><td>Device technology, bias temperature compensation</td><td>tracking over temperature (°/°C, dB/°C, rms)</td><td>Typical 0.1°/°C → 6° at 85 °C → floor −35.2 dB</td></tr>
+    <tr><td>Common gain drift</td><td>PA and LNA gain slope, compensation</td><td>gain vs temperature</td><td>−0.015 dB/°C → −0.9 dB EIRP and −0.9 dB receive gain at 85 °C</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>All MMIC designers in the module:</b> the array cares about part-to-part spread and tracking far more than about the typical value; a datasheet that gives only typical gain and phase leaves the array designer guessing.</li>
+    <li><b>Process and assembly:</b> bond-wire length, die attach and substrate thickness are phase errors at X-band; a 50 µm longer bond wire is a few degrees.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 256-element array with a −35 dB taper must have an error floor of −45 dB. What total σ is allowed?</summary><p>σ² = 10<sup>−4.5</sup> × 0.808 × 256 = 0.00654; σ = 0.081, for example σ<sub>φ</sub> = 3.5° (0.061 rad) and σ<sub>a</sub> = 0.45 dB (0.052): 0.0037 + 0.0027 = 0.0064.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="cal">
+  <div class="secno">Step 5</div>
+  <h2>Calibration: removing the module errors, and keeping them removed</h2>
+  <div class="know"><h4>You already know</h4><p>Step 4: a raw spread of 10° and 1 dB gives a −31 dB floor on 64 elements, and temperature adds spread. On the bench you correct a measurement by subtracting a known error (de-embedding). Array calibration is the same idea applied to every module.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Calibration:</b> measuring each module's amplitude and phase error and storing a correction, so that the commanded phase and attenuation include it. <b>Calibration table:</b> the stored corrections, per module, and often per frequency, per temperature and per state.</p>
+    <p><b>Factory calibration:</b> measured once on a near-field scanner or test range. <b>Near-field scanner:</b> a probe moved over a plane in front of the array that measures the field of each element. <b>REV method (rotating element electric vector):</b> step one element's phase through all states while watching the total power; the shape of the power change gives that element's amplitude and phase.</p>
+    <p><b>Built-in calibration:</b> a coupler network (or the mutual coupling between neighbours) that injects or picks up a reference signal at each module in service, so the table can be refreshed without a range.</p>
+    <p><b>Residual error:</b> what is left after calibration: the measurement accuracy, plus whatever drifted since the measurement.</p>
+  </div>
+  <div class="col">
+    <p>Calibration does not make the modules identical; it makes the commands different so that the outputs become identical. The quality of that is limited by how well the errors are measured and by how much they change afterwards. A table measured at 25 °C stops being valid as the temperature moves, by the tracking spread of Step 4. A table with entries every 20 °C, read with the module's own temperature sensor, leaves only the curvature between points. A built-in loop can be re-run in service, so temperature and ageing drop out, but it is limited by how well its own coupler network tracks.</p>
+  </div>
+  <div class="eq">σ<sub>after</sub> = √(σ<sub>meas</sub>² + σ<sub>drift</sub>²) &nbsp;&nbsp; σ<sub>drift</sub> = c·|T − T<sub>cal</sub>| (single-point table)<small>Accuracy 1°, 0.1 dB, typical tracking 0.1°/°C: at 25 °C σ<sub>φ</sub> = 1.0°, floor −50.7 dB; at 70 °C σ<sub>φ</sub> = √(1² + 4.5²) = 4.6°, floor −37.5 dB. The over-temperature table is modelled with a quarter of the drift between its 20 °C points; the built-in loop with an extra 1.5° and 0.15 dB from its coupler network.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>No calibration, trusting the modules' production spread: 10° and 1 dB, floor −30.7 dB, peak sidelobe −22.9 dB (Step 4). The second naive approach calibrates once at room temperature and stops there: the floor is −50.7 dB on the range, and −37.5 dB on the aircraft at 70 °C, 13 dB worse than the acceptance test showed.</p></div>
+  <h3>Side by side on one example: 64 elements, raw spread 10° and 1 dB, calibration accuracy 1° and 0.1 dB, typical tracking</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Method</th><th>At 25 °C: σ<sub>φ</sub>, σ<sub>a</sub></th><th>Floor</th><th>Peak</th><th>At 70 °C: σ<sub>φ</sub>, σ<sub>a</sub></th><th>Floor</th><th>Peak</th></tr>
+    <tr><td>No calibration</td><td class="n">10.0°, 1.00 dB</td><td class="n">−30.7 dB</td><td class="n">−22.9 dB</td><td class="n">11.0°, 1.10 dB</td><td class="n">−29.9 dB</td><td class="n">−22.3 dB</td></tr>
+    <tr><td>Factory table at 25 °C</td><td class="n">1.0°, 0.10 dB</td><td class="n">−50.7 dB</td><td class="n">−34.8 dB</td><td class="n">4.6°, 0.46 dB</td><td class="n">−37.5 dB</td><td class="n">−30.5 dB</td></tr>
+    <tr><td>Factory table over temperature</td><td class="n">1.0°, 0.10 dB</td><td class="n">−50.7 dB</td><td class="n">−34.8 dB</td><td class="n">1.03°, 0.10 dB</td><td class="n">−50.5 dB</td><td class="n">−34.8 dB</td></tr>
+    <tr><td>Built-in loop, re-run in service</td><td class="n">1.8°, 0.18 dB</td><td class="n">−45.6 dB</td><td class="n">−33.7 dB</td><td class="n">1.8°, 0.18 dB</td><td class="n">−45.6 dB</td><td class="n">−33.7 dB</td></tr>
+  </table></div>
+  <div class="col"><p>With a good table the peak sidelobe is set by the −35 dB taper again (−34.8 dB rather than −35.2 dB because of the small residual). The over-temperature table holds that everywhere; the built-in loop is 1.1 dB worse at the peak but stays the same after a module is replaced in the field, after years of ageing, and at any temperature.</p></div>
+  <h3>How to choose the calibration method and accuracy</h3>
+  <div class="col"><p>(1) The residual must fit in the Step 4 budget: with σ ≈ 0.08 allowed, 1° and 0.1 dB (0.0003 + 0.0001) leave almost all of it for temperature and quantisation. (2) If the operating temperature range times the tracking spread exceeds the budget, a single-point table is not enough: add temperature points (each costs test time on every module) or a built-in loop. (3) The table size grows quickly: 64 phase × 64 attenuator states × 20 frequencies × 7 temperatures per module is 570 000 entries, so tables usually store phase and attenuator states separately, plus a few interaction terms (the phase change per dB of Step 3). (4) Choose a built-in loop when modules will be replaced in service, when ageing matters, or when the array must certify its own beam before each mission.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCa" width="640" height="400" aria-label="Top: phase error per module before and after calibration. Bottom: pattern after calibration with the residual error floor"></canvas>
+    <div class="ctrl">
+      <label for="caM"><span>Calibration method</span></label>
+      <select id="caM"><option value="none" selected>No calibration</option><option value="one">Factory table at 25 °C</option><option value="tab">Factory table over temperature</option><option value="bit">Built-in loop, re-run in service</option></select>
+      <label for="caT"><span>Operating temperature</span> <b id="caTv"></b></label><input id="caT" type="range" min="-40" max="85" step="1" value="25">
+      <label for="caP"><span>Calibration phase accuracy</span> <b id="caPv"></b></label><input id="caP" type="range" min="0.5" max="5" step="0.1" value="1">
+      <label for="caA"><span>Calibration amplitude accuracy</span> <b id="caAv"></b></label><input id="caA" type="range" min="0.05" max="0.5" step="0.01" value="0.1">
+      <div class="readout" id="caOut"></div>
+    </div>
+    <p class="cap">64 elements, −35 dB taper, raw module spread 10° and 1 dB, typical tracking, calibration at 25 °C. Top: grey bars are each module's phase error before calibration, green bars after. Bottom: dashed, the error-free pattern; solid, after calibration; purple, the residual floor. The accuracy sliders act on every method except "No calibration".</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (no calibration, 25 °C): 10° and 1 dB, floor −30.7 dB, peak −22.9 dB.</li>
+    <li>Factory table at 25 °C: 1.00° and 0.100 dB, floor −50.7 dB, peak −34.8 dB. Now set 70 °C: 4.61°, floor −37.5 dB, peak −30.5 dB.</li>
+    <li>Factory table over temperature at 70 °C: 1.03°, floor −50.5 dB. Built-in loop: 1.80° and 0.180 dB at any temperature, floor −45.6 dB.</li>
+    <li>Factory table at 25 °C with accuracy 5° and 0.5 dB: floor −36.7 dB and peak −30.0 dB, worse than the built-in loop.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Calibration accuracy</td><td>Test set, probe, fixture de-embedding</td><td>measurement uncertainty</td><td>1°, 0.1 dB → floor −50.7 dB on 64 elements</td></tr>
+    <tr><td>Temperature points</td><td>Test time per module, sensor in the module</td><td>table temperature grid</td><td>Single point: 4.6° at 70 °C, floor −37.5 dB; over temperature: −50.5 dB</td></tr>
+    <tr><td>Built-in calibration</td><td>Coupler network design and its own tracking</td><td>cal-path uncertainty</td><td>1.8°, 0.18 dB anywhere, survives module replacement</td></tr>
+    <tr><td>State interaction</td><td>Attenuator phase flatness (Step 3), shifter amplitude flatness (Step 1)</td><td>phase vs attenuation, amplitude vs phase state</td><td>Small interaction lets the table be stored per state instead of per combination</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>MMIC designers:</b> repeatable parts with low state interaction make calibration tables small and accurate; a part with a temperature sensor next to the PA makes over-temperature tables possible.</li>
+    <li><b>Coupler and manifold designers:</b> the built-in calibration network is only as good as its own tracking over temperature.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A single-point table, typical tracking, must keep σ<sub>φ</sub> below 3°. Over what temperature range is it good?</summary><p>√(1² + (0.1·ΔT)²) ≤ 3 gives ΔT ≤ 28 °C, so from about −3 °C to +53 °C around a 25 °C calibration.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="eirp">
+  <div class="secno">Step 6</div>
+  <h2>Per-element transmit power and noise figure, and how they add up to EIRP and G/T</h2>
+  <div class="know"><h4>You already know</h4><p>Antenna page: EIRP = P·G and G/T = gain over system noise temperature. LNA module: the Friis formula, and that loss in front of the LNA adds directly to the noise figure. The radar equation: the received signal-to-noise ratio grows with P<sub>t</sub>·G<sub>t</sub>·G<sub>r</sub>/T<sub>sys</sub>, that is with EIRP × G/T.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Element gain G<sub>el</sub>:</b> the gain of one element in the array, set by the area it occupies: G<sub>el</sub> = 4π·A<sub>cell</sub>/λ² = π (4.97 dBi) for a λ/2 × λ/2 cell, falling as cos θ with scan because the aperture looks smaller from the side.</p>
+    <p><b>Coherent combining:</b> when N signals add in phase, their voltages add, so the power goes as N². <b>Array gain:</b> G = N·G<sub>el</sub>.</p>
+    <p><b>EIRP of the array:</b> N PAs each radiating P<sub>el</sub>/L<sub>f</sub>, times the array gain: EIRP = N·(P<sub>el</sub>/L<sub>f</sub>)·N·G<sub>el</sub>. <b>L<sub>f</sub>:</b> the front-end loss between the PA or LNA and the radiator (circulator, limiter, lines), here the same on both paths.</p>
+    <p><b>T<sub>sys</sub> per element:</b> the noise temperature at the element: antenna temperature T<sub>a</sub> (290 K here) + loss noise (L<sub>f</sub> − 1)·290 K + L<sub>f</sub>·T<sub>LNA</sub>, with T<sub>LNA</sub> = 290·(F − 1). Because each element's noise is independent, noise powers add as N while signals add as N², so the array's G/T = N·G<sub>el</sub>/T<sub>sys</sub>.</p>
+  </div>
+  <div class="col">
+    <p>This is the step where component numbers turn directly into the system's headline figures. On transmit, N PAs in phase put N² times one PA's power density on the target: double the element power and EIRP rises 3 dB; double the number of elements and it rises 6 dB (twice the power, twice the gain). On receive, the signal adds coherently and the noise does not, so G/T rises 3 dB per doubling of N, and depends on the element NF exactly as a single receiver does. The radar product EIRP·G/T therefore grows as N³: 9 dB per doubling.</p>
+  </div>
+  <div class="eq">EIRP = N²·P<sub>el</sub>·G<sub>el</sub>/L<sub>f</sub> &nbsp;&nbsp; G/T = N·G<sub>el</sub>/[T<sub>a</sub> + (L<sub>f</sub> − 1)·290 + L<sub>f</sub>·T<sub>LNA</sub>]<small>N = 1024, 10 W, L<sub>f</sub> = 1 dB, NF 2.5 dB, broadside: G = 1024π = 35.1 dBi; radiated 1024 × 10/1.26 = 8.13 kW; EIRP = 39.1 + 35.1 = 74.2 dBW. T<sub>LNA</sub> = 226 K, T<sub>sys</sub> = 290 + 75 + 284 = 649 K (28.1 dBK); G/T = 35.1 − 28.1 = 7.0 dB/K.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p><b>Put the lossy parts anywhere.</b> Move the 11 dB common leg (phase shifter, attenuator, switch) in front of the LNA: with 0.9 dB of circulator and limiter loss already there, the loss before the LNA becomes 11.9 dB, T<sub>sys</sub> rises from 542 K to 6 840 K and G/T falls by 11 dB, the same as losing 92 % of the elements. Put it after the PA on transmit and 10 W becomes 0.8 W. <b>Forget the gain after the LNA.</b> The common leg after the LNA still adds noise divided by the LNA gain: with 25 dB of LNA gain the module NF is 2.80 dB, with only 15 dB it is 3.64 dB. The LNA gain must exceed the common-leg loss by 10 dB or more.</p></div>
+  <h3>Side by side on one example: X-band array, 10 W per element, L<sub>f</sub> = 1 dB, NF 2.5 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Change</th><th>EIRP</th><th>G/T</th><th>EIRP·G/T</th></tr>
+    <tr><td>N = 1024, broadside (reference)</td><td class="n">74.2 dBW</td><td class="n">7.0 dB/K</td><td class="n">81.1 dB</td></tr>
+    <tr><td>N = 256 (one quarter)</td><td class="n">62.1 dBW</td><td class="n">0.9 dB/K</td><td class="n">63.1 dB</td></tr>
+    <tr><td>N = 4096 (four times)</td><td class="n">86.2 dBW</td><td class="n">13.0 dB/K</td><td class="n">99.2 dB</td></tr>
+    <tr><td>5 W per element</td><td class="n">71.2 dBW</td><td class="n">7.0 dB/K</td><td class="n">78.1 dB</td></tr>
+    <tr><td>Front-end loss 2 dB</td><td class="n">73.2 dBW</td><td class="n">6.0 dB/K</td><td class="n">79.1 dB</td></tr>
+    <tr><td>LNA NF 1.5 dB</td><td class="n">74.2 dBW</td><td class="n">8.0 dB/K</td><td class="n">82.1 dB</td></tr>
+    <tr><td>Scanned to 60°</td><td class="n">71.2 dBW</td><td class="n">3.9 dB/K</td><td class="n">75.1 dB</td></tr>
+  </table></div>
+  <h3>How to choose element power, front-end loss and noise figure</h3>
+  <div class="col"><p>(1) The system needs a value of EIRP·G/T (from the radar equation at the required range). (2) N is the most powerful lever (9 dB per doubling) but the most expensive. (3) Doubling P<sub>el</sub> gives +3 dB EIRP and costs twice the DC power and heat per module (Step 10); the same +3 dB from N costs 41 % more modules but also adds 1.5 dB of G/T. (4) The front-end loss L<sub>f</sub> is paid twice, once in EIRP and once in G/T: 1 dB less circulator and limiter loss is worth almost 2 dB of radar product, as much as 17 % more modules. (5) LNA NF only affects G/T: 1 dB better NF is +1 dB here. (6) Scanning costs cos θ on both paths: −3 dB each at 60°, −6 dB of radar product, before the scan-impedance effects of Step 8.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cEi" width="640" height="340" aria-label="Array EIRP and G/T against number of elements for the chosen element power, front-end loss, noise figure and scan angle"></canvas>
+    <div class="ctrl">
+      <label for="eiN"><span>Number of elements N</span> <b id="eiNv"></b></label><input id="eiN" type="range" min="4" max="12" step="1" value="10">
+      <label for="eiP"><span>PA power per element P<sub>el</sub></span> <b id="eiPv"></b></label><input id="eiP" type="range" min="0.5" max="20" step="0.5" value="10">
+      <label for="eiL"><span>Front-end loss L<sub>f</sub></span> <b id="eiLv"></b></label><input id="eiL" type="range" min="0" max="3" step="0.1" value="1">
+      <label for="eiF"><span>LNA noise figure</span> <b id="eiFv"></b></label><input id="eiF" type="range" min="0.8" max="5" step="0.1" value="2.5">
+      <label for="eiS"><span>Scan angle</span> <b id="eiSv"></b></label><input id="eiS" type="range" min="0" max="60" step="1" value="0">
+      <div class="readout" id="eiOut"></div>
+    </div>
+    <p class="cap">λ/2 × λ/2 cells, element gain π·cos θ, antenna temperature 290 K. The curves show EIRP (orange, slope 6 dB per doubling of N) and G/T (green, slope 3 dB per doubling) for the other settings; the dots are the chosen N, which the slider sets in powers of two from 16 to 4096.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (1024, 10 W, 1 dB, 2.5 dB, broadside): EIRP 74.2 dBW, G/T 7.0 dB/K, T<sub>sys</sub> 649 K.</li>
+    <li>N = 256: EIRP −12.1 dB, G/T −6.1 dB, radar product −18 dB.</li>
+    <li>5 W per element: only EIRP moves, −3.0 dB. Front-end loss 2 dB: EIRP −1.0 dB and G/T −1.0 dB (T<sub>sys</sub> 817 K).</li>
+    <li>Scan 60°: both fall by 3.0 dB (cos 60° = 0.5).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>PA output</td><td>Device periphery, load line, supply (PA module)</td><td>P<sub>sat</sub> per module</td><td>EIRP ∝ P<sub>el</sub>: 10 → 5 W is −3 dB</td></tr>
+    <tr><td>Circulator + limiter loss</td><td>Ferrite, diode size, line lengths</td><td>insertion loss</td><td>Paid twice: 1 → 2 dB costs 1 dB of EIRP and 1 dB of G/T</td></tr>
+    <tr><td>LNA NF and gain</td><td>Device, input match, gain to cover the common leg</td><td>NF, gain</td><td>G/T: 2.5 → 1.5 dB NF is +1 dB; gain 25 dB keeps the module NF at 2.8 dB</td></tr>
+    <tr><td>Element count</td><td>Aperture size, cost</td><td>N</td><td>EIRP +6, G/T +3, radar product +9 dB per doubling</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Circulator and limiter designers:</b> your 0.1 dB is multiplied by every module and paid on both transmit and receive.</li>
+    <li><b>PA designers:</b> per-element power trades directly against heat (Step 10) and against the number of modules the customer has to buy.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An array of 1024 elements must gain 3 dB of radar product. Compare the three ways.</summary><p>Double P<sub>el</sub>: +3 dB EIRP, +3 dB product, twice the heat. Increase N by 2<sup>1/3</sup> = 1.26 (1290 elements): +2 dB EIRP and +1 dB G/T. Cut L<sub>f</sub> by 1.5 dB: +1.5 dB on each path. The loss route is the cheapest if it is physically possible.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="iso">
+  <div class="secno">Step 7</div>
+  <h2>Isolation and switching time: what the receiver survives and how close it can see</h2>
+  <div class="know"><h4>You already know</h4><p><a href="M06-limiter-duplexer.html">Limiter and duplexer module</a>: a circulator has finite isolation, a limiter has a power rating, flat leakage and a recovery time. PA module: a biased PA amplifies its own input noise even with no drive.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Circulator isolation I:</b> how much weaker the PA power is at the receive port than at the antenna port (20 dB typical for a small module circulator). <b>Antenna return loss RL:</b> how much of the power reaching the radiator is reflected back; the circulator sends the reflection straight into the receive path. In an array RL changes with scan (Step 8).</p>
+    <p><b>Worst case (in phase):</b> the leakage and the reflection add as voltages: P = P<sub>PA</sub>·(10<sup>−I/20</sup> + 10<sup>−RL/20</sup>)². <b>Average (random phase):</b> they add as powers.</p>
+    <p><b>PA gating:</b> switching the PA's drain or gate bias off outside the transmit pulse. A biased PA with no drive still delivers kT·F·G of noise at its output.</p>
+    <p><b>T/R switching time t<sub>sw</sub>:</b> the time from the end of the pulse until the receiver is usable: PA bias off, switches settled, limiter recovered. <b>Blind range:</b> the range within which echoes arrive before the receiver is ready: R<sub>min</sub> = c·(τ + t<sub>sw</sub>)/2, τ the pulse width. <b>Beam switching time:</b> the time for new phase and attenuator words to settle (Step 1 types).</p>
+  </div>
+  <div class="col">
+    <p>During the pulse, the receive path is not disconnected from the PA, only isolated from it. Two paths bring PA power to the limiter: leakage through the circulator and reflection from the radiator. Between pulses, the receive path listens through the same circulator, so anything the PA emits then, including its own amplified noise, reaches the LNA attenuated only by the isolation. And because the module must change between the two states, the time it takes is time when the radar cannot hear.</p>
+  </div>
+  <div class="eq">P<sub>lim</sub> = P<sub>PA</sub>·(10<sup>−I/20</sup> + 10<sup>−RL/20</sup>)² &nbsp;&nbsp; N<sub>leak</sub> = −174 + NF<sub>PA</sub> + G<sub>PA</sub> − I dBm/Hz &nbsp;&nbsp; R<sub>min</sub> = c·(τ + t<sub>sw</sub>)/2<small>20 W PA (43 dBm), I = 20 dB, RL = 15 dB (VSWR 1.43): 23 dBm by leakage, 28 dBm by reflection, worst case 31.9 dBm (1.54 W) at the limiter. A biased PA with 30 dB gain and 6 dB NF: −138 dBm/Hz at its output, −158 dBm/Hz into the receiver, 16 dB above kT. τ = 1 µs, t<sub>sw</sub> = 200 ns: R<sub>min</sub> = 180 m.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p><b>"The circulator isolates 20 dB, so the receiver sees 23 dBm."</b> That ignores the reflection. At a scan angle where the active return loss falls to 6 dB (Step 8), the reflection alone is 37 dBm, and the worst case is 38.6 dBm, 7.2 W into a limiter rated 5 W. <b>"The PA is not driven between pulses, so it is quiet."</b> Left biased, its output noise reaches the receiver 16 dB above kT: a noise temperature of 11 500 K against a 580 K receiver, a 13.2 dB loss of sensitivity, far more than any LNA improvement could recover.</p></div>
+  <h3>Side by side on one example: 20 W (43 dBm) PA, receiver T<sub>sys</sub> 580 K, limiter rated 37 dBm</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Isolation, return loss, PA between pulses</th><th>At the limiter (worst case)</th><th>Receiver noise rise</th></tr>
+    <tr><td>20 dB, 15 dB, gated</td><td class="n">31.9 dBm</td><td class="n">+0.02 dB</td></tr>
+    <tr><td>20 dB, 15 dB, biased</td><td class="n">31.9 dBm</td><td class="n">+13.2 dB</td></tr>
+    <tr><td>30 dB, 15 dB, biased</td><td class="n">29.4 dBm</td><td class="n">+4.8 dB</td></tr>
+    <tr><td>25 dB, 20 dB, gated</td><td class="n">26.9 dBm</td><td class="n">+0.01 dB</td></tr>
+    <tr><td>15 dB, 10 dB, gated</td><td class="n">36.9 dBm</td><td class="n">+0.07 dB</td></tr>
+    <tr><td>20 dB, 6 dB (scanned), gated</td><td class="n">38.6 dBm (over rating)</td><td class="n">+0.02 dB</td></tr>
+  </table></div>
+  <div class="col"><p>For the blind range: a 1 µs pulse with 200 ns switching gives 180 m; with 1 µs switching (slow limiter recovery, slow bias pulsing) 300 m. For beam changes, MMIC shifters settle in about 20 ns, but a latching ferrite needs about 2 µs, so a ferrite array loses 2 µs at every beam change.</p></div>
+  <h3>How to choose isolation, limiter rating and switching speed</h3>
+  <div class="col"><p>(1) Limiter rating ≥ worst case at the worst scan return loss, plus margin: take RL from Step 8, not from the broadside match. (2) The PA must be gated: no circulator can give the isolation a biased PA needs (NF + G + 10 dB = 46 dB here). Gating time then becomes part of t<sub>sw</sub>. (3) Keep t<sub>sw</sub> small against the pulse: the blind range grows by 15 m per 100 ns. (4) If the module uses a T/R switch instead of a circulator, the switch isolation plays the role of I, and the antenna reflection goes back to the PA instead (Step 8).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cIs" width="640" height="360" aria-label="Top: transmit power reaching the receive path by leakage and reflection, against the limiter rating. Bottom: timeline of transmit, switching and receive"></canvas>
+    <div class="ctrl">
+      <label for="isP"><span>PA output power</span> <b id="isPv"></b></label><input id="isP" type="range" min="30" max="50" step="0.5" value="43">
+      <label for="isI"><span>Circulator isolation I</span> <b id="isIv"></b></label><input id="isI" type="range" min="10" max="35" step="0.5" value="20">
+      <label for="isR"><span>Antenna return loss RL</span> <b id="isRv"></b></label><input id="isR" type="range" min="5" max="30" step="0.5" value="15">
+      <label for="isG"><span>PA between pulses</span></label>
+      <select id="isG"><option value="g" selected>Gated off</option><option value="b">Left biased</option></select>
+      <label for="isT"><span>T/R switching time t<sub>sw</sub></span> <b id="isTv"></b></label><input id="isT" type="range" min="10" max="1000" step="10" value="200">
+      <label for="isW"><span>Pulse width τ</span> <b id="isWv"></b></label><input id="isW" type="range" min="0.1" max="20" step="0.1" value="1">
+      <div class="readout" id="isOut"></div>
+    </div>
+    <p class="cap">Top: the PA power, the two paths that bring it to the limiter, and their worst-case and average sums, against an illustrative 37 dBm (5 W) limiter rating. Bottom: the pulse (orange), the switching gap (red) and the receive window (green), with the shortest range the receiver can hear. The PA noise model uses 30 dB gain and 6 dB NF.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default: 31.9 dBm worst case, 5.1 dB under the rating, noise rise +0.02 dB, blind range 180 m.</li>
+    <li>Return loss 6 dB: 38.6 dBm, over the rating (FAIL).</li>
+    <li>PA left biased: noise rise +13.2 dB. Raise the isolation to 30 dB: still +4.8 dB.</li>
+    <li>Switching time 1000 ns with a 1 µs pulse: blind range 300 m; a 20 µs pulse: 3.15 km.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Circulator isolation</td><td>Ferrite, junction design, matching</td><td>isolation</td><td>Sets leakage: 20 dB → 23 dBm from a 20 W PA</td></tr>
+    <tr><td>Limiter rating</td><td>Diode size, thermal path</td><td>CW and peak power handling</td><td>Must survive the scanned reflection: 38.6 dBm at RL 6 dB</td></tr>
+    <tr><td>PA gating</td><td>Drain switch or gate pulsing circuit</td><td>turn-on/turn-off time</td><td>Biased: +13.2 dB receiver noise; gated: +0.02 dB; adds to t<sub>sw</sub></td></tr>
+    <tr><td>Switching and recovery</td><td>Switch, limiter recovery, sequencer timing</td><td>t<sub>sw</sub>, recovery time</td><td>Blind range +15 m per 100 ns</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Limiter designers:</b> the input power you must survive depends on the antenna match at the worst scan angle, which can be 6 dB return loss or worse.</li>
+    <li><b>PA and bias designers:</b> fast gating is a receive-sensitivity specification, not only an efficiency feature.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 10 W PA, 18 dB isolation, worst scan return loss 8 dB. What must the limiter take?</summary><p>40 dBm; leakage amplitude 10<sup>−0.9</sup> = 0.126, reflection 10<sup>−0.4</sup> = 0.398; (0.524)² = 0.274 → 40 − 5.6 = 34.4 dBm (2.7 W) worst case.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="scan">
+  <div class="secno">Step 8</div>
+  <h2>Scan-dependent active impedance, and what it does to the PA</h2>
+  <div class="know"><h4>You already know</h4><p>Antenna Step 2: the reflection coefficient Γ, VSWR = (1 + |Γ|)/(1 − |Γ|), and mismatch loss 1 − |Γ|². PA module: a PA's output power and efficiency depend on the load it sees, which is why it is designed at an optimum load found by load-pull.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Mutual coupling S<sub>m</sub>:</b> the fraction of the wave leaving one element that arrives at the element m places away (an S-parameter of the array, S<sub>n,n+m</sub>).</p>
+    <p><b>Active reflection coefficient Γ<sub>a</sub>(θ):</b> the total wave coming back into one element's port when all elements are driven with the steering phases for angle θ: its own reflection S<sub>11</sub> plus everything its neighbours couple into it, each with the neighbour's phase. <b>Active VSWR:</b> the VSWR that goes with |Γ<sub>a</sub>|.</p>
+    <p><b>Grating-lobe onset:</b> the scan angle at which a second full beam enters real space, sin θ<sub>g</sub> = λ/d − 1. <b>Scan blindness:</b> an angle where |Γ<sub>a</sub>| approaches 1 and the array radiates almost nothing, usually just before the grating-lobe onset, when a surface wave along the array is in step with the steering phase.</p>
+    <p><b>Load-line (Cripps) model:</b> a PA limited by its maximum current and maximum voltage swing delivers its full power only into its optimum load R<sub>opt</sub>; into a lower |Z| it is current-limited (P/P<sub>opt</sub> = R/R<sub>opt</sub>), into a higher |Z| voltage-limited (P/P<sub>opt</sub> = R·R<sub>opt</sub>/|Z|²).</p>
+  </div>
+  <div class="col">
+    <p>An element measured alone, or in an array with only its own port driven, shows S<sub>11</sub>. In operation every neighbour is driven too, and part of each neighbour's signal couples back into this element's port with a phase that depends on the steering. At broadside the neighbours are in phase and the designer matches the element in that condition. As the beam scans, the coupled waves rotate in phase relative to each other and stop cancelling, so Γ<sub>a</sub> grows, and every PA in the array sees the same new load at the same moment. With a circulator, the reflected power goes into the circulator's load resistor (and towards the receiver, Step 7) and the PA sees a good match. Without one (a switch-based module), the PA itself sees the active VSWR.</p>
+  </div>
+  <div class="eq">Γ<sub>a</sub>(θ) = S<sub>11</sub> + Σ<sub>m≠0</sub> S<sub>m</sub>·e<sup>j·m·k·d·sin θ</sup> &nbsp;&nbsp; with circulator: P<sub>rad</sub> ∝ 1 − |Γ<sub>a</sub>|² &nbsp;&nbsp; without: P<sub>rad</sub> = P<sub>opt</sub>·(R or R/|Z|²), Z = (1 + Γ<sub>a</sub>)/(1 − Γ<sub>a</sub>)<small>Illustrative coupling model: the nearest neighbour couples at −19 dB ("moderate"), each further element 0.82 times less, travelling as a guided wave 5 % slower than free space; S<sub>11</sub> is chosen so Γ<sub>a</sub> = 0 at broadside. With d = λ/2: |Γ<sub>a</sub>| = 0.02 at 30°, 0.11 at 50°, 0.33 at 60° (VSWR 2.0). At 60° the circulator version loses 0.51 dB of radiated power; the version without loses 2.90 dB.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design matches the radiator on its own (or at broadside) and assumes it stays matched. At 60° with moderate coupling the PA without a circulator loses 2.9 dB of output, on top of the cos θ loss of Step 6, and with tight coupling (−14 dB to the neighbour) it loses 5.8 dB; from about 65° the tight array goes blind. The PA itself also suffers: a voltage-limited PA into a high |Z| sees its peak voltage at the limit for longer, and a current-limited one runs hotter. The circulator version is gentler (−1.9 dB at 60° with tight coupling) but its load resistor now takes |Γ<sub>a</sub>|² of the PA power, and the limiter takes the reflection (Step 7).</p></div>
+  <h3>Side by side on one example: the same radiator with three coupling levels and two spacings</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Coupling, spacing</th><th>|Γ<sub>a</sub>| at 30°</th><th>at 45°</th><th>at 60°</th><th>Radiated at 60°: with circulator</th><th>without circulator</th></tr>
+    <tr><td>Loose (−26 dB), λ/2</td><td class="n">0.01</td><td class="n">0.03</td><td class="n">0.15</td><td class="n">−0.10 dB</td><td class="n">−1.24 dB</td></tr>
+    <tr><td>Moderate (−19 dB), λ/2</td><td class="n">0.02</td><td class="n">0.07</td><td class="n">0.33</td><td class="n">−0.51 dB</td><td class="n">−2.90 dB</td></tr>
+    <tr><td>Tight (−14 dB), λ/2</td><td class="n">0.03</td><td class="n">0.12</td><td class="n">0.59</td><td class="n">−1.86 dB</td><td class="n">−5.78 dB</td></tr>
+    <tr><td>Moderate, 0.6 λ</td><td class="n">0.19</td><td class="n">0.48</td><td class="n">0.37</td><td class="n">−0.63 dB</td><td class="n">−1.69 dB</td></tr>
+    <tr><td>Tight, 0.6 λ</td><td class="n">0.34</td><td class="n">0.85</td><td class="n">0.65</td><td class="n">−2.43 dB</td><td class="n">−4.68 dB</td></tr>
+  </table></div>
+  <div class="col"><p>With 0.6 λ spacing the grating lobe enters at 41.8°, and the worst mismatch moves in to just above it (0.85 at 45° with tight coupling). The coupling model is a simple illustration, but these three features are what measured arrays show: matched where they were matched, rising with scan, and a blind or near-blind angle just before the grating lobe.</p></div>
+  <h3>How to choose spacing, match and PA protection</h3>
+  <div class="col"><p>(1) Spacing: d ≤ λ/(1 + sin θ<sub>max</sub>) at the highest frequency keeps the grating lobe and the blindness outside the scan range: 60° needs d ≤ 0.536 λ. (2) Match the element in the array, not alone, and at mid-scan rather than broadside if the requirement is "VSWR ≤ 2 over ±60°". (3) Reduce coupling (cavities, walls, lower substrate permittivity), accepting some bandwidth or cost. (4) With a circulator, size its load for P·|Γ<sub>a</sub>|² at the worst scan (3.5 W for a 10 W PA at |Γ<sub>a</sub>| = 0.59) and give the limiter the reflection of Step 7. (5) Without one, the PA must tolerate the active VSWR over the scan: a GaN PA rated for 3:1 at full drive, or a PA load line chosen as a compromise across the scan, not at broadside.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSc" width="640" height="380" aria-label="Top: active reflection coefficient against scan angle. Bottom: radiated power against scan angle with and without a circulator"></canvas>
+    <div class="ctrl">
+      <label for="scA"><span>Scan angle θ</span> <b id="scAv"></b></label><input id="scA" type="range" min="0" max="80" step="0.5" value="60">
+      <label for="scD"><span>Element spacing d</span> <b id="scDv"></b></label><input id="scD" type="range" min="0.45" max="0.7" step="0.01" value="0.5">
+      <label for="scC"><span>Mutual coupling to the next element</span></label>
+      <select id="scC"><option value="loose">Loose (−26 dB)</option><option value="mod" selected>Moderate (−19 dB)</option><option value="tight">Tight (−14 dB)</option></select>
+      <label for="scP"><span>PA protection</span></label>
+      <select id="scP"><option value="c" selected>Circulator (PA sees a match)</option><option value="n">No circulator (PA sees Γ<sub>a</sub>)</option></select>
+      <div class="readout" id="scOut"></div>
+    </div>
+    <p class="cap">Top: |Γ<sub>a</sub>| for the chosen coupling and spacing, with the grating-lobe onset (red dashed) when it falls below 80°; values are capped at 0.98, which the readout calls blind. Bottom: change in radiated power, from mismatch only, solid for the chosen PA protection and dashed for the other. The cos θ projection loss of Step 6 is not included.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (60°, λ/2, moderate, circulator): |Γ<sub>a</sub>| 0.33, VSWR 2.0, radiated −0.51 dB with circulator and −2.90 dB without; 1.1 W into the circulator load.</li>
+    <li>Tight coupling: 0.59 at 60°, blind from about 65°.</li>
+    <li>Spacing 0.60 λ: grating lobe at 41.8°, the peak of |Γ<sub>a</sub>| moves to about 45° (0.48 moderate, 0.85 tight).</li>
+    <li>Loose coupling: 0.15 at 60°, and only −0.10 dB with a circulator.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Element coupling</td><td>Radiator type, cavities, substrate</td><td>S<sub>21</sub> to neighbours</td><td>|Γ<sub>a</sub>| at 60°: 0.15, 0.33, 0.59 for −26, −19, −14 dB</td></tr>
+    <tr><td>Spacing</td><td>Lattice, highest frequency</td><td>d/λ</td><td>Grating lobe and blindness enter the scan: 0.6 λ → 41.8°</td></tr>
+    <tr><td>Circulator</td><td>Isolator in the module or not</td><td>isolation, load power rating</td><td>PA sees a match; load takes P·|Γ<sub>a</sub>|²; radiated −0.51 vs −2.90 dB</td></tr>
+    <tr><td>PA load tolerance</td><td>Load line, device ruggedness</td><td>VSWR tolerance, load-pull contours</td><td>Power drop and stress over scan without a circulator</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> the load you design for is the active impedance over the scan range, not 50 Ω; ask the array team for Γ<sub>a</sub>(θ) and load-pull across it.</li>
+    <li><b>Circulator and isolator designers:</b> the termination must take the scan reflection continuously, not only a fault condition.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An array must scan ±50° up to 12 GHz. What is the largest spacing?</summary><p>λ = 25 mm at 12 GHz; d ≤ λ/(1 + sin 50°) = 25/1.766 = 14.2 mm (0.566 λ).</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="ttd">
+  <div class="secno">Step 9</div>
+  <h2>True time delay versus phase shift: beam squint over a wide band</h2>
+  <div class="know"><h4>You already know</h4><p>Antenna Step 7: a phase-steered array points to sin θ(f) = (f<sub>0</sub>/f)·sin θ<sub>0</sub>, so the beam squints by Δθ ≈ −(Δf/f<sub>0</sub>)·tan θ<sub>0</sub>; true time delay removes it. Step 1 here: a switched-line shifter is really a delay, while a high-pass/low-pass shifter gives a flat phase.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Phase shift:</b> a fixed phase that is the same at all frequencies (modulo 360°). <b>True time delay (TTD):</b> a delay τ<sub>n</sub> = x<sub>n</sub>·sin θ<sub>0</sub>/c, whose phase 2π·f·τ<sub>n</sub> grows with frequency, exactly as the path difference to the target does.</p>
+    <p><b>Beam squint:</b> the change of beam direction with frequency in a phase-steered array. <b>Instantaneous bandwidth (IBW):</b> the band the array can use at once (one chirp, one wideband jamming signal) without the band edges losing too much gain.</p>
+    <p><b>Beamwidth θ<sub>3</sub>:</b> 0.886·λ/(L·cos θ<sub>0</sub>) radians for a uniform aperture of length L. <b>Aperture fill time:</b> T<sub>fill</sub> = L·sin θ<sub>0</sub>/c, the time a wavefront takes to cross the aperture at θ<sub>0</sub>, which is also the largest delay a TTD array needs.</p>
+    <p><b>Subarray TTD:</b> elements grouped into subarrays of M; a delay per subarray, phase shifters inside it.</p>
+  </div>
+  <div class="col">
+    <p>The steering phase is meant to cancel the path difference x<sub>n</sub>·sin θ<sub>0</sub> to the target. That path difference is a time, so the phase it needs is proportional to frequency. A phase shifter sets the right phase at f<sub>0</sub> only; above f<sub>0</sub> the phase is too small for the actual path, and the beam points closer to broadside, below f<sub>0</sub> further away. When the squint at the band edge becomes comparable with the beamwidth, the band edges point past the target. Delay lines (TTD) make the phase scale with frequency and remove the squint, at the cost of long, lossy delay lines up to T<sub>fill</sub>. Subarray TTD is the usual compromise: each subarray of M elements has a beam N/M times wider than the full array, so it tolerates N/M times more squint.</p>
+  </div>
+  <div class="eq">Δθ ≈ −(Δf/f<sub>0</sub>)·tan θ<sub>0</sub> &nbsp;&nbsp; θ<sub>3</sub> = 0.886·λ/(L·cos θ<sub>0</sub>) &nbsp;&nbsp; IBW (phase shifters) ≈ θ<sub>3</sub>/tan θ<sub>0</sub> &nbsp;&nbsp; T<sub>fill</sub> = L·sin θ<sub>0</sub>/c<small>64 elements at λ/2 (L = 32 λ), θ<sub>0</sub> = 30°: θ<sub>3</sub> = 0.0320 rad = 1.83°; IBW ≈ 0.0320/0.577 = 5.5 %. A 10 % band (±5 %) squints by ±1.65°, nearly a full beamwidth. At 10 GHz L = 0.96 m and T<sub>fill</sub> = 1.6 ns.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>A narrowband design is reused for a wideband waveform: phase shifters in every module, a 1 GHz chirp at 10 GHz (10 %), beam steered to 30°. The centre of the chirp hits the target; the band edges point to 31.75° and 28.4°, and their gain towards the target falls by 12.6 dB. After pulse compression the range response loses its edges, widens and its sidelobes rise; for a wideband jammer, the edges of its band go to the wrong place.</p></div>
+  <h3>Side by side on one example: 64 elements, θ<sub>0</sub> = 30°, 10 % band, uniform illumination</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Steering</th><th>Beam at f<sub>low</sub> / f<sub>high</sub></th><th>Loss toward θ<sub>0</sub> at band edge</th><th>Peak sidelobe at band edge</th></tr>
+    <tr><td>Phase shifters only</td><td class="n">31.75° / 28.44°</td><td class="n">−12.6 dB</td><td class="n">−13.3 dB</td></tr>
+    <tr><td>TTD per subarray of 16</td><td class="n">30.12° / 29.90°</td><td class="n">−0.58 dB</td><td class="n">−10.2 dB</td></tr>
+    <tr><td>TTD per subarray of 8</td><td class="n">30.02° / 29.98°</td><td class="n">−0.14 dB</td><td class="n">−12.8 dB</td></tr>
+    <tr><td>TTD per subarray of 4</td><td class="n">30.00° / 30.00°</td><td class="n">−0.03 dB</td><td class="n">−13.1 dB</td></tr>
+    <tr><td>TTD at every element</td><td class="n">30.00° / 30.00°</td><td class="n">0 dB</td><td class="n">−13.3 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Subarray TTD leaves a small residual: inside each subarray the phase is still wrong at the band edge, by a sawtooth that repeats every M elements. That periodic error creates subarray lobes, the same mechanism as Step 2 with a different period, which is why the band-edge sidelobe rises to −10.2 dB with subarrays of 16.</p></div>
+  <h3>How to choose phase shifters, TTD or subarray TTD</h3>
+  <div class="col"><p>(1) Work out the fractional bandwidth the waveform needs at once (chirp or jammer bandwidth / f<sub>0</sub>) and the widest scan. (2) If it is below θ<sub>3</sub>/tan θ<sub>max</sub>, phase shifters are enough; note that a bigger array has a narrower beam and less IBW (128 elements at 30° and 10 %: −14.5 dB). (3) Otherwise put TTD at subarray level and choose M so that the subarray squint stays inside the subarray beam: subarray IBW ≈ (N/M)·θ<sub>3</sub>/tan θ<sub>max</sub>. (4) Size the delay: largest delay L·sin θ<sub>max</sub>/c (2.8 ns, 28 λ, for 0.96 m at 60°), LSB a fraction of the subarray-to-subarray delay step. (5) A digital array with an ADC per subarray can apply the delays in the processor instead of in hardware.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTd" width="640" height="340" aria-label="Main beam at the low band edge, centre frequency and high band edge, for phase-shifter or true-time-delay steering"></canvas>
+    <div class="ctrl">
+      <label for="tdN"><span>Number of elements N</span> <b id="tdNv"></b></label><input id="tdN" type="range" min="16" max="256" step="16" value="64">
+      <label for="tdA"><span>Steering angle θ<sub>0</sub></span> <b id="tdAv"></b></label><input id="tdA" type="range" min="0" max="60" step="0.5" value="30">
+      <label for="tdB"><span>Fractional bandwidth (total)</span> <b id="tdBv"></b></label><input id="tdB" type="range" min="0" max="30" step="0.5" value="10">
+      <label for="tdM"><span>Steering method</span></label>
+      <select id="tdM"><option value="ps" selected>Phase shifters only</option><option value="sub">TTD per subarray</option><option value="ttd">TTD at every element</option></select>
+      <label for="tdS"><span>Subarray size M (TTD per subarray)</span></label>
+      <select id="tdS"><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option></select>
+      <div class="readout" id="tdOut"></div>
+    </div>
+    <p class="cap">Uniform linear array at λ/2 (at f<sub>0</sub>), zoomed on the main beam. Green: lowest frequency of the band, dashed: f<sub>0</sub>, orange: highest frequency. The grey dashed line is the target direction θ<sub>0</sub>. The subarray size acts only when the method is "TTD per subarray". Fill time and the delay in wavelengths assume f<sub>0</sub> = 10 GHz.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (64, 30°, 10 %, phase shifters): beams at 31.75° and 28.44°, −12.62 dB toward θ<sub>0</sub>, IBW estimate 5.5 %.</li>
+    <li>TTD at every element: all three beams on 30°, 0 dB. TTD per subarray of 8: −0.14 dB; of 16: −0.58 dB with band-edge sidelobes at −10.2 dB.</li>
+    <li>Phase shifters at 0°: no squint at any bandwidth. At 45°: −18.95 dB.</li>
+    <li>Phase shifters, N = 128: the beam is half as wide and the band-edge loss grows to −14.46 dB.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Phase vs delay</td><td>Shifter topology: flat-phase or switched-line delay</td><td>phase vs frequency per state</td><td>IBW ≈ θ<sub>3</sub>/tan θ<sub>0</sub> = 5.5 % for 64 elements at 30°</td></tr>
+    <tr><td>TTD range and LSB</td><td>Delay-line lengths, switch count</td><td>max delay, delay LSB, loss</td><td>Needs up to L·sin θ<sub>max</sub>/c = 2.8 ns for 0.96 m at 60°</td></tr>
+    <tr><td>Subarray size</td><td>Beamformer architecture</td><td>M</td><td>M = 8: −0.14 dB at 10 % band; M = 16: −0.58 dB and −10 dB lobes</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phase-shifter designers:</b> "phase flatness over the band" is good for narrowband arrays and exactly wrong for TTD; know which the customer wants.</li>
+    <li><b>Delay-line and switch designers:</b> TTD modules need long lines with low loss and good matching across many states; the loss varies with state and must be equalised (Step 3).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 256-element array (λ/2) scans to 45°. What instantaneous bandwidth do phase shifters allow?</summary><p>θ<sub>3</sub> = 0.886 × 2/256/cos 45° = 0.00979 rad; IBW ≈ 0.00979/tan 45° ≈ 1.0 %. A 100 MHz chirp at 10 GHz is already at the limit.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="thermal">
+  <div class="secno">Step 10</div>
+  <h2>Thermal design: heat per module, junction temperature and life</h2>
+  <div class="know"><h4>You already know</h4><p>PA module: power-added efficiency PAE = (P<sub>out</sub> − P<sub>in</sub>)/P<sub>DC</sub>, the power that is not radiated becomes heat, and the junction temperature is the cold-side temperature plus thermal resistance times dissipated power. Reliability of semiconductors follows the Arrhenius law: life falls exponentially with temperature.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Duty cycle:</b> the fraction of time the PA transmits (pulse width × repetition frequency). <b>Peak and average dissipation:</b> heat during the pulse, P<sub>pk</sub>·(1/PAE − 1), and its average, duty × peak.</p>
+    <p><b>Thermal resistance θ:</b> °C rise per watt from the junction to the cold plate, through the die, die attach, carrier, package and interface material. <b>Thermal time constant:</b> how quickly the die heats up during a pulse; modelled here as 200 µs for 60 % of θ (the die and attach); the rest of the path only sees the average.</p>
+    <p><b>Cold plate:</b> the liquid- or air-cooled surface the modules are mounted on. <b>Design limit T<sub>j,max</sub>:</b> the junction temperature the design must not exceed (175 °C here, illustrative for GaN with derating).</p>
+    <p><b>MTTF:</b> mean time to failure. <b>Arrhenius law:</b> MTTF = MTTF<sub>ref</sub>·exp[(E<sub>a</sub>/k)·(1/T<sub>j</sub> − 1/T<sub>ref</sub>)], with activation energy E<sub>a</sub> (1.0 eV here) and MTTF<sub>ref</sub> = 10<sup>6</sup> h at 200 °C (illustrative); near 150 °C life roughly halves for every 10 °C.</p>
+  </div>
+  <div class="col">
+    <p>An array is a dense heater. Each module turns DC power into RF at the PAE and the rest into heat in a few square millimetres of GaN, with thousands of modules on one cold plate. Two temperatures matter: the average, which the cooling system and the cold plate set, and the peak at the end of each pulse, which the die and its attach set. Short pulses are averaged by the die's thermal mass; long pulses heat the junction almost as if the PA were on continuously. The junction temperature sets the PA's life, and the temperature differences across the array feed the tracking errors of Step 4.</p>
+  </div>
+  <div class="eq">Q<sub>pk</sub> = P<sub>pk</sub>·(1/PAE − 1) &nbsp;&nbsp; T<sub>j,avg</sub> = T<sub>cp</sub> + θ·duty·Q<sub>pk</sub> &nbsp;&nbsp; T<sub>j,pk</sub> = T<sub>j,avg</sub> + 0.6·θ·(Q<sub>pk</sub> − Q<sub>avg</sub>)·(1 − e<sup>−τ/200 µs</sup>)<small>10 W peak, PAE 35 %, 15 % duty, 100 µs pulses, θ = 4 °C/W, cold plate 50 °C: Q<sub>pk</sub> = 18.57 W, Q<sub>avg</sub> = 2.79 W; T<sub>j,avg</sub> = 61.1 °C; T<sub>j,pk</sub> = 61.1 + 2.4 × 15.8 × 0.393 = 76.0 °C. Module DC input 4.89 W (including 0.6 W for the receive chain and control), heat 3.39 W; 1024 modules: 3.47 kW of heat.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive thermal design uses the average dissipation only. For a long-range mode (20 W, PAE 30 %, 30 % duty, 500 µs pulses) the average junction is a comfortable 106 °C, but at the end of every pulse it reaches 178 °C, over the 175 °C limit, and the life at that peak is 3.3 × 10<sup>6</sup> h instead of the 4 × 10<sup>8</sup> h the average suggests. The other naive step is to treat PAE as a PA-only figure: at 20 % instead of 35 % the array's heat rises from 3.47 kW to 6.76 kW, which the cooling system and the power supply both have to carry.</p></div>
+  <h3>Side by side on one example: 10 W peak, 15 % duty, 100 µs, θ = 4 °C/W, cold plate 50 °C</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Change</th><th>Peak heat</th><th>T<sub>j</sub> average</th><th>T<sub>j</sub> peak</th><th>Heat, 1024 modules</th></tr>
+    <tr><td>Reference (PAE 35 %)</td><td class="n">18.6 W</td><td class="n">61.1 °C</td><td class="n">76.0 °C</td><td class="n">3.47 kW</td></tr>
+    <tr><td>PAE 20 %</td><td class="n">40.0 W</td><td class="n">74.0 °C</td><td class="n">106.1 °C</td><td class="n">6.76 kW</td></tr>
+    <tr><td>PAE 50 %</td><td class="n">10.0 W</td><td class="n">56.0 °C</td><td class="n">64.0 °C</td><td class="n">2.15 kW</td></tr>
+    <tr><td>1 µs pulses</td><td class="n">18.6 W</td><td class="n">61.1 °C</td><td class="n">61.3 °C</td><td class="n">3.47 kW</td></tr>
+    <tr><td>1 ms pulses</td><td class="n">18.6 W</td><td class="n">61.1 °C</td><td class="n">98.8 °C</td><td class="n">3.47 kW</td></tr>
+    <tr><td>θ = 8 °C/W</td><td class="n">18.6 W</td><td class="n">72.3 °C</td><td class="n">102.1 °C</td><td class="n">3.47 kW</td></tr>
+    <tr><td>Cold plate 70 °C</td><td class="n">18.6 W</td><td class="n">81.1 °C</td><td class="n">96.0 °C</td><td class="n">3.47 kW</td></tr>
+  </table></div>
+  <h3>How to choose PAE, thermal path and operating limits</h3>
+  <div class="col"><p>(1) PAE is the strongest lever: 35 → 50 % cuts the heat per pulse from 18.6 to 10 W, and the array heat by 38 %. (2) θ: die thinning, AuSn or sintered-silver attach, a copper-tungsten or copper-moly carrier and a short path to the cold plate; halving θ halves both temperature rises. (3) Pulse width: long pulses must be designed for the peak, not the average. (4) Cold-plate temperature and flow: the coolant warms as it crosses the array; with a 10 °C rise from inlet to outlet and a common phase drift of 0.5°/°C, the far edge has 5° more phase than the near edge, a linear phase that tilts a 64-element beam by 0.025°, and the tracking spread of Step 4 grows across the array as well. Keep that gradient inside the Step 4 budget, or let the module temperature sensors index the Step 5 tables.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTh" width="640" height="340" aria-label="Junction temperature at the end of the pulse and on average against PA efficiency, with the design limit"></canvas>
+    <div class="ctrl">
+      <label for="thP"><span>PA peak output</span> <b id="thPv"></b></label><input id="thP" type="range" min="1" max="20" step="0.5" value="10">
+      <label for="thE"><span>PA efficiency PAE</span> <b id="thEv"></b></label><input id="thE" type="range" min="15" max="65" step="1" value="35">
+      <label for="thD"><span>Duty cycle</span> <b id="thDv"></b></label><input id="thD" type="range" min="1" max="40" step="1" value="15">
+      <label for="thW"><span>Pulse width τ (log scale)</span> <b id="thWv"></b></label><input id="thW" type="range" min="0" max="3" step="0.05" value="2">
+      <label for="thR"><span>θ, junction to cold plate</span> <b id="thRv"></b></label><input id="thR" type="range" min="1" max="10" step="0.1" value="4">
+      <label for="thC"><span>Cold-plate temperature</span> <b id="thCv"></b></label><input id="thC" type="range" min="20" max="70" step="1" value="50">
+      <div class="readout" id="thOut"></div>
+    </div>
+    <p class="cap">Curves: the junction temperature at the end of each pulse (orange) and its average (green dashed) for PAE from 15 to 65 % with the other settings fixed; the dots mark the chosen PAE. Red dashed: the 175 °C design limit. The pulse-width slider is logarithmic, from 1 µs to 1 ms. Array heat assumes 1024 modules.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default: peak heat 18.57 W, T<sub>j</sub> 61.1 °C average and 76.0 °C peak, 3.47 kW for the array.</li>
+    <li>Pulse width 1 ms (slider at the right end): peak 98.8 °C with the same average.</li>
+    <li>PAE 20 %: 106.1 °C peak, array heat 6.76 kW.</li>
+    <li>Long-range mode: 20 W, PAE 30 %, duty 30 %, τ ≈ 500 µs (slider at 2.70): average 106 °C, peak 178 °C, FAIL.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>PAE</td><td>Class of operation, harmonic terminations, load line</td><td>PAE at P<sub>sat</sub></td><td>35 → 20 %: array heat 3.47 → 6.76 kW, peak T<sub>j</sub> +30 °C</td></tr>
+    <tr><td>Thermal resistance</td><td>Die thickness, attach, carrier, package</td><td>θ<sub>jc</sub> (°C/W)</td><td>4 → 8 °C/W: peak T<sub>j</sub> 76 → 102 °C, life ÷ 10</td></tr>
+    <tr><td>Pulse capability</td><td>Die thermal mass, heat spreading</td><td>max pulse width at rated duty</td><td>1 ms pulses: +23 °C over 100 µs at the same average</td></tr>
+    <tr><td>Temperature sensing</td><td>Sensor on the module, near the PA</td><td>sensor accuracy</td><td>Indexes the over-temperature tables of Step 5</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>PA designers:</b> PAE and pulsed thermal resistance are system-level specifications; each point of PAE is kilowatts of cooling at array level.</li>
+    <li><b>Packaging and mechanical:</b> the die attach is often the largest single part of θ; voids in it are hot spots and early failures.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>At 10 W, 15 % duty, PAE 35 %, how much must θ fall to keep the peak below 70 °C with a 50 °C cold plate and 100 µs pulses?</summary><p>T<sub>j,pk</sub> − 50 = θ·(2.79 + 0.6 × 15.8 × 0.393) = θ·6.51. For 20 °C: θ ≤ 3.1 °C/W.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="fail">
+  <div class="secno">Step 11</div>
+  <h2>Failure tolerance: graceful degradation with failed elements</h2>
+  <div class="know"><h4>You already know</h4><p>Step 4: random errors raise the floor as σ²/(η<sub>t</sub>·N). Step 6: EIRP ∝ N², receive SNR ∝ N. A failed module is simply an element with weight zero, the largest possible amplitude error, but only on a few elements.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Failed (dead) element:</b> a module that neither transmits nor receives; its LNA contributes no noise. <b>Stuck element:</b> a module that keeps radiating with a wrong phase; it is worse, because it adds a full-amplitude random error instead of a missing one.</p>
+    <p><b>Failure fraction f:</b> the share of failed elements. <b>Graceful degradation:</b> the property that an AESA keeps working, a little worse, as modules fail, instead of failing all at once like a single-transmitter radar.</p>
+    <p><b>Random, clustered and subarray failures:</b> scattered independent failures; a run of neighbours (a shared cold-plate channel or connector); a whole subarray of 8 lost with its shared power supply or beamformer.</p>
+    <p><b>MTBF:</b> mean time between failures of one module. With independent failures, the time until a fraction f has failed is t = −MTBF·ln(1 − f).</p>
+  </div>
+  <div class="col">
+    <p>Losing elements costs gain in three different ways. On transmit, the field from (1 − f)·N PAs adds coherently, so the EIRP goes as (1 − f)²: 5 % failed is −0.45 dB. On receive, the missing elements take away signal as (1 − f)² but also their own noise as (1 − f), so the SNR falls only as (1 − f): −0.22 dB. And the missing weight scatters into a floor, exactly like the errors of Step 4, with σ² replaced by the failed fraction of the taper power. Where the failures are matters: random failures spread their error evenly; clustered or subarray failures form a large, structured hole in the aperture and raise near-in lobes much more.</p>
+  </div>
+  <div class="eq">EIRP ∝ (1 − f)² &nbsp;&nbsp; receive SNR ∝ (1 − f) &nbsp;&nbsp; floor ≈ Σ<sub>failed</sub> w<sub>n</sub>² / (Σ<sub>working</sub> w<sub>n</sub>)² ≈ f/((1 − f)²·η<sub>t</sub>·N) &nbsp;&nbsp; t = −MTBF·ln(1 − f)<small>128 elements, −35 dB taper, 6 random failures (4.7 %): EIRP −0.42 dB, receive SNR −0.23 dB, floor −31.9 dB, peak sidelobe −25.5 dB (from −35.4 dB). With a module MTBF of 100 000 h, 4.7 % have failed after 4 800 h, about 6.6 months of continuous operation.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive view counts only gain: 5 % failed costs 0.4 dB of EIRP, so the array can run until 20 % have failed. The sidelobes say otherwise: 6 random failures already lift the peak sidelobe from −35.4 to −25.5 dB, 6 clustered ones to −21.8 dB, and one lost subarray of 8 to −19.4 dB. If the sidelobe requirement is −30 dB, the array is out of specification after 2 % failures, long before the gain notices. The second naive assumption is that failures are always "off". A module that fails stuck on, with a random phase, is a full-amplitude error and costs more than a dead one; module control must make failures fail off.</p></div>
+  <h3>Side by side on one example: 128 elements, −35 dB Taylor taper</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Failures</th><th>Failed</th><th>Tx EIRP</th><th>Rx SNR</th><th>Floor</th><th>Peak sidelobe</th><th>Time at 100 000 h MTBF</th></tr>
+    <tr><td>Random, 2 %</td><td class="n">3</td><td class="n">−0.21 dB</td><td class="n">−0.10 dB</td><td class="n">−36.8 dB</td><td class="n">−29.1 dB</td><td class="n">2 370 h</td></tr>
+    <tr><td>Random, 5 %</td><td class="n">6</td><td class="n">−0.42 dB</td><td class="n">−0.23 dB</td><td class="n">−31.9 dB</td><td class="n">−25.5 dB</td><td class="n">4 800 h</td></tr>
+    <tr><td>Random, 10 %</td><td class="n">13</td><td class="n">−0.93 dB</td><td class="n">−0.49 dB</td><td class="n">−28.2 dB</td><td class="n">−22.4 dB</td><td class="n">10 700 h</td></tr>
+    <tr><td>Clustered, 5 %</td><td class="n">6</td><td class="n">−0.42 dB</td><td class="n">−0.26 dB</td><td class="n">−31.5 dB</td><td class="n">−21.8 dB</td><td class="n">4 800 h</td></tr>
+    <tr><td>Clustered, 10 %</td><td class="n">13</td><td class="n">−0.93 dB</td><td class="n">−0.58 dB</td><td class="n">−27.4 dB</td><td class="n">−16.2 dB</td><td class="n">10 700 h</td></tr>
+    <tr><td>One subarray of 8</td><td class="n">8</td><td class="n">−0.56 dB</td><td class="n">−0.34 dB</td><td class="n">−29.5 dB</td><td class="n">−19.4 dB</td><td>one supply failure</td></tr>
+  </table></div>
+  <h3>How to choose MTBF, partitioning and maintenance</h3>
+  <div class="col"><p>(1) The sidelobe requirement at end of life sets the largest allowed f, not the gain: −28 dB peak here allows about 2–3 % random failures. (2) The module MTBF then sets the maintenance interval: t = −MTBF·ln(1 − f), so 2.3 % at 100 000 h is about 2 300 h; doubling the MTBF doubles the interval. MTBF depends strongly on junction temperature (Step 10). (3) Partition the shared parts (power supplies, DC converters, cold-plate channels, beamformer branches) so that a single common failure takes out scattered elements, not a block. (4) Require fail-off: PA and LNA disabled on any fault. (5) Re-optimise the taper around the known failed elements (the beam-steering computer knows them from built-in test), which recovers part of the sidelobe loss.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cFl" width="640" height="360" aria-label="Top: element map with failed modules. Bottom: array pattern with failed elements compared with the full array"></canvas>
+    <div class="ctrl">
+      <label for="flN"><span>Number of elements N</span> <b id="flNv"></b></label><input id="flN" type="range" min="32" max="256" step="16" value="128">
+      <label for="flF"><span>Failure fraction f</span> <b id="flFv"></b></label><input id="flF" type="range" min="0" max="20" step="0.5" value="5">
+      <label for="flM"><span>Failure pattern</span></label>
+      <select id="flM"><option value="rand" selected>Random, scattered</option><option value="clus">Clustered (adjacent)</option><option value="sub">Whole subarrays of 8</option></select>
+      <label for="flT"><span>Module MTBF (log scale)</span> <b id="flTv"></b></label><input id="flT" type="range" min="4.3" max="5.7" step="0.05" value="5">
+      <button id="flR" type="button">New failure draw</button>
+      <div class="readout" id="flOut"></div>
+    </div>
+    <p class="cap">Top: each module drawn with its taper amplitude; red ones have failed. Bottom: dashed, the full array; solid, with the failures; purple, the floor from the missing weight. The failure count is f·N rounded; in subarray mode whole groups of 8 fail, at least one group. The MTBF slider (20 000 to 500 000 h) only changes the time it takes to reach this state, shown above the element map and in the readout.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Default (128, 5 %, random): 6 failed, EIRP −0.42 dB, receive SNR −0.23 dB, peak sidelobe −25.5 dB, 4 800 h.</li>
+    <li>Clustered: same count and EIRP, peak −21.8 dB. Whole subarrays: 8 failed, peak −19.4 dB.</li>
+    <li>Random 10 %: 13 failed, −22.4 dB, 10 700 h. Set the MTBF to 300 000 h (slider 5.48): about three times longer.</li>
+    <li>0 %: no failures, the pattern returns to −35.4 dB and the time reads "none".</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Module MTBF</td><td>Junction temperatures, part count, derating</td><td>MTBF</td><td>Time to f: 100 000 h → 4 800 h to 4.7 % failed</td></tr>
+    <tr><td>Failure mode</td><td>Fault detection, bias shutdown</td><td>fail-safe state</td><td>Dead costs (1 − f)²; stuck-on adds a full random error</td></tr>
+    <tr><td>Partitioning</td><td>Supply and cooling architecture</td><td>(system)</td><td>Subarray of 8 lost: −19.4 dB vs −25.5 dB for 6 scattered failures</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every module designer:</b> the array's end-of-life sidelobes are set by your MTBF and your failure mode.</li>
+    <li><b>Power-supply designers:</b> a supply shared by a block of modules is a structured hole in the aperture when it fails.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An array of 1024 modules, MTBF 150 000 h, runs 4 000 h a year. How many modules fail per year?</summary><p>About 1024 × 4 000/150 000 = 27 per year (2.7 %). With a 2.5 % sidelobe limit, maintenance is needed roughly once a year.</p></details>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="summary">
+  <div class="secno">Step 12</div>
+  <h2>Summary: every T/R-module parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Phase-shifter bits</td><td>Number of sections, die area</td><td>σ<sub>q</sub> = LSB/√12: 4 bits 6.5°, 0.056 dB per way; 2 bits 0.89 dB per way (Step 1)</td></tr>
+    <tr><td>Phase-shifter state error</td><td>Topology, switch FETs, layout</td><td>Adds in squares; 2.5° makes bits beyond 6 useless (Step 1)</td></tr>
+    <tr><td>Rounding method</td><td>Beam-steering firmware, stored offsets</td><td>3 bits: lobe −16.9 dB (round) vs −24.4 dB (random offset) on 128 elements (Step 2)</td></tr>
+    <tr><td>Attenuator range</td><td>Bits × LSB</td><td>Must cover the taper edge (15.7 dB for −35 dB) + trim + temperature; 3.5 dB range → −17 dB sidelobes (Step 3)</td></tr>
+    <tr><td>Attenuator step</td><td>LSB of the pads</td><td>0.5 dB → 0.13 dB rms, −34.4 dB; 2 dB → 0.55 dB rms, −31.8 dB (Step 3)</td></tr>
+    <tr><td>Taper depth</td><td>System sidelobe target</td><td>Gain cost 0.41 dB (−25 dB) to 1.33 dB (−45 dB); usually receive only (Step 3)</td></tr>
+    <tr><td>Module-to-module spread</td><td>Process, assembly, trimming</td><td>10°, 1 dB on 64 elements: floor −30.7 dB, peak −23 dB, gain only −0.19 dB (Step 4)</td></tr>
+    <tr><td>Tracking over temperature</td><td>Technology, bias compensation</td><td>0.1°/°C, 0.01 dB/°C → floor −35.2 dB at 85 °C after a perfect 25 °C calibration (Step 4)</td></tr>
+    <tr><td>Calibration</td><td>Test accuracy, temperature grid, built-in loop</td><td>Floor −30.7 → −50.7 dB; single-point table −37.5 dB at 70 °C; built-in −45.6 dB anywhere (Step 5)</td></tr>
+    <tr><td>PA power per element</td><td>Device, load line, supply</td><td>EIRP ∝ N²·P: 1024 × 10 W → 74.2 dBW; halving P is −3 dB (Step 6)</td></tr>
+    <tr><td>Front-end loss</td><td>Circulator, limiter, lines</td><td>Paid on both paths: +1 dB loss → −1 dB EIRP and −1 dB G/T (Step 6)</td></tr>
+    <tr><td>LNA NF and gain</td><td>Device, match, gain over the common leg</td><td>G/T 7.0 dB/K at NF 2.5 dB; 25 dB gain keeps the common leg out of the NF (Step 6)</td></tr>
+    <tr><td>Isolation and limiter rating</td><td>Circulator, limiter diodes</td><td>20 W, 20 dB, RL 15 dB → 31.9 dBm at the limiter; RL 6 dB at scan → 38.6 dBm (Step 7)</td></tr>
+    <tr><td>PA gating</td><td>Bias switch or gate pulsing</td><td>Biased PA between pulses: +13.2 dB receiver noise (Step 7)</td></tr>
+    <tr><td>Switching time</td><td>Switches, limiter recovery, sequencer</td><td>Blind range +15 m per 100 ns; 1 µs pulse + 200 ns → 180 m (Step 7)</td></tr>
+    <tr><td>Element coupling and spacing</td><td>Radiator, lattice</td><td>Active VSWR 2.0 at 60° (moderate); blindness before the grating lobe (Step 8)</td></tr>
+    <tr><td>Circulator vs switch</td><td>Module architecture</td><td>At 60°: −0.51 dB with circulator, −2.90 dB without (Step 8)</td></tr>
+    <tr><td>Phase vs true time delay</td><td>Shifter type, TTD at subarray level</td><td>64 elements at 30°, 10 % band: −12.6 dB at band edges with phase shifters, −0.14 dB with TTD per 8 (Step 9)</td></tr>
+    <tr><td>PAE and thermal resistance</td><td>PA design, die attach, carrier</td><td>Peak T<sub>j</sub> 76 °C at 35 % and 4 °C/W; 20 %: 106 °C and twice the array heat (Step 10)</td></tr>
+    <tr><td>MTBF and failure partitioning</td><td>Temperatures, supplies, fail-off design</td><td>5 % random failures on 128: −0.42 dB EIRP, peak −25.5 dB; a lost subarray of 8: −19.4 dB (Step 11)</td></tr>
+  </table></div>
+  <p>Related pages: <a href="A0-antenna-fundamentals.html">Antenna fundamentals</a> (array factor, Ruze, squint), <a href="R2-antenna-beam.html">R2 beam</a>, <a href="M01-lna-noise.html">LNA and receiver noise</a>, <a href="M03-power-amplifier.html">Power amplifier</a>, <a href="M06-limiter-duplexer.html">Limiter and duplexer</a>.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Active array (AESA)</dt><dd>A phased array with a T/R module, and so its own PA and LNA, behind every element.</dd>
+    <dt>Active reflection coefficient Γ<sub>a</sub></dt><dd>The wave returning into one element's port when all elements are driven with the steering phases; changes with scan angle.</dd>
+    <dt>Aperture fill time</dt><dd>L·sin θ<sub>0</sub>/c: the time a wavefront takes to cross the aperture, and the largest delay a TTD array needs.</dd>
+    <dt>Arrhenius law</dt><dd>MTTF = MTTF<sub>ref</sub>·exp[(E<sub>a</sub>/k)(1/T<sub>j</sub> − 1/T<sub>ref</sub>)]; life falls exponentially with junction temperature.</dd>
+    <dt>Average error floor</dt><dd>The mean sidelobe level from random errors or failures, (σ<sub>a</sub>² + σ<sub>φ</sub>²)/(η<sub>t</sub>·N) relative to the peak.</dd>
+    <dt>Beam squint</dt><dd>The change of beam direction with frequency in a phase-steered array, Δθ ≈ −(Δf/f<sub>0</sub>)·tan θ<sub>0</sub>.</dd>
+    <dt>Beamformer (manifold)</dt><dd>The network that splits the transmit drive to the modules and adds the received signals.</dd>
+    <dt>Blind range</dt><dd>c·(τ + t<sub>sw</sub>)/2: echoes from closer than this arrive before the receiver is ready.</dd>
+    <dt>Built-in calibration</dt><dd>A coupler network or mutual-coupling measurement that lets the array measure its own module errors in service.</dd>
+    <dt>Calibration table</dt><dd>Stored per-module corrections of phase and amplitude, often per frequency, temperature and state.</dd>
+    <dt>Circulator</dt><dd>A three-port ferrite device passing power PA → antenna → receiver; its isolation limits the leakage from PA to receiver.</dd>
+    <dt>Clipping (attenuator)</dt><dd>An element needing more attenuation than the range receives the maximum instead, flattening the taper.</dd>
+    <dt>Coherent combining</dt><dd>Adding N signals in phase: voltages add, power goes as N².</dd>
+    <dt>Common leg</dt><dd>The part of the module used by both transmit and receive: phase shifter, attenuator and their T/R switch.</dd>
+    <dt>Common-mode drift</dt><dd>The change shared by all modules over temperature; it alters the gain but not the pattern shape.</dd>
+    <dt>Cripps (load-line) model</dt><dd>A PA limited by maximum current and voltage gives full power only into R<sub>opt</sub>: P/P<sub>opt</sub> = R (current-limited) or R/|Z|² (voltage-limited), with Z normalised to R<sub>opt</sub>.</dd>
+    <dt>Duty cycle</dt><dd>The fraction of time the PA transmits.</dd>
+    <dt>EIRP of an array</dt><dd>N²·P<sub>el</sub>·G<sub>el</sub>/L<sub>f</sub>: power per element times array gain.</dd>
+    <dt>Element gain G<sub>el</sub></dt><dd>4π·A<sub>cell</sub>/λ², π (4.97 dBi) for a λ/2 × λ/2 cell, falling as cos θ with scan.</dd>
+    <dt>Failure fraction f</dt><dd>The share of modules that have failed; EIRP goes as (1 − f)², receive SNR as (1 − f).</dd>
+    <dt>Grating-lobe onset</dt><dd>sin θ<sub>g</sub> = λ/d − 1: the scan angle at which a second full beam appears.</dd>
+    <dt>G/T of an array</dt><dd>N·G<sub>el</sub>/T<sub>sys</sub>, with T<sub>sys</sub> the noise temperature at one element.</dd>
+    <dt>Instantaneous bandwidth (IBW)</dt><dd>The band usable at once without the band edges losing too much gain; ≈ θ<sub>3</sub>/tan θ<sub>0</sub> for phase shifters.</dd>
+    <dt>LSB</dt><dd>Least significant bit: the smallest step of a digital phase shifter (360°/2<sup>k</sup>) or attenuator.</dd>
+    <dt>MTBF, MTTF</dt><dd>Mean time between failures (of a module) and mean time to failure (of a device); with independent failures a fraction f has failed after −MTBF·ln(1 − f).</dd>
+    <dt>Mutual coupling</dt><dd>The part of one element's wave that arrives at another element's port.</dd>
+    <dt>PA gating</dt><dd>Switching the PA bias off between pulses so its output noise does not reach the receiver.</dd>
+    <dt>Peak sidelobe level (PSL)</dt><dd>The highest lobe outside the main beam, relative to the peak.</dd>
+    <dt>Probabilistic rounding</dt><dd>Rounding up with a probability equal to the fractional part; decorrelates the quantisation error at √2 times the rms.</dd>
+    <dt>Quantisation error</dt><dd>The difference between the required and the nearest available state; rms LSB/√12 if uniformly spread.</dd>
+    <dt>Quantisation lobe</dt><dd>A discrete sidelobe from a periodic quantisation error, about 1/2<sup>2k</sup>.</dd>
+    <dt>Random phase offset</dt><dd>A known random phase per element added before rounding and removed in hardware, so the quantisation error becomes random.</dd>
+    <dt>REV method</dt><dd>Rotating element electric vector: stepping one element's phase while watching total power to find its amplitude and phase.</dd>
+    <dt>Scan blindness</dt><dd>An angle where |Γ<sub>a</sub>| approaches 1 and the array radiates almost nothing.</dd>
+    <dt>State error</dt><dd>The deviation of each real phase-shifter state from its nominal value, given as rms over states.</dd>
+    <dt>Subarray TTD</dt><dd>A true time delay per group of M elements, with phase shifters inside each group.</dd>
+    <dt>T/R module</dt><dd>The electronics behind one element: transmit path, receive path, common leg and control.</dd>
+    <dt>T/R switching time</dt><dd>The time from the end of transmission until the receiver is usable.</dd>
+    <dt>Taper efficiency η<sub>t</sub></dt><dd>(Σw)²/(N·Σw²): the gain of a tapered array relative to uniform.</dd>
+    <dt>Taylor taper</dt><dd>A standard amplitude taper that holds the first n̄ − 1 sidelobes at a design level.</dd>
+    <dt>Thermal resistance θ</dt><dd>Temperature rise per watt from junction to cold plate.</dd>
+    <dt>Tracking</dt><dd>How closely modules follow each other over temperature: the rms spread of their drift per °C.</dd>
+    <dt>True time delay (TTD)</dt><dd>Steering by delays, whose phase grows with frequency, so the beam does not squint.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Mailloux, <i>Phased Array Antenna Handbook</i>; Brookner (ed.), <i>Practical Phased-Array Antenna Systems</i>; Hansen, <i>Phased Array Antennas</i>; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Cripps, <i>RF Power Amplifiers for Wireless Communications</i>; Pozar, <i>Microwave Engineering</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+/* ---------- shared array models (pure functions) ---------- */
+const D2R=Math.PI/180;
+function rng(seed){ let a=seed>>>0; return function(){ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function gauss(r){ let u=0; while(u===0) u=r(); const v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+/* Taylor n-bar taper, sll in positive dB, normalised to max 1 */
+function taylor(N,sll,nbar){
+  nbar=nbar||5; const R=Math.pow(10,sll/20), A=Math.acosh(R)/Math.PI, s2=nbar*nbar/(A*A+(nbar-0.5)*(nbar-0.5));
+  const F=[0]; for(let m=1;m<nbar;m++){ let num=1,den=1;
+    for(let i=1;i<nbar;i++){ num*=1-m*m/(s2*(A*A+(i-0.5)*(i-0.5))); if(i!==m) den*=1-m*m/(i*i); }
+    F[m]=(m%2?1:-1)*num/(2*den); }
+  const w=[]; for(let n=0;n<N;n++){ const x=(n-(N-1)/2)/N; let s=1; for(let m=1;m<nbar;m++) s+=2*F[m]*Math.cos(2*Math.PI*m*x); w.push(s); }
+  const mx=Math.max(...w); return w.map(v=>v/mx);
+}
+function uniform(N){ return new Array(N).fill(1); }
+function taperEff(w){ let s=0,s2=0; for(const v of w){ s+=v; s2+=v*v; } return s*s/(w.length*s2); }
+/* angle grid in degrees */
+function grid(a,b,n){ const t=[]; for(let i=0;i<n;i++) t.push(a+(b-a)*i/(n-1)); return t; }
+const TH=grid(-90,90,1441);
+/* power pattern |sum w e^{j(k x sin th + ph)}|^2 for element positions n*dl (in wavelengths); fr = f/f0 scales k */
+function pattern(w,ph,dl,th,fr){
+  fr=fr||1; const N=w.length, out=new Float64Array(th.length), kd=2*Math.PI*dl*fr;
+  for(let i=0;i<th.length;i++){ const s=Math.sin(th[i]*D2R)*kd; let re=0,im=0;
+    for(let n=0;n<N;n++){ const a=s*n+ph[n]; re+=w[n]*Math.cos(a); im+=w[n]*Math.sin(a); }
+    out[i]=re*re+im*im; }
+  return out;
+}
+function patAt(w,ph,dl,thd,fr){ return pattern(w,ph,dl,[thd],fr)[0]; }
+function sumw(w){ let s=0; for(const v of w) s+=v; return s; }
+/* steering phase: element n gets -2pi*dl*n*sin(th0) */
+function steer(N,dl,th0){ const p=[]; for(let n=0;n<N;n++) p.push(-2*Math.PI*dl*n*Math.sin(th0*D2R)); return p; }
+const wrap360=x=>((x%360)+360)%360;
+/* phase quantisation: mode 'ideal','round','offset','prob' ; returns {cmd (deg, commanded), err (deg)} */
+function quantise(req,bits,mode,seed){
+  const L=360/Math.pow(2,bits), r=rng(seed||7), cmd=[], err=[];
+  for(let n=0;n<req.length;n++){ const q=wrap360(req[n]);
+    let c;
+    if(mode==='ideal') c=q;
+    else if(mode==='round') c=Math.round(q/L)*L;
+    else if(mode==='offset'){ const o=r()*360; c=Math.round(wrap360(q+o)/L)*L-o; }   /* fixed known offset per element, removed after rounding */
+    else { const f=q/L, lo=Math.floor(f); c=(r()<f-lo?lo+1:lo)*L; }
+    let e=wrap360(c-q); if(e>180) e-=360; cmd.push(c); err.push(e); }
+  return {cmd,err,L};
+}
+function rms(a){ let s=0; for(const v of a) s+=v*v; return Math.sqrt(s/a.length); }
+/* peak sidelobe: walk from main peak to first nulls, max outside */
+function mainIdx(P){ let im=0; for(let i=1;i<P.length;i++) if(P[i]>P[im]) im=i; return im; }
+function psl(P,im){ if(im===undefined) im=mainIdx(P); while(im>0&&P[im-1]>P[im]) im--; while(im<P.length-1&&P[im+1]>P[im]) im++; let a=im,b=im; while(a>0&&P[a-1]<=P[a]) a--; while(b<P.length-1&&P[b+1]<=P[b]) b++;
+  let m=0, at=-1; for(let i=0;i<P.length;i++){ if(i>=a&&i<=b) continue; if(P[i]>m){ m=P[i]; at=i; } } return {v:m/P[im], at, a, b, im}; }
+/* ---------- Step 1: phase-shifter technologies ---------- */
+const PS={
+  sl:{name:'Switched line',il0:0.6,ilb:1.0,er:3.0,am:0.30,tsw:20,bw:'phase ∝ f (true delay per bit)',pw:'≤ 1 W'},
+  ll:{name:'Loaded line',il0:0.3,ilb:0.5,er:2.0,am:0.20,tsw:20,bw:'≈ 10–20 %, small bits only',pw:'≤ 1 W'},
+  rf:{name:'Reflection (hybrid)',il0:0.8,ilb:0.8,er:3.0,am:0.35,tsw:20,bw:'≈ 30–50 %',pw:'≤ 1 W'},
+  hl:{name:'High-pass / low-pass',il0:0.5,ilb:0.9,er:2.5,am:0.30,tsw:20,bw:'≈ 40 % to an octave',pw:'≤ 1 W'},
+  vm:{name:'Vector modulator',il0:-2,ilb:0,er:1.5,am:0.20,tsw:50,bw:'≈ an octave, needs a calibration table',pw:'small signal'},
+  fe:{name:'Latching ferrite',il0:0.7,ilb:0.05,er:2.0,am:0.15,tsw:2000,bw:'≈ 10–20 %',pw:'≥ 100 W'}
+};
+/* ---------- Step 3: attenuator quantisation of a taper ---------- */
+function qTaper(w,lsb,bits,phPerDb){
+  const range=lsb*(Math.pow(2,bits)-1), out=[], ph=[], att=[]; let clip=0, maxReq=0;
+  for(const v of w){ let a=-20*Math.log10(Math.max(v,1e-9)); maxReq=Math.max(maxReq,a); if(a>range){ a=range; clip++; }
+    const q=Math.round(a/lsb)*lsb; att.push(q); out.push(Math.pow(10,-q/20)); ph.push(phPerDb*q*D2R); }
+  return {w:out,ph,att,range,clip,maxReq};
+}
+/* ---------- Step 4/5: random module errors ---------- */
+function drawErr(N,seed){ const r=rng(seed), a=[], p=[]; for(let n=0;n<N;n++){ a.push(gauss(r)); p.push(gauss(r)); } return {a,p}; }
+const TRK={tight:{ph:0.05,am:0.005,name:'tight'},typ:{ph:0.10,am:0.010,name:'typical'},loose:{ph:0.20,am:0.020,name:'loose'}};
+/* expected error-sidelobe floor relative to the error-free peak */
+function floorRel(sa_dB,sp_deg,w){ const sa=sa_dB*Math.LN10/20, sp=sp_deg*D2R; let s1=0,s2=0; for(const v of w){ s1+=v; s2+=v*v; } return (sa*sa+sp*sp)*s2/(s1*s1); }
+function gainLoss(sa_dB,sp_deg){ const sa=sa_dB*Math.LN10/20, sp=sp_deg*D2R; return Math.exp(-sp*sp)/(1+sa*sa); }
+/* apply errors: amplitude in dB, phase in deg */
+function applyErr(w,base,ea,ep,sa,sp){ const ww=[],pp=[]; for(let n=0;n<w.length;n++){ ww.push(w[n]*Math.pow(10,sa*ea[n]/20)); pp.push(base[n]+sp*ep[n]*D2R); } return {w:ww,ph:pp}; }
+/* calibration methods: residual phase (deg), amplitude (dB) and temperature behaviour */
+const CAL={
+  none:{name:'No calibration'},
+  one:{name:'Factory table at 25 °C'},
+  tab:{name:'Factory table over temperature (every 20 °C)'},
+  bit:{name:'Built-in calibration loop (re-run in service)'}
+};
+function calResid(method,sp0,sa0,T,acP,acA,trk){
+  const dT=Math.abs(T-25);
+  if(method==='none') return {p:Math.hypot(sp0,trk.ph*dT),a:Math.hypot(sa0,trk.am*dT)};
+  if(method==='one') return {p:Math.hypot(acP,trk.ph*dT),a:Math.hypot(acA,trk.am*dT)};
+  if(method==='tab'){ const rd=Math.min(dT,10)*0.25; return {p:Math.hypot(acP,trk.ph*rd),a:Math.hypot(acA,trk.am*rd)}; }
+  /* built-in loop: the coupler network itself has a tracking error ~1.5 deg / 0.15 dB that adds to the accuracy */
+  return {p:Math.hypot(acP,1.5),a:Math.hypot(acA,0.15)};
+}
+/* ---------- Step 6: EIRP and G/T ---------- */
+function linkBudget(N,Pel,Lf,NF,th,Ta){
+  Ta=Ta||290; const Gel=Math.PI*Math.cos(th*D2R), G=N*Gel, Lfl=Math.pow(10,Lf/10);
+  const Prad=N*Pel/Lfl, EIRP=Prad*G;
+  const Tl=290*(Math.pow(10,NF/10)-1), Tsys=Ta+(Lfl-1)*290+Lfl*Tl;
+  return {G,Gel,Prad,EIRP,Tsys,GT:G/Tsys,Tl};
+}
+/* ---------- Step 7: isolation ---------- */
+function isoBudget(P,I,RL,gated){
+  const a=Math.pow(10,(P-I)/20), b=Math.pow(10,(P-RL)/20);
+  const Pin=20*Math.log10(a+b);            /* worst case: both paths add in phase */
+  const Pinc=10*Math.log10(a*a+b*b);       /* random phase (average) */
+  const Gpa=30, NFpa=6; const Nleak=gated?-174-I:(-174+NFpa+Gpa-I);  /* dBm/Hz arriving at Rx path */
+  const Tleak=290*Math.pow(10,(Nleak+174)/10), Tsys0=580;
+  return {Pin,Pinc,Nleak,Tleak,deg:10*Math.log10((Tsys0+Tleak)/Tsys0)};
+}
+/* ---------- Step 8: active reflection coefficient ---------- */
+const CPL={loose:{c:-26,name:'loose (−26 dB to the next element)'},mod:{c:-19,name:'moderate (−19 dB)'},tight:{c:-14,name:'tight (−14 dB)'}};
+function activeGamma(thd,dl,cdB){
+  const c=Math.pow(10,cdB/20), rho=0.82, beta=1.05, u=2*Math.PI*dl*Math.sin(thd*D2R);
+  /* S_m = c rho^(m-1) e^{-j m beta k d}; Gamma = S11 + sum_m S_m (e^{jmu}+e^{-jmu}); S11 chosen so Gamma(0)=0 */
+  let re=0,im=0,r0=0,i0=0; const kd=2*Math.PI*dl;
+  for(let m=1;m<=40;m++){ const mag=c*Math.pow(rho,m-1), ph=-m*beta*kd;
+    re+=mag*(Math.cos(ph+m*u)+Math.cos(ph-m*u)); im+=mag*(Math.sin(ph+m*u)+Math.sin(ph-m*u));
+    r0+=2*mag*Math.cos(ph); i0+=2*mag*Math.sin(ph); }
+  let gr=re-r0, gi=im-i0; let g=Math.hypot(gr,gi); if(g>0.98){ gr*=0.98/g; gi*=0.98/g; g=0.98; }
+  return {re:gr,im:gi,mag:g};
+}
+/* Cripps load-line: load normalised to Ropt; returns delivered power / Popt */
+function cripps(gr,gi){ const dr=(1-gr)*(1-gr)+gi*gi; const R=(1-gr*gr-gi*gi)/dr, X=2*gi/dr, Z2=R*R+X*X;
+  return Z2<=1? R : R/Z2; }
+/* ---------- Step 9: true time delay ---------- */
+/* mode 'ps' phase shifters, 'ttd' every element, 'sub' TTD per subarray of M elements */
+function ttdPhase(N,dl,th0,fr,mode,M){
+  const s=Math.sin(th0*D2R), ph=[];
+  for(let n=0;n<N;n++){
+    if(mode==='ps') ph.push(-2*Math.PI*dl*n*s);
+    else if(mode==='ttd') ph.push(-2*Math.PI*dl*fr*n*s);
+    else { const c=Math.floor(n/M)*M+(M-1)/2; ph.push(-2*Math.PI*dl*fr*c*s-2*Math.PI*dl*(n-c)*s); } }
+  return ph;
+}
+/* ---------- Step 10: thermal ---------- */
+function thermal(Pk,pae,duty,tau,rth,Tc){
+  /* tau: pulse width in us. Average heating through rth; extra rise during the pulse through the die's own
+     share of rth (60 %) with a 200 us thermal time constant. */
+  const Prf=Pk*duty, Qpk=Pk/pae-Pk, Qavg=Qpk*duty, Pdc=Prf/pae+0.6, Q=Pdc-Prf;   /* 0.6 W: receive chain, control, regulators */
+  const Tav=Tc+rth*Qavg, Tpk=Tav+0.6*rth*(Qpk-Qavg)*(1-Math.exp(-tau/200));
+  const Ea=1.0, k=8.617e-5, Tref=200+273.15; const mttf=1e6*Math.exp(Ea/k*(1/(Tpk+273.15)-1/Tref));
+  return {Prf,Pdc,Q,Qpk,Qavg,Tav,Tpk,mttf};
+}
+/* ---------- Step 11: failures ---------- */
+function failSet(N,f,mode,seed){ const k=Math.round(N*f), dead=new Array(N).fill(false), r=rng(seed);
+  if(mode==='rand'){ const idx=[...Array(N).keys()]; for(let i=N-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; } for(let i=0;i<k;i++) dead[idx[i]]=true; }
+  else if(mode==='clus'){ const s=Math.floor(r()*(N-k+1)); for(let i=0;i<k;i++) dead[s+i]=true; }
+  else { /* whole subarrays of 8 */ const M=8, ns=k>0?Math.max(1,Math.round(k/M)):0, nsub=Math.floor(N/M), ids=[...Array(nsub).keys()]; for(let i=nsub-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; } for(let q=0;q<Math.min(ns,nsub);q++) for(let i=0;i<M;i++) dead[ids[q]*M+i]=true; }
+  return dead; }
+/* ---------- page helpers (same as the R-series pages) ---------- */
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+function txtR(g,s,x,y,color){ txt(g,s,x-g.measureText(s).width,y,color); }
+/* text on a small panel-coloured box so it stays readable over traces */
+function lbl(g,s,x,y,color,right){ const w=g.measureText(s).width; const xx=right?x-w:x; g.fillStyle=css('--panel'); g.globalAlpha=0.85; g.fillRect(xx-3,y-11,w+6,15); g.globalAlpha=1; txt(g,s,xx,y,color); }
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const dB1=x=>isFinite(x)?x.toFixed(1)+' dB':'below −90 dB';
+function sci(x){ if(!isFinite(x)) return 'n/a'; let e=Math.floor(Math.log10(x)); let m=x/Math.pow(10,e); if(m>=9.95){ m/=10; e++; } return m.toFixed(1)+' × 10'+String(e).split('').map(ch=>'⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)]||'⁻').join(''); }
+const PAD={l:56,t:22,r:16,b:40};
+const zeros=N=>new Array(N).fill(0);
+/* pattern in dB relative to a reference peak */
+function toDb(P,ref){ const y=[]; for(let i=0;i<P.length;i++) y.push(10*Math.log10(Math.max(P[i]/ref,1e-12))); return y; }
+function patPlot(g,x0,y0,w,h,curves,o){ o=o||{}; return plot(g,x0,y0,w,h,o.xa??-90,o.xb??90,o.ya??-60,0,curves,{nx:o.nx||6,ny:o.ny||6,fx:v=>v.toFixed(0)+'°',fy:v=>v.toFixed(0),xl:o.xl||'angle from broadside',yl:o.yl||'dB relative to the error-free peak'}); }
+
+/* ---------- Step 1: phase-shifter bits and type ---------- */
+let psSeed=3;
+function psDraw(){
+  const c=$('cPs'), g=ctx(c), N=64, bits=sl('psB'), th0=sl('psA'), t=PS[$('psT').value];
+  setv('psB',bits+' bits'); setv('psA',th0.toFixed(1)+'°');
+  const req=steer(N,0.5,th0).map(x=>x/D2R), q=quantise(req,bits,'round');
+  const r=rng(psSeed), dev=req.map(()=>gauss(r)*t.er), tot=q.err.map((e,i)=>e+dev[i]);
+  const w=uniform(N), ph=req.map((x,i)=>(x+tot[i])*D2R), gl=patAt(w,ph,0.5,th0)/(N*N);
+  const st=rms(tot)*D2R, IL=t.il0+t.ilb*bits;
+  const x0=56, w0=c.width-72; const h1=150, y1=22, y2=y1+h1+44, h2=c.height-y2-40;
+  const xs=[...Array(N).keys()];
+  const P1=plot(g,x0,y1,w0,h1,0,N-1,0,360,[{x:xs,y:req.map(wrap360),color:css('--muted'),dash:[5,4]}],{nx:8,ny:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)+'°',yl:'required (dashed) and commanded (dots) phase, 0–360°'});
+  for(let n=0;n<N;n++) dot(g,P1.X(n),P1.Y(wrap360(q.cmd[n])),css('--accent'),2.4);
+  lbl(g,bits+' bits, LSB '+q.L.toFixed(2)+'°, '+t.name,x0+w0-6,y1+14,css('--accent'),true);
+  const em=Math.max(5,Math.ceil(Math.max(...tot.map(Math.abs))/5)*5);
+  const P2=plot(g,x0,y2,w0,h2,0,N-1,-em,em,[],{nx:8,ny:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)+'°',xl:'element number n',yl:'phase error per element: quantisation (bars) + device state error (dots)'});
+  const bw=Math.max(1.5,w0/N*0.6);
+  g.fillStyle=css('--trace'); g.globalAlpha=0.55;
+  for(let n=0;n<N;n++){ const ya=P2.Y(0), yb=P2.Y(q.err[n]); g.fillRect(P2.X(n)-bw/2,Math.min(ya,yb),bw,Math.abs(yb-ya)||1); }
+  g.globalAlpha=1; for(let n=0;n<N;n++) dot(g,P2.X(n),P2.Y(tot[n]),css('--trace2'),2.2);
+  ro($('psOut'),[['required step Δφ',(180*Math.sin(th0*D2R)).toFixed(2)+'°'],['LSB',q.L.toFixed(2)+'°'],['quantisation rms',rms(q.err).toFixed(2)+'°'],['  LSB/√12',(q.L/Math.sqrt(12)).toFixed(2)+'°'],['device rms',rms(dev).toFixed(2)+'°'],['total rms σ',rms(tot).toFixed(2)+'°'],['gain loss (array)',(db(gl)).toFixed(3)+' dB'],['  exp(−σ²)',(db(Math.exp(-st*st))).toFixed(3)+' dB'],['insertion loss',IL<0?'gain '+(-IL).toFixed(1)+' dB':IL.toFixed(1)+' dB'],['switching time',fmt(t.tsw*1e-9,'s')]]);
+}
+
+/* ---------- Step 2: quantisation lobes ---------- */
+let qlSeed=7;
+function qlDraw(){
+  const c=$('cQl'), g=ctx(c), N=sl('qlN'), bits=sl('qlB'), th0=sl('qlA'), mode=$('qlM').value;
+  setv('qlN',N); setv('qlB',bits+' bits'); setv('qlA',th0.toFixed(2)+'°');
+  const w=taylor(N,35,5), req=steer(N,0.5,th0), reqd=req.map(x=>x/D2R);
+  const q=quantise(reqd,bits,mode,qlSeed), ph=q.cmd.map(x=>x*D2R);
+  const P0=pattern(w,req,0.5,TH), P=pattern(w,ph,0.5,TH), im0=mainIdx(P0), ref=P0[im0];
+  const s=psl(P,im0), s0=psl(P0,im0), fl=floorRel(0,rms(q.err),w), pred=Math.pow(2,-2*bits);
+  const A={x0:56,y0:22,w:c.width-72,h:c.height-62};
+  const Pp=patPlot(g,A.x0,A.y0,A.w,A.h,[{x:TH,y:toDb(P0,ref),color:css('--muted'),dash:[5,4],w:1.2},{x:TH,y:toDb(P,ref),color:css('--trace'),w:1.5}]);
+  if(mode!=='ideal'&&rms(q.err)>1e-6){ hline(g,A.x0,A.w,Pp.Y(db(fl)),css('--trace2'),[6,4]); lbl(g,'random-error floor '+db(fl).toFixed(1)+' dB',A.x0+6,Pp.Y(db(fl))-4,css('--trace2')); }
+  hline(g,A.x0,A.w,Pp.Y(db(pred)),css('--accent'),[2,3]); lbl(g,'1/2^(2k) = '+db(pred).toFixed(1)+' dB',A.x0+A.w-6,Pp.Y(db(pred))-4,css('--accent'),true);
+  if(s.at>=0){ const sv=db(s.v*P[s.im]/ref); dot(g,Pp.X(TH[s.at]),Pp.Y(sv),css('--bad'),4); lbl(g,'peak sidelobe '+db(s.v).toFixed(1)+' dB',clamp(Pp.X(TH[s.at])+8,A.x0+4,A.x0+A.w-150),Pp.Y(sv)-8,css('--bad')); }
+  ro($('qlOut'),[['LSB',q.L.toFixed(2)+'°'],['rms phase error',rms(q.err).toFixed(2)+'°'],['gain loss',(db(P[im0]/ref)).toFixed(2)+' dB'],['PSL, ideal phase',db(s0.v).toFixed(1)+' dB'],['PSL, now',db(s.v).toFixed(1)+' dB'],['  at angle',TH[s.at].toFixed(2)+'°'],['lobe rule 1/2^(2k)',db(pred).toFixed(1)+' dB'],['random floor',mode==='ideal'||rms(q.err)<1e-6?'none':db(fl).toFixed(1)+' dB']]);
+}
+
+/* ---------- Step 3: attenuator and taper ---------- */
+function atDraw(){
+  const c=$('cAt'), g=ctx(c), N=64, sll=sl('atS'), lsb=+$('atL').value, bits=sl('atB'), ppd=sl('atP');
+  setv('atS','−'+sll.toFixed(0)+' dB'); setv('atB',bits+' bits'); setv('atP',ppd.toFixed(1)+' °/dB');
+  const w=taylor(N,sll,5), qt=qTaper(w,lsb,bits,ppd);
+  const P0=pattern(w,zeros(N),0.5,TH), P=pattern(qt.w,qt.ph,0.5,TH), im=mainIdx(P0), ref=P0[im];
+  const s=psl(P,im), ea=w.map((v,i)=>20*Math.log10(qt.w[i]/v));
+  const x0=56, w0=c.width-72, y1=22, h1=110, y2=y1+h1+44, h2=c.height-y2-40;
+  const ideal=w.map(v=>-20*Math.log10(v)), amax=Math.max(30,Math.ceil(Math.max(...ideal,qt.range>60?0:qt.range)/10)*10);
+  const xs=[...Array(N).keys()];
+  const P1=plot(g,x0,y1,w0,h1,0,N-1,-amax,0,[],{nx:8,ny:amax/10,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),yl:'attenuation set in each module, dB (line: ideal Taylor; bars: attenuator steps)'});
+  const bw=Math.max(1.5,w0/N*0.7);
+  for(let n=0;n<N;n++){ const clipped=ideal[n]>qt.range+1e-9; g.fillStyle=clipped?css('--bad'):css('--trace'); g.globalAlpha=0.6; const ya=P1.Y(0), yb=P1.Y(-qt.att[n]); g.fillRect(P1.X(n)-bw/2,ya,bw,Math.max(1,yb-ya)); }
+  g.globalAlpha=1;
+  plot(g,x0,y1,w0,h1,0,N-1,-amax,0,[{x:xs,y:ideal.map(v=>-v),color:css('--accent'),w:1.6}],{nx:8,ny:amax/10,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)});
+  if(qt.range<amax){ hline(g,x0,w0,P1.Y(-qt.range),css('--bad'),[3,3]); lbl(g,'range '+qt.range.toFixed(2)+' dB',x0+w0-6,P1.Y(-qt.range)-4,css('--bad'),true); }
+  else lbl(g,'range '+qt.range.toFixed(2)+' dB (below the axis)',x0+w0-6,y1+h1-6,css('--muted'),true);
+  const Pp=patPlot(g,x0,y2,w0,h2,[{x:TH,y:toDb(P0,ref),color:css('--muted'),dash:[5,4],w:1.2},{x:TH,y:toDb(P,ref),color:css('--trace'),w:1.5}],{ya:-70,ny:7});
+  hline(g,x0,w0,Pp.Y(-sll),css('--accent'),[2,3]);
+  if(s.at>=0){ const sv=db(s.v*P[s.im]/ref); dot(g,Pp.X(TH[s.at]),Pp.Y(sv),css('--bad'),4); lbl(g,'peak sidelobe '+db(s.v).toFixed(1)+' dB',clamp(Pp.X(TH[s.at])+8,x0+4,x0+w0-150),Pp.Y(sv)-8,css('--bad')); }
+  ro($('atOut'),[['edge needs',qt.maxReq.toFixed(2)+' dB'],['range',qt.range.toFixed(2)+' dB'],['clipped',qt.clip+' of '+N],['rms amp. error',rms(ea).toFixed(3)+' dB'],['taper eff. η',taperEff(qt.w).toFixed(3)],['  as gain',db(taperEff(qt.w)).toFixed(2)+' dB'],['design sidelobe','−'+sll.toFixed(0)+' dB'],['PSL, ideal taper',db(psl(P0,im).v).toFixed(1)+' dB'],['PSL, stepped',db(s.v).toFixed(1)+' dB']]);
+}
+
+/* ---------- Step 4: random errors and temperature ---------- */
+let erSeed=11;
+function erDraw(){
+  const c=$('cEr'), g=ctx(c), N=sl('erN'), sp=sl('erP'), sa=sl('erA'), T=sl('erT'), k=TRK[$('erK').value];
+  setv('erN',N); setv('erP',sp.toFixed(1)+'°'); setv('erA',sa.toFixed(2)+' dB'); setv('erT',T.toFixed(0)+' °C');
+  const dT=Math.abs(T-25), SP=Math.hypot(sp,k.ph*dT), SA=Math.hypot(sa,k.am*dT);
+  const w=taylor(N,35,5), e=drawErr(N,erSeed), r=applyErr(w,zeros(N),e.a,e.p,SA,SP);
+  const P0=pattern(w,zeros(N),0.5,TH), P=pattern(r.w,r.ph,0.5,TH), im=mainIdx(P0), ref=P0[im];
+  const s=psl(P,im), fl=floorRel(SA,SP,w);
+  const A={x0:56,y0:22,w:c.width-72,h:c.height-62};
+  const Pp=patPlot(g,A.x0,A.y0,A.w,A.h,[{x:TH,y:toDb(P0,ref),color:css('--muted'),dash:[5,4],w:1.2},{x:TH,y:toDb(P,ref),color:css('--trace'),w:1.5}]);
+  if(SP>0||SA>0){ hline(g,A.x0,A.w,Pp.Y(db(fl)),css('--trace2'),[6,4]); lbl(g,'average error floor '+db(fl).toFixed(1)+' dB',A.x0+6,Pp.Y(db(fl))-4,css('--trace2')); }
+  if(s.at>=0){ const sv=db(s.v*P[s.im]/ref); dot(g,Pp.X(TH[s.at]),Pp.Y(sv),css('--bad'),4); lbl(g,'peak sidelobe '+db(s.v).toFixed(1)+' dB',clamp(Pp.X(TH[s.at])+8,A.x0+4,A.x0+A.w-150),Pp.Y(sv)-8,css('--bad')); }
+  ro($('erOut'),[['total σφ',SP.toFixed(2)+'°'],['total σa',SA.toFixed(3)+' dB'],['from temperature',(k.ph*dT).toFixed(1)+'°, '+(k.am*dT).toFixed(2)+' dB'],['exp. gain loss',(db(gainLoss(SA,SP))).toFixed(2)+' dB'],['gain, this draw',sdb(db(P[im]/ref))],['error floor',SP>0||SA>0?db(fl).toFixed(1)+' dB':'none'],['PSL, this draw',db(s.v).toFixed(1)+' dB'],['common drift',sdb(-0.015*(T-25))]]);
+}
+
+/* ---------- Step 5: calibration ---------- */
+const CA_SP0=10, CA_SA0=1.0;
+function caDraw(){
+  const c=$('cCa'), g=ctx(c), N=64, m=$('caM').value, T=sl('caT'), acP=sl('caP'), acA=sl('caA');
+  setv('caT',T.toFixed(0)+' °C'); setv('caP',acP.toFixed(1)+'°'); setv('caA',acA.toFixed(2)+' dB');
+  const k=TRK.typ, dT=Math.abs(T-25), before={p:Math.hypot(CA_SP0,k.ph*dT),a:Math.hypot(CA_SA0,k.am*dT)}, res=calResid(m,CA_SP0,CA_SA0,T,acP,acA,k);
+  const w=taylor(N,35,5), eB=drawErr(N,11), eA=drawErr(N,23);
+  const rB=applyErr(w,zeros(N),eB.a,eB.p,before.a,before.p), rA=m==='none'?rB:applyErr(w,zeros(N),eA.a,eA.p,res.a,res.p);
+  const P0=pattern(w,zeros(N),0.5,TH), P=pattern(rA.w,rA.ph,0.5,TH), im=mainIdx(P0), ref=P0[im];
+  const s=psl(P,im), flB=floorRel(before.a,before.p,w), flA=floorRel(res.a,res.p,w);
+  const x0=56, w0=c.width-72, y1=22, h1=110, y2=y1+h1+44, h2=c.height-y2-40;
+  const pB=eB.p.map(v=>v*before.p), pA=(m==='none'?eB.p.map(v=>v*before.p):eA.p.map(v=>v*res.p));
+  const em=Math.max(10,Math.ceil(Math.max(...pB.map(Math.abs),...pA.map(Math.abs))/10)*10);
+  const P1=plot(g,x0,y1,w0,h1,0,N-1,-em,em,[],{nx:8,ny:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)+'°',yl:'phase error per module: before calibration (grey) and after (bars)'});
+  const bw=Math.max(1.5,w0/N*0.7);
+  for(let n=0;n<N;n++){ g.fillStyle=css('--muted'); g.globalAlpha=0.3; let ya=P1.Y(0), yb=P1.Y(pB[n]); g.fillRect(P1.X(n)-bw/2,Math.min(ya,yb),bw,Math.abs(yb-ya)||1);
+    g.fillStyle=css('--trace'); g.globalAlpha=0.85; yb=P1.Y(pA[n]); g.fillRect(P1.X(n)-bw/4,Math.min(ya,yb),bw/2,Math.abs(yb-ya)||1); }
+  g.globalAlpha=1; lbl(g,'after: '+CAL[m].name,x0+w0-6,y1+14,css('--trace'),true);
+  const Pp=patPlot(g,x0,y2,w0,h2,[{x:TH,y:toDb(P0,ref),color:css('--muted'),dash:[5,4],w:1.2},{x:TH,y:toDb(P,ref),color:css('--trace'),w:1.5}],{ya:-70,ny:7});
+  hline(g,x0,w0,Pp.Y(db(flA)),css('--trace2'),[6,4]); lbl(g,'average error floor '+db(flA).toFixed(1)+' dB',x0+6,Pp.Y(db(flA))-4,css('--trace2'));
+  if(s.at>=0){ const sv=db(s.v*P[s.im]/ref); dot(g,Pp.X(TH[s.at]),Pp.Y(sv),css('--bad'),4); lbl(g,'peak sidelobe '+db(s.v).toFixed(1)+' dB',clamp(Pp.X(TH[s.at])+8,x0+4,x0+w0-150),Pp.Y(sv)-8,css('--bad')); }
+  ro($('caOut'),[['method',{none:'none',one:'25 °C table',tab:'temp. table',bit:'built-in loop'}[m]],['σφ before',before.p.toFixed(1)+'°'],['σa before',before.a.toFixed(2)+' dB'],['σφ after',res.p.toFixed(2)+'°'],['σa after',res.a.toFixed(3)+' dB'],['floor before',db(flB).toFixed(1)+' dB'],['floor after',db(flA).toFixed(1)+' dB'],['PSL after',db(s.v).toFixed(1)+' dB'],['exp. gain loss',db(gainLoss(res.a,res.p)).toFixed(2)+' dB']]);
+}
+
+/* ---------- Step 6: EIRP and G/T ---------- */
+function eiDraw(){
+  const c=$('cEi'), g=ctx(c), e=sl('eiN'), N=Math.pow(2,e), P=sl('eiP'), L=sl('eiL'), NF=sl('eiF'), th=sl('eiS');
+  setv('eiN',N.toFixed(0)); setv('eiP',P.toFixed(1)+' W'); setv('eiL',L.toFixed(1)+' dB'); setv('eiF',NF.toFixed(1)+' dB'); setv('eiS',th.toFixed(0)+'°');
+  const b=linkBudget(N,P,L,NF,th), xs=[], yE=[], yG=[];
+  for(let x=4;x<=12.0001;x+=0.05){ const bb=linkBudget(Math.pow(2,x),P,L,NF,th); xs.push(x); yE.push(db(bb.EIRP)); yG.push(db(bb.GT)); }
+  const A={x0:56,y0:22,w:c.width-72,h:c.height-62};
+  const Pp=plot(g,A.x0,A.y0,A.w,A.h,4,12,-20,100,[{x:xs,y:yE,color:css('--accent'),w:2},{x:xs,y:yG,color:css('--trace'),w:2}],{nx:8,ny:6,fx:v=>Math.pow(2,v).toFixed(0),fy:v=>v.toFixed(0),xl:'number of elements N (log scale)',yl:'EIRP, dBW (orange) and G/T, dB/K (green)'});
+  vline(g,Pp.X(e),A.y0,A.h,css('--muted'),[3,3]);
+  dot(g,Pp.X(e),Pp.Y(db(b.EIRP)),css('--accent'),5); dot(g,Pp.X(e),Pp.Y(db(b.GT)),css('--trace'),5);
+  const right=e>9; lbl(g,'EIRP '+db(b.EIRP).toFixed(1)+' dBW',Pp.X(e)+(right?-10:10),Pp.Y(db(b.EIRP))-10,css('--accent'),right);
+  lbl(g,'G/T '+db(b.GT).toFixed(1)+' dB/K',Pp.X(e)+(right?-10:10),Pp.Y(db(b.GT))+20,css('--trace'),right);
+  ro($('eiOut'),[['element gain',db(b.Gel).toFixed(2)+' dBi'],['array gain N·G_el',db(b.G).toFixed(1)+' dBi'],['radiated power',b.Prad>=1000?(b.Prad/1000).toFixed(2)+' kW':b.Prad.toFixed(1)+' W'],['EIRP',db(b.EIRP).toFixed(1)+' dBW'],['T_sys at element',b.Tsys.toFixed(0)+' K'],['G/T',db(b.GT).toFixed(1)+' dB/K'],['radar EIRP·G/T',db(b.EIRP*b.GT).toFixed(1)+' dB']]);
+}
+
+/* ---------- Step 7: isolation and switching ---------- */
+const LIM_RATING=37;
+function isDraw(){
+  const c=$('cIs'), g=ctx(c), P=sl('isP'), I=sl('isI'), RL=sl('isR'), gated=$('isG').value==='g', tsw=sl('isT')*1e-9, tau=sl('isW')*1e-6;
+  setv('isP',P.toFixed(1)+' dBm'); setv('isI',I.toFixed(1)+' dB'); setv('isR',RL.toFixed(1)+' dB'); setv('isT',fmt(tsw,'s')); setv('isW',fmt(tau,'s'));
+  const b=isoBudget(P,I,RL,gated), Rmin=c0*(tau+tsw)/2;
+  const x0=200, w0=c.width-216, y0=22, h1=150;
+  /* bar chart, dBm from 0 to 55 */
+  const X=v=>x0+w0*clamp(v,0,55)/55;
+  frame(g,x0,y0,w0,h1,1); g.fillStyle=css('--muted'); for(let v=0;v<=55;v+=10){ const s=v.toFixed(0); g.fillText(s,X(v)-g.measureText(s).width/2,y0+h1+15); vline(g,X(v),y0,h1,css('--grid'),[]); }
+  txtR(g,'dBm',x0+w0,y0+h1+29,css('--muted'));
+  const rows=[['PA output',P,css('--accent')],['via circulator isolation',P-I,css('--trace2')],['via antenna reflection',P-RL,css('--trace2')],['worst case (in phase)',b.Pin,b.Pin>LIM_RATING?css('--bad'):css('--trace')],['average (random phase)',b.Pinc,css('--trace')]];
+  rows.forEach((r,i)=>{ const y=y0+10+i*28; txtR(g,r[0],x0-8,y+13,css('--ink')); g.fillStyle=r[2]; g.globalAlpha=0.75; g.fillRect(x0,y,X(r[1])-x0,18); g.globalAlpha=1; txt(g,r[1].toFixed(1),Math.min(X(r[1])+4,x0+w0-34),y+13,css('--ink')); });
+  vline(g,X(LIM_RATING),y0,h1,css('--bad'),[4,3]); lbl(g,'limiter rating '+LIM_RATING+' dBm',X(LIM_RATING)+4,y0+h1-6,css('--bad'));
+  /* timeline */
+  const ty=y0+h1+50, th=c.height-ty-40, tx0=56, tw=c.width-72, tmax=Math.max(tau+tsw,1e-6)*1.6+0.2e-6, T=t=>tx0+tw*t/tmax;
+  frame(g,tx0,ty,tw,th,1); g.fillStyle=css('--muted');
+  for(let k=0;k<=5;k++){ const t=tmax*k/5, s=fmt(t,'s'); g.fillText(s,clamp(T(t)-g.measureText(s).width/2,tx0-10,tx0+tw-g.measureText(s).width+10),ty+th+15); }
+  txtR(g,'time from start of the pulse',tx0+tw,ty+th+29,css('--muted'));
+  const by=ty+th*0.3, bh=th*0.4;
+  g.fillStyle=css('--accent'); g.globalAlpha=0.7; g.fillRect(T(0),by,T(tau)-T(0),bh);
+  g.fillStyle=css('--bad'); g.globalAlpha=0.45; g.fillRect(T(tau),by,Math.max(1,T(tau+tsw)-T(tau)),bh);
+  g.fillStyle=css('--trace'); g.globalAlpha=0.45; g.fillRect(T(tau+tsw),by,T(tmax)-T(tau+tsw),bh); g.globalAlpha=1;
+  lbl(g,'transmit',T(0)+4,by-6,css('--accent')); lbl(g,'receive: echoes from R ≥ '+fmt(Rmin,'m',Rmin>=1000?2:0),Math.min(T(tau+tsw)+4,tx0+tw-260),by+bh+16,css('--trace'));
+  lbl(g,'switching '+fmt(tsw,'s'),Math.min(T(tau)+4,tx0+tw-130),by-6,css('--bad'));
+  lbl(g,(gated?'PA gated off: ':'PA left biased: ')+'receiver noise '+sdb(b.deg),tx0+tw,ty-8,b.deg>1?css('--bad'):css('--muted'),true);
+  ro($('isOut'),[['limiter, worst',b.Pin.toFixed(1)+' dBm'],['  in watts',(Math.pow(10,b.Pin/10)/1000).toFixed(2)+' W'],['margin to 37 dBm',(LIM_RATING-b.Pin).toFixed(1)+' dB '+(b.Pin>LIM_RATING?'FAIL':'ok')],['PA noise into Rx',b.Nleak.toFixed(1)+' dBm/Hz'],['  as temperature',b.Tleak<1?'< 1 K':b.Tleak.toFixed(0)+' K'],['Rx noise rise',sdb(b.deg)],['blind range',fmt(Rmin,'m',Rmin>=1000?2:0)]]);
+}
+
+/* ---------- Step 8: active impedance ---------- */
+function scDraw(){
+  const c=$('cSc'), g=ctx(c), th=sl('scA'), dl=sl('scD'), cp=CPL[$('scC').value], circ=$('scP').value==='c';
+  setv('scA',th.toFixed(1)+'°'); setv('scD',dl.toFixed(2)+' λ');
+  const xs=[], gm=[], pC=[], pN=[];
+  for(let a=0;a<=80.0001;a+=0.25){ const G=activeGamma(a,dl,cp.c); xs.push(a); gm.push(G.mag); pC.push(db(1-G.mag*G.mag)); pN.push(db(cripps(G.re,G.im))); }
+  const G=activeGamma(th,dl,cp.c), vs=(1+G.mag)/(1-G.mag), radC=db(1-G.mag*G.mag), radN=db(cripps(G.re,G.im)), sg=dl>=1?0:Math.asin(clamp(1/dl-1,-1,1))/D2R;
+  const x0=56, w0=c.width-72, y1=22, h1=120, y2=y1+h1+44, h2=c.height-y2-40;
+  const P1=plot(g,x0,y1,w0,h1,0,80,0,1,[{x:xs,y:gm,color:css('--trace2'),w:2}],{nx:8,ny:4,fx:v=>v.toFixed(0)+'°',fy:v=>v.toFixed(2),yl:'|Γ_a|, active reflection coefficient seen by each PA'});
+  if(1/dl-1<1){ vline(g,P1.X(sg),y1,h1,css('--bad'),[4,3]); lbl(g,'grating lobe enters '+sg.toFixed(1)+'°',P1.X(sg)-4,y1+14,css('--bad'),true); }
+  dot(g,P1.X(th),P1.Y(G.mag),css('--trace2'),5);
+  const mine=circ?pC:pN, other=circ?pN:pC;
+  const P2=plot(g,x0,y2,w0,h2,0,80,-15,0,[{x:xs,y:other,color:css('--muted'),dash:[5,4],w:1.3},{x:xs,y:mine,color:css('--trace'),w:2}],{nx:8,ny:5,fx:v=>v.toFixed(0)+'°',fy:v=>v.toFixed(0),xl:'scan angle',yl:'radiated power change, dB (solid: your choice, dashed: the other)'});
+  dot(g,P2.X(th),P2.Y(circ?radC:radN),css('--trace'),5);
+  if(1/dl-1<1) vline(g,P2.X(sg),y2,h2,css('--bad'),[4,3]);
+  ro($('scOut'),[['your choice',circ?'circulator':'none'],['radiated (yours)',sdb(circ?radC:radN)],['|Γ_a|',G.mag.toFixed(3)+(G.mag>=0.979?' blind':'')],['active VSWR',vs>50?'> 50':vs.toFixed(2)],['active RL',G.mag>0?(-20*Math.log10(G.mag)).toFixed(1)+' dB':'> 90 dB'],['with circulator',sdb(radC)],['no circulator',sdb(radN)],['circ. load, 10 W',(10*G.mag*G.mag).toFixed(2)+' W'],['grating lobe at',1/dl-1<1?sg.toFixed(1)+'°':'none']]);
+}
+
+/* ---------- Step 9: true time delay ---------- */
+function tdDraw(){
+  const c=$('cTd'), g=ctx(c), N=sl('tdN'), th0=sl('tdA'), bw=sl('tdB'), mode=$('tdM').value, Ms=+$('tdS').value;
+  setv('tdN',N); setv('tdA',th0.toFixed(1)+'°'); setv('tdB',bw.toFixed(1)+' %');
+  const w=uniform(N), th3=0.886*2/N/Math.cos(th0*D2R)/D2R, sq=bw/200*Math.tan(th0*D2R)/D2R;
+  const win=Math.max(4*th3,2.5*sq+2*th3), a=Math.max(-90,th0-win), b=Math.min(90,th0+win), thg=grid(a,b,801);
+  const frs=[1-bw/200,1,1+bw/200], cols=[css('--trace'),css('--ink'),css('--accent')], curves=[], res=[];
+  frs.forEach((fr,i)=>{ const ph=ttdPhase(N,0.5,th0,fr,mode,Ms), P=pattern(w,ph,0.5,thg,fr), im=mainIdx(P); curves.push({x:thg,y:toDb(P,N*N),color:cols[i],w:i===1?1.4:1.9,dash:i===1?[5,4]:[]}); res.push({pk:thg[im],g:patAt(w,ph,0.5,th0,fr)/(N*N),psl:psl(pattern(w,ph,0.5,TH,fr)).v}); });
+  const A={x0:56,y0:22,w:c.width-72,h:c.height-62};
+  const Pp=plot(g,A.x0,A.y0,A.w,A.h,a,b,-40,0,curves,{nx:6,ny:4,fx:v=>v.toFixed(1)+'°',fy:v=>v.toFixed(0),xl:'angle',yl:'dB relative to N² (band edges: green low, orange high; dashed f₀)'});
+  vline(g,Pp.X(th0),A.y0,A.h,css('--muted'),[3,3]); lbl(g,'θ₀ = '+th0.toFixed(1)+'°',Pp.X(th0)+4,A.y0+14,css('--muted'));
+  const L=N*0.5*0.03 /* aperture at 10 GHz, m */, fill=L*Math.sin(th0*D2R)/c0, ibw=th3*D2R/Math.max(Math.tan(th0*D2R),1e-9)*100;
+  const worst=Math.min(res[0].g,res[2].g);
+  ro($('tdOut'),[['θ₃ at θ₀',th3.toFixed(2)+'°'],['peak at f_low',res[0].pk.toFixed(2)+'°'],['peak at f_high',res[2].pk.toFixed(2)+'°'],['edge loss to θ₀',(db(worst)).toFixed(2)+' dB'],['edge PSL',db(Math.max(res[0].psl,res[2].psl)).toFixed(1)+' dB'],['IBW θ₃/tan θ₀',th0<0.5?'unlimited':ibw.toFixed(1)+' %'],['fill time',fmt(fill,'s',2)],['max delay',(fill*1e10).toFixed(1)+' λ']]);
+}
+
+/* ---------- Step 10: thermal ---------- */
+const TJMAX=175;
+function thDraw(){
+  const c=$('cTh'), g=ctx(c), P=sl('thP'), pae=sl('thE')/100, du=sl('thD')/100, tau=Math.pow(10,sl('thW')), rth=sl('thR'), Tc=sl('thC');
+  setv('thP',P.toFixed(1)+' W'); setv('thE',(pae*100).toFixed(0)+' %'); setv('thD',(du*100).toFixed(0)+' %'); setv('thW',fmt(tau*1e-6,'s',tau<10?1:0)); setv('thR',rth.toFixed(1)+' °C/W'); setv('thC',Tc.toFixed(0)+' °C');
+  const t=thermal(P,pae,du,tau,rth,Tc), xs=[], yA=[], yP=[];
+  for(let e=15;e<=65.0001;e+=0.5){ const tt=thermal(P,e/100,du,tau,rth,Tc); xs.push(e); yA.push(tt.Tav); yP.push(tt.Tpk); }
+  const A={x0:56,y0:22,w:c.width-72,h:c.height-62}, ymax=Math.max(250,Math.ceil(Math.max(...yP)/50)*50);
+  const Pp=plot(g,A.x0,A.y0,A.w,A.h,15,65,0,ymax,[{x:xs,y:yA,color:css('--trace'),w:1.8,dash:[5,4]},{x:xs,y:yP,color:css('--accent'),w:2}],{nx:10,ny:5,fx:v=>v.toFixed(0)+'%',fy:v=>v.toFixed(0)+'°',xl:'PA power-added efficiency',yl:'junction temperature: peak in the pulse (solid), average (dashed)'});
+  hline(g,A.x0,A.w,Pp.Y(TJMAX),css('--bad'),[4,3]); lbl(g,'design limit '+TJMAX+' °C',A.x0+A.w-6,Pp.Y(TJMAX)-5,css('--bad'),true);
+  hline(g,A.x0,A.w,Pp.Y(Tc),css('--muted'),[2,3]); lbl(g,'cold plate '+Tc.toFixed(0)+' °C',A.x0+6,Pp.Y(Tc)-5,css('--muted'));
+  dot(g,Pp.X(pae*100),Pp.Y(t.Tpk),t.Tpk>TJMAX?css('--bad'):css('--accent'),5); dot(g,Pp.X(pae*100),Pp.Y(t.Tav),css('--trace'),4);
+  ro($('thOut'),[['PA heat in pulse',t.Qpk.toFixed(2)+' W'],['PA heat, average',t.Qavg.toFixed(2)+' W'],['T_j average',t.Tav.toFixed(1)+' °C'],['T_j peak',t.Tpk.toFixed(1)+' °C'],['margin to '+TJMAX,(TJMAX-t.Tpk).toFixed(1)+' °C '+(t.Tpk>TJMAX?'FAIL':'ok')],['module DC in',t.Pdc.toFixed(2)+' W'],['module heat',t.Q.toFixed(2)+' W'],['heat, 1024 mod.',(t.Q*1024/1000).toFixed(2)+' kW'],['PA MTTF',sci(t.mttf)+' h']]);
+}
+
+/* ---------- Step 11: failures ---------- */
+let flSeed=5;
+function flDraw(){
+  const c=$('cFl'), g=ctx(c), N=sl('flN'), f=sl('flF')/100, mode=$('flM').value, mtbf=Math.pow(10,sl('flT'));
+  setv('flN',N); setv('flF',(f*100).toFixed(1)+' %'); setv('flT',(mtbf/1000).toFixed(0)+' 000 h');
+  const w=taylor(N,35,5), dead=failSet(N,f,mode,flSeed), ww=w.map((v,i)=>dead[i]?0:v);
+  const P0=pattern(w,zeros(N),0.5,TH), P=pattern(ww,zeros(N),0.5,TH), im=mainIdx(P0), ref=P0[im], s=psl(P,im);
+  let sd=0,sa=0,sa2=0,s1=0,s2=0; w.forEach((v,i)=>{ s1+=v; s2+=v*v; if(dead[i]) sd+=v*v; else { sa+=v; sa2+=v*v; } });
+  const k=dead.filter(x=>x).length, fa=k/N, snr=k<N?(sa*sa/sa2)/(s1*s1/s2):0, fl=k>0&&k<N?sd/(sa*sa):0;
+  const x0=56, w0=c.width-72, y1=22, h1=40, y2=y1+h1+40, h2=c.height-y2-40;
+  frame(g,x0,y1,w0,h1,1); txt(g,'modules (red: failed)',x0,y1-6,css('--muted'));
+  const bw=w0/N;
+  for(let n=0;n<N;n++){ g.fillStyle=dead[n]?css('--bad'):css('--trace'); g.globalAlpha=dead[n]?0.9:0.25+0.6*w[n]; g.fillRect(x0+n*bw+0.5,y1+2,Math.max(1,bw-1),h1-4); }
+  g.globalAlpha=1;
+  const Pp=patPlot(g,x0,y2,w0,h2,[{x:TH,y:toDb(P0,ref),color:css('--muted'),dash:[5,4],w:1.2},{x:TH,y:toDb(P,ref),color:css('--trace'),w:1.5}],{ya:-60,ny:6});
+  if(fl>0){ hline(g,x0,w0,Pp.Y(db(fl)),css('--trace2'),[6,4]); lbl(g,'floor from failed elements '+db(fl).toFixed(1)+' dB',x0+6,Pp.Y(db(fl))-4,css('--trace2')); }
+  if(s.at>=0){ const sv=db(s.v*P[s.im]/ref); dot(g,Pp.X(TH[s.at]),Pp.Y(sv),css('--bad'),4); lbl(g,'peak sidelobe '+db(s.v).toFixed(1)+' dB',clamp(Pp.X(TH[s.at])+8,x0+4,x0+w0-150),Pp.Y(sv)-8,css('--bad')); }
+  const tt=-mtbf*Math.log(Math.max(1-fa,1e-9));
+  lbl(g,k>0?('reached after '+tt.toFixed(0)+' h at MTBF '+(mtbf/1000).toFixed(0)+' 000 h'):('MTBF '+(mtbf/1000).toFixed(0)+' 000 h, no failures yet'),x0+w0-4,y1-6,css('--trace2'),true);
+  ro($('flOut'),[['failed',k+' of '+N+' ('+(fa*100).toFixed(1)+' %)'],['Tx EIRP',k<N?sdb(20*Math.log10(1-fa)):'no beam'],['Rx peak gain',k<N?sdb(db(Math.max(P[im],1e-30)/ref)):'no beam'],['Rx SNR (G/T)',k<N?sdb(db(snr)):'no beam'],['failure floor',fl>0?db(fl).toFixed(1)+' dB':'none'],['peak sidelobe',db(s.v).toFixed(1)+' dB'],['time to reach',k>0?fmt(tt,'',0)+' h':'none'],['  in years',k>0?(tt/8766).toFixed(2):'none']]);
+}
+
+bind(['psB','psT','psA'],psDraw); $('psR').addEventListener('click',()=>{ psSeed++; psDraw(); });
+bind(['qlN','qlB','qlA','qlM'],qlDraw); $('qlR').addEventListener('click',()=>{ qlSeed++; qlDraw(); });
+bind(['atS','atL','atB','atP'],atDraw);
+bind(['erN','erP','erA','erT','erK'],erDraw); $('erR').addEventListener('click',()=>{ erSeed++; erDraw(); });
+bind(['caM','caT','caP','caA'],caDraw);
+bind(['eiN','eiP','eiL','eiF','eiS'],eiDraw);
+bind(['isP','isI','isR','isG','isT','isW'],isDraw);
+bind(['scA','scD','scC','scP'],scDraw);
+bind(['tdN','tdA','tdB','tdM','tdS'],tdDraw);
+bind(['thP','thE','thD','thW','thR','thC'],thDraw);
+bind(['flN','flF','flM','flT'],flDraw); $('flR').addEventListener('click',()=>{ flSeed++; flDraw(); });
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

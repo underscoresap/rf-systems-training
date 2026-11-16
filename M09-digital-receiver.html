@@ -1,0 +1,1265 @@
+<meta charset="utf-8">
+<title>Digital Receiver Processing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → definitions → explanation → naive case → side by side → how to choose → Try it bench → things to check → design-to-system chain → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Digital Receivers and Processing · RF Systems for Component Engineers</div>
+  <h1>The digital receiver: DDC, FPGA processing and pulse compression</h1>
+  <p class="lede">Once the ADC has turned the IF into numbers, everything else the receiver does is arithmetic: tuning to the wanted band, filtering and slowing the data down, compressing long pulses into sharp ones, separating targets by their Doppler, deciding which cells hold targets, and doing all of it in a fixed number of bits inside an FPGA clocked at a few hundred MHz. Each of those steps has design parameters (word lengths, table sizes, filter stages, window shapes, threshold constants) and every one of them shows up as a system number: range resolution, range and Doppler sidelobes, false targets, false alarms, dynamic range and reaction time. This page builds those links from first principles, one block at a time, with worked numbers and a bench for each.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#chain">0 The chain after the ADC</a><a href="#iq">1 Complex (I/Q) signals</a><a href="#nco">2 NCO and down-conversion</a><a href="#dec">3 Decimation, CIC and FIR</a><a href="#pc">4 Matched filter and pulse compression</a><a href="#dop">5 FFT and Doppler</a><a href="#cfar">6 CFAR in hardware</a><a href="#fix">7 Fixed point and dynamic range</a><a href="#lat">8 Latency and throughput</a><a href="#sys">9 System effects, ESM channeliser, SAR</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="chain">
+  <div class="secno">Step 0</div>
+  <h2>The chain after the ADC, and why it lives in an FPGA</h2>
+  <div class="know"><h4>You already know</h4><p>The analog receiver ends at an ADC that samples an IF signal. Module 07 (ADC, DAC and sampling) covers what happens at the converter itself: sampling rate, aliasing, ENOB, SFDR, jitter and noise density in dBFS/Hz. This page starts where that one stops: with a stream of numbers coming out of the ADC pins.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Sample:</b> one number from the ADC, here a 14-bit integer, produced every 1/f<sub>s</sub> seconds. <b>f<sub>s</sub>, sample rate:</b> samples per second, written MSPS or GSPS (mega or giga samples per second).</p>
+    <p><b>FPGA (field-programmable gate array):</b> a chip made of thousands of small logic blocks, memories and hard multipliers that can be wired into any circuit by loading a configuration file. The circuit runs all its parts at once, every clock cycle.</p>
+    <p><b>DSP block:</b> a hard multiplier-and-adder inside the FPGA (typically 18 × 27 bits, running at 400–600 MHz). The number of DSP blocks is usually the scarce resource.</p>
+    <p><b>Firmware:</b> in this context, the FPGA configuration: the circuit you describe in VHDL or Verilog. Its design choices (word lengths, table sizes, filter stages) are the "components" of the digital receiver.</p>
+    <p><b>Data rate:</b> bits per second on a link: sample rate × bits per sample (× 2 for complex samples).</p>
+  </div>
+  <div class="col">
+    <p>In a radar or ESM receiver the digital part does six jobs, always in roughly this order. Each is a step on this page.</p>
+  </div>
+  <div class="diag"><svg viewBox="0 0 900 150" role="img" aria-label="Digital receiver chain: ADC, DDC, decimation filter, matched filter, Doppler FFT, CFAR, detections">
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--muted)"/></marker></defs>
+    <g fill="none" stroke="var(--line)" stroke-width="1.5">
+      <rect x="6" y="40" width="90" height="50" rx="4"/><rect x="128" y="40" width="110" height="50" rx="4" stroke="var(--accent)"/><rect x="270" y="40" width="110" height="50" rx="4" stroke="var(--accent)"/><rect x="412" y="40" width="110" height="50" rx="4" stroke="var(--accent)"/><rect x="554" y="40" width="110" height="50" rx="4" stroke="var(--accent)"/><rect x="696" y="40" width="90" height="50" rx="4" stroke="var(--accent)"/><rect x="818" y="40" width="76" height="50" rx="4"/>
+    </g>
+    <g stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"><line x1="96" y1="65" x2="126" y2="65"/><line x1="238" y1="65" x2="268" y2="65"/><line x1="380" y1="65" x2="410" y2="65"/><line x1="522" y1="65" x2="552" y2="65"/><line x1="664" y1="65" x2="694" y2="65"/><line x1="786" y1="65" x2="816" y2="65"/></g>
+    <text x="51" y="62" text-anchor="middle">ADC</text><text x="51" y="78" text-anchor="middle" class="mut">Module 07</text>
+    <text x="183" y="62" text-anchor="middle">NCO + mixer</text><text x="183" y="78" text-anchor="middle" class="mut">Steps 1–2</text>
+    <text x="325" y="62" text-anchor="middle">CIC + FIR ↓R</text><text x="325" y="78" text-anchor="middle" class="mut">Step 3</text>
+    <text x="467" y="62" text-anchor="middle">matched filter</text><text x="467" y="78" text-anchor="middle" class="mut">Step 4</text>
+    <text x="609" y="62" text-anchor="middle">Doppler FFT</text><text x="609" y="78" text-anchor="middle" class="mut">Step 5</text>
+    <text x="741" y="62" text-anchor="middle">CFAR</text><text x="741" y="78" text-anchor="middle" class="mut">Step 6</text>
+    <text x="856" y="62" text-anchor="middle">detections</text><text x="856" y="78" text-anchor="middle" class="mut">to tracker</text>
+    <text x="111" y="30" text-anchor="middle" class="mut">14 Gbit/s</text><text x="253" y="30" text-anchor="middle" class="mut">32 Gbit/s</text><text x="395" y="30" text-anchor="middle" class="mut">2 Gbit/s</text><text x="801" y="30" text-anchor="middle" class="mut">kbit/s</text>
+    <text x="450" y="125" text-anchor="middle" class="mut">Every orange block is FPGA firmware. Word length and rounding (Step 7) and clock, parallelism and latency (Step 8) apply to all of them.</text>
+  </svg></div>
+  <div class="col">
+    <p><b>Worked example used on the whole page.</b> An X-band radar (10 GHz, wavelength λ = 3 cm) receives on an IF centred at 240 MHz. A 14-bit ADC samples it at f<sub>s</sub> = 1 GSPS. The transmitted pulse is a 10 µs chirp sweeping 20 MHz. The radar sends 64 pulses at a pulse repetition frequency (PRF) of 10 kHz for each look. The numbers below follow those samples through the chain.</p>
+    <p>The ADC produces 1 × 10<sup>9</sup> × 14 = 14 Gbit/s. After tuning to 0 Hz the samples become complex pairs (two numbers each, Step 1) and briefly 32 Gbit/s at 16 bits; after decimation by 16 (Step 3) only 62.5 MSPS × 2 × 16 = 2 Gbit/s remain. After the matched filter, Doppler FFT and CFAR, what leaves the processor is a list of detections: a few hundred numbers per look, kbit/s.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach sends the raw ADC samples to a general-purpose processor and does the maths in software. Count the work for the matched filter alone (Step 4): the 10 µs pulse at 62.5 MSPS is 625 complex samples, so each output sample needs 625 complex multiplies = 2 500 real multiplies, and there are 62.5 million outputs per second: 156 × 10<sup>9</sup> multiplies per second, for one channel, before Doppler or CFAR. A processor core delivers a few × 10<sup>9</sup>. Worse, the 14 Gbit/s input has to reach it continuously, with no gaps. An FPGA with 2 000 DSP blocks at 400 MHz delivers 800 × 10<sup>9</sup> multiplies per second, deterministically, with data arriving on its own pins. That is why the first stages of every modern radar and ESM receiver are FPGA firmware, and why its word lengths and table sizes are as much a part of the receiver specification as the LNA noise figure.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Point in the chain</th><th>Rate</th><th>Bits per sample</th><th>Data rate</th></tr>
+    <tr><td>ADC output (real)</td><td class="n">1 000 MSPS</td><td class="n">14</td><td class="n">14 Gbit/s</td></tr>
+    <tr><td>After NCO and mixer (complex)</td><td class="n">1 000 MSPS</td><td class="n">2 × 16</td><td class="n">32 Gbit/s</td></tr>
+    <tr><td>After decimation by 16</td><td class="n">62.5 MSPS</td><td class="n">2 × 16</td><td class="n">2 Gbit/s</td></tr>
+    <tr><td>After CFAR (detections)</td><td class="n">≈ 10<sup>4</sup> per second</td><td class="n">≈ 64 per detection</td><td class="n">≈ 0.6 Mbit/s</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>IF and ADC-driver designers:</b> your IF centre, bandwidth and the ADC rate fix the NCO frequency, the decimation ratio and the filter shapes in firmware. Changing the IF by 10 MHz is a firmware change, not only a filter change.</li>
+    <li><b>FPGA and firmware engineers:</b> every parameter on this page is one of yours. The point of the page is to show which system number each one moves.</li>
+  </ul></div>
+</section>
+
+<!-- 1 -->
+<section id="iq">
+  <div class="secno">Step 1</div>
+  <h2>Complex (I/Q) signals from first principles</h2>
+  <div class="know"><h4>You already know</h4><p>A mixer with a quadrature LO (two LO paths 90° apart) gives two outputs, I and Q, and an image-reject mixer uses them to cancel the image. Module 05 (<a href="M05-mixers-conversion.html">Mixers, LO and frequency conversion</a>) derives image rejection from amplitude and phase imbalance. Here we look at what I and Q mean as numbers, and why the digital receiver works with them everywhere.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Real signal:</b> one number per sample, for example the ADC output x[n] = cos(2π f n / f<sub>s</sub>).</p>
+    <p><b>Negative frequency:</b> a cosine is the sum of two rotating arrows (phasors) turning in opposite directions: cos(θ) = ½ e<sup>+jθ</sup> + ½ e<sup>−jθ</sup>. The arrow turning anticlockwise is frequency +f, the one turning clockwise is −f. A real signal always contains both, with equal size, so its spectrum is a mirror image about 0 Hz.</p>
+    <p><b>Complex sample, I and Q:</b> two numbers per sample, written I + jQ. I is the in-phase (cosine) part, Q the quadrature (sine) part. Together they give the position of one arrow, so they can describe a signal at +f without its mirror at −f: e<sup>+jθ</sup> = cos θ + j sin θ.</p>
+    <p><b>Image (in this step):</b> the unwanted mirror component at −f. <b>Image rejection ratio (IRR):</b> wanted power over image power, in dB.</p>
+    <p><b>Amplitude imbalance and phase error:</b> in an analog I/Q demodulator, the Q path gain differs from the I path gain (dB) and the two LO paths are not exactly 90° apart (degrees). Both let some of the mirror back in.</p>
+  </div>
+  <div class="col">
+    <p>A real sample stream cannot tell +f from −f, because cos(+θ) = cos(−θ). That matters as soon as the sign carries information. In a radar the sign of the Doppler shift says whether the target approaches or recedes. At 10 GHz a target closing at 300 m/s gives f<sub>d</sub> = 2v/λ = 2 × 300 / 0.03 = +20 kHz; one opening at 300 m/s gives −20 kHz. After a real down-conversion to 0 Hz both become cos(2π × 20 kHz × t): identical.</p>
+    <p>With I and Q the two are different: for the closing target (+20 kHz, I = cos, Q = sin) Q lags I by 90° and the arrow turns anticlockwise; for the opening one (−20 kHz) Q leads I and the arrow turns clockwise. The pair of numbers keeps the direction of rotation. A second benefit is bandwidth: with real samples only 0 to f<sub>s</sub>/2 is usable (Module 07); with complex samples the whole span −f<sub>s</sub>/2 to +f<sub>s</sub>/2 is usable, so the same sample rate carries twice the bandwidth.</p>
+  </div>
+  <div class="eq">x<sub>complex</sub>[n] = I[n] + j·Q[n] = A·e<sup>j(2π f n / f<sub>s</sub> + φ)</sup> &nbsp;&nbsp; IRR = (1 + 2g·cos ε + g²) / (1 − 2g·cos ε + g²)<small>g = Q-path gain / I-path gain (linear), ε = phase error from 90°. With g = 1 and ε = 0 the denominator is 0: the image vanishes completely.</small></div>
+  <h3>What goes wrong with the simplest approach</h3>
+  <div class="col"><p>The simplest receiver samples the real signal only. Two things go wrong. (1) Every signal appears twice, at +f and at −f, with equal size (image 0 dB below the signal): the radar cannot tell a closing target from an opening one, and a signal above the tuned frequency lands on top of one below it. (2) To avoid the overlap the signal must sit entirely on one side of 0 Hz, which wastes half the bandwidth. The common analog fix, an I/Q demodulator with two ADCs, has 0.5 dB and 3° of imbalance as a typical untrimmed figure: IRR = 28.2 dB. A strong clutter return 60 dB above noise then leaves a mirror 32 dB above noise at the opposite Doppler: a false target.</p></div>
+  <h3>Side by side on one example: a tone at +0.1 f<sub>s</sub></h3>
+  <div class="tw"><table class="t">
+    <tr><th>Way of getting I and Q</th><th>ADCs needed</th><th>Usable band</th><th>Image level</th></tr>
+    <tr><td>Real sampling only (no Q)</td><td class="n">1 at ≥ 2B</td><td>B on one side of 0 Hz</td><td class="n">0 dBc</td></tr>
+    <tr><td>Analog I/Q demodulator, 0.5 dB, 3°</td><td class="n">2 at ≥ B</td><td>±B/2</td><td class="n">−28.2 dBc</td></tr>
+    <tr><td>Analog I/Q, trimmed to 0.1 dB, 1°</td><td class="n">2 at ≥ B</td><td>±B/2</td><td class="n">−39.6 dBc</td></tr>
+    <tr><td>Digital I/Q (real ADC + NCO, Step 2)</td><td class="n">1 at ≥ 2B</td><td>±B/2 after DDC</td><td class="n">set by word length, &lt; −100 dBc</td></tr>
+  </table></div>
+  <div class="col"><p>Digital I/Q wins on image rejection because the "LO paths" are two lookup tables of numbers: their gains are equal and their phases are 90° apart to the last bit, with no temperature drift. The price is one fast ADC instead of two slow ones, plus FPGA arithmetic.</p></div>
+  <h3>How to choose the representation</h3>
+  <div class="col"><p>(1) If the sign of frequency matters (Doppler sign, signals on both sides of the tuned frequency, ESM spectra), you need complex samples. (2) If the image level must be below about −40 dBc (radar clutter rejection, ESM spurious-free range), make I/Q digitally: sample the real IF and use an NCO and mixer (Step 2). (3) Analog I/Q is still used where the bandwidth is too wide for one ADC (several GHz), and then it needs calibration: each 0.1 dB and 1° of residual imbalance is worth about 40 dB of IRR, each 0.5 dB and 3° about 28 dB.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cIq" width="640" height="400" aria-label="I and Q time traces and the spectrum of a tone for real, analog I/Q and digital I/Q representations"></canvas>
+    <div class="ctrl">
+      <label for="iqF"><span>Tone frequency (× f<sub>s</sub>)</span> <b id="iqFv"></b></label><input id="iqF" type="range" min="-0.45" max="0.45" step="0.005" value="0.1">
+      <label for="iqM"><span>Representation</span></label><select id="iqM"><option value="real">Real samples only</option><option value="analog" selected>Analog I/Q demodulator</option><option value="digital">Digital I/Q (NCO)</option></select>
+      <label for="iqA"><span>Amplitude imbalance</span> <b id="iqAv"></b></label><input id="iqA" type="range" min="0" max="3" step="0.05" value="0.5">
+      <label for="iqP"><span>Phase error</span> <b id="iqPv"></b></label><input id="iqP" type="range" min="0" max="10" step="0.1" value="3">
+      <div class="readout" id="iqOut"></div>
+    </div>
+    <p class="cap">Top: the first 40 samples of I (teal) and Q (violet). Bottom: the spectrum from −f<sub>s</sub>/2 to +f<sub>s</sub>/2, with the tone at 0 dB and its image at the mirror frequency. The imbalance sliders act only on the analog I/Q demodulator; for the other two they are marked "not used".</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Analog I/Q at 0.5 dB and 3°: the image sits at −28.2 dBc, the second row of the table. Set 0.1 dB and 1°: −39.6 dBc.</li>
+    <li>Real samples only: Q is flat at zero and the image is at 0 dBc. Move the tone to −0.1 f<sub>s</sub>: the picture does not change, which is exactly the Doppler-sign problem.</li>
+    <li>Digital I/Q: no image at all on the plot (the floor is the analysis noise at −120 dB), and moving the tone between +0.1 and −0.1 f<sub>s</sub> flips which side the line is on.</li>
+    <li>Watch the time traces in digital mode: at a positive frequency Q lags I by a quarter cycle; at a negative frequency it leads.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Representation</td><td>Real sampling, analog I/Q, or digital I/Q</td><td>Usable bandwidth per f<sub>s</sub>; image level</td><td>Doppler sign known or not; half or full band usable per ADC rate</td></tr>
+    <tr><td>Analog I/Q balance</td><td>Matched paths, LO quadrature network, calibration</td><td>IRR: 28 dB at 0.5 dB/3°, 40 dB at 0.1 dB/1°</td><td>Mirror targets at the opposite Doppler, 28–40 dB below clutter; false emitters in ESM</td></tr>
+    <tr><td>Digital I/Q</td><td>NCO table and word length (Steps 2, 7)</td><td>Image &lt; −100 dBc</td><td>Mirror targets removed; the limit moves to NCO spurs</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mixer and LO designers:</b> if your I/Q demodulator feeds the ADCs, its imbalance is the IRR of the whole receiver. Digital correction can trim it, but only if the imbalance is stable with temperature and frequency.</li>
+    <li><b>ADC and clock designers:</b> choosing digital I/Q moves the requirement to one faster ADC with good SFDR at the IF (Module 07).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An analog I/Q demodulator has 1 dB amplitude imbalance and 5° phase error. Clutter is 55 dB above noise. Where is its mirror?</summary><p>IRR = 22.8 dB, so the mirror is 55 − 22.8 = 32 dB above noise at the opposite Doppler: easily detected as a false target. Digital I/Q or calibration to 0.1 dB/1° (39.6 dB) is needed to bring it to 15 dB above noise, and still more to remove it.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="nco">
+  <div class="secno">Step 2</div>
+  <h2>The NCO and digital down-conversion</h2>
+  <div class="know"><h4>You already know</h4><p>An analog mixer multiplies the RF by an LO and shifts the signal to RF − LO. A synthesiser's spurs and phase noise end up on every signal it converts (Module 02, <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a>). A digital down-converter does the same with numbers, and its "LO" also has spurs, set by firmware word lengths.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>DDC (digital down-converter):</b> the NCO, a complex multiplier (the mixer) and the decimation filter (Step 3). It shifts the wanted band from the IF to 0 Hz and turns the real ADC stream into complex samples.</p>
+    <p><b>NCO (numerically controlled oscillator):</b> a digital LO. It produces cos and sin of a phase that advances by a fixed amount every sample.</p>
+    <p><b>Phase accumulator:</b> an N-bit register (N = 32 here) that adds the tuning word every clock and wraps around at 2<sup>N</sup>. Its value is the phase: 0 to 2<sup>N</sup> maps to 0 to 360°.</p>
+    <p><b>Tuning word (FTW):</b> the number added each clock. FTW = round(f<sub>NCO</sub> / f<sub>s</sub> × 2<sup>N</sup>). <b>Frequency step:</b> f<sub>s</sub>/2<sup>N</sup>, the smallest change of NCO frequency.</p>
+    <p><b>Phase truncation:</b> only the top P bits of the accumulator are used to look up the sine; the lower N − P bits are thrown away. <b>LUT (lookup table):</b> the memory holding 2<sup>P</sup> sine and cosine values, each stored with A bits (the amplitude word).</p>
+    <p><b>Spur (here):</b> a discrete unwanted tone created by the periodic pattern of the truncation error. <b>dBc:</b> dB relative to the wanted output. <b>Dither:</b> a small random number added to the phase before truncation, which breaks the pattern up into noise.</p>
+  </div>
+  <div class="col">
+    <p>The NCO is a counter that wraps. With f<sub>s</sub> = 1 GSPS and a 32-bit accumulator, the frequency step is 10<sup>9</sup>/2<sup>32</sup> = 0.233 Hz, so the NCO can be set to 240 MHz to a fraction of a hertz: FTW = 240/1000 × 2<sup>32</sup> = 1 030 792 151. Phase is exact inside the accumulator. The error comes from using only P bits of it: with P = 12, the LUT has 4 096 entries and the phase is rounded to 360°/4 096 = 0.088°. The error is a sawtooth that repeats in a pattern set by the low bits of the tuning word, so it creates spurs instead of noise.</p>
+    <p>The mixer multiplies each real ADC sample by cos − j·sin from the NCO. A 245 MHz input tone and a 240 MHz NCO give the wanted tone at 245 − 240 = +5 MHz and a "sum" product at −(245 + 240) = −485 MHz. The sum product is far outside the wanted band; the decimation filter (Step 3) removes it. NCO spurs are multiplied onto every input signal, exactly like synthesiser spurs on an analog LO.</p>
+  </div>
+  <div class="eq">FTW = round(f<sub>NCO</sub>·2<sup>N</sup>/f<sub>s</sub>) &nbsp;&nbsp; Δf = f<sub>s</sub>/2<sup>N</sup> &nbsp;&nbsp; worst phase-truncation spur ≈ −6.02·P dBc &nbsp;&nbsp; amplitude SNR ≈ 6.02·A + 1.76 dB<small>Each extra phase bit halves the largest phase error and lowers the worst spur by 6 dB, but doubles the table. The amplitude word acts like an ADC word length on the LO (Step 7).</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design uses a small table to save memory: P = 8 (256 entries). Worst spur ≈ −48 dBc. In an ESM receiver a strong radar at −20 dBm then makes spurs at −68 dBm, above a −70 dBm sensitivity: the receiver reports emitters that do not exist. In a radar, clutter 60 dB above noise makes spurs 12 dB above noise at fixed offsets in Doppler or range: false targets that move with the clutter. A table of 2<sup>16</sup> entries (−96 dBc) removes both problems; what it costs is block memory.</p></div>
+  <h3>Side by side on one example: 245 MHz input, NCO at 240 MHz, A = 14 bits</h3>
+  <div class="tw"><table class="t">
+    <tr><th>NCO design</th><th>Table size</th><th>Worst spur (rule)</th><th>Worst spur (bench)</th><th>Cost</th></tr>
+    <tr><td>P = 8</td><td class="n">256 × 14 bit</td><td class="n">−48 dBc</td><td class="n">−48.4 dBc</td><td>negligible</td></tr>
+    <tr><td>P = 12</td><td class="n">4 k × 14 bit</td><td class="n">−72 dBc</td><td class="n">−72.4 dBc</td><td>1–2 block RAMs</td></tr>
+    <tr><td>P = 12 + phase dither</td><td class="n">4 k × 14 bit</td><td>spurs become noise</td><td class="n">−85.8 dBc</td><td>a random-number generator</td></tr>
+    <tr><td>P = 16</td><td class="n">64 k × 14 bit</td><td class="n">−96 dBc</td><td class="n">−94.4 dBc</td><td>≈ 0.9 Mbit (¼ with quarter-wave symmetry)</td></tr>
+    <tr><td>CORDIC, 16 iterations</td><td>no table</td><td class="n">≈ −96 dBc</td><td>(not on bench)</td><td>16 adder stages, 16 clocks latency</td></tr>
+  </table></div>
+  <div class="col"><p>Dither does not remove the error; it turns the discrete spurs into a slightly higher noise floor, which a detector treats as noise rather than as a signal. Quarter-wave symmetry stores only 0–90° and derives the other three quadrants by sign changes, cutting the table by 4. CORDIC (coordinate rotation digital computer) computes sin and cos by a series of shift-and-add rotations, trading memory for adders and latency.</p></div>
+  <h3>How to choose N, P and A</h3>
+  <div class="col"><p>(1) <b>N</b> from the tuning step you need: 32 bits gives 0.23 Hz at 1 GSPS, far finer than any radar needs, and costs almost nothing. (2) <b>P</b> from the spur level the system tolerates: the worst spur must be below the largest signal minus the dynamic range you need. For 80 dB clean range, P ≥ 80/6.02 ≈ 14 bits. (3) <b>A</b> about 2 bits more than the ADC word, so the NCO's amplitude noise (6.02A + 1.76 dB) stays below the ADC's own: 14-bit ADC → A = 16. (4) If memory is short, use dither or CORDIC instead of a smaller table. (5) Avoid tuning words whose low N − P bits are zero or simple fractions: those give the strongest, most regular spurs.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cNco" width="640" height="340" aria-label="Spectrum of the DDC output for the chosen input frequency, NCO frequency, phase bits, amplitude bits and dither"></canvas>
+    <div class="ctrl">
+      <label for="nF"><span>Input tone (IF)</span> <b id="nFv"></b></label><input id="nF" type="range" min="200" max="300" step="0.1" value="245">
+      <label for="nN"><span>NCO frequency</span> <b id="nNv"></b></label><input id="nN" type="range" min="200" max="300" step="0.01" value="240">
+      <label for="nP"><span>Phase bits P (table address)</span> <b id="nPv"></b></label><input id="nP" type="range" min="4" max="18" step="1" value="12">
+      <label for="nA"><span>Amplitude bits A</span> <b id="nAv"></b></label><input id="nA" type="range" min="4" max="18" step="1" value="14">
+      <label for="nD"><span>Phase dither</span></label><select id="nD"><option value="off" selected>Off</option><option value="on">On</option></select>
+      <div class="readout" id="nOut"></div>
+    </div>
+    <p class="cap">8 192-point spectrum of the DDC output (ideal ADC, so only the NCO adds errors), Kaiser window. Green: the wanted tone at f<sub>in</sub> − f<sub>NCO</sub>. Grey: the sum product the decimation filter will remove. Red: the largest spur outside those two. Dashed: the −6.02·P rule.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>P = 8: the worst spur is near the −48 dBc rule; P = 12: near −72; P = 16: near −96. Each phase bit is about 6 dB.</li>
+    <li>P = 12 with dither on: the discrete spurs drop and the floor rises; compare the readout with the −85.8 dBc in the table.</li>
+    <li>P = 18 and A = 8: the phase spurs are gone, but amplitude-quantisation spurs appear at about −61 dBc: the amplitude word matters as much as the phase word.</li>
+    <li>Move the NCO in 0.01 MHz steps: the wanted tone moves, and the spur pattern changes, because it depends on the low bits of the tuning word.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Accumulator N</td><td>Register width</td><td>Tuning step f<sub>s</sub>/2<sup>N</sup> (0.23 Hz)</td><td>Fine tuning; coherent hopping without phase jumps</td></tr>
+    <tr><td>Phase bits P</td><td>Table depth, memory</td><td>Worst spur ≈ −6.02·P dBc</td><td>False targets near strong clutter; false emitters in ESM (P = 8: −48 dBc)</td></tr>
+    <tr><td>Amplitude bits A</td><td>Table width</td><td>LO noise ≈ 6.02·A + 1.76 dB</td><td>Raises the noise floor if A is below the ADC word</td></tr>
+    <tr><td>Dither / CORDIC</td><td>Random generator, or shift-add stages</td><td>Spurs → noise; latency</td><td>Fewer false reports at the price of a slightly higher floor</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> the NCO is a DDS (direct digital synthesiser) without the DAC. The same −6.02·P rule and the same "avoid simple fractions" advice apply to DDS chips you may use as references or chirp generators.</li>
+    <li><b>FPGA engineers:</b> the NCO table is usually the first block-RAM budget decision in the design. It sets a spur floor that no later stage can remove.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM receiver needs 70 dB between the strongest signal and the largest internal spur. How many phase bits does its NCO need?</summary><p>70/6.02 = 11.6, so P = 12 (−72 dBc). With margin for the other spur sources (ADC SFDR, Module 07) P = 14 (−84 dBc) is the usual choice; with quarter-wave symmetry the table is 4 k entries.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="dec">
+  <div class="secno">Step 3</div>
+  <h2>Decimation and filtering: CIC, FIR, droop, alias rejection and processing gain</h2>
+  <div class="know"><h4>You already know</h4><p>Sampling folds every frequency above f<sub>s</sub>/2 back into the band (aliasing, Module 07), which is why an analog anti-alias filter sits in front of the ADC. Inside the FPGA the same thing happens again every time the sample rate is reduced, and the anti-alias filter is now digital. Module 04 (<a href="M04-filters.html">Filters and preselection</a>) covers the analog filter words used here: passband, stop band, droop and ripple.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Decimation by R:</b> keeping one sample in every R. The output rate is f<sub>o</sub> = f<sub>s</sub>/R (1 000/16 = 62.5 MSPS). It is done because the wanted band (here ±10 MHz) is much narrower than the input rate: carrying 1 GSPS through the matched filter and FFT would waste 16 times the multipliers.</p>
+    <p><b>Alias band:</b> after decimation, any frequency f lands at f − k·f<sub>o</sub> (k = 1, 2, …). The bands k·f<sub>o</sub> ± f<sub>p</sub> land exactly on the passband ±f<sub>p</sub>, so they must be suppressed before decimating. <b>Alias rejection:</b> the smallest attenuation over all those bands.</p>
+    <p><b>Passband edge f<sub>p</sub>:</b> the highest wanted frequency. On the bench it is set as a fraction of the output Nyquist frequency f<sub>o</sub>/2; ±10 MHz at f<sub>o</sub> = 62.5 MSPS is 32 %.</p>
+    <p><b>CIC filter (cascaded integrator-comb):</b> N integrators (running sums) at the input rate, then decimation, then N combs (differences) at the output rate. It needs no multipliers, only adders, so it runs at 1 GSPS cheaply. Its response is a sinc to the power N, with nulls exactly at the centres of the alias bands. <b>Stages N:</b> how many integrator-comb pairs.</p>
+    <p><b>Droop:</b> the loss at the passband edge relative to 0 Hz. A CIC droops because its sinc response is already falling at f<sub>p</sub>. <b>Bit growth:</b> the integrators grow by N·log<sub>2</sub>R bits and must not overflow (Step 7).</p>
+    <p><b>FIR filter (finite impulse response):</b> a weighted sum of the last K samples (K = taps), one multiplier per tap. It can have any shape, including the inverse of the CIC droop (a <b>compensating FIR</b>), but costs multipliers.</p>
+    <p><b>Processing gain:</b> the SNR improvement from removing noise outside the wanted band: 10·log<sub>10</sub>R for an ideal filter.</p>
+  </div>
+  <div class="col">
+    <p>The ADC noise is spread over the whole 1 GHz input span. The wanted signal occupies 20 MHz of it. An ideal filter that keeps only the output band (f<sub>o</sub> = 62.5 MHz wide, complex) removes 15/16 of the noise: 10·log<sub>10</sub>16 = 12.0 dB processing gain. That is why a 14-bit ADC with 70 dB SNR in 500 MHz delivers 82 dB SNR in the decimated band, and why the words after the decimator must be longer than the ADC word (Step 7).</p>
+    <p>The filter has two jobs: keep the passband flat (low droop) and suppress the alias bands (high alias rejection). For R = 16, f<sub>o</sub> = 62.5 MHz and f<sub>p</sub> = 10 MHz, the first alias band is 52.5–72.5 MHz; anything there would fold onto 0 ± 10 MHz after decimation.</p>
+  </div>
+  <div class="eq">|H<sub>CIC</sub>(f)| = | sin(π f R / f<sub>s</sub>) / (R · sin(π f / f<sub>s</sub>)) |<sup>N</sup> &nbsp;&nbsp; bit growth = N·log<sub>2</sub>R &nbsp;&nbsp; processing gain = 10·log<sub>10</sub>R (ideal)<small>The nulls fall at k·f<sub>s</sub>/R = k·f<sub>o</sub>, the centres of the alias bands. Each stage multiplies the attenuation in dB by one more factor: N stages give N times the dB rejection and N times the dB droop.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive decimator just drops 15 of every 16 samples. There is no filter, so every alias band folds in at full strength: alias rejection 0 dB. A jammer or a second radar at 67.5 MHz offset appears at +5 MHz, on top of the target, at its full level. And all the noise of the 1 GHz span folds into the 62.5 MHz output: processing gain 0 dB instead of 12 dB. The SNR is the same as before decimation, and the dynamic range is filled with signals from outside the band.</p></div>
+  <h3>Side by side on one example: R = 16, passband ±10 MHz (32 %)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Decimation filter</th><th>Droop at 10 MHz</th><th>Worst alias in band</th><th>Multipliers</th><th>Bit growth</th></tr>
+    <tr><td>None (drop samples)</td><td class="n">0 dB</td><td class="n">0 dB</td><td class="n">0</td><td class="n">0</td></tr>
+    <tr><td>CIC, N = 1</td><td class="n">0.37 dB</td><td class="n">−14.7 dB</td><td class="n">0</td><td class="n">4</td></tr>
+    <tr><td>CIC, N = 3</td><td class="n">1.10 dB</td><td class="n">−44.2 dB</td><td class="n">0</td><td class="n">12</td></tr>
+    <tr><td>CIC, N = 4</td><td class="n">1.47 dB</td><td class="n">−58.9 dB</td><td class="n">0</td><td class="n">16</td></tr>
+    <tr><td>CIC, N = 5</td><td class="n">1.84 dB</td><td class="n">−73.7 dB</td><td class="n">0</td><td class="n">20</td></tr>
+    <tr><td>CIC N = 4 (↓8) + 63-tap compensating FIR (↓2)</td><td class="n">0.33 dB</td><td class="n">−84.4 dB</td><td class="n">63 × 62.5 M × 2 = 7.9 G/s</td><td class="n">12</td></tr>
+  </table></div>
+  <div class="col"><p>Each CIC stage adds about 14.7 dB of alias rejection here and 0.37 dB of droop. The CIC alone cannot be both flat and selective. The usual answer is a split: the CIC does the large, cheap part of the rate reduction (here by 8, to 125 MSPS) and a FIR at the lower rate does the last factor of 2, flattens the droop and sharpens the edge. The FIR runs at 125 MSPS rather than 1 GSPS, so its multipliers cost 8 times less than they would at the input.</p></div>
+  <h3>How to choose R, N and the FIR</h3>
+  <div class="col"><p>(1) <b>R</b> from the bandwidth: the output rate must exceed the signal bandwidth with room for the filter edge, typically f<sub>o</sub> ≥ 1.25 × B (20 MHz × 1.25 = 25 MHz minimum; 62.5 MSPS leaves a generous edge). Larger R gives more processing gain (10·log R) and fewer multipliers later. (2) <b>N</b> from the alias rejection needed: at least the dynamic range you want protected from out-of-band signals, for example 60 dB → N = 4 at this passband fraction. Narrower passband fractions give more rejection per stage. (3) <b>Bit growth</b> N·log<sub>2</sub>R must fit the integrator registers: 4 × 4 = 16 extra bits on a 14-bit input, so 30-bit registers. (4) <b>The FIR</b> where droop matters (pulse compression sidelobes, Step 4, are sensitive to passband ripple and tilt): its taps set how flat and how sharp; more taps cost multipliers and latency ((K − 1)/2 samples of delay).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cDec" width="640" height="340" aria-label="Overall decimation filter response versus input frequency, with passband and alias bands shaded"></canvas>
+    <div class="ctrl">
+      <label for="dR"><span>Decimation ratio R</span></label><select id="dR"><option value="4">4</option><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+      <label for="dN"><span>CIC stages N</span> <b id="dNv"></b></label><input id="dN" type="range" min="1" max="6" step="1" value="4">
+      <label for="dP"><span>Passband edge (of f<sub>o</sub>/2)</span> <b id="dPv"></b></label><input id="dP" type="range" min="0.1" max="0.9" step="0.01" value="0.32">
+      <label for="dT"><span>Filter</span></label><select id="dT"><option value="drop">None (drop samples)</option><option value="cic" selected>CIC only (↓R)</option><option value="cicfir">CIC (↓R/2) + 63-tap FIR (↓2)</option></select>
+      <div class="readout" id="dOut"></div>
+    </div>
+    <p class="cap">Response of the whole decimation filter against frequency at the 1 GSPS input (the complex response is symmetric, so 0 to 500 MHz is shown). Green: passband. Red: the bands that fold onto the passband after decimation. Dashed red: the worst alias level.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>R = 16, CIC only, N = 4, 32 %: droop 1.47 dB and worst alias −58.9 dB, the fourth row of the table. Step N from 1 to 5: about 14.7 dB more rejection and 0.37 dB more droop per stage.</li>
+    <li>"None": alias 0 dB and processing gain 0 dB. CIC N = 1 gives exactly 10·log R = 12.0 dB; N = 4 reads 15.2 dB, because its droop also cuts noise inside the output band (and some signal: the 1.47 dB droop).</li>
+    <li>CIC + FIR: the droop falls to 0.33 dB and the alias rejection improves to −84.4 dB, for 7.9 G multiplies per second. Its processing gain reads above 12 dB (14.9 dB) because the filter also removes the noise between ±10 MHz and the edge of the output band.</li>
+    <li>Raise the passband edge towards 90 %: the alias bands widen into the CIC skirts and the rejection collapses; that is why f<sub>o</sub> is chosen well above the signal bandwidth.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Decimation R</td><td>Output rate f<sub>s</sub>/R</td><td>Processing gain 10·log R (12 dB for 16)</td><td>SNR in the band; multiplier count of every later stage</td></tr>
+    <tr><td>CIC stages N</td><td>Integrator/comb pairs</td><td>Alias rejection (−58.9 dB at N = 4), droop 1.47 dB, bit growth 16</td><td>Out-of-band radars and jammers folding onto targets</td></tr>
+    <tr><td>Compensating FIR</td><td>Taps, coefficients, word length</td><td>Passband flatness, sharper edge</td><td>Pulse-compression sidelobes (Step 4); amplitude accuracy in ESM</td></tr>
+    <tr><td>Passband fraction</td><td>f<sub>p</sub> relative to f<sub>o</sub>/2</td><td>Transition width</td><td>How close an interferer may be outside the band before it aliases</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Analog filter designers:</b> the analog anti-alias filter only has to protect the ADC's own Nyquist zone; the digital filter protects the much narrower decimated band. The two specifications are set together.</li>
+    <li><b>FPGA engineers:</b> CIC register widths come straight from N·log<sub>2</sub>R; an undersized integrator overflows silently (Step 7).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 5 MHz-wide ESM channel is decimated from 1 GSPS by 64. What processing gain does it get, and how many bits does a 4-stage CIC grow?</summary><p>10·log<sub>10</sub>64 = 18.1 dB. Bit growth 4 × log<sub>2</sub>64 = 24 bits, so a 14-bit input needs 38-bit integrators.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="pc">
+  <div class="secno">Step 4</div>
+  <h2>The matched filter and pulse compression</h2>
+  <div class="know"><h4>You already know</h4><p>A radar's detection range depends on the pulse energy, peak power times pulse length, and its range resolution depends on how short the pulse is (R1, and R3 <a href="R3-detection-cfar.html">Detection</a>). A filter's group delay ripple raises compression sidelobes (Module 04, Step 4). This step shows how the digital receiver gets both energy and resolution from one long pulse.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Matched filter:</b> a filter whose impulse response is the expected echo reversed in time and conjugated. It gives the highest possible peak SNR for that echo in white noise: SNR = 2E/N<sub>0</sub>, where E is the echo energy and N<sub>0</sub> the noise density. Only the energy counts, not the shape. In the FPGA it is a FIR whose taps are the transmitted waveform, or the same done with FFTs (Step 8).</p>
+    <p><b>Range resolution ΔR:</b> how close two targets can be and still appear as two peaks: ΔR = c/(2B) for a waveform of bandwidth B. For an unmodulated pulse B ≈ 1/T, giving ΔR = cT/2.</p>
+    <p><b>Chirp (LFM, linear frequency modulation):</b> a pulse whose frequency sweeps linearly across B during its length T. <b>Time-bandwidth product BT:</b> B × T; for a chirp it is the <b>compression ratio</b>, the factor by which the pulse is shortened.</p>
+    <p><b>Range sidelobes:</b> the smaller peaks either side of the compressed pulse. <b>PSL (peak sidelobe level):</b> the highest of them, in dB relative to the peak.</p>
+    <p><b>Weighting (taper):</b> multiplying the matched filter's taps by a window (Hamming, Taylor, Blackman) that is smaller at the ends, which lowers the sidelobes. <b>Mismatch (weighting) loss:</b> the SNR lost because the filter is then no longer exactly matched.</p>
+    <p><b>Phase code:</b> a pulse cut into chips with phase 0° or 180°, for example the 13-chip Barker code. <b>Doppler tolerance:</b> how much peak and shape survive when the echo is shifted in frequency by f<sub>d</sub>. <b>Range-Doppler coupling:</b> for a chirp, a Doppler shift moves the peak in range by f<sub>d</sub>·T/B instead of destroying it.</p>
+  </div>
+  <div class="col">
+    <p>Worked example: 1 kW peak, T = 10 µs, B = 20 MHz. Energy E = 1 000 × 10 × 10<sup>−6</sup> = 10 mJ. Without modulation the 10 µs pulse resolves c·T/2 = 1.5 km: two aircraft 1 km apart are one blob. With a 20 MHz chirp the matched filter compresses it to a peak 1/B = 50 ns wide: ΔR = c/(2B) = 7.5 m. The compression ratio is BT = 200 (23.0 dB): the peak is 200 times shorter, and 200 times higher in amplitude relative to the uncompressed echo, with all 10 mJ still there.</p>
+    <p>The matched filter output is the cross-correlation of the echo with the reference. For a rectangular-envelope chirp it is a sinc-shaped peak with sidelobes at −13.3 dB, decaying slowly. A weighting window lowers them, widens the peak and costs a little SNR.</p>
+  </div>
+  <div class="eq">ΔR = c/(2B) &nbsp;&nbsp; compression ratio = B·T &nbsp;&nbsp; SNR<sub>peak</sub> = 2E/N<sub>0</sub> &nbsp;&nbsp; mismatch loss = (Σw)² / (N·Σw²) &nbsp;&nbsp; LFM peak shift = f<sub>d</sub>·T/B<small>w is the taper on the N taps of the reference. Hamming: −1.35 dB, peak width × 1.47, PSL about −42 dB. Doppler shift f<sub>d</sub> = 2v/λ.</small></div>
+  <h3>What goes wrong with the naive approaches</h3>
+  <div class="col">
+    <p><b>Naive 1: a short pulse for resolution.</b> 7.5 m resolution with an unmodulated pulse needs T = 50 ns. At the same 1 kW the energy is 200 times smaller (−23 dB) and detection range falls by 200<sup>1/4</sup> = 3.8 times. Getting the energy back needs 200 kW peak: a different transmitter, a different limiter, a different duplexer.</p>
+    <p><b>Naive 2: compression without weighting.</b> The rectangular chirp's first sidelobes sit at −13.3 dB. A 100 m² ship and a 1 m² boat 20 m away differ by 20 dB; the ship's sidelobe is 6.7 dB above the boat. The boat is hidden, or worse, the CFAR (Step 6) reports the sidelobe as a target at the wrong range.</p>
+  </div>
+  <h3>Side by side on one example: B = 20 MHz, T = 10 µs</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Waveform and filter</th><th>Compression</th><th>−3 dB width</th><th>Peak sidelobe</th><th>SNR loss</th></tr>
+    <tr><td>Unmodulated 10 µs pulse</td><td class="n">1</td><td class="n">878 m</td><td class="n">none</td><td class="n">0 dB</td></tr>
+    <tr><td>Chirp, no weighting</td><td class="n">200</td><td class="n">6.63 m</td><td class="n">−13.5 dB</td><td class="n">0 dB</td></tr>
+    <tr><td>Chirp, Taylor (−35 dB, n̄ = 5)</td><td class="n">200</td><td class="n">8.90 m</td><td class="n">−34.9 dB</td><td class="n">0.93 dB</td></tr>
+    <tr><td>Chirp, Hamming</td><td class="n">200</td><td class="n">9.78 m</td><td class="n">−42.6 dB</td><td class="n">1.35 dB</td></tr>
+    <tr><td>Chirp, Blackman</td><td class="n">200</td><td class="n">12.3 m</td><td class="n">−47.6 dB</td><td class="n">2.38 dB</td></tr>
+    <tr><td>Barker 13, 50 ns chips (0.65 µs pulse)</td><td class="n">13</td><td class="n">4.21 m</td><td class="n">−22.3 dB</td><td class="n">0 dB</td></tr>
+  </table></div>
+  <div class="col"><p>The trade is always the same three numbers: lower sidelobes cost a wider peak (worse resolution) and SNR. Taylor weighting is the usual radar choice because it holds its design sidelobe level with the smallest loss. Phase codes compress well but have higher sidelobes for their length and lose their peak quickly with Doppler; chirps are Doppler-tolerant, with the peak only moving in range.</p>
+  <p><b>Doppler on the same example.</b> A target at 300 m/s at 10 GHz has f<sub>d</sub> = 20 kHz. The chirp's peak moves by f<sub>d</sub>·T/B = 20 × 10<sup>3</sup> × 10 × 10<sup>−6</sup>/20 × 10<sup>6</sup> = 10 ns = 1.5 m, a fifth of a resolution cell, with negligible loss. The Barker pulse at 20 kHz is also fine (0.65 µs × 20 kHz = 0.013 cycles of phase drift across the pulse), but at 1 MHz (an ESM or missile-seeker case) the Barker peak collapses while the chirp's peak only moves 75 m.</p></div>
+  <h3>How to choose B, T and the weighting</h3>
+  <div class="col"><p>(1) <b>B</b> from the range resolution: ΔR = c/(2B), so 7.5 m → 20 MHz, 0.5 m → 300 MHz (and the ADC and decimation must carry B, Step 3). (2) <b>T</b> from the energy needed for detection at the peak power the transmitter can make: E = P·T. Longer T also means a longer blind zone near the radar (the receiver is off while transmitting: c·T/2 = 1.5 km for 10 µs) and more matched-filter taps (T·f<sub>o</sub> = 625). (3) <b>Weighting</b> from the sidelobe level needed: the largest target-to-target ratio you must resolve, typically −30 to −40 dB, so Taylor 35 dB at about 1 dB loss. (4) Remember that the system sidelobe floor also includes the analog chain: group-delay ripple, amplitude ripple (Module 04) and synthesiser chirp errors (Module 02) all add paired echoes; weighting cannot remove those.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cPc" width="640" height="420" aria-label="Matched filter output for the chosen waveform, bandwidth, pulse length, weighting and Doppler shift"></canvas>
+    <div class="ctrl">
+      <label for="pW"><span>Waveform</span></label><select id="pW"><option value="lfm" selected>Chirp (LFM)</option><option value="barker">Barker 13 phase code</option><option value="cw">Unmodulated pulse</option></select>
+      <label for="pB"><span>Bandwidth B</span> <b id="pBv"></b></label><input id="pB" type="range" min="1" max="50" step="1" value="20">
+      <label for="pT"><span>Pulse length T</span> <b id="pTv"></b></label><input id="pT" type="range" min="1" max="20" step="0.5" value="10">
+      <label for="pWt"><span>Weighting on the reference</span></label><select id="pWt"><option value="rect" selected>None (rectangular)</option><option value="taylor">Taylor −35 dB, n̄ = 5</option><option value="hamming">Hamming</option><option value="blackman">Blackman</option></select>
+      <label for="pD"><span>Doppler shift of the echo</span> <b id="pDv"></b></label><input id="pD" type="range" min="0" max="1000" step="10" value="0">
+      <div class="readout" id="pOut"></div>
+    </div>
+    <p class="cap">The echo is the transmitted waveform shifted by the Doppler frequency; the filter is the weighted reference. Top: the whole output (±T in time, shown as range). Bottom: zoom on the peak. Levels are relative to the ideal matched peak for the same noise, so the peak height directly shows the weighting and Doppler losses. Barker fixes T at 13 chips of 1/B; the unmodulated pulse uses B only to set the sample rate.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Chirp, 20 MHz, 10 µs, no weighting: compression ratio 200 (23.0 dB), −3 dB width 6.63 m (0.89 × 7.5 m), peak sidelobe −13.5 dB.</li>
+    <li>Hamming: sidelobe −42.6 dB, loss 1.35 dB, width 9.78 m (× 1.47). Taylor: −34.9 dB for 0.93 dB, width 8.90 m (× 1.34). These are the rows of the table.</li>
+    <li>Unmodulated pulse: one triangular lobe spanning ±1.5 km, −3 dB width 878 m, no compression.</li>
+    <li>Chirp with 1 000 kHz Doppler: the peak moves by about f<sub>d</sub>·T/B = 75 m with little loss. Barker 13 at the same Doppler: the peak drops by 6.0 dB and its sidelobes rise to the level of the peak.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Bandwidth B</td><td>Chirp generator, ADC rate, decimation</td><td>ΔR = c/2B (7.5 m at 20 MHz)</td><td>Separating targets in range; SAR image resolution</td></tr>
+    <tr><td>Pulse length T</td><td>Transmitter duty, matched-filter taps</td><td>Energy P·T; compression ratio BT</td><td>Detection range ∝ (P·T)<sup>1/4</sup>; blind zone c·T/2</td></tr>
+    <tr><td>Weighting</td><td>Taper coefficients in the filter</td><td>PSL (−13 → −35 dB), loss (0 → 0.93 dB), width × 1.34</td><td>Small targets next to large ones; false CFAR hits on sidelobes</td></tr>
+    <tr><td>Waveform type</td><td>Chirp or phase code</td><td>Doppler tolerance</td><td>Fast targets keep their peak (chirp) or lose it (code)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter, LNA and PA designers:</b> amplitude and group-delay ripple across B add sidelobes the taper cannot remove (Module 04, Step 4). The digital weighting sets the floor only if the analog chain is cleaner than it.</li>
+    <li><b>Synthesiser designers:</b> chirp linearity and phase noise during the pulse are part of the same sidelobe budget.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar needs 1.5 m resolution and the energy of a 20 µs pulse. What BT and how many matched-filter taps at f<sub>o</sub> = 1.25·B?</summary><p>B = c/(2ΔR) = 100 MHz. BT = 100 × 10<sup>6</sup> × 20 × 10<sup>−6</sup> = 2 000 (33 dB). f<sub>o</sub> = 125 MSPS, so the filter has 20 µs × 125 MSPS = 2 500 complex taps: far too many for a direct FIR (Step 8), so it is done with FFTs.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="dop">
+  <div class="secno">Step 5</div>
+  <h2>FFT and Doppler processing: windows, scalloping loss and resolution</h2>
+  <div class="know"><h4>You already know</h4><p>A spectrum analyser shows a tone as a peak whose width depends on the resolution bandwidth, and a strong tone's skirts can hide a weak one next to it. The Doppler FFT is a spectrum analyser built in firmware, working on the pulse-to-pulse samples of each range cell.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Fast time and slow time:</b> within one pulse repetition interval (PRI = 1/PRF) the samples step through range ("fast time", 62.5 MSPS). Taking the sample at the same range from each successive pulse gives a much slower sequence ("slow time", one sample per PRI = 10 kHz) whose frequency is the target's Doppler shift f<sub>d</sub> = 2v/λ.</p>
+    <p><b>CPI (coherent processing interval):</b> the M pulses processed together; it lasts M/PRF (64/10 kHz = 6.4 ms).</p>
+    <p><b>FFT (fast Fourier transform):</b> an efficient way to compute the DFT, which turns M slow-time samples into M frequency <b>bins</b>, spaced PRF/M apart (156.25 Hz = 2.34 m/s here). The FFT needs (M/2)·log<sub>2</sub>M complex multiplies instead of M².</p>
+    <p><b>Coherent gain:</b> adding M samples of a tone in phase raises its power M² times while the noise power rises M times: SNR gain 10·log<sub>10</sub>M (18.1 dB for 64).</p>
+    <p><b>Unambiguous velocity:</b> slow-time sampling at the PRF folds Doppler beyond ±PRF/2, so velocities are unambiguous only within ±λ·PRF/4 = ±75 m/s here.</p>
+    <p><b>Window:</b> weights applied to the M samples before the FFT, smaller at the ends. <b>Spectral sidelobes:</b> the skirts of a strong line, set by the window. <b>Scalloping loss:</b> the loss when a tone falls between two bins instead of on one; worst exactly half-way. <b>Window SNR loss</b> (processing loss): the coherent-gain reduction caused by the taper. <b>Resolution:</b> the −3 dB width of a line, in bins.</p>
+    <p><b>Clutter:</b> echoes from ground, sea or rain, here at near-zero velocity and up to 70 dB above noise.</p>
+  </div>
+  <div class="col">
+    <p>The FFT tests the slow-time sequence against M equally spaced frequencies at once. A target at exactly a bin frequency puts all its energy in that bin; one half-way between two bins splits it and its peak drops by the scalloping loss. A rectangular window (no taper) gives the sharpest line but skirts that start at −13.3 dB and fall slowly; the skirts of a 50 dB clutter line can cover the whole Doppler axis.</p>
+    <p>Worked example: M = 64, PRF = 10 kHz, λ = 3 cm. Bin spacing 156.25 Hz = 2.34 m/s. A target at 20.3 m/s has f<sub>d</sub> = 1 353 Hz = 8.66 bins: it falls 0.34 bins off a bin centre. With a per-pulse SNR of −5 dB the FFT lifts it to −5 + 18.1 = 13.1 dB, minus the window and scalloping losses.</p>
+  </div>
+  <div class="eq">f<sub>d</sub> = 2v/λ &nbsp;&nbsp; bin spacing = PRF/M &nbsp;&nbsp; coherent gain = 10·log<sub>10</sub>M &nbsp;&nbsp; v<sub>unamb</sub> = ±λ·PRF/4 &nbsp;&nbsp; window loss = (Σw)²/(M·Σw²)<small>Velocity resolution = (window width in bins) × λ·PRF/(2M). The CPI M/PRF is also the minimum time the processor must wait before it has an answer (Step 8).</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive FFT uses no window. With clutter 50 dB above noise at 0 m/s, the clutter line after the FFT is 50 + 18.1 = 68 dB above the noise per bin, and its rectangular-window skirts at the target's bin, 9 bins away, are still 26.8 dB above the noise, while the target's own bin is at 11.4 dB. The target is buried in the clutter's own sidelobes, even though in Doppler it is clearly separated from it.</p></div>
+  <h3>Side by side on one example: M = 64, target at 20.3 m/s, SNR −5 dB per pulse, clutter +50 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Window</th><th>First sidelobe</th><th>−3 dB width</th><th>Worst scalloping</th><th>SNR loss</th><th>Clutter at target bin</th><th>Target margin</th></tr>
+    <tr><td>Rectangular</td><td class="n">−13.3 dB</td><td class="n">0.89 bin</td><td class="n">3.92 dB</td><td class="n">0 dB</td><td class="n">26.8 dB</td><td class="n">−15.5 dB</td></tr>
+    <tr><td>Hann</td><td class="n">−31.5 dB</td><td class="n">1.44 bins</td><td class="n">1.42 dB</td><td class="n">1.76 dB</td><td class="n">−13.1 dB</td><td class="n">+10.7 dB</td></tr>
+    <tr><td>Hamming</td><td class="n">−42.7 dB</td><td class="n">1.30 bins</td><td class="n">1.75 dB</td><td class="n">1.34 dB</td><td class="n">8.3 dB</td><td class="n">+2.6 dB</td></tr>
+    <tr><td>Blackman-Harris (4-term)</td><td class="n">−92 dB</td><td class="n">1.90 bins</td><td class="n">0.83 dB</td><td class="n">3.02 dB</td><td class="n">−42.8 dB</td><td class="n">+9.7 dB</td></tr>
+  </table></div>
+  <div class="col"><p>"Target margin" is the target's bin level over the larger of the noise (0 dB) and the clutter sidelobe at that bin. Hamming has a low first sidelobe but its far skirts flatten out near −60 dB and leave the clutter 8.3 dB above the noise at the target. Hann's skirts keep falling (18 dB per octave), so 9 bins out they are already below the noise and Hann gives the best margin here. Blackman-Harris costs about 1 dB more SNR than Hann, but raise the clutter to 70 dB and it is the only one that stays clear: +9.7 dB, against +3.7 dB for Hann, −17.4 dB for Hamming and −35.5 dB for rectangular. Against noise alone, rectangular is best.</p></div>
+  <h3>How to choose M, PRF and the window</h3>
+  <div class="col"><p>(1) <b>PRF</b> from the velocities to be measured without folding (±λ·PRF/4) and from the range ambiguity it creates (R4). (2) <b>M</b> from the velocity resolution and coherent gain needed, limited by how long the target stays in the beam and how long the system can wait: M = 64 gives 2.34 m/s bins and 18.1 dB gain in 6.4 ms. (3) <b>The window</b> from the clutter-to-noise ratio: the window's far sidelobes must be below the noise when applied to the strongest clutter, so CNR + 10·log M + sidelobe &lt; 0 dB. For 50 dB clutter that needs about −70 dB at the target's offset: Blackman-Harris or a Dolph-Chebyshev window. (4) Each window choice costs SNR (0 to 3 dB) and resolution; a radar with weak clutter uses Hamming or Hann.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cDop" width="640" height="340" aria-label="Doppler spectrum of one range cell with clutter at zero velocity and a moving target"></canvas>
+    <div class="ctrl">
+      <label for="vM"><span>Pulses in the CPI, M</span></label><select id="vM"><option value="16">16</option><option value="32">32</option><option value="64" selected>64</option><option value="128">128</option></select>
+      <label for="vW"><span>Window</span></label><select id="vW"><option value="rect" selected>Rectangular</option><option value="hann">Hann</option><option value="hamming">Hamming</option><option value="bh4">Blackman-Harris 4-term</option></select>
+      <label for="vV"><span>Target velocity</span> <b id="vVv"></b></label><input id="vV" type="range" min="-70" max="70" step="0.01" value="20.3">
+      <label for="vS"><span>Target SNR per pulse</span> <b id="vSv"></b></label><input id="vS" type="range" min="-20" max="20" step="1" value="-5">
+      <label for="vC"><span>Clutter-to-noise per pulse</span> <b id="vCv"></b></label><input id="vC" type="range" min="0" max="70" step="1" value="50">
+      <div class="readout" id="vOut"></div>
+    </div>
+    <p class="cap">One range cell, M pulses, one noise sample per pulse. Dots: the M FFT bins the firmware actually computes. Line: the same spectrum evaluated finely (zero-padded) so the true shape between bins is visible. Dashed: the clutter alone, showing its window sidelobes. 0 dB is the noise level per bin.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Rectangular, clutter 50 dB: the clutter's skirt at the target bin reads 26.8 dB and the target margin −15.5 dB, the first table row. Hann: margin +10.7 dB; Blackman-Harris: +9.7 dB. Raise the clutter to 70 dB: only Blackman-Harris keeps +9.7 dB.</li>
+    <li>Set the velocity to an exact bin, 18.75 m/s (8 bins): scalloping 0 dB. Half a bin further, 19.92 m/s: rectangular 3.91 dB, Blackman-Harris 0.82 dB.</li>
+    <li>Change M from 64 to 128: bin spacing halves to 1.17 m/s and the coherent gain rises from 18.1 to 21.1 dB, but the CPI doubles to 12.8 ms.</li>
+    <li>Clutter 0 dB: the rectangular window gives the highest target margin (+11.4 dB against +9.7 dB for Blackman-Harris), because it has no taper loss.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>M (FFT length)</td><td>Pulses per CPI, memory for M × range cells</td><td>Bin PRF/M (2.34 m/s), gain 10·log M (18.1 dB)</td><td>Velocity resolution, slow-target detection, reaction time M/PRF</td></tr>
+    <tr><td>Window</td><td>Coefficient table</td><td>Sidelobes −13 to −92 dB; loss 0–3 dB; scalloping 3.9–0.8 dB</td><td>Targets visible next to clutter; sensitivity</td></tr>
+    <tr><td>PRF</td><td>Timing generator</td><td>v<sub>unamb</sub> = ±λ·PRF/4 (±75 m/s)</td><td>Velocity folding; range ambiguity (R4)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser and clock designers:</b> pulse-to-pulse phase noise spreads the clutter line itself; a window cannot lower that. The clutter spectrum width is part of your phase-noise specification (Module 02).</li>
+    <li><b>PA designers:</b> pulse-to-pulse amplitude and phase droop of the transmitter modulates the clutter and adds Doppler sidelobes of its own.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Clutter is 60 dB above noise per pulse and M = 64. What far-sidelobe level must the window have for a target 10 bins away to be limited by noise?</summary><p>The clutter line is 60 + 18.1 = 78 dB above the noise per bin, so the window's sidelobe at 10 bins must be below −78 dB. Hann (falling to about −70 dB at 10 bins) is not enough; Blackman-Harris (−92 dB) is.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="cfar">
+  <div class="secno">Step 6</div>
+  <h2>CFAR as implemented in hardware</h2>
+  <div class="know"><h4>You already know</h4><p>R3 (<a href="R3-detection-cfar.html">Detection</a>) builds CFAR step by step: why one fixed threshold fails when the background changes, what the cell under test, gap (guard) cells and reference cells are, and the CA, GO, SO and OS methods. Read its Step 6 first if CFAR is new. This step recaps only the four terms the bench uses, then shows what changes when CFAR is built in an FPGA.</p></div>
+  <div class="term"><h4>Definitions (recap from R3, then the hardware terms)</h4>
+    <p><b>Range cell:</b> one sample of the matched-filter (or Doppler) output; at 62.5 MSPS a cell is 2.4 m of range. <b>Cell under test (CUT):</b> the cell being decided now.</p>
+    <p><b>Reference cells, N:</b> cells either side of the CUT (N/2 on each side) whose average estimates the local noise. More cells give a steadier estimate. On the bench N is the total; N = 16 means 8 each side.</p>
+    <p><b>Guard cells, G:</b> cells right beside the CUT that are skipped, because a real target spills energy into its neighbours and would otherwise raise its own threshold (self-masking). G is per side.</p>
+    <p><b>Threshold factor α:</b> the multiplier on the estimated noise; threshold = α × average. It is set once from the wanted <b>P<sub>fa</sub></b> (probability that a noise-only cell crosses the threshold): for cell averaging, α = N·(P<sub>fa</sub><sup>−1/N</sup> − 1).</p>
+    <p><b>CFAR loss:</b> the extra SNR a target needs, compared with a detector that knows the noise exactly, to be detected with the same probability (here P<sub>d</sub> = 0.5 on a fluctuating target). It exists because the estimate from N cells wobbles, so α must be larger than ln(1/P<sub>fa</sub>).</p>
+    <p><b>CA and GO:</b> cell-averaging uses the average of all N cells; greatest-of averages each side separately and uses the larger, which is safer at clutter edges. <b>Fixed threshold:</b> α × the noise measured once in a quiet region, not CFAR at all; it is on the bench only to show the problem.</p>
+    <p><b>Running sum:</b> the hardware trick that makes CFAR cheap: as the window slides by one cell, add the cell entering each half and subtract the one leaving. Cost: 4 adders per cell, whatever N is.</p>
+    <p><b>α implementation:</b> how firmware multiplies by α. A DSP block multiplies exactly (to its word length). A <b>shift</b> multiplies by a power of two for free. <b>Shift-and-add</b> builds α from a few powers of two (22 = 16 + 4 + 2: three shifts and two adders).</p>
+  </div>
+  <div class="col">
+    <p>Worked numbers for P<sub>fa</sub> = 10<sup>−6</sup>. An ideal detector that knew the noise would need 12.77 dB SNR for P<sub>d</sub> = 0.5. CA-CFAR with N = 16: α = 16 × (10<sup>6/16</sup> − 1) = 21.94 (13.41 dB), and it needs 2.00 dB more SNR: that is its CFAR loss.</p>
+    <p>In hardware the cells stream past at 62.5 MSPS, one per clock (or a few per clock, Step 8). The firmware keeps a shift register N + 2G + 1 cells long, two running sums, one multiplier and one comparator. The decision for a cell comes out N/2 + G cells after the cell itself arrives (the window must have seen the cells after it). At the start and end of the range sweep one side of the window is missing; the firmware then uses only the side it has, or GO logic.</p>
+    <p>What makes the α implementation matter is how steep P<sub>fa</sub> is in α. A CA-CFAR's P<sub>fa</sub> = (1 + α/N)<sup>−N</sup>. Round α = 21.94 to the power of two 16 to save a multiplier and P<sub>fa</sub> becomes (1 + 1)<sup>−16</sup> = 1.5 × 10<sup>−5</sup>: 15 times more false alarms. With 10 million cells per second (1 000 range cells × 64 Doppler bins every 6.4 ms), P<sub>fa</sub> = 10<sup>−6</sup> means 10 false alarms per second; 1.5 × 10<sup>−5</sup> means 153 per second, enough to overload a tracker. Shift-and-add 22 = 16 + 4 + 2 gives 9.8 × 10<sup>−7</sup>, practically exact.</p>
+  </div>
+  <div class="eq">threshold = α · (1/N)·Σ reference cells &nbsp;&nbsp; α<sub>CA</sub> = N·(P<sub>fa</sub><sup>−1/N</sup> − 1) &nbsp;&nbsp; P<sub>fa,CA</sub>(α) = (1 + α/N)<sup>−N</sup> &nbsp;&nbsp; false alarms/s = P<sub>fa</sub> × cells/s<small>Ideal (known noise): threshold = ln(1/P<sub>fa</sub>) × noise = 13.8 = 11.40 dB at 10<sup>−6</sup>. Running sum: S<sub>new</sub> = S<sub>old</sub> + x<sub>in</sub> − x<sub>out</sub> for each half.</small></div>
+  <h3>What goes wrong with the naive approaches</h3>
+  <div class="col">
+    <p><b>Naive 1: a fixed threshold.</b> Set at ln(10<sup>6</sup>) = 13.8 times the quiet noise, it gives 10<sup>−6</sup> in quiet cells. In a clutter patch 15 dB (31.6 times) above the noise, each cell crosses with probability e<sup>−13.8/31.6</sup> = 0.65: about 32 of the 50 clutter cells become false alarms (37 in the particular noise profile on the bench).</p>
+    <p><b>Naive 2: a tiny window to save logic.</b> N = 4 needs α = 122 (20.9 dB), a CFAR loss of 9.3 dB: the radar loses the equivalent of 9.3 dB of transmitter power, its range shrinks by 10<sup>9.3/40</sup> = 1.7 times. The logic saved is a few registers, because the running sum costs the same for any N.</p>
+    <p><b>Naive 3: no guard cells.</b> The compressed pulse spans about three cells (Step 4), so the target's own neighbours, each 6 dB below its peak, enter the reference window and raise its threshold.</p>
+  </div>
+  <h3>Side by side on one example: P<sub>fa</sub> = 10<sup>−6</sup></h3>
+  <div class="tw"><table class="t">
+    <tr><th>Detector</th><th>α</th><th>α in dB</th><th>CFAR loss</th><th>Adders per cell</th></tr>
+    <tr><td>Fixed threshold (quiet noise known)</td><td class="n">13.8</td><td class="n">11.40</td><td class="n">0 dB, but 65 % false alarms in +15 dB clutter</td><td class="n">0</td></tr>
+    <tr><td>CA, N = 4</td><td class="n">122.5</td><td class="n">20.88</td><td class="n">9.29 dB</td><td class="n">4</td></tr>
+    <tr><td>CA, N = 8</td><td class="n">36.99</td><td class="n">15.68</td><td class="n">4.23 dB</td><td class="n">4</td></tr>
+    <tr><td>CA, N = 16</td><td class="n">21.94</td><td class="n">13.41</td><td class="n">2.00 dB</td><td class="n">4</td></tr>
+    <tr><td>CA, N = 32</td><td class="n">17.28</td><td class="n">12.37</td><td class="n">0.97 dB</td><td class="n">4</td></tr>
+    <tr><td>CA, N = 64</td><td class="n">15.42</td><td class="n">11.88</td><td class="n">0.48 dB</td><td class="n">4</td></tr>
+    <tr><td>GO, N = 16</td><td class="n">19.36</td><td class="n">12.87</td><td class="n">2.21 dB</td><td class="n">4 + compare</td></tr>
+  </table></div>
+  <div class="tw"><table class="t">
+    <tr><th>α implementation (CA, N = 16)</th><th>α built</th><th>P<sub>fa</sub> achieved</th><th>False alarms/s at 10 M cells/s</th><th>Cost</th></tr>
+    <tr><td>DSP multiplier</td><td class="n">21.94</td><td class="n">1.0 × 10<sup>−6</sup></td><td class="n">10</td><td>1 DSP block</td></tr>
+    <tr><td>Nearest power of two (shift)</td><td class="n">16</td><td class="n">1.5 × 10<sup>−5</sup></td><td class="n">153</td><td>free</td></tr>
+    <tr><td>Shift-and-add, 3 terms</td><td class="n">22</td><td class="n">9.8 × 10<sup>−7</sup></td><td class="n">10</td><td>2 adders</td></tr>
+  </table></div>
+  <h3>How to choose N, G, P<sub>fa</sub> and the arithmetic</h3>
+  <div class="col"><p>(1) <b>P<sub>fa</sub></b> from the false alarms per second the tracker can absorb: P<sub>fa</sub> = allowed rate / cells per second, for example 10/s ÷ 10<sup>7</sup> = 10<sup>−6</sup>. (2) <b>G</b> from the compressed pulse width in cells: at 62.5 MSPS and 20 MHz the mainlobe covers about 3 cells, so G = 1 or 2 per side; weighting (Step 4) widens it. (3) <b>N</b> as large as the background stays uniform over: 16–32 cells (40–80 m) is common; larger N lowers the loss but lets clutter edges and neighbouring targets into the window. N should be a power of two so the division by N is a shift. (4) <b>α arithmetic</b> exact to about 1 %: a multiplier, or shift-and-add; never round to a power of two. (5) <b>Word length</b> of the running sums: log<sub>2</sub>N bits more than the cell data, or they overflow (Step 7).</p></div>
+  <h3>What the bench shows</h3>
+  <div class="col"><p>The bench shows 200 range cells of noise (exponential power, as after a square-law detector), a clutter patch 15 dB above the noise from cell 120 to 169, and three targets of equal SNR: T1 at cell 40, T2 at cell 52 (12 cells from T1: outside its reference window for N = 16, inside it for N = 32), and T3 at cell 112, eight cells before the clutter edge. Each target spills 6 dB down into the cells either side. The shaded cells show T2's window: orange are reference cells, grey are guard cells. Every control below is one of the terms defined above.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCf" width="640" height="340" aria-label="Range profile with noise, a clutter patch and three targets, with the CFAR threshold and detections"></canvas>
+    <div class="ctrl">
+      <label for="cK"><span>Detector</span></label><select id="cK"><option value="fixed">Fixed threshold</option><option value="ca" selected>CA (cell averaging)</option><option value="go">GO (greatest of)</option></select>
+      <label for="cN"><span>Reference cells N (total)</span></label><select id="cN"><option value="4">4</option><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+      <label for="cG"><span>Guard cells G</span> <b id="cGv"></b></label><input id="cG" type="range" min="0" max="4" step="1" value="1">
+      <label for="cP"><span>Wanted P<sub>fa</sub></span> <b id="cPv"></b></label><input id="cP" type="range" min="3" max="8" step="1" value="6">
+      <label for="cA"><span>α implementation</span></label><select id="cA"><option value="exact" selected>DSP multiplier (exact)</option><option value="pow2">Nearest power of two (shift)</option><option value="csd">Shift-and-add, 3 terms</option></select>
+      <label for="cS"><span>Target SNR (each target)</span> <b id="cSv"></b></label><input id="cS" type="range" min="5" max="30" step="1" value="18">
+      <div class="readout" id="cOut"></div>
+    </div>
+    <p class="cap">Teal: cell power in dB above the quiet noise. Orange line: the threshold. Green dots: detections on a target (its cell or a spill cell). Red dots: false alarms. T labels turn green when that target is detected. The readout's false-alarm rate uses the P<sub>fa</sub> the built α really gives, at 10 million cells per second.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Fixed threshold: red dots fill the clutter patch; the readout counts 37 false alarms in 50 clutter cells, close to the 65 % worked out above.</li>
+    <li>CA, N = 16, G = 1, P<sub>fa</sub> 10<sup>−6</sup>: α 21.94 (13.41 dB), CFAR loss 2.00 dB. Change N to 4: α 122.5, loss 9.29 dB; to 64: 0.48 dB. The rows of the first table.</li>
+    <li>Set G = 0: the targets' own spill enters the window and the threshold rises around each target; T1's margin over its threshold falls from +5.1 dB to +0.2 dB and T3 is lost.</li>
+    <li>Switch α to "nearest power of two": P<sub>fa</sub> achieved 1.5 × 10<sup>−5</sup> and 153 false alarms per second; "shift-and-add": 9.8 × 10<sup>−7</sup>.</li>
+    <li>CA, N = 16: all three targets detected. GO, N = 16: T3 is lost, because GO takes the louder (clutter) half of its window; GO protects against false alarms at clutter edges, not targets beside them (SO does that, R3). CA with N = 32: T1 and T2 now sit in each other's windows and all three are lost.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Reference cells N</td><td>Shift-register length, running-sum width</td><td>CFAR loss: 4.23 dB (8), 2.00 dB (16), 0.97 dB (32)</td><td>Detection range ∝ 10<sup>−loss/40</sup>; masking near clutter edges and other targets</td></tr>
+    <tr><td>Guard cells G</td><td>Register taps skipped</td><td>Self-masking avoided</td><td>Missed targets if G is smaller than the compressed pulse</td></tr>
+    <tr><td>α value and arithmetic</td><td>Multiplier, shift-and-add or shift</td><td>P<sub>fa</sub> achieved (10<sup>−6</sup> vs 1.5 × 10<sup>−5</sup>)</td><td>False alarms per second at the tracker (10 vs 153)</td></tr>
+    <tr><td>CA / GO / OS logic</td><td>Comparators, sorting network</td><td>Loss vs robustness at edges</td><td>Clutter-edge false alarms vs weak-target sensitivity</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>FPGA engineers:</b> α is a constant in your code; the system engineer's P<sub>fa</sub> is the specification. Check P<sub>fa</sub>(α built) with the formula, not just α itself.</li>
+    <li><b>Receiver designers:</b> CFAR assumes the noise statistics are those of a linear receiver. A receiver that compresses or limits in clutter changes them and the P<sub>fa</sub> drifts from the design value.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A tracker can accept 2 false alarms per second and the radar produces 4 million cells per second. CA-CFAR with N = 32: what α is needed?</summary><p>P<sub>fa</sub> = 2/(4 × 10<sup>6</sup>) = 5 × 10<sup>−7</sup>. α = 32 × ((5 × 10<sup>−7</sup>)<sup>−1/32</sup> − 1) = 32 × (1.573 − 1) = 18.3 (12.6 dB). Build it as 16 + 2 + 0.25 = 18.25 (shift-and-add).</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="fix">
+  <div class="secno">Step 7</div>
+  <h2>Fixed-point word length, rounding, overflow and saturation</h2>
+  <div class="know"><h4>You already know</h4><p>An ADC with B bits has an ideal SNR of 6.02B + 1.76 dB for a full-scale sine, and clipping it creates harmonics (Module 07). Every register inside the FPGA is a small ADC in the same sense: each time a result is stored in fewer bits, the same rule applies again.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Fixed point:</b> numbers stored as integers with an agreed scale. A B-bit <b>two's-complement</b> word holds −2<sup>B−1</sup> … 2<sup>B−1</sup> − 1; with the scale "full scale = ±1" it is written Q1.(B−1), for example Q1.15 for 16 bits.</p>
+    <p><b>LSB (least significant bit):</b> the step between neighbouring values, 2/2<sup>B</sup> of full scale. <b>dBFS:</b> dB relative to a full-scale sine.</p>
+    <p><b>Quantisation noise:</b> the error of storing a value in B bits, spread evenly in ±½ LSB: power LSB²/12. For a full-scale sine it gives <b>SQNR</b> (signal to quantisation noise ratio) = 6.02B + 1.76 dB.</p>
+    <p><b>Requantisation:</b> dropping low bits after an operation that grew the word (an adder adds 1 bit, a B × C multiplier gives B + C bits, a K-tap FIR adds log<sub>2</sub>K bits, an M-point FFT up to log<sub>2</sub>M bits).</p>
+    <p><b>Truncation:</b> just discard the low bits (round towards −∞). Error 0 to −1 LSB, mean −½ LSB: a <b>DC bias</b>. <b>Round half up:</b> add ½ LSB then truncate; unbiased except for values exactly half-way, which always go up. <b>Convergent rounding</b> (round half to even): half-way values go to the even neighbour, so on average no bias.</p>
+    <p><b>Overflow:</b> a result larger than the word can hold. <b>Wrap-around:</b> two's-complement arithmetic simply drops the top bit, so a value just above +full scale becomes nearly −full scale. <b>Saturation:</b> extra logic clamps the result to the largest value instead (a clip). <b>Headroom:</b> how far below full scale the largest normal signal is kept.</p>
+  </div>
+  <div class="col">
+    <p>Worked numbers. 12 bits: SQNR = 6.02 × 12 + 1.76 = 74.0 dB; 16 bits: 98.1 dB. A 1 024-point FFT can grow a full-scale tone by 2<sup>10</sup> (10 bits) while the noise grows by only 2<sup>5</sup>: the FFT's coherent gain (Step 5) is real only if the words have room for it. A 14-bit ADC (about 70 dB SNR) followed by 12 dB of processing gain in the decimator (Step 3) and 18 dB in a 64-point Doppler FFT ends with a signal that may lie 100 dB above a single LSB of the ADC: the words must grow to keep it.</p>
+    <p>The bench takes a result two bits longer than the word (as from an adder or one FFT stage) carrying a strong tone and a weak tone at −80 dBFS, stores it in B bits with the chosen rounding and overflow handling, and looks at its spectrum. Dropping exactly two bits makes the rounding differences easy to see: truncation biases by −⅜ LSB (−½ LSB when many bits are dropped), round half up by +⅛ LSB, convergent by 0.</p>
+  </div>
+  <div class="eq">SQNR = 6.02·B + 1.76 dB &nbsp;&nbsp; noise per FFT bin ≈ −SQNR − 10·log<sub>10</sub>(M/2) + 10·log<sub>10</sub>(ENBW) dBFS &nbsp;&nbsp; truncation bias = −½ LSB<small>ENBW: the window's equivalent noise bandwidth in bins. A weak tone below the SQNR can still be seen in an FFT, because the noise is shared among M/2 bins; a spur cannot be averaged away like that.</small></div>
+  <h3>What goes wrong with the naive approaches</h3>
+  <div class="col">
+    <p><b>Naive 1: keep every word at 16 bits and let it overflow.</b> A strong return that pushes a filter output 4 dB over full scale wraps: the top of every cycle jumps to the bottom. The spectrum fills with spurs only 12 dB below the strong signal and the floor rises by 50 dB; every spur is a false target or a false emitter.</p>
+    <p><b>Naive 2: avoid overflow by scaling ½ in every FFT stage.</b> A 1 024-point FFT has 10 stages, so the signal is divided by 1 024 (60 dB) before the coherent gain is applied. Small signals fall below the LSB and are lost; the noise floor of the output is set by the word, not by the input.</p>
+    <p><b>Naive 3: truncate everywhere.</b> Each truncation adds −½ LSB of DC. Ten requantisations in a row add up to −5 LSB: a false "target" at zero Doppler and zero frequency, which the clutter filter then has to remove.</p>
+  </div>
+  <h3>Side by side on one example: strong tone at −1 dBFS, weak tone at −80 dBFS</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Word and handling</th><th>Ideal SQNR</th><th>Floor per bin</th><th>Largest spur</th><th>DC added</th><th>Weak tone margin</th></tr>
+    <tr><td>8 bits, round half up</td><td class="n">49.9 dB</td><td class="n">−84.2 dBFS</td><td class="n">−66.8 dBFS</td><td class="n">+0.12 LSB</td><td class="n">−16.1 dB</td></tr>
+    <tr><td>12 bits, truncate</td><td class="n">74.0 dB</td><td class="n">−104.9 dBFS</td><td class="n">−95.3 dBFS</td><td class="n">−0.37 LSB (line at −69 dBFS)</td><td class="n">+15.2 dB, but a DC line</td></tr>
+    <tr><td>12 bits, convergent</td><td class="n">74.0 dB</td><td class="n">−104.5 dBFS</td><td class="n">−94.2 dBFS</td><td class="n">0.00 LSB</td><td class="n">+14.2 dB</td></tr>
+    <tr><td>16 bits, convergent</td><td class="n">98.1 dB</td><td class="n">−128.3 dBFS</td><td class="n">−118.0 dBFS</td><td class="n">0.00 LSB</td><td class="n">+37.8 dB</td></tr>
+    <tr><td>16 bits at +4 dBFS, wrap</td><td class="n">98.1 dB</td><td class="n">n/a</td><td class="n">−8.2 dBFS</td><td class="n">n/a</td><td class="n">−43.7 dB</td></tr>
+    <tr><td>16 bits at +4 dBFS, saturate</td><td class="n">98.1 dB</td><td class="n">n/a</td><td class="n">−14.1 dBFS</td><td class="n">n/a</td><td class="n">−73.7 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Read the table as three rules. Word length sets the floor (about 6 dB per bit). Rounding mode sets the DC bias (truncation's −½ LSB is a spur at 0 Hz). Overflow handling sets what happens when the floor rule fails: wrap-around is a disaster, saturation is a clip with harmonics a few tens of dB down, and the best answer is headroom so neither happens.</p></div>
+  <h3>How to choose word lengths and rounding</h3>
+  <div class="col"><p>(1) <b>Start from the ADC:</b> keep the noise of each requantisation at least 10 dB below the noise already in the signal, which means about 2 bits below the signal's own noise level. (2) <b>Add the processing gain:</b> every 6 dB of processing gain needs one more bit to carry it: 12 dB in the decimator → +2 bits; 18 dB in the FFT → +3 bits. (3) <b>Add headroom</b> for the largest signal plus the growth of each block (log<sub>2</sub> of the taps or FFT length) or use block floating point (one shared exponent per block). (4) <b>Saturate</b> at every point where overflow is possible, and count saturations in a status register. (5) <b>Round convergently</b> wherever a word is shortened, especially in long chains; truncate only where a DC bias does no harm. (6) DSP blocks come in 18 × 27 bits: going beyond 18 bits on one input doubles the multipliers, so word length is also a resource decision.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cFx" width="640" height="340" aria-label="Spectrum of a two-tone signal stored in the chosen word length with the chosen rounding and overflow handling"></canvas>
+    <div class="ctrl">
+      <label for="fB"><span>Word length B</span> <b id="fBv"></b></label><input id="fB" type="range" min="6" max="20" step="1" value="12">
+      <label for="fL"><span>Strong tone level</span> <b id="fLv"></b></label><input id="fL" type="range" min="-60" max="6" step="1" value="-1">
+      <label for="fR"><span>Rounding when dropping bits</span></label><select id="fR"><option value="trunc">Truncate</option><option value="half">Round half up</option><option value="conv" selected>Convergent (half to even)</option></select>
+      <label for="fO"><span>Overflow handling</span></label><select id="fO"><option value="wrap">Wrap-around (no check)</option><option value="sat" selected>Saturate (clamp)</option></select>
+      <div class="readout" id="fOut"></div>
+    </div>
+    <p class="cap">A (B + 2)-bit input (strong tone, weak tone at −80 dBFS, a trace of noise) stored in B bits. 4 096-point Kaiser-window spectrum, 0 dBFS = full-scale sine. Dashed: the ideal quantisation floor per bin for B bits. Green: the weak tone. Red: the largest spur (excluding the two tones). The "DC offset" readout is the bias the rounding mode adds.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>12 bits, convergent, −1 dBFS: the floor sits near the dashed line (ideal SQNR 74.0 dB) and the weak tone stands +14.2 dB above the floor and spurs.</li>
+    <li>Switch to truncate: the DC offset reads about −0.375 LSB and a line appears at 0 Hz; round half up reads about +0.125 LSB; convergent about 0.</li>
+    <li>8 bits: the floor rises by about 20 dB and quantisation spurs appear near −67 dBFS; the weak −80 dBFS tone is now −16.1 dB relative to the largest spur.</li>
+    <li>Raise the strong tone to +4 dBFS with wrap-around: largest spur −8.2 dBFS (12 dB below the tone) and the floor jumps to about −55 dBFS; switch to saturate: harmonics at −14.1 dBFS with the floor still near −107 dBFS. Back at −1 dBFS: no overflow.</li>
+    <li>B = 20 bits: the floor falls to about −150 dBFS per bin, 6 dB per bit below the 12-bit case, and the weak tone stands far clear of it.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Word length B</td><td>Register and DSP widths at each stage</td><td>SQNR 6.02B + 1.76 (74 dB at 12, 98 dB at 16)</td><td>Dynamic range: weakest target visible next to the strongest clutter</td></tr>
+    <tr><td>Rounding mode</td><td>Truncate, round, convergent</td><td>DC bias −½ LSB per truncation</td><td>Zero-Doppler and DC spurs; bias building up through long chains</td></tr>
+    <tr><td>Overflow handling</td><td>Saturation logic, headroom, block floating point</td><td>Spurs at 4 dB overload: wrap −12 dBc and a 50 dB higher floor; saturate −18 dBc harmonics</td><td>False targets and false emitters whenever a strong signal arrives</td></tr>
+    <tr><td>Bit growth</td><td>Extra bits per block (log<sub>2</sub> taps, log<sub>2</sub> M)</td><td>No overflow at full coherent gain</td><td>Processing gain actually delivered</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>ADC designers:</b> your ENOB is the starting point of the word-length plan; every firmware word is sized from it (Module 07).</li>
+    <li><b>Receiver and AGC designers:</b> the analog gain decides how close the strongest signal comes to full scale; digital headroom and analog gain control (Module 08) are one budget.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 14-bit ADC feeds a decimate-by-16 filter and then a 64-point FFT. How many bits should the FFT output word have?</summary><p>Start at 14 bits plus 2 guard bits (16). Decimator processing gain 12 dB → +2 bits (18). FFT coherent gain up to 18 dB (log<sub>2</sub> 64 = 6 bits of growth for a tone) → 24 bits, or 18 bits with block floating point. Then saturation at the output for anything larger.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="lat">
+  <div class="secno">Step 8</div>
+  <h2>Latency and throughput</h2>
+  <div class="know"><h4>You already know</h4><p>A filter delays a signal by its group delay, and a long pulse is not "received" until its end has arrived. Digital processing adds its own delays, and it can only keep up with the ADC if enough of it runs in parallel.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>FPGA clock f<sub>clk</sub>:</b> the rate at which the firmware's registers update, typically 250–500 MHz. <b>Throughput:</b> samples per second a block can accept. A block that handles one sample per clock has throughput f<sub>clk</sub>.</p>
+    <p><b>Parallel paths (samples per clock):</b> when the ADC rate exceeds the clock, the firmware handles P = ⌈f<sub>s</sub>/f<sub>clk</sub>⌉ samples in every clock, with P copies of the logic (1 GSPS at 250 MHz → P = 4).</p>
+    <p><b>Pipeline:</b> splitting a calculation into stages with registers between them, so the clock can be fast; each stage adds one clock of delay. <b>Latency:</b> the time from a sample entering a block to its result leaving it.</p>
+    <p><b>FIR group delay:</b> a symmetric K-tap FIR delays the signal by (K − 1)/2 samples. <b>Fast convolution:</b> doing the matched filter with an FFT, a multiplication and an inverse FFT on blocks of L samples (overlap-save), which costs about L·log<sub>2</sub>L operations per block instead of L × taps, but adds a block of latency.</p>
+    <p><b>CPI wait:</b> the Doppler FFT cannot start until all M pulses have arrived: M/PRF.</p>
+    <p><b>Real multipliers:</b> a complex multiply needs 4 real multiplies (3 with a trick). On the bench, multipliers are counted as DSP blocks running at f<sub>clk</sub>.</p>
+  </div>
+  <div class="col">
+    <p>Worked example: 1 GSPS ADC, 250 MHz clock → 4 samples per clock; the NCO and mixer are built four times. After decimation by 16 (62.5 MSPS), one FIR multiplier at 250 MHz can serve 4 taps, so a 63-tap complex compensating FIR needs 2 × 63 × 62.5/250 ≈ 32 DSP blocks. The matched filter for a 10 µs pulse has 625 complex taps: done directly, 4 × 625 × 62.5/250 = 625 DSP blocks; done with 2 048-point FFTs, about 18.</p>
+    <p>Latency adds up stage by stage, but one stage always dominates. The DDC, CIC, FIR and CFAR take tens to hundreds of nanoseconds. The matched filter cannot answer before the pulse has ended (10 µs), plus the FFT block if fast convolution is used. The Doppler FFT has to wait for the whole CPI: 64 pulses at 10 kHz = 6.4 ms. That is 1 000 times longer than everything else together.</p>
+  </div>
+  <div class="eq">P = ⌈f<sub>s</sub>/f<sub>clk</sub>⌉ &nbsp;&nbsp; DSP<sub>FIR</sub> = 2K·f<sub>o</sub>/f<sub>clk</sub> &nbsp;&nbsp; DSP<sub>MF, direct</sub> = 4·N<sub>MF</sub>·f<sub>o</sub>/f<sub>clk</sub>, N<sub>MF</sub> = T·f<sub>o</sub> &nbsp;&nbsp; latency<sub>Doppler</sub> ≥ M/PRF<small>Throughput is fixed by the ADC; resources and clock are chosen to meet it. Latency is mostly fixed by the waveform (T, M, PRF); firmware only adds to it.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design writes each block for one sample per clock, as a software engineer would. At 1 GSPS and 250 MHz it keeps up with only a quarter of the samples: three in four are dropped, and the dropped samples alias like Naive decimation in Step 3. The second naive choice is a direct FIR matched filter: 625 DSP blocks for one channel of one waveform. A 16-channel array then needs 10 000 DSP blocks, more than most FPGAs have.</p></div>
+  <h3>Side by side on one example: 1 GSPS, 250 MHz clock, R = 16, 63-tap FIR, 10 µs pulse, 64 pulses at 10 kHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Stage</th><th>Latency</th><th>DSP blocks</th><th>What sets it</th></tr>
+    <tr><td>DDC (NCO + mixer, 4 paths)</td><td class="n">48 ns</td><td class="n">8</td><td>Pipeline depth; P = 4</td></tr>
+    <tr><td>CIC (↓8)</td><td class="n">54 ns</td><td class="n">0</td><td>Group delay N(R − 1)/2</td></tr>
+    <tr><td>FIR (63 taps, ↓2)</td><td class="n">288 ns</td><td class="n">32</td><td>(K − 1)/2 samples at 125 MSPS</td></tr>
+    <tr><td>Matched filter, direct FIR</td><td class="n">10.04 µs</td><td class="n">625</td><td>Pulse length T</td></tr>
+    <tr><td>Matched filter, FFT (L = 2 048)</td><td class="n">75.5 µs</td><td class="n">18</td><td>T plus two FFT blocks</td></tr>
+    <tr><td>Doppler FFT, 64 pulses</td><td class="n">6.40 ms</td><td class="n">3</td><td>CPI = M/PRF</td></tr>
+    <tr><td>CFAR</td><td class="n">200 ns</td><td class="n">1</td><td>N/2 + G cells</td></tr>
+  </table></div>
+  <h3>How to choose the clock, parallelism and method</h3>
+  <div class="col"><p>(1) <b>Clock:</b> as fast as the design closes timing, usually 250–400 MHz; P then follows from the ADC rate. (2) <b>Decimate early:</b> every block after the decimator costs R times less; that is the main reason for Step 3. (3) <b>Matched filter:</b> direct FIR for short pulses (tens of taps, lowest latency); fast convolution for long ones (hundreds or thousands of taps). (4) <b>CPI:</b> latency is a waveform choice: a jammer or missile seeker that must react within microseconds cannot use a 6.4 ms Doppler FFT, and an ESM receiver that must hand a pulse to a jammer within 1 µs uses short FFTs or no FFT at all. (5) Leave 20–30 % of DSP blocks and memory free: designs that fill an FPGA fail timing.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cLat" width="640" height="420" aria-label="Latency per processing stage on a log scale and multipliers per stage"></canvas>
+    <div class="ctrl">
+      <label for="lA"><span>ADC rate</span></label><select id="lA"><option value="250">250 MSPS</option><option value="500">500 MSPS</option><option value="1000" selected>1 GSPS</option><option value="2000">2 GSPS</option><option value="3000">3 GSPS</option></select>
+      <label for="lC"><span>FPGA clock</span> <b id="lCv"></b></label><input id="lC" type="range" min="150" max="600" step="10" value="250">
+      <label for="lR"><span>Decimation R</span></label><select id="lR"><option value="4">4</option><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+      <label for="lK"><span>Compensating FIR taps</span> <b id="lKv"></b></label><input id="lK" type="range" min="15" max="255" step="8" value="63">
+      <label for="lM"><span>Matched-filter method</span></label><select id="lM"><option value="fir">Direct FIR</option><option value="fft" selected>FFT fast convolution</option></select>
+      <label for="lT"><span>Pulse length T</span> <b id="lTv"></b></label><input id="lT" type="range" min="1" max="50" step="1" value="10">
+      <label for="lN"><span>Pulses per CPI, M</span> <b id="lNv"></b></label><input id="lN" type="range" min="16" max="256" step="16" value="64">
+      <label for="lF"><span>PRF</span> <b id="lFv"></b></label><input id="lF" type="range" min="1" max="50" step="1" value="10">
+      <div class="readout" id="lOut"></div>
+    </div>
+    <p class="cap">Top: latency of each stage on a log scale from 1 ns to 1 s; the orange bar is the stage that dominates. Bottom: real multipliers (DSP blocks at the chosen clock) per stage. The CIC uses only adders.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults: 4 samples per clock, Doppler FFT dominant at about 6.4 ms, total multipliers 62.</li>
+    <li>Matched filter "Direct FIR": its bar grows to 625 DSP blocks (669 in total); back to FFT: 18, but its latency grows from 10.04 µs to 75.5 µs (two 2 048-sample blocks). Next to the 6.4 ms CPI that does not matter for a search radar; for a seeker or jammer it does.</li>
+    <li>3 GSPS at 250 MHz: 12 parallel paths, so the DDC needs 24 multipliers; raise the clock to 500 MHz: 6 paths.</li>
+    <li>PRF 50 kHz with M = 16: the CPI falls to 0.32 ms; the Doppler FFT is still the longest stage, but the radar answers 20 times sooner.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Clock and parallelism</td><td>f<sub>clk</sub>, P copies of logic</td><td>Throughput = ADC rate, no dropped samples</td><td>Full bandwidth processed; no aliasing from dropped samples</td></tr>
+    <tr><td>Matched-filter method</td><td>Direct FIR or fast convolution</td><td>DSP blocks (625 vs ≈ 18), latency</td><td>Number of channels and waveforms per FPGA</td></tr>
+    <tr><td>CPI (M, PRF)</td><td>Waveform, memory for M × cells</td><td>Latency ≥ M/PRF (6.4 ms)</td><td>Track update rate, reaction time; jammer and seeker response</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Board and power designers:</b> DSP blocks at 400 MHz draw tens of watts; the multiplier count on this bench is also a power and heat budget.</li>
+    <li><b>ESM and jammer designers:</b> latency from antenna to decision is a system specification in its own right (Part 4, Part 6); the digital path is usually most of it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An FPGA has 1 800 DSP blocks at 300 MHz. How many 625-tap direct matched filters at 62.5 MSPS fit, and how many FFT-based ones?</summary><p>Direct: 4 × 625 × 62.5/300 = 521 DSP blocks each, so 3. FFT-based (≈ 17.3 complex multiplies per output): 4 × 17.3 × 62.5/300 ≈ 15 each, so over 100 (memory then becomes the limit).</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="sys">
+  <div class="secno">Step 9</div>
+  <h2>System effects: radar resolution and sidelobes, Doppler, ESM channelisation and SAR</h2>
+  <div class="know"><h4>You already know</h4><p>Steps 1–8 each produced a firmware choice and a specification. This step collects them per system and adds the one digital block that only ESM receivers use: the channeliser.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Channeliser:</b> a bank of K band-pass filters that splits a wide band (1 GHz here) into K adjacent channels, each with its own decimated output, all at once. It lets an ESM receiver see every frequency all the time while each channel has a narrow noise bandwidth.</p>
+    <p><b>Channel spacing:</b> f<sub>s</sub>/K (1 000/16 = 62.5 MHz). <b>Channel bandwidth:</b> the −3 dB width of one channel's response.</p>
+    <p><b>FFT channeliser:</b> a K-point FFT on blocks of K samples; each bin is a channel, with the window's response as its filter shape. <b>Polyphase filter bank (PFB):</b> the same FFT preceded by a long prototype filter (8 × K taps here) split into K branches, which gives channels with a flat top and steep skirts for little extra cost.</p>
+    <p><b>Crossover loss:</b> the loss for a signal exactly between two channels. <b>Channel leakage (splatter):</b> a strong signal appearing in channels other than its own through the filter skirts; each appearance can become a false emitter report.</p>
+    <p><b>Sensitivity gain:</b> narrowing the noise bandwidth from the whole band to one channel improves sensitivity by 10·log<sub>10</sub>K, less the window loss. <b>Shortest pulse:</b> a pulse shorter than about 1/(channel bandwidth) is smeared by the channel filter and loses amplitude.</p>
+  </div>
+  <div class="col">
+    <p><b>Radar range.</b> Range resolution is c/(2B) widened by the weighting: 6.6 m at −3 dB unweighted, 8.9 m with Taylor 35 dB. The range sidelobe floor is the worst of: the weighting's PSL (−35 dB), the analog ripple paired echoes (Module 04), NCO spurs (Step 2, −72 dBc at P = 12) and fixed-point spurs (Step 7). The CFAR then sets the false-alarm rate on that floor (Step 6).</p>
+    <p><b>Radar Doppler.</b> Velocity resolution is the window width × λ·PRF/(2M): 1.90 × 2.34 = 4.45 m/s with Blackman-Harris; clutter visibility is set by the window's far sidelobes and by the image level of the I/Q (Step 1); the reaction time includes the CPI (Step 8).</p>
+    <p><b>ESM.</b> An ESM receiver digitising 1 GHz has the sensitivity of a 1 GHz noise bandwidth unless it channelises. With K = 16 channels of 62.5 MHz, sensitivity improves by 12 dB; with 64 channels of 15.6 MHz by 18 dB, but pulses shorter than about 1/BW (about 18 ns and 72 ns for an unwindowed FFT) are smeared. The channel shape decides whether a signal between two channels is lost (crossover loss) and whether a strong signal shows up in many channels (leakage).</p>
+    <p><b>SAR.</b> A SAR image is two matched filters: range compression across the chirp (Step 4) and azimuth compression across the Doppler history collected as the platform flies past (Part 3, <a href="P3-sar-imaging.html">SAR imaging</a>). The image quality numbers are the same as for radar range: resolution c/(2B) and ρ<sub>az</sub> from the synthetic aperture, PSLR (peak sidelobe ratio, Step 4) and ISLR (integrated sidelobe ratio: all sidelobe energy relative to the peak). A dark sea next to a bright ship needs ISLR below about −20 dB and words long enough to hold the 60–80 dB scene dynamic range (Step 7). SAR processing is not real-time critical in latency (Step 8) but is enormous in throughput.</p>
+  </div>
+  <div class="eq">ESM sensitivity gain = 10·log<sub>10</sub>K − window loss &nbsp;&nbsp; channel spacing = f<sub>s</sub>/K &nbsp;&nbsp; shortest pulse ≈ 1/BW<sub>ch</sub><small>A 2× oversampled polyphase bank (channels spaced half their width) removes the crossover loss completely at twice the output rate; the bench shows the critically sampled case.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive channeliser is a plain K-point FFT with no window. Each channel is a sinc with −13.3 dB first sidelobes: a strong radar pulse appears in about all 16 of 16 channels above −40 dB, so the ESM reports several emitters at wrong frequencies. A signal half-way between channels loses up to 3.92 dB, a sensitivity hole at every channel edge: at 218.75 MHz the bench reads 3.84 dB of loss.</p></div>
+  <h3>Side by side on one example: 1 GHz band, K = 16, signal half-way between channels</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Channeliser</th><th>Channel −3 dB width</th><th>Crossover loss</th><th>Level 1.5 channels away</th><th>Channels above −40 dB</th></tr>
+    <tr><td>FFT, no window</td><td class="n">55.5 MHz</td><td class="n">3.91 dB</td><td class="n">−13.3 dB</td><td class="n">16 of 16</td></tr>
+    <tr><td>FFT, Hann window</td><td class="n">90.3 MHz</td><td class="n">1.42 dB</td><td class="n">−15.4 dB</td><td class="n">6 of 16</td></tr>
+    <tr><td>Polyphase filter bank (8 taps per branch)</td><td class="n">70.5 MHz</td><td class="n">1.25 dB</td><td class="n">−97.4 dB</td><td class="n">2 of 16</td></tr>
+  </table></div>
+  <h3>How to choose the channeliser</h3>
+  <div class="col"><p>(1) <b>K</b> from the sensitivity needed and the shortest pulse to be measured: more channels → better sensitivity (10·log K) but worse pulse-width resolution (≈ K/f<sub>s</sub>). Many ESM receivers run two channelisers with different K in parallel. (2) <b>Shape:</b> use a polyphase bank whenever strong and weak emitters coexist; its leakage is far below a windowed FFT's at almost the same cost (8 × K extra multipliers). (3) <b>Oversample 2×</b> to remove crossover loss when the sensitivity must be uniform across the band. (4) Word lengths after the channeliser grow by the 10·log K gain (Step 7).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCh" width="640" height="340" aria-label="ESM channeliser channel responses around the signal frequency"></canvas>
+    <div class="ctrl">
+      <label for="hK"><span>Channels K</span></label><select id="hK"><option value="8">8</option><option value="16" selected>16</option><option value="32">32</option><option value="64">64</option></select>
+      <label for="hT"><span>Channeliser type</span></label><select id="hT"><option value="rect" selected>FFT, no window</option><option value="hann">FFT, Hann window</option><option value="pfb">Polyphase filter bank</option></select>
+      <label for="hF"><span>Signal frequency</span> <b id="hFv"></b></label><input id="hF" type="range" min="0" max="1000" step="0.5" value="218.75">
+      <div class="readout" id="hOut"></div>
+    </div>
+    <p class="cap">Each curve is one channel's response (up to 16 channels shown around the signal). Orange: the channel that receives the signal best. Green line: the signal frequency. With K = 16 the default 218.75 MHz is exactly half-way between channels 3 and 4.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>FFT, no window, signal half-way (218.75 MHz): loss 3.84 dB and 16 of 16 channels above −40 dB. Move to 187.5 MHz (channel 3 centre): loss 0 dB.</li>
+    <li>Hann: crossover loss 1.42 dB, channels above −40 dB 6 of 16. Polyphase: 1.25 dB and 2 of 16.</li>
+    <li>K = 64: channel spacing 15.6 MHz, sensitivity gain 18.1 dB, shortest pulse about 72 ns (no window).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Spec</th><th>System effect</th></tr>
+    <tr><td>Channels K</td><td>FFT size, output rate per channel</td><td>Spacing f<sub>s</sub>/K, gain 10·log K</td><td>ESM sensitivity vs shortest measurable pulse</td></tr>
+    <tr><td>Channel shape</td><td>Window or polyphase prototype</td><td>Crossover loss, leakage</td><td>Sensitivity holes; false emitters from strong signals</td></tr>
+    <tr><td>Weighting and words (radar, SAR)</td><td>Steps 4, 5, 7</td><td>PSL, ISLR, dynamic range</td><td>Small targets near large ones; SAR image contrast</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>ESM front-end designers:</b> the channeliser sets the receiver's noise bandwidth, so your NF and gain budget (Module 01) is evaluated in the channel bandwidth, not the full band.</li>
+    <li><b>SAR system engineers:</b> image ISLR is the sum of the analog ripple, the weighting and the fixed-point noise; each component and firmware block gets a share of it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM receiver digitises 2 GHz and needs 15 dB better sensitivity than the wideband case, with a polyphase bank. How many channels, and what is the shortest pulse?</summary><p>10·log<sub>10</sub>K = 15 → K ≈ 32 (15.1 dB). Spacing 2 000/32 = 62.5 MHz, so pulses shorter than about 16 ns are smeared.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: every digital-receiver parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by</th><th>System effect (worked number)</th></tr>
+    <tr><td>Real vs I/Q, I/Q balance</td><td>Architecture; analog demodulator matching or digital NCO</td><td>Doppler sign; mirror targets at −28 dBc (0.5 dB/3°) vs none (digital)</td></tr>
+    <tr><td>NCO accumulator N</td><td>Register width</td><td>Tuning step 0.23 Hz at 1 GSPS (N = 32)</td></tr>
+    <tr><td>NCO phase bits P</td><td>LUT depth (block RAM)</td><td>Spurs ≈ −6.02·P dBc: −48 (8), −72 (12), −96 (16): false targets and emitters</td></tr>
+    <tr><td>NCO amplitude bits A</td><td>LUT width</td><td>LO noise 6.02·A + 1.76 dB; keep 2 bits above the ADC</td></tr>
+    <tr><td>Decimation R</td><td>Output bandwidth needed</td><td>Processing gain 10·log R (12 dB at 16); later stages R times cheaper</td></tr>
+    <tr><td>CIC stages N</td><td>Alias rejection needed</td><td>−58.9 dB alias, 1.47 dB droop, 16 bits growth (N = 4, R = 16)</td></tr>
+    <tr><td>Compensating FIR</td><td>Taps, coefficients</td><td>Flat passband for low compression sidelobes; multipliers 2K·f<sub>o</sub></td></tr>
+    <tr><td>Bandwidth B</td><td>Chirp, ADC, decimation</td><td>Range resolution c/2B (7.5 m at 20 MHz)</td></tr>
+    <tr><td>Pulse length T</td><td>Transmitter, matched filter length</td><td>Energy P·T; compression BT (200 = 23 dB); blind zone c·T/2</td></tr>
+    <tr><td>Range weighting</td><td>Taper on matched filter</td><td>PSL −13.5 → −35 dB (Taylor) for 0.93 dB SNR and × 1.34 width</td></tr>
+    <tr><td>Waveform (chirp vs code)</td><td>Waveform design</td><td>Doppler tolerance: chirp shifts f<sub>d</sub>·T/B, code loses its peak</td></tr>
+    <tr><td>Doppler FFT length M</td><td>CPI, memory</td><td>Bin PRF/M (2.34 m/s), gain 10·log M (18 dB), latency M/PRF (6.4 ms)</td></tr>
+    <tr><td>Doppler window</td><td>Coefficient table</td><td>Clutter sidelobes −13 → −92 dB for 0 → 3 dB loss; scalloping 3.9 → 0.8 dB</td></tr>
+    <tr><td>CFAR N, G</td><td>Window registers</td><td>CFAR loss 4.2 (8), 2.0 (16), 1.0 dB (32); self-masking if G too small</td></tr>
+    <tr><td>CFAR α arithmetic</td><td>Multiplier / shift-add / shift</td><td>P<sub>fa</sub> 10<sup>−6</sup> vs 1.5 × 10<sup>−5</sup>: 10 vs 153 false alarms/s</td></tr>
+    <tr><td>Word length B</td><td>Registers, DSP widths</td><td>SQNR 6.02B + 1.76 (74 dB at 12, 98 dB at 16): dynamic range</td></tr>
+    <tr><td>Rounding mode</td><td>Truncate / round / convergent</td><td>−½ LSB DC bias per truncation; zero-Doppler spurs</td></tr>
+    <tr><td>Overflow handling</td><td>Saturation logic, headroom</td><td>Wrap: spurs near the signal; saturate: clip harmonics; headroom: none</td></tr>
+    <tr><td>Clock, parallelism</td><td>FPGA, timing closure</td><td>Throughput matches the ADC (4 paths at 1 GSPS/250 MHz)</td></tr>
+    <tr><td>Matched-filter method</td><td>Direct FIR or FFT</td><td>625 vs ≈ 18 DSP blocks per channel for a 10 µs, 20 MHz pulse</td></tr>
+    <tr><td>Channeliser K and shape</td><td>FFT size, polyphase prototype</td><td>ESM sensitivity 10·log K; crossover loss and false emitters from leakage</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: R3 <a href="R3-detection-cfar.html">Detection</a> (thresholds, P<sub>fa</sub>, P<sub>d</sub> and CFAR from first principles); Module 07 ADC, DAC and sampling (sampling, aliasing, ENOB, SFDR, jitter); Module 05 <a href="M05-mixers-conversion.html">Mixers, LO and frequency conversion</a> (analog I/Q and image rejection); Module 04 <a href="M04-filters.html">Filters and preselection</a> (delay ripple and compression sidelobes); Part 3 <a href="P3-sar-imaging.html">SAR imaging</a>. The radar pages R4–R6 and the receiver/ESM, signal identification and jamming parts use these numbers in full chains.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>α (threshold factor)</dt><dd>CFAR multiplier on the estimated noise; set from P<sub>fa</sub> and N.</dd>
+    <dt>Alias band</dt><dd>Frequencies k·f<sub>o</sub> ± f<sub>p</sub> that fold onto the passband after decimation.</dd>
+    <dt>Bit growth</dt><dd>Extra bits a result needs: +1 per add, log<sub>2</sub>K for a K-tap FIR, N·log<sub>2</sub>R for a CIC.</dd>
+    <dt>Block floating point</dt><dd>A block of samples sharing one exponent, so a fixed-point FFT can scale only when needed.</dd>
+    <dt>CA / GO CFAR</dt><dd>Cell-averaging (mean of all reference cells) / greatest-of (larger of the two half means).</dd>
+    <dt>Cell under test (CUT)</dt><dd>The range or Doppler cell the CFAR is deciding.</dd>
+    <dt>CFAR loss</dt><dd>Extra SNR needed because the noise is estimated from N cells rather than known.</dd>
+    <dt>Channeliser</dt><dd>Bank of K filters splitting a wide band into channels with decimated outputs.</dd>
+    <dt>CIC filter</dt><dd>Cascaded integrator-comb: multiplier-free decimation filter with a sinc<sup>N</sup> response.</dd>
+    <dt>Coherent gain</dt><dd>SNR gain from adding M samples in phase: 10·log<sub>10</sub>M.</dd>
+    <dt>Compression ratio</dt><dd>Factor by which pulse compression shortens the pulse; B·T for a chirp.</dd>
+    <dt>Convergent rounding</dt><dd>Round to nearest, half-way values to the even neighbour; no average bias.</dd>
+    <dt>CORDIC</dt><dd>Shift-and-add method of computing sin, cos and rotations without a table.</dd>
+    <dt>CPI</dt><dd>Coherent processing interval: the M pulses processed together, lasting M/PRF.</dd>
+    <dt>Crossover loss</dt><dd>Loss of a signal lying exactly between two channels or bins.</dd>
+    <dt>DDC</dt><dd>Digital down-converter: NCO, complex mixer and decimation filter.</dd>
+    <dt>Decimation</dt><dd>Keeping one sample in every R after filtering; output rate f<sub>s</sub>/R.</dd>
+    <dt>Dither</dt><dd>Small random addition that turns periodic quantisation error (spurs) into noise.</dd>
+    <dt>DSP block</dt><dd>Hard multiplier-accumulator inside an FPGA, the usual limiting resource.</dd>
+    <dt>Droop</dt><dd>Loss at the passband edge relative to the centre.</dd>
+    <dt>Fast convolution</dt><dd>Filtering by FFT, multiply and inverse FFT on blocks (overlap-save).</dd>
+    <dt>Fast time / slow time</dt><dd>Samples along range within a pulse / samples of one range cell from pulse to pulse.</dd>
+    <dt>FFT bin</dt><dd>One output frequency of an M-point FFT; spacing f<sub>sample</sub>/M.</dd>
+    <dt>FIR filter</dt><dd>Weighted sum of the last K samples; any shape, one multiplier per tap.</dd>
+    <dt>FPGA</dt><dd>Field-programmable gate array: reconfigurable logic with memories and DSP blocks.</dd>
+    <dt>FTW</dt><dd>Frequency tuning word added to the NCO accumulator each clock.</dd>
+    <dt>Guard cells</dt><dd>Cells beside the CUT left out of the CFAR estimate to avoid self-masking.</dd>
+    <dt>Headroom</dt><dd>Margin between the largest normal signal and full scale.</dd>
+    <dt>I/Q, complex sample</dt><dd>Pair of numbers (in-phase, quadrature) that represent one rotating phasor, keeping the sign of frequency.</dd>
+    <dt>Image rejection ratio</dt><dd>Wanted over mirror power; set by I/Q amplitude and phase balance.</dd>
+    <dt>ISLR</dt><dd>Integrated sidelobe ratio: total sidelobe energy relative to the mainlobe.</dd>
+    <dt>Latency</dt><dd>Time from input to result through a block or the whole chain.</dd>
+    <dt>LFM, chirp</dt><dd>Pulse with frequency swept linearly across B in time T.</dd>
+    <dt>LSB</dt><dd>Smallest step of a fixed-point word, 2/2<sup>B</sup> of full scale.</dd>
+    <dt>LUT</dt><dd>Lookup table: memory holding precomputed values such as sine samples.</dd>
+    <dt>Matched filter</dt><dd>Filter equal to the time-reversed conjugate of the expected echo; maximises peak SNR to 2E/N<sub>0</sub>.</dd>
+    <dt>Mismatch loss</dt><dd>SNR lost by weighting a matched filter: (Σw)²/(N·Σw²).</dd>
+    <dt>NCO</dt><dd>Numerically controlled oscillator: phase accumulator plus sine/cosine generation.</dd>
+    <dt>Overflow, wrap, saturate</dt><dd>Result too large for the word; two's-complement wraps to the opposite sign; saturation clamps it.</dd>
+    <dt>Parallel paths</dt><dd>Copies of logic handling several samples per clock when f<sub>s</sub> &gt; f<sub>clk</sub>.</dd>
+    <dt>Phase truncation</dt><dd>Using only the top P accumulator bits to address the sine table; source of NCO spurs.</dd>
+    <dt>Pipeline</dt><dd>Registers between parts of a calculation; raises the clock rate, adds latency.</dd>
+    <dt>Polyphase filter bank</dt><dd>Channeliser made of a long prototype filter split into K branches followed by an FFT.</dd>
+    <dt>Processing gain</dt><dd>SNR improvement from filtering or integration; 10·log R for decimation, 10·log M for an FFT.</dd>
+    <dt>PSL, PSLR</dt><dd>Peak sidelobe level (ratio): highest sidelobe relative to the peak.</dd>
+    <dt>Q format</dt><dd>Fixed-point notation, e.g. Q1.15: 1 sign/integer bit, 15 fractional bits.</dd>
+    <dt>Range-Doppler coupling</dt><dd>Chirp property: a Doppler shift moves the compressed peak in range by f<sub>d</sub>·T/B.</dd>
+    <dt>Reference cells</dt><dd>Cells either side of the CUT whose average estimates the local noise.</dd>
+    <dt>Running sum</dt><dd>Sliding-window sum updated by adding the entering and subtracting the leaving sample.</dd>
+    <dt>Scalloping loss</dt><dd>Loss of a tone between FFT bins; worst half-way (3.92 dB rectangular).</dd>
+    <dt>SQNR</dt><dd>Signal to quantisation noise ratio, 6.02B + 1.76 dB for a full-scale sine.</dd>
+    <dt>Time-bandwidth product</dt><dd>B × T of a waveform; its compression ratio for a chirp.</dd>
+    <dt>Truncation</dt><dd>Dropping low bits; error 0 to −1 LSB with −½ LSB average bias.</dd>
+    <dt>Two's complement</dt><dd>Signed integer format used in FPGA arithmetic; overflow wraps around.</dd>
+    <dt>Weighting, window</dt><dd>Taper applied to samples or filter taps to lower sidelobes at a cost in SNR and width.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Lyons, <i>Understanding Digital Signal Processing</i>; Richards, <i>Fundamentals of Radar Signal Processing</i>; Harris, <i>Multirate Signal Processing for Communication Systems</i>, and "On the use of windows for harmonic analysis with the discrete Fourier transform" (Proc. IEEE, 1978); Skolnik, <i>Introduction to Radar Systems</i>; Levanon and Mozeson, <i>Radar Signals</i>; Tsui, <i>Digital Techniques for Wideband Receivers</i>; Cumming and Wong, <i>Digital Processing of Synthetic Aperture Radar Data</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+function txtR(g,s,xr,y,color){ txt(g,s,xr-g.measureText(s).width,y,color); }
+function lbl(g,s,x,y,color){ const w=g.measureText(s).width; g.globalAlpha=0.85; g.fillStyle=css('--panel'); g.fillRect(x-3,y-11,w+6,15); g.globalAlpha=1; txt(g,s,x,y,color); }
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+const PAD={l:56,t:22,r:16,b:40};
+function area(c,pr){ pr=pr||PAD; return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(Math.abs(x)<10?2:1)+' MHz');
+
+/* ---- DSP helpers ---- */
+function fft(re,im,inv){ const n=re.length; for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; } }
+  for(let len=2;len<=n;len<<=1){ const ang=(inv?2:-2)*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;
+        re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } }
+  if(inv){ for(let i=0;i<n;i++){ re[i]/=n; im[i]/=n; } } }
+function rng(seed){ let a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function gauss(r){ let u=r(); if(u<1e-12) u=1e-12; return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*r()); }
+/* windows: periodic (DFT-even) for FFT analysis, symmetric for tapers */
+function win(t,n,N,sym){ const x=TAU*n/(sym?N-1:N);
+  if(t==='hann') return 0.5-0.5*Math.cos(x);
+  if(t==='hamming') return 0.54-0.46*Math.cos(x);
+  if(t==='bh4') return 0.35875-0.48829*Math.cos(x)+0.14128*Math.cos(2*x)-0.01168*Math.cos(3*x);
+  if(t==='blackman') return 0.42-0.5*Math.cos(x)+0.08*Math.cos(2*x);
+  return 1; }
+function taylorW(N,nbar,sll){ const A=Math.acosh(Math.pow(10,sll/20))/Math.PI, s2=nbar*nbar/(A*A+(nbar-0.5)*(nbar-0.5)); const F=[];
+  for(let m=1;m<nbar;m++){ let num=1,den=1; for(let n=1;n<nbar;n++){ num*=1-m*m/(s2*(A*A+(n-0.5)*(n-0.5))); if(n!==m) den*=1-m*m/(n*n); } F.push((m%2?1:-1)*num/(2*den)); }
+  const w=[]; let mx=0; for(let k=0;k<N;k++){ let v=1; for(let m=1;m<nbar;m++) v+=2*F[m-1]*Math.cos(TAU*m*(k-(N-1)/2)/N); w.push(v); mx=Math.max(mx,v); } return w.map(v=>v/mx); }
+function kaiser(n,N,beta){ const I0=x=>{ let s=1,t=1; for(let k=1;k<30;k++){ t*=(x/(2*k))*(x/(2*k)); s+=t; } return s; }; const r=2*n/(N-1)-1; return I0(beta*Math.sqrt(Math.max(0,1-r*r)))/I0(beta); }
+const KW={}; function kaiserArr(N,beta){ const k=N+'_'+beta; if(!KW[k]){ const a=new Float64Array(N); for(let n=0;n<N;n++) a[n]=kaiser(n,N,beta); KW[k]=a; } return KW[k]; }
+const nextPow2=n=>{ let p=1; while(p<n) p<<=1; return p; };
+
+/* ---------- Step 1: complex I/Q ---------- */
+function iqDraw(){
+  const c=$('cIq'), g=ctx(c); const f=sl('iqF'), mode=$('iqM').value, AdB=sl('iqA'), ph=sl('iqP');
+  const an=mode==='analog';
+  setv('iqF',(f>=0?'+':'')+f.toFixed(3)+' fₛ'); setv('iqA',AdB.toFixed(2)+' dB'+(an?'':' (not used)')); setv('iqP',ph.toFixed(1)+'°'+(an?'':' (not used)'));
+  const gA=Math.pow(10,AdB/20), p=ph*deg; const N=256; const re=new Float64Array(N), im=new Float64Array(N); const r=rng(11);
+  const I=[],Q=[];
+  for(let n=0;n<N;n++){ const w=TAU*f*n; let i,q;
+    if(mode==='real'){ i=Math.cos(w); q=0; }
+    else if(an){ i=Math.cos(w); q=gA*Math.sin(w+p); }
+    else { i=Math.cos(w); q=Math.sin(w); }
+    I.push(i); Q.push(q); const wv=win('bh4',n,N); re[n]=(i+1e-6*gauss(r))*wv; im[n]=(q+1e-6*gauss(r))*wv; }
+  fft(re,im,false); const cg=0.35875*N; const xs=[],ys=[];
+  for(let k=0;k<N;k++){ const kk=(k+N/2)%N; const fr=(k-N/2)/N; xs.push(fr); ys.push(20*Math.log10(Math.hypot(re[kk],im[kk])/cg+1e-12)); }
+  /* top: time traces */
+  const x0=56,w=c.width-72, y0=22,h1=120; frame(g,x0,y0,w,h1,4);
+  const nT=40, X=n=>x0+w*n/(nT-1), Yt=v=>y0+h1/2-v*h1*0.42;
+  [[I,css('--trace'),'I'],[Q,css('--trace2'),'Q']].forEach(([a,col])=>{ g.strokeStyle=col; g.lineWidth=1.8; g.beginPath(); for(let n=0;n<nT;n++){ n?g.lineTo(X(n),Yt(a[n])):g.moveTo(X(n),Yt(a[n])); } g.stroke(); for(let n=0;n<nT;n++) dot(g,X(n),Yt(a[n]),col,2.2); });
+  g.lineWidth=1; lbl(g,'I (real part)',x0+8,y0+14,css('--trace')); lbl(g,'Q (imaginary part)'+(mode==='real'?': none, Q = 0':''),x0+130,y0+14,css('--trace2'));
+  txt(g,'time, samples 0–39',x0+w-g.measureText('time, samples 0–39').width,y0+h1+14,css('--muted'));
+  /* bottom: spectrum */
+  const A2={x0:56,y0:180,w:c.width-72,h:c.height-180-40};
+  const P=plot(g,A2.x0,A2.y0,A2.w,A2.h,-0.5,0.5,-120,0,[{x:xs,y:ys,color:css('--accent'),w:1.8}],{nx:4,ny:4,fx:v=>(v>0?'+':'')+v.toFixed(2),xl:'frequency, × fₛ',yl:'spectrum, dB (tone = 0 dB)'});
+  vline(g,P.X(0),A2.y0,A2.h,css('--muted'),[2,3]);
+  let img; if(mode==='real') img=0; else if(an){ const irr=(1+2*gA*Math.cos(p)+gA*gA)/(1-2*gA*Math.cos(p)+gA*gA); img=-db(irr); } else img=-Infinity;
+  const ambig=mode==='real';
+  dot(g,P.X(f),P.Y(0),css('--accent'),4); if(isFinite(img)) dot(g,P.X(-f),P.Y(img),css('--bad'),4);
+  txt(g,'signal',P.X(f)+6,P.Y(0)+14,css('--accent')); { const sI=isFinite(img)?('image '+img.toFixed(1)+' dB'):'no image'; const yI=isFinite(img)?P.Y(img)-8:A2.y0+30; txt(g,sI,clamp(P.X(-f)-g.measureText(sI).width/2,A2.x0+4,A2.x0+A2.w-g.measureText(sI).width-4),clamp(yI,A2.y0+28,A2.y0+A2.h-6),css('--bad')); }
+  ro($('iqOut'),[['signal at',(f>=0?'+':'')+f.toFixed(3)+' fₛ'],['image at',(-f>=0?'+':'')+(-f).toFixed(3)+' fₛ'],['image level',isFinite(img)?img.toFixed(1)+' dBc':'none'],['IRR',mode==='real'?'0 dB':(an?(-img).toFixed(1)+' dB':'∞')],['+f, −f distinct',ambig?'no':(an?'partly':'yes')],['usable band',mode==='real'?'fₛ/2':'fₛ']]);
+}
+bind(['iqF','iqM','iqA','iqP'],iqDraw);
+
+/* ---------- Step 2: NCO and DDC ---------- */
+function ncoDraw(){
+  const c=$('cNco'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const fin=sl('nF')*1e6, fn=sl('nN')*1e6, Pb=sl('nP'), Ab=sl('nA'), dith=$('nD').value==='on';
+  setv('nF',fmt(fin,'Hz',2)); setv('nN',fmt(fn,'Hz',2)); setv('nP',Pb+' bits'); setv('nA',Ab+' bits');
+  const fs=1e9, N=8192; const FTW=Math.round(fn/fs*4294967296)>>>0; const sh=32-Pb, Lp=Math.pow(2,Pb), Aq=Math.pow(2,Ab-1)-1;
+  const re=new Float64Array(N), im=new Float64Array(N); let acc=0; const r=rng(5); let cg=0; const KWn=kaiserArr(N,16);
+  for(let n=0;n<N;n++){ let a=acc; if(dith&&sh>0){ a=(a+Math.floor(r()*Math.pow(2,sh)))>>>0; }
+    const idx=Math.floor(a/Math.pow(2,sh)); const th=TAU*idx/Lp; const cq=Math.round(Math.cos(th)*Aq)/Aq, sq=Math.round(Math.sin(th)*Aq)/Aq;
+    const x=Math.cos(TAU*fin*n/fs); const w=KWn[n]; cg+=w; re[n]=x*cq*w; im[n]=-x*sq*w; acc=(acc+FTW)>>>0; }
+  fft(re,im,false); const xs=[],ys=[]; const sp=new Float64Array(N);
+  for(let k=0;k<N;k++){ const kk=(k+N/2)%N; const v=20*Math.log10(Math.hypot(re[kk],im[kk])/(cg*0.5)+1e-14); sp[k]=v; xs.push((k-N/2)*fs/N/1e6); ys.push(v); }
+  const fw=fin-fn, fi=-(fin+fn); const binOf=f=>Math.round(f/fs*N)+N/2;
+  const kw=binOf(fw), ki=binOf(((fi%fs)+1.5*fs)%fs-fs/2); let worst=-300, wf=0;
+  for(let k=0;k<N;k++){ if(Math.abs(k-kw)<=12||Math.abs(k-ki)<=12) continue; if(sp[k]>worst){ worst=sp[k]; wf=xs[k]; } }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-500,500,-140,0,[{x:xs,y:ys,color:css('--trace'),w:1.2}],{nx:4,ny:7,fx:v=>v.toFixed(0),xl:'DDC output frequency, MHz (fₛ = 1 GHz)',yl:'dBc (wanted tone = 0)'});
+  const pred=-6.02*Pb; hline(g,A.x0,A.w,P.Y(pred),css('--accent'),[5,4]); lbl(g,'rule of thumb −6.02·P = '+pred.toFixed(0)+' dBc',A.x0+8,P.Y(pred)-5,css('--accent'));
+  dot(g,P.X(fw/1e6),P.Y(0),css('--good'),4); txt(g,'wanted',P.X(fw/1e6)+6,A.y0+14,css('--good'));
+  const fiw=((fi%fs)+1.5*fs)%fs-fs/2; dot(g,P.X(fiw/1e6),P.Y(0),css('--muted'),4); txt(g,'sum product',clamp(P.X(fiw/1e6)+6,A.x0,A.x0+A.w-100),A.y0+30,css('--muted'));
+  if(worst>-140){ dot(g,P.X(wf),P.Y(worst),css('--bad'),4); lbl(g,'worst spur '+worst.toFixed(1),clamp(P.X(wf)+6,A.x0+4,A.x0+A.w-130),clamp(P.Y(worst)-6,A.y0+46,A.y0+A.h-4),css('--bad')); }
+  const res=fs/4294967296, fact=FTW*fs/4294967296;
+  ro($('nOut'),[['tuning word',FTW.toString()],['NCO set to',(fact/1e6).toFixed(6)+' MHz'],['tuning step',res.toFixed(3)+' Hz'],['wanted at',fmt(fw,'Hz',2)],['LUT',Lp>=1024?(Lp/1024).toFixed(0)+' k × '+Ab+' bit':Lp+' × '+Ab+' bit'],['spur rule',pred.toFixed(1)+' dBc'],['amplitude SNR',(6.02*Ab+1.76).toFixed(1)+' dB'],['worst spur',worst.toFixed(1)+' dBc'],['spur at',wf.toFixed(1)+' MHz']]);
+}
+bind(['nF','nN','nP','nA','nD'],ncoDraw);
+
+/* ---------- Step 3: decimation, CIC, FIR ---------- */
+const FSD=1000; /* MHz, complex rate into the decimator */
+function hcic(f,R,N){ const x=f/FSD; const s=Math.sin(Math.PI*x); if(Math.abs(s)<1e-12) return 1; return Math.pow(Math.abs(Math.sin(Math.PI*x*R)/(R*s)),N); }
+function designFir(K,f2,fp,R2,N){ /* decimate-by-2 FIR at rate f2 (MHz) compensating CIC droop up to fp */
+  const fo=f2/2, fsb=fo-fp, fc=(fp+fsb)/2, h=[]; const G=512;
+  for(let n=0;n<K;n++){ const m=n-(K-1)/2; let s=0; for(let i=0;i<=G;i++){ const f=fc*i/G; const D=f<=fp?1/hcic(f,R2,N):Math.max(0,1/hcic(fp,R2,N)*(fc-f)/Math.max(1e-9,fc-fp)); const wt=(i===0||i===G)?0.5:1; s+=wt*D*Math.cos(TAU*f*m/f2); }
+    h.push(s*fc/G*2/f2*kaiser(n,K,7)); }
+  let s0=0; h.forEach(v=>s0+=v); return h.map(v=>v/s0); }
+function hfir(h,f,f2){ let re=0,im=0; for(let n=0;n<h.length;n++){ re+=h[n]*Math.cos(TAU*f*n/f2); im-=h[n]*Math.sin(TAU*f*n/f2); } return Math.hypot(re,im); }
+function decDraw(){
+  const c=$('cDec'), g=ctx(c), A=area(c);
+  const R=+$('dR').value, N=sl('dN'), fr=sl('dP'), type=$('dT').value; const fo=FSD/R, fp=fr*fo/2;
+  setv('dN',N+(type==='drop'?' (not used)':'')); setv('dP',(fr*100).toFixed(0)+' % → ±'+fMHz(fp));
+  let R2=R, h=null, f2=FSD; if(type==='cicfir'){ R2=R/2; f2=FSD/R2; h=designFir(63,f2,fp,R2,N); }
+  const H=f=>{ if(type==='drop') return 1; let v=hcic(f,R2,N); if(h) v*=hfir(h,f,f2); return v; };
+  const xs=[],ys=[]; const NP=2400; let m2=0;
+  for(let i=0;i<=NP;i++){ const f=FSD/2*i/NP; const v=H(f); xs.push(f); ys.push(20*Math.log10(v+1e-12)); m2+=(i===0||i===NP?0.5:1)*v*v; }
+  m2/=NP;
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,FSD/2,-120,0,[],{nx:5,ny:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),xl:'frequency at the 1 GSPS input, MHz',yl:'response, dB'});
+  /* alias bands */
+  let worst=0; for(let k=1;k*fo-fp<=FSD/2;k++){ const a=k*fo-fp, b=Math.min(FSD/2,k*fo+fp); shade(g,P.X(a),P.X(b),A.y0,A.h,css('--bad'),0.14);
+    for(let i=0;i<=60;i++){ const f=a+(b-a)*i/60; worst=Math.max(worst,H(f)); } }
+  shade(g,P.X(0),P.X(fp),A.y0,A.h,css('--good'),0.16);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.8; g.beginPath(); xs.forEach((x,i)=>{ const px=P.X(x), py=P.Y(ys[i]); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke(); g.lineWidth=1;
+  const droop=-20*Math.log10(H(fp)), arej=-20*Math.log10(worst+1e-12), pg=-db(m2);
+  hline(g,A.x0,A.w,P.Y(-arej),css('--bad'),[5,4]);
+  { const sW='worst alias '+(-arej).toFixed(1)+' dB'; lbl(g,sW,A.x0+A.w-8-g.measureText(sW).width,clamp(P.Y(-arej)-6,A.y0+44,A.y0+A.h-6),css('--bad')); }
+  lbl(g,'green: passband ±'+fMHz(fp),A.x0+A.w*0.45,A.y0+14,css('--good')); lbl(g,'red: bands that fold onto it',A.x0+A.w*0.45,A.y0+30,css('--bad'));
+  const bits=type==='drop'?0:Math.ceil(N*Math.log2(R2)); const mps=type==='cicfir'?63*fo*2:0;
+  ro($('dOut'),[['output rate',fMHz(fo)],['passband',('±'+fMHz(fp))],['droop at edge',type==='drop'?'0.00 dB':droop.toFixed(2)+' dB'],['worst alias',(-arej).toFixed(1)+' dB'],['processing gain',pg.toFixed(1)+' dB'],['ideal 10·log R',(10*Math.log10(R)).toFixed(1)+' dB'],['CIC growth',type==='drop'?'n/a':bits+' bits'],['FIR multiplies',type==='cicfir'?(mps/1e3).toFixed(2)+' G/s':'none']]);
+}
+bind(['dR','dN','dP','dT'],decDraw);
+
+/* ---------- Step 4: matched filter and pulse compression ---------- */
+const BARKER=[1,1,1,1,1,-1,-1,1,1,-1,1,-1,1];
+function pcDraw(){
+  const c=$('cPc'), g=ctx(c);
+  const wf=$('pW').value, B=sl('pB')*1e6, T0u=sl('pT')*1e-6, wt=$('pWt').value, fd=sl('pD')*1e3;
+  setv('pB',fmt(B,'Hz',0)+(wf==='cw'?' (sets sampling only)':'')); setv('pT',fmt(T0u,'s',1)+(wf==='barker'?' (fixed by code)':'')); setv('pD',fmt(fd,'Hz',0));
+  const fs=4*B; const T=wf==='barker'?13/B:T0u; const Ns=Math.max(4,Math.round(T*fs));
+  const sr=new Float64Array(Ns), si=new Float64Array(Ns);
+  for(let n=0;n<Ns;n++){ const t=n/fs; let ph=0, a=1;
+    if(wf==='lfm') ph=Math.PI*(B/T)*(t-T/2)*(t-T/2);
+    else if(wf==='barker'){ a=BARKER[Math.min(12,Math.floor(n/(fs/B)))]; }
+    sr[n]=a*Math.cos(ph); si[n]=a*Math.sin(ph); }
+  let wv; if(wt==='taylor') wv=taylorW(Ns,5,35); else { wv=[]; for(let n=0;n<Ns;n++) wv.push(win(wt,n,Ns,true)); }
+  const L=nextPow2(2*Ns)*2; const xr=new Float64Array(L), xi=new Float64Array(L), hr=new Float64Array(L), hi=new Float64Array(L);
+  let E=0, sw=0, sw2=0;
+  for(let n=0;n<Ns;n++){ const t=n/fs, c1=Math.cos(TAU*fd*t), s1=Math.sin(TAU*fd*t); xr[n]=sr[n]*c1-si[n]*s1; xi[n]=sr[n]*s1+si[n]*c1;
+    hr[n]=sr[n]*wv[n]; hi[n]=si[n]*wv[n]; E+=sr[n]*sr[n]+si[n]*si[n]; sw+=wv[n]; sw2+=wv[n]*wv[n]; }
+  fft(xr,xi,false); fft(hr,hi,false);
+  for(let k=0;k<L;k++){ const a=xr[k], b=xi[k], cc=hr[k], d=-hi[k]; xr[k]=a*cc-b*d; xi[k]=a*d+b*cc; }
+  const Pr=Float64Array.from(xr), Pi=Float64Array.from(xi);
+  fft(xr,xi,true);
+  /* ideal peak: unweighted, zero Doppler = E; noise gain of weighted filter = sqrt(Σ w²) relative; show SNR-normalised output */
+  const norm=Math.sqrt(sw2/Ns)*E; /* weighted filter scaled to the same output noise as the matched one */
+  const lagM=l=>{ const k=((l%L)+L)%L; return Math.hypot(xr[k],xi[k])/norm; };
+  const lags=[], ys=[]; let pk=0, pkl=0;
+  for(let l=-(Ns-1);l<=Ns-1;l++){ const v=lagM(l); lags.push(l); ys.push(20*Math.log10(v+1e-9)); if(v>pk){ pk=v; pkl=l; } }
+  /* mainlobe: walk to first minimum each side */
+  const idx=pkl+(Ns-1); let li=idx, ri=idx; while(li>0&&ys[li-1]<ys[li]) li--; while(ri<ys.length-1&&ys[ri+1]<ys[ri]) ri++;
+  let psl=-200; for(let i=0;i<ys.length;i++){ if(i>=li&&i<=ri) continue; psl=Math.max(psl,ys[i]); }
+  const pkdb=20*Math.log10(pk); const pslRel=psl-pkdb;
+  /* -3 dB width with interpolation */
+  const thr=pkdb-3.01; let a=idx, b=idx; while(a>0&&ys[a]>thr) a--; while(b<ys.length-1&&ys[b]>thr) b++;
+  const at=tau=>{ let re=0,im=0; for(let k=0;k<L;k++){ const kk=k<L/2?k:k-L; const ph=TAU*kk*tau/L, cs=Math.cos(ph), sn=Math.sin(ph); re+=Pr[k]*cs-Pi[k]*sn; im+=Pr[k]*sn+Pi[k]*cs; } return 20*Math.log10(Math.hypot(re,im)/L/norm+1e-12); };
+  const cross=(lo,hi)=>{ let fl=at(lo)>thr; for(let i=0;i<22;i++){ const m=(lo+hi)/2; if((at(m)>thr)===fl) lo=m; else hi=m; } return (lo+hi)/2; };
+  const ia=cross(a-(Ns-1),a+1-(Ns-1)), ib=cross(b-1-(Ns-1),b-(Ns-1)); const w3=(ib-ia)/fs*c0/2;
+  const mF=c0/(2*fs); /* metres per lag */
+  const loss=db(sw*sw/(Ns*sw2));
+  /* draw */
+  const x0=56, w=c.width-72; const top={y0:22,h:150}, bot={y0:222,h:c.height-222-40};
+  const span=(Ns-1)*mF; const XS=lags.map(l=>l*mF);
+  const P1=plot(g,x0,top.y0,w,top.h,-span,span,-60,0,[{x:XS,y:ys,color:css('--trace'),w:1.2}],{nx:4,ny:6,fx:v=>Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0),xl:'',yl:'whole output, dB vs ideal matched peak'});
+  txtR(g,'range offset, m',x0+w,top.y0+top.h+29,css('--muted'));
+  const zspan=wf==='cw'?span:Math.max(8*c0/(2*B),6*mF);
+  const P2=plot(g,x0,bot.y0,w,bot.h,-zspan+pkl*mF,zspan+pkl*mF,-60,0,[{x:XS,y:ys,color:css('--trace'),w:2}],{nx:4,ny:6,fx:v=>v.toFixed(1),xl:'zoom on the peak: range offset, m',yl:'zoom ±8 resolution cells'});
+  if(psl>-150){ hline(g,x0,w,P2.Y(psl),css('--bad'),[5,4]); txtR(g,'peak sidelobe '+pslRel.toFixed(1)+' dB',x0+w-8,P2.Y(psl)-5,css('--bad')); }
+  vline(g,P2.X(0),bot.y0,bot.h,css('--muted'),[2,3]);
+  txt(g,'peak '+(Math.abs(pkdb)<0.005?0:pkdb).toFixed(2)+' dB',x0+8,bot.y0+14,css('--accent'));
+  const BT=wf==='lfm'?B*T:(wf==='barker'?13:1);
+  const expShift=wf==='lfm'?(fd*T/B)*c0/2:0;
+  ro($('pOut'),[['pulse length',fmt(T,'s',2)],['uncompressed ΔR',fmt(c0*T/2,'m',1)],['compression',wf==='cw'?'1 (none)':BT.toFixed(0)+' ('+(10*Math.log10(BT)).toFixed(1)+' dB)'],['ΔR = c/2B',wf==='cw'?fmt(c0*T/2,'m',1):fmt(c0/(2*B),'m',2)],['−3 dB width',fmt(w3,'m',2)],['peak sidelobe',psl<-150?'none':pslRel.toFixed(1)+' dB'],['weighting loss',loss.toFixed(2)+' dB'],['peak vs ideal',(Math.abs(pkdb)<0.005?0:pkdb).toFixed(2)+' dB'],['peak shift',(pkl*mF).toFixed(2)+' m'],['f_d·T/B shift',wf==='lfm'?expShift.toFixed(2)+' m':'n/a']]);
+}
+bind(['pW','pB','pT','pWt','pD'],pcDraw);
+
+/* ---------- Step 5: Doppler FFT ---------- */
+const LAM=0.03, PRF=10e3;
+const WSTAT={rect:{w3:0.89},hann:{w3:1.44},hamming:{w3:1.30},bh4:{w3:1.90}};
+function dopDraw(){
+  const c=$('cDop'), g=ctx(c), A=area(c);
+  const M=+$('vM').value, wt=$('vW').value, v=sl('vV'), snr=sl('vS'), cnr=sl('vC');
+  setv('vV',v.toFixed(1)+' m/s'); setv('vS',snr.toFixed(0)+' dB'); setv('vC',cnr.toFixed(0)+' dB');
+  const fd=2*v/LAM; const r=rng(77); const L=1024;
+  const xr=new Float64Array(L), xi=new Float64Array(L), cr=new Float64Array(L), ci=new Float64Array(L);
+  const at=Math.sqrt(lin(snr)), ac=Math.sqrt(lin(cnr)); const ws=[]; let s1=0,s2=0;
+  const cl=[]; const rc=rng(3); for(let q=0;q<9;q++){ const vv=(q-4)*0.12; cl.push({f:2*vv/LAM,a:Math.exp(-0.5*Math.pow((q-4)/2,2)),p:TAU*rc()}); } let ca=0; cl.forEach(o=>ca+=o.a*o.a); ca=Math.sqrt(ca);
+  for(let n=0;n<M;n++){ const w=win(wt,n,M); ws.push(w); s1+=w; s2+=w*w; const t=n/PRF;
+    let cre=0,cim=0; cl.forEach(o=>{ cre+=o.a*Math.cos(TAU*o.f*t+o.p); cim+=o.a*Math.sin(TAU*o.f*t+o.p); }); cre*=ac/ca; cim*=ac/ca;
+    const nr=gauss(r)/Math.SQRT2, ni=gauss(r)/Math.SQRT2;
+    xr[n]=w*(at*Math.cos(TAU*fd*t)+cre+nr); xi[n]=w*(at*Math.sin(TAU*fd*t)+cim+ni); cr[n]=w*cre; ci[n]=w*cim; }
+  fft(xr,xi,false); fft(cr,ci,false);
+  const nf=s2; const xs=[],ys=[],yc=[];
+  for(let k=0;k<L;k++){ const kk=(k+L/2)%L; const f=(k-L/2)/L*PRF; xs.push(f*LAM/2); ys.push(db((xr[kk]*xr[kk]+xi[kk]*xi[kk])/nf+1e-12)); yc.push(db((cr[kk]*cr[kk]+ci[kk]*ci[kk])/nf+1e-12)); }
+  const vua=LAM*PRF/4;
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-vua,vua,-10,90,[{x:xs,y:yc,color:css('--muted'),dash:[3,3],w:1.2},{x:xs,y:ys,color:css('--trace'),w:1.6}],{nx:6,ny:5,fx:v=>v.toFixed(0),xl:'radial velocity, m/s  (λ = 3 cm, PRF = 10 kHz)',yl:'dB above noise per bin'});
+  /* FFT bin positions (where the real M-point FFT samples) */
+  g.fillStyle=css('--accent'); for(let k=0;k<M;k++){ const f=(k-M/2)/M*PRF; const vv=f*LAM/2; const kk=Math.round(((f/PRF)+0.5)*L)%L; const y=ys[kk]; if(isFinite(y)) dot(g,P.X(vv),P.Y(y),css('--accent'),M>64?1.6:2.4); }
+  /* expected numbers */
+  const resp=d=>{ let re=0,im=0; for(let n=0;n<M;n++){ re+=ws[n]*Math.cos(TAU*d*n/M); im+=ws[n]*Math.sin(TAU*d*n/M); } return Math.hypot(re,im)/s1; };
+  const binF=fd/PRF*M; const dOff=binF-Math.round(binF); const scal=-20*Math.log10(resp(Math.abs(dOff)));
+  const wl=-db(s1*s1/(M*s2)); const cgain=10*Math.log10(M); const expPk=snr+cgain-wl-scal;
+  const kt=((Math.round(binF)%M)+M)%M; const ft=(kt>=M/2?kt-M:kt)/M*PRF; const kkt=Math.round(((ft/PRF)+0.5)*L)%L; const clAt=yc[kkt];
+  const margin=expPk-Math.max(0,clAt);
+  dot(g,P.X(v),P.Y(expPk),css('--good'),4); txt(g,'target',clamp(P.X(v)+6,A.x0,A.x0+A.w-60),clamp(P.Y(expPk)-6,A.y0+12,A.y0+A.h),css('--good'));
+  txt(g,'dots: the '+M+' FFT bins · line: zero-padded',A.x0+8,A.y0+14,css('--accent')); txt(g,'dashed: clutter alone',A.x0+8,A.y0+30,css('--muted'));
+  const dv=PRF/M*LAM/2;
+  ro($('vOut'),[['CPI',fmt(M/PRF,'s',1)],['bin spacing',dv.toFixed(2)+' m/s'],['bin in Hz',fmt(PRF/M,'Hz',1)],['resolution',(WSTAT[wt].w3*dv).toFixed(2)+' m/s'],['unambiguous',('±'+vua.toFixed(0)+' m/s')],['target Doppler',fmt(fd,'Hz',2)],['coherent gain',cgain.toFixed(1)+' dB'],['window loss',wl.toFixed(2)+' dB'],['scalloping',scal.toFixed(2)+' dB'],['target peak',expPk.toFixed(1)+' dB'],['clutter at bin',clAt.toFixed(1)+' dB'],['margin',sdb(margin)]]);
+}
+bind(['vM','vW','vV','vS','vC'],dopDraw);
+
+/* ---------- Step 6: CFAR in hardware ---------- */
+const NC=200, CL0=120, CL1=170, CNR=15; const TG=[40,52,112];
+function goPfa(t,n){ /* GO-CFAR, t multiplies the sum of one half (n cells) */ let s=0, cb=1; for(let k=0;k<n;k++){ if(k>0) cb=cb*(n-1+k)/k; s+=cb*Math.pow(2+t,-(n+k)); } return 2*Math.pow(1+t,-n)-2*s; }
+function solveGO(Pfa,n){ let lo=0, hi=1e4; for(let i=0;i<200;i++){ const m=Math.sqrt(lo*hi+1e-12)||hi/2; if(goPfa(m,n)>Pfa) lo=m; else hi=m; } return hi; }
+function snr50(type,a,N){ /* SNR (linear) for Pd = 0.5 on a Swerling-1 target */
+  if(type==='fixed') return a/Math.LN2-1; if(type==='ca') return a/(N*(Math.pow(2,1/N)-1))-1;
+  const n=N/2; let lo=0, hi=1e7; for(let i=0;i<200;i++){ const m=(lo+hi)/2; if(goPfa(a/n/(1+m),n)<0.5) lo=m; else hi=m; } return hi; }
+function csd3(a){ let r=a, s=0; for(let i=0;i<3;i++){ if(Math.abs(r)<1/16) break; const k=Math.round(Math.log2(Math.abs(r))); const t=Math.sign(r)*Math.pow(2,k); s+=t; r-=t; } return s; }
+function cfDraw(){
+  const c=$('cCf'), g=ctx(c), A=area(c);
+  const N=+$('cN').value, G=sl('cG'), pe=sl('cP'), impl=$('cA').value, snr=sl('cS'), type=$('cK').value;
+  const Pfa=Math.pow(10,-pe), n=N/2; const fixed=type==='fixed';
+  setv('cG',G+' per side'+(fixed?' (not used)':'')); setv('cP','10⁻'+pe); setv('cS',snr+' dB');
+  /* ideal alpha in the units of "multiplier on the mean of the window (CA) or of one half (GO)" */
+  let aId; if(fixed) aId=Math.log(1/Pfa); else if(type==='ca') aId=N*(Math.pow(Pfa,-1/N)-1); else aId=solveGO(Pfa,n)*n;
+  let aIm=aId; if(impl==='pow2') aIm=Math.pow(2,Math.round(Math.log2(aId))); else if(impl==='csd') aIm=csd3(aId);
+  const pAct=fixed?Math.exp(-aIm):(type==='ca'?Math.pow(1+aIm/N,-N):goPfa(aIm/n,n));
+  /* profile */
+  const r=rng(2024); const x=new Float64Array(NC);
+  for(let i=0;i<NC;i++){ let u=r(); if(u<1e-12) u=1e-12; const bg=(i>=CL0&&i<CL1)?lin(CNR):1; x[i]=-Math.log(u)*bg; }
+  const st=lin(snr); TG.forEach(t=>{ x[t]+=st; x[t-1]+=st*0.25; x[t+1]+=st*0.25; });
+  const thr=new Float64Array(NC); let fa=0, faCl=0; const hit=[false,false,false];
+  for(let i=0;i<NC;i++){
+    if(fixed){ thr[i]=aIm; }
+    else { let sL=0,cL=0,sR=0,cR=0; for(let k=G+1;k<=G+n;k++){ if(i-k>=0){ sL+=x[i-k]; cL++; } if(i+k<NC){ sR+=x[i+k]; cR++; } }
+      const mL=cL?sL/cL:NaN, mR=cR?sR/cR:NaN; let bg;
+      if(type==='ca') bg=(sL+sR)/Math.max(1,cL+cR); else bg=Math.max(isFinite(mL)?mL:0,isFinite(mR)?mR:0);
+      thr[i]=aIm*bg; }
+    if(x[i]>thr[i]){ const ti=TG.findIndex(t=>Math.abs(i-t)<=1); if(ti>=0) hit[ti]=true; else { fa++; if(i>=CL0&&i<CL1) faCl++; } } }
+  const xs=[...Array(NC).keys()], ys=[...x].map(v=>db(v)), yt=[...thr].map(v=>db(v));
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,NC-1,-20,40,[],{nx:5,ny:6,fx:v=>v.toFixed(0),xl:'range cell',yl:'power, dB above quiet noise'});
+  shade(g,P.X(CL0),P.X(CL1),A.y0,A.h,css('--trace2'),0.10); txt(g,'clutter +'+CNR+' dB',P.X(CL0)+4,A.y0+A.h-8,css('--trace2'));
+  /* window around T2 */
+  if(!fixed){ const t=TG[1]; shade(g,P.X(t-G-n-0.5),P.X(t-G-0.5),A.y0,A.h,css('--accent'),0.12); shade(g,P.X(t+G+0.5),P.X(t+G+n+0.5),A.y0,A.h,css('--accent'),0.12); if(G>0){ shade(g,P.X(t-G-0.5),P.X(t-0.5),A.y0,A.h,css('--muted'),0.12); shade(g,P.X(t+0.5),P.X(t+G+0.5),A.y0,A.h,css('--muted'),0.12); } }
+  g.strokeStyle=css('--trace'); g.lineWidth=1.2; g.beginPath(); xs.forEach((i)=>{ const px=P.X(i), py=P.Y(ys[i]); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke();
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); xs.forEach((i)=>{ const px=P.X(i), py=P.Y(yt[i]); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke(); g.lineWidth=1;
+  for(let i=0;i<NC;i++){ if(x[i]>thr[i]){ const isT=TG.some(t=>Math.abs(i-t)<=1); dot(g,P.X(i),P.Y(ys[i]),isT?css('--good'):css('--bad'),4); } }
+  TG.forEach((t,k)=>lbl(g,'T'+(k+1),P.X(t)-6,A.y0+14,hit[k]?css('--good'):css('--bad')));
+  txtR(g,fixed?'orange: fixed threshold':'orange: CFAR threshold · shaded: T2 window',A.x0+A.w-8,A.y0-6,css('--accent'));
+  const ideal=db(Math.log(1/Pfa)); const tdb=db(fixed?aIm:(type==='ca'?aIm:aIm));
+  const sId=Math.log(1/Pfa)/Math.LN2-1; const loss=fixed?0:db(snr50(type,aId,N))-db(sId);
+  const cellsPerS=10e6;
+  ro($('cOut'),[['α needed',aId.toFixed(2)],['α in dB',db(aId).toFixed(2)+' dB'],['α built',aIm.toFixed(3)+(impl==='pow2'?' shift':(impl==='csd'?' shift-add':' mult.'))],['ideal ln(1/Pfa)',ideal.toFixed(2)+' dB'],['SNR, ideal',db(sId).toFixed(2)+' dB'],['CFAR loss',fixed?'0 (not CFAR)':loss.toFixed(2)+' dB'],['Pfa achieved',pAct.toExponential(2)],['false alarms/s',(pAct*cellsPerS).toFixed(pAct*cellsPerS<10?2:0)],['T1 margin',sdb(db(x[TG[0]])-db(thr[TG[0]]))],['detected',hit.some(h=>h)?hit.map((h,k)=>h?'T'+(k+1):'').filter(Boolean).join(' '):'none'],['false alarms',fa+', '+faCl+' in clutter'],['latency',fixed?'0 cells':(n+G)+' cells']]);
+}
+bind(['cN','cG','cP','cA','cS','cK'],cfDraw);
+
+/* ---------- Step 7: fixed point ---------- */
+function fxDraw(){
+  const c=$('cFx'), g=ctx(c), A=area(c);
+  const B=sl('fB'), L=sl('fL'), rm=$('fR').value, om=$('fO').value;
+  setv('fB',B+' bits'); setv('fL',(L>=0?'+':'')+L.toFixed(0)+' dBFS');
+  const N=4096, f1=0.1373, f2=0.3117, a1=Math.pow(10,L/20), a2=Math.pow(10,-80/20); const r=rng(9);
+  const S=Math.pow(2,B-1); const re=new Float64Array(N), im=new Float64Array(N); let ov=0, dc=0, dcIn=0, cg=0, cw2=0; const KWf=kaiserArr(N,16);
+  for(let n=0;n<N;n++){ const xin=a1*Math.sin(TAU*f1*n+0.3)+a2*Math.sin(TAU*f2*n)+Math.pow(2,-23)*gauss(r);
+    /* source: a result with 2 more bits than the word (as from an adder or FFT stage), requantised to B bits */
+    const x24=Math.round(xin*S*4)/(S*4); let v=x24*S; let q;
+    if(rm==='trunc') q=Math.floor(v); else if(rm==='half') q=Math.floor(v+0.5); else { const fl=Math.floor(v), fr=v-fl; q=fr>0.5?fl+1:(fr<0.5?fl:(fl%2===0?fl:fl+1)); }
+    if(q>S-1||q<-S){ ov++; if(om==='sat') q=clamp(q,-S,S-1); else { q=((q+S)%(2*S)+2*S)%(2*S)-S; } }
+    dc+=q/S; dcIn+=x24; const w=KWf[n]; cg+=w; cw2+=w*w; re[n]=(q/S)*w; im[n]=0; }
+  fft(re,im,false); const xs=[],ys=[]; const sp=[];
+  for(let k=0;k<=N/2;k++){ const v=20*Math.log10(2*Math.hypot(re[k],im[k])/cg+1e-15); xs.push(k/N); ys.push(v); sp.push(v); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,0.5,-160,0,[{x:xs,y:ys,color:css('--trace'),w:1.1}],{nx:5,ny:8,fx:v=>v.toFixed(1),xl:'frequency, × fₛ (4096-point FFT)',yl:'dBFS'});
+  { const mode=B+' bits · '+({trunc:'truncate',half:'round half up',conv:'convergent'})[rm]+' · '+(om==='sat'?'saturate':'wrap')+' on overflow'; txtR(g,mode,A.x0+A.w-8,A.y0+14,css('--muted')); }
+  const k1=Math.round(f1*N), k2=Math.round(f2*N);
+  const srt=sp.slice().sort((a,b)=>a-b); const med=srt[Math.floor(srt.length/2)];
+  let spur=-300, sf=0; for(let k=0;k<sp.length;k++){ if(Math.abs(k-k1)<=12||Math.abs(k-k2)<=12||k<=12) continue; if(sp[k]>spur){ spur=sp[k]; sf=k/N; } }
+  const sq=6.02*B+1.76; const enbw=N*cw2/(cg*cg); const floorTh=-sq-10*Math.log10(N/2)+db(enbw); /* per-bin with BH4 ENBW 2.0 bins, full-scale sine reference */
+  hline(g,A.x0,A.w,P.Y(floorTh),css('--accent'),[5,4]); lbl(g,'dashed: ideal floor per bin, '+B+' bits ('+floorTh.toFixed(0)+' dBFS)',A.x0+8,A.y0+30,css('--accent'));
+  dot(g,P.X(f2),P.Y(sp[k2]),css('--good'),4); lbl(g,'weak −80 dBFS',clamp(P.X(f2)+6,A.x0+4,A.x0+A.w-110),clamp(P.Y(sp[k2])-8,A.y0+46,A.y0+A.h-4),css('--good'));
+  if(spur>-160){ dot(g,P.X(sf),P.Y(spur),css('--bad'),4); lbl(g,'largest spur '+spur.toFixed(1),clamp(P.X(sf)+6,A.x0+4,A.x0+A.w-150),clamp(P.Y(spur)-10,A.y0+46,A.y0+A.h-4),css('--bad')); }
+  const dcL=(dc-dcIn)/N*S; const weakM=sp[k2]-Math.max(spur,med);
+  ro($('fOut'),[['ideal SQNR',sq.toFixed(1)+' dB'],['1 LSB',(-6.02*(B-1)).toFixed(1)+' dBFS'],['floor per bin',med.toFixed(1)+' dBFS'],['largest spur',spur.toFixed(1)+' dBFS'],['spur-free range',(Math.min(L,sp[k1])-spur).toFixed(1)+' dB'],['DC offset',dcL.toFixed(3)+' LSB'],['DC line',sp[0].toFixed(1)+' dBFS'],['over full scale',ov+(om==='sat'?' (clip)':' (wrap)')],['weak tone margin',sdb(weakM)]]);
+}
+bind(['fB','fL','fR','fO'],fxDraw);
+
+/* ---------- Step 8: latency and throughput ---------- */
+function latDraw(){
+  const c=$('cLat'), g=ctx(c);
+  const fs=+$('lA').value*1e6, fc=sl('lC')*1e6, K=sl('lK'), R=+$('lR').value, mf=$('lM').value, T=sl('lT')*1e-6, M=sl('lN'), prf=sl('lF')*1e3;
+  setv('lC',fmt(fc,'Hz',0)); setv('lK',K+' taps'); setv('lT',fmt(T,'s',1)); setv('lN',M+' pulses'); setv('lF',fmt(prf,'Hz',1));
+  const Pp=Math.ceil(fs/fc); const fo=fs/R; const f2=fs/(R/2);
+  const Nm=Math.max(1,Math.round(T*fo));
+  const st=[];
+  st.push({n:'DDC (NCO + mixer)',lat:12/fc,mul:2*Pp});
+  st.push({n:'CIC decimator',lat:4*(R/2-1)/2/fs+10/fc,mul:0});
+  st.push({n:'FIR compensator',lat:(K-1)/2/f2+10/fc,mul:Math.ceil(2*K*fo/fc)});
+  let mfMul, mfLat, Lf=0;
+  if(mf==='fir'){ mfMul=Math.ceil(4*Nm*fo/fc); mfLat=T+Math.log2(Nm+1)/fc; }
+  else { Lf=nextPow2(2*Nm); const cm=(2*(Lf/2)*Math.log2(Lf)+Lf)/(Lf-Nm+1); mfMul=Math.ceil(4*cm*fo/fc); mfLat=T+2*Lf/fo; }
+  st.push({n:'matched filter',lat:mfLat,mul:mfMul});
+  const Md=nextPow2(M); st.push({n:'Doppler FFT ('+M+' pulses)',lat:M/prf+Md*Math.log2(Md)/fc,mul:Math.ceil(4*(Md/2)*Math.log2(Md)/Md*Math.max(1,Math.round(fo/prf))*prf/fc)});
+  st.push({n:'CFAR (16 + 2 guard)',lat:10/fo+10/fc,mul:1});
+  const tot=st.reduce((a,s)=>a+s.lat,0), totM=st.reduce((a,s)=>a+s.mul,0); const dom=st.reduce((a,s)=>s.lat>a.lat?s:a,st[0]);
+  /* draw: two bar charts */
+  const x0=180, w=c.width-x0-20; const y0=40, bh=22, gap=8; const lo=-9, hi=0; const Xl=t=>x0+w*(clamp(Math.log10(t),lo,hi)-lo)/(hi-lo);
+  g.fillStyle=css('--muted'); txt(g,'latency per stage (log scale)',x0,y0-12,css('--muted'));
+  for(let k=lo;k<=hi;k++){ const x=x0+w*(k-lo)/(hi-lo); g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+st.length*(bh+gap)); g.stroke(); const lab=['1 ns','','','1 µs','','','1 ms','','','1 s'][k-lo]; if(lab) txt(g,lab,x-14,y0+st.length*(bh+gap)+14,css('--muted')); }
+  st.forEach((s,i)=>{ const y=y0+i*(bh+gap); txtR(g,s.n,x0-8,y+15,css('--ink')); g.fillStyle=s===dom?css('--accent'):css('--trace'); g.fillRect(x0,y,Math.max(2,Xl(s.lat)-x0),bh); txt(g,fmt(s.lat,'s',s.lat<1e-6?0:2),Math.min(Xl(s.lat)+6,x0+w-70),y+15,css('--ink')); });
+  const y1=y0+st.length*(bh+gap)+44; txt(g,'real multipliers (DSP blocks) per stage',x0,y1-12,css('--muted'));
+  const mx=Math.max(8,...st.map(s=>s.mul)); st.forEach((s,i)=>{ const y=y1+i*(bh-6+gap); txtR(g,s.n,x0-8,y+12,css('--ink')); g.fillStyle=css('--trace2'); g.fillRect(x0,y,Math.max(1,w*0.8*s.mul/mx),bh-6); txt(g,s.mul.toString(),x0+Math.max(1,w*0.8*s.mul/mx)+6,y+12,css('--ink')); });
+  ro($('lOut'),[['parallel paths',Pp.toString()],['rate after DDC',fMHz(fo/1e6)],['MF taps',Nm+(mf==='fft'?' (FFT '+Lf+')':'')],['total latency',fmt(tot,'s',2)],['dominant',dom.n.replace(/ \(.*\)/,'')],['multipliers',totM.toString()],['DDC output',((fo*32)/1e9).toFixed(2)+' Gbit/s'],['ADC output',((fs*14)/1e9).toFixed(1)+' Gbit/s']]);
+}
+bind(['lA','lC','lK','lR','lM','lT','lN','lF'],latDraw);
+
+/* ---------- Step 9: ESM channeliser ---------- */
+function chDraw(){
+  const c=$('cCh'), g=ctx(c), A=area(c);
+  const K=+$('hK').value, type=$('hT').value; const fs=1000; const sp=fs/K; /* MHz */ const fM=sl('hF'); const fsig=fM/sp;
+  setv('hF',fMHz(fM)+' = channel '+fsig.toFixed(2));
+  let proto; const taps=type==='pfb'?8*K:K;
+  if(type==='pfb'){ proto=[]; for(let n=0;n<taps;n++){ const m=n-(taps-1)/2; const x=1.25*m/K; const s=Math.abs(x)<1e-12?1:Math.sin(Math.PI*x)/(Math.PI*x); proto.push(s*kaiser(n,taps,8)); } }
+  else { proto=[]; for(let n=0;n<K;n++) proto.push(win(type==='hann'?'hann':'rect',n,K)); }
+  let s0=0; proto.forEach(v=>s0+=v);
+  const H=df=>{ /* df in channel units */ let re=0,im=0; for(let n=0;n<proto.length;n++){ const a=TAU*df*n/K; re+=proto[n]*Math.cos(a); im-=proto[n]*Math.sin(a); } return Math.hypot(re,im)/s0; };
+  const NP=900; const span=Math.min(K,16); const xa=Math.max(0,Math.floor(fsig)-span/2), xb=xa+span;
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,-100,0,[],{nx:4,ny:5,fx:v=>v.toFixed(0),xl:'frequency in channel numbers (1 channel = '+fMHz(sp)+')',yl:'channel response, dB'});
+  const resp=[]; for(let k=0;k<K;k++){ const d=fsig-k; let dd=((d%K)+K)%K; if(dd>K/2) dd-=K; resp.push(20*Math.log10(H(dd)+1e-12)); }
+  const best=resp.reduce((a,v,i)=>v>resp[a]?i:a,0);
+  for(let k=Math.floor(xa)-1;k<=Math.ceil(xb)+1;k++){ if(k<0||k>=K) continue; const xs=[],ys=[]; for(let i=0;i<=NP;i++){ const f=xa+(xb-xa)*i/NP; let d=f-k; xs.push(f); ys.push(20*Math.log10(H(d)+1e-12)); }
+    const isB=k===best; g.strokeStyle=isB?css('--accent'):css('--trace'); g.lineWidth=isB?2.2:1; g.globalAlpha=isB?1:0.55; g.beginPath(); xs.forEach((x,i)=>{ const px=P.X(x), py=P.Y(ys[i]); i?g.lineTo(px,py):g.moveTo(px,py); }); g.stroke(); g.globalAlpha=1; g.lineWidth=1; }
+  vline(g,P.X(fsig),A.y0,A.h,css('--good'),[]); txt(g,'signal',clamp(P.X(fsig)+5,A.x0,A.x0+A.w-50),A.y0+14,css('--good'));
+  const n6=resp.filter(v=>v>-6).length, n40=resp.filter(v=>v>-40).length;
+  const cross=-20*Math.log10(H(0.5)); const adj=-20*Math.log10(H(1.5)); const wl=type==='rect'?0:(type==='hann'?1.76:0);
+  /* 3 dB width */ let d=0; while(H(d)>Math.SQRT1_2&&d<2) d+=0.002; const bw3=2*d*sp;
+  ro($('hOut'),[['spacing',fMHz(sp)],['−3 dB width',fMHz(bw3)],['shortest pulse',fmt(1/(bw3*1e6),'s',0)],['sensitivity gain',(10*Math.log10(K)-wl).toFixed(1)+' dB'],['crossover loss',cross.toFixed(2)+' dB'],['1.5 ch away',(-adj).toFixed(1)+' dB'],['this signal',(Math.abs(resp[best])<0.005?0:-resp[best]).toFixed(2)+' dB, ch '+best],['ch over −6 dB',n6.toString()],['ch over −40 dB',n40.toString()]]);
+}
+bind(['hK','hT','hF'],chDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

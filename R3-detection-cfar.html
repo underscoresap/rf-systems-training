@@ -1,0 +1,775 @@
+<title>Radar Detection</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Radar Basics · R3 of 6 · RF Systems for Component Engineers</div>
+  <h1>Detection: deciding "target or noise"</h1>
+  <p class="lede">R1 ended with a number: the SNR of an echo. But a radar never sees "SNR". It sees a stream of noisy samples and must decide, one sample at a time, whether a target is there. This page shows what those samples look like, how a threshold trades detections against false alarms, where the famous "13 dB" comes from, and how CFAR keeps the false-alarm rate steady when the noise, clutter or jamming changes.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#out">0 What the receiver outputs</a><a href="#cell">0b What a range cell is</a><a href="#noise">1 What noise looks like</a><a href="#thr">2 Threshold and false alarms</a><a href="#sig">3 Signal plus noise</a><a href="#13">4 Where 13 dB comes from</a><a href="#vary">5 When noise is not steady</a><a href="#cfar">6 CFAR: a threshold per cell</a><a href="#plot">7 From detection to plot</a><a href="#comp">8 Your components</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="out">
+  <div class="secno">Step 0</div>
+  <h2>What the receiver actually hands to the detector</h2>
+  <div class="know"><h4>You already know</h4>A receiver chain: LNA, mixer, IF filter, ADC, and digital I/Q (in-phase and quadrature) samples. You know thermal noise power kTB and noise figure. From R1: a matched filter's bandwidth is about 1/τ, and the radar collects one echo sample per range cell per pulse.</div>
+  <div class="col">
+    <p>After each transmitted pulse the receiver samples continuously. Each sample corresponds to one distance from the radar (one <b>range cell</b>, R1 step 6). After the matched filter, every range cell holds one complex number I + jQ. The detector looks only at its size: the <b>envelope</b> √(I² + Q²), or more often the <b>power</b> I² + Q².</p>
+  </div>
+  <h3 id="cell">Where a "cell" comes from, from the start</h3>
+  <div class="col">
+    <p><b>1. The clock starts at the pulse.</b> The radar transmits a short pulse at time t = 0 and then switches to receive. From then on, anything that comes back is an echo from somewhere along the beam.</p>
+    <p><b>2. Arrival time is distance.</b> An echo from a target at range R has travelled out and back, 2R, at the speed of light, so it arrives at t = 2R/c. Every 1 µs after the pulse corresponds to 150 m of range (c × 1 µs / 2). Time after the pulse and distance are the same axis with different units.</p>
+    <p><b>3. The ADC chops that time into samples.</b> The receiver output is sampled at a rate f<sub>s</sub>, one sample every 1/f<sub>s</sub> seconds. Sample number 0 is taken just after the pulse, sample 1 one period later, and so on, until the next pulse is sent (one PRI later).</p>
+    <p><b>4. Each sample is a range cell.</b> Sample number n holds whatever arrived at time n/f<sub>s</sub>, which is the echo from range n·c/(2f<sub>s</sub>). So a <b>range cell</b> (or range bin, range gate) is simply <i>one ADC sample slot after the pulse</i>, labelled with the distance it corresponds to. A cell is not a physical thing; it is a slice of distance defined by the sampling clock.</p>
+    <p><b>5. How wide is a cell?</b> Cell width = c/(2f<sub>s</sub>). The sample rate is normally matched to the pulse: a pulse of width τ (bandwidth about 1/τ) is sampled about once per τ, so a cell is about cτ/2 wide, which is also the range resolution from R1 step 6. Two targets closer than one cell fall into the same sample and cannot be separated.</p>
+    <p><b>6. Repeat every pulse.</b> Every pulse produces a new row of samples, cell 0 to cell N−1. Stack the rows and you get a table: one row per pulse ("slow time"), one column per range cell ("fast time"). A column holds the history of one distance, pulse after pulse. Integration (R1 step 7) adds down a column, and the detector decides one column (one cell) at a time.</p>
+  </div>
+  <div class="eq">cell width = c / (2·f<sub>s</sub>) &nbsp;&nbsp; cell number of a target = round(2R·f<sub>s</sub>/c) &nbsp;&nbsp; cells per pulse = PRI × f<sub>s</sub></div>
+  <h3>Worked example</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Pulse width τ, bandwidth</td><td>given</td><td class="n">1 µs, ≈ 1 MHz</td></tr>
+    <tr><td>ADC sample rate (one per τ)</td><td>1/τ</td><td class="n">1 MHz</td></tr>
+    <tr><td>Cell width</td><td>3×10⁸ / (2 × 10⁶)</td><td class="n">150 m</td></tr>
+    <tr><td>PRI</td><td>PRF 1 kHz</td><td class="n">1 ms</td></tr>
+    <tr><td>Cells per pulse</td><td>1 ms × 1 MHz</td><td class="n">1 000 cells, 0 to 150 km</td></tr>
+    <tr><td>Target at 12 km</td><td>2 × 12 000 / 3×10⁸</td><td class="n">echo at 80 µs</td></tr>
+    <tr class="sum"><td>Which cell?</td><td>80 µs × 1 MHz</td><td class="n">cell 80</td></tr>
+    <tr><td>Decisions per second</td><td>1 000 cells × 1 000 pulses/s</td><td class="n">10⁶ (used in step 2)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cRc" width="640" height="300" aria-label="Timeline after a pulse divided into ADC samples (range cells)"></canvas>
+    <div class="ctrl">
+      <label for="rcT">Pulse width τ <b id="rcTv"></b></label><input id="rcT" type="range" min="0.1" max="5" step="0.1" value="1">
+      <label for="rcF">ADC rate f<sub>s</sub> <b id="rcFv"></b></label><input id="rcF" type="range" min="0.2" max="10" step="0.1" value="1">
+      <label for="rcR">Target range <b id="rcRv"></b></label><input id="rcR" type="range" min="0.2" max="3" step="0.01" value="1.2">
+      <label for="rcR2">Second target range <b id="rcR2v"></b></label><input id="rcR2" type="range" min="0.2" max="3" step="0.01" value="1.5">
+      <div class="readout" id="rcOut"></div>
+    </div>
+    <p class="cap">Top: the receiver output in the first 20 µs after the pulse (the transmitted pulse at the left, two echoes later). The vertical ticks are the ADC sampling instants; each slot between ticks is one range cell, labelled with its distance underneath. Bottom: what the detector actually gets, one bar per cell (the sampled value). Move the second target close to the first: once they are in the same or the next cell, the bars merge and the radar sees one target.</p>
+  </div>
+  <div class="col">
+    <p>Most range cells contain only noise. A few contain an echo plus noise. The detector has no way of knowing which is which in advance. It applies one simple rule: <b>if the power in a cell is above a threshold, declare a detection.</b> Everything on this page is about choosing that threshold well.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Range cell (range bin)</b>: one sample time after the pulse, which corresponds to one distance.<br><b>Detection</b>: a cell whose power crosses the threshold.<br><b>Probability of detection P<sub>d</sub></b>: the chance that a real target's cell crosses the threshold.<br><b>Probability of false alarm P<sub>fa</sub></b>: the chance that a noise-only cell crosses it.<br><b>False alarm</b>: a detection with no target. It is noise that happened to be large.</p></div>
+  <div class="col"><p>The two probabilities always move together: lower the threshold and you catch weaker targets (P<sub>d</sub> up) but you also let through more noise spikes (P<sub>fa</sub> up). There is no setting that gives P<sub>d</sub> = 1 and P<sub>fa</sub> = 0. The only way to get both better at once is more SNR.</p></div>
+</section>
+
+<!-- 1 -->
+<section id="noise">
+  <div class="secno">Step 1</div>
+  <h2>What noise looks like at the detector</h2>
+  <div class="col">
+    <p>Thermal noise in I and in Q is <b>Gaussian</b>: each is a random voltage with zero mean, and the two are independent. When you take the size of a point whose x and y are independent Gaussians, the result follows a <b>Rayleigh</b> distribution. Its square, the power, follows an <b>exponential</b> distribution. The exponential is the key fact for detection, because it has a simple tail:</p>
+  </div>
+  <div class="eq">P(power &gt; T) = exp(−T / P<sub>n</sub>)<small>P<sub>n</sub> = mean noise power. A threshold T set at x times the mean noise power is crossed by noise with probability e<sup>−x</sup>.</small></div>
+  <div class="col">
+    <p>Read that carefully: noise is not a flat line at P<sub>n</sub>. Most samples are below the mean, but occasional samples are many times larger. The chance of a sample 10 times the mean (10 dB) is e<sup>−10</sup> = 4.5 × 10<sup>−5</sup>. That sounds small, until you remember that a radar makes about a million such decisions every second.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cNz" width="640" height="380" aria-label="Noise power in range cells with a threshold, and its histogram"></canvas>
+    <div class="ctrl">
+      <label for="nzT">Threshold above mean noise <b id="nzTv"></b></label><input id="nzT" type="range" min="0" max="16" step="0.1" value="11.4">
+      <label for="nzS">Target SNR (cell 300) <b id="nzSv"></b></label><input id="nzS" type="range" min="0" max="25" step="0.5" value="13">
+      <label for="nzR">Noise rises by <b id="nzRv"></b></label><input id="nzR" type="range" min="0" max="10" step="0.5" value="0">
+      <label for="nzN">Cells drawn <b id="nzNv"></b></label><input id="nzN" type="range" min="200" max="20000" step="200" value="2000">
+      <button id="nzB" type="button">New noise sample</button>
+      <div class="readout" id="nzOut"></div>
+    </div>
+    <p class="cap">Top: power in each range cell, in dB relative to the original mean noise (0 dB). The orange line is a fixed threshold. Bottom: histogram of the noise powers (bars) and the exponential law (line), on a log scale so the rare large samples are visible. "Noise rises by" raises the noise after the threshold has been set: keep it for step 5.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What fraction of noise samples are above the mean noise power?</summary><p>e<sup>−1</sup> = 37 %. Most samples (63 %) are below the mean, because a few large samples pull the mean up.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="thr">
+  <div class="secno">Step 2</div>
+  <h2>Setting the threshold: how many false alarms can you live with?</h2>
+  <div class="col">
+    <p>Turn the tail formula around. For a wanted P<sub>fa</sub>, the threshold must sit at T / P<sub>n</sub> = ln(1/P<sub>fa</sub>) above the mean noise power.</p>
+  </div>
+  <div class="eq">T / P<sub>n</sub> = ln(1 / P<sub>fa</sub>) &nbsp;&nbsp; false alarms per second = P<sub>fa</sub> × (range cells × PRF × Doppler cells …)</div>
+  <div class="col"><p>Why do radars use P<sub>fa</sub> around 10<sup>−6</sup>? Count the decisions. A radar with 1 000 range cells and a PRF of 1 kHz makes 10<sup>6</sup> decisions every second. At P<sub>fa</sub> = 10<sup>−6</sup> that is one false alarm per second, which a tracker can tolerate. At 10<sup>−3</sup> it would be 1 000 false targets every second, and the display would be useless.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>P<sub>fa</sub></th><th>Threshold T/P<sub>n</sub></th><th>In dB above mean noise</th><th>False alarms per second at 10⁶ decisions/s</th></tr>
+    <tr><td>10<sup>−3</sup></td><td class="n">ln(1 000) = 6.9</td><td class="n">8.4 dB</td><td class="n">1 000</td></tr>
+    <tr><td>10<sup>−6</sup></td><td class="n">ln(10⁶) = 13.8</td><td class="n">11.4 dB</td><td class="n">1</td></tr>
+    <tr><td>10<sup>−8</sup></td><td class="n">ln(10⁸) = 18.4</td><td class="n">12.7 dB</td><td class="n">1 every 100 s</td></tr>
+  </table></div>
+  <div class="col"><p>Notice how flat that is. Going from 1 000 false alarms per second to one per 100 seconds (a factor of 100 000) costs only 4.3 dB of threshold. That is the exponential tail at work: the threshold is a very sensitive knob for false alarms, which is why the threshold must sit at exactly the right height relative to the noise. Step 5 shows what happens when it does not.</p></div>
+  <div class="term"><h4>Definitions</h4><p><b>Threshold</b>: the power level above which a cell is declared a detection.<br><b>False-alarm rate</b>: false alarms per second, P<sub>fa</sub> × decisions per second.<br><b>Mean time between false alarms</b>: its inverse.</p></div>
+</section>
+
+<!-- 3 -->
+<section id="sig">
+  <div class="secno">Step 3</div>
+  <h2>Signal plus noise: the probability of detection</h2>
+  <div class="col">
+    <p><b>The idea in one line:</b> an echo never arrives clean. Noise is always added to it, so the same echo measures a little bigger on one pulse and a little smaller on the next.</p>
+    <p><b>Think of it as a vector sum.</b> The echo is a fixed arrow (a phasor) of length A. Noise is a small arrow of random length pointing in a random direction. The receiver measures the length of the two added together:</p>
+    <ul>
+      <li>When the noise points the same way as the echo, the sum is longer than A.</li>
+      <li>When it points the opposite way, the sum is shorter than A.</li>
+      <li>Most of the time it lands somewhere in between.</li>
+    </ul>
+    <p>Repeat this thousands of times and draw a histogram of the measured values. You get a hump centred near A, spread out by the noise. That hump is the teal curve in the demo. (Its textbook name is the <b>Rician</b> distribution; you do not need the formula.)</p>
+    <p><b>Now put both cases on one picture.</b> The grey curve is what a cell holding <i>only noise</i> measures: mostly small values. The teal curve is what a cell holding <i>echo + noise</i> measures: values around A. The orange line is the threshold. Anything to its right is declared "target".</p>
+    <ul>
+      <li>Grey curve to the right of the line = noise mistaken for a target = <b>P<sub>fa</sub></b> (false alarm). It is so small you can barely see it.</li>
+      <li>Teal curve to the right of the line = real target correctly caught = <b>P<sub>d</sub></b> (detection).</li>
+      <li>Teal curve to the left of the line = a real target missed.</li>
+    </ul>
+    <p><b>Three things to try in the demo:</b></p>
+    <ol>
+      <li><b>Slide the threshold right.</b> Fewer false alarms, but more of the teal hump falls left of the line, so more targets are missed.</li>
+      <li><b>Slide the threshold left.</b> More targets caught, but the grey curve crosses the line and false alarms shoot up (watch "false alarms per second").</li>
+      <li><b>Raise the SNR.</b> The teal hump moves right, away from the grey one. Now one threshold can catch almost every target <i>and</i> keep false alarms rare. More SNR is the only thing that improves both at once.</li>
+    </ol>
+    <p>So the detector's job reduces to this: put the line where false alarms are acceptable (step 2), then ask how much SNR is needed to push the teal hump far enough past it. That question is answered in step 4.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPd" width="640" height="340" aria-label="Noise-only and signal-plus-noise distributions with a threshold"></canvas>
+    <div class="ctrl">
+      <label for="pdS">SNR <b id="pdSv"></b></label><input id="pdS" type="range" min="0" max="25" step="0.1" value="13.1">
+      <label for="pdT">Threshold above mean noise <b id="pdTv"></b></label><input id="pdT" type="range" min="2" max="16" step="0.1" value="11.4">
+      <label for="pdK">Decisions per second <b id="pdKv"></b></label><input id="pdK" type="range" min="3" max="9" step="1" value="6">
+      <div class="readout" id="pdOut"></div>
+    </div>
+    <p class="cap">Horizontal axis: envelope voltage, in units of the rms noise voltage. Grey curve: noise only (Rayleigh). Teal curve: echo plus noise (Rician). Shaded areas right of the orange threshold: P<sub>fa</sub> (grey, mostly invisible because it is so small) and P<sub>d</sub> (teal). Decisions per second is 10 to the power shown.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>With the threshold at 11.4 dB (P<sub>fa</sub> = 10⁻⁶), what is P<sub>d</sub> when the SNR equals the threshold, 11.4 dB?</summary><p>About 50 %. When the echo sits exactly at the threshold, the noise pushes it above or below about equally often. To be confident of a detection, the echo must sit well above the threshold, a couple of dB more.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="13">
+  <div class="secno">Step 4</div>
+  <h2>Where the "13 dB" comes from</h2>
+  <div class="col">
+    <p>R1 used "about 13 dB SNR needed" without proof. Here it is. Ask for P<sub>fa</sub> = 10<sup>−6</sup> (threshold 11.4 dB) and P<sub>d</sub> = 0.9. The Rician curve must be pushed far enough right that 90 % of it is above the threshold. That takes an SNR of 13.1 dB. Try it in the demo above: set SNR 13.1 dB and threshold 11.4 dB.</p>
+    <p>Computing the Rician area needs a numerical integral. Engineers use <b>Albersheim's equation</b>, a curve fit accurate to about 0.2 dB, for a steady (non-fluctuating) target:</p>
+  </div>
+  <div class="eq">SNR<sub>dB</sub> = −5·log<sub>10</sub>N + (6.2 + 4.54/√(N+0.44)) · log<sub>10</sub>(A + 0.12·A·B + 1.7·B)<small>A = ln(0.62 / P<sub>fa</sub>), B = ln(P<sub>d</sub> / (1 − P<sub>d</sub>)), N = number of pulses integrated non-coherently. The result is the SNR needed per pulse.</small></div>
+  <h3>Worked example: P<sub>d</sub> = 0.9, P<sub>fa</sub> = 10⁻⁶, one pulse</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>A</td><td>ln(0.62 × 10⁶)</td><td class="n">13.34</td></tr>
+    <tr><td>B</td><td>ln(0.9 / 0.1)</td><td class="n">2.20</td></tr>
+    <tr><td>A + 0.12AB + 1.7B</td><td>13.34 + 3.52 + 3.74</td><td class="n">20.6</td></tr>
+    <tr><td>Factor for N = 1</td><td>6.2 + 4.54/√1.44</td><td class="n">9.98</td></tr>
+    <tr class="sum"><td>Required SNR</td><td>9.98 × log<sub>10</sub>(20.6)</td><td class="n">13.1 dB</td></tr>
+  </table></div>
+  <h3>Required single-pulse SNR (steady target)</h3>
+  <div class="tw"><table class="t">
+    <tr><th></th><th>P<sub>d</sub> = 0.5</th><th>P<sub>d</sub> = 0.9</th><th>P<sub>d</sub> = 0.99</th></tr>
+    <tr><td>P<sub>fa</sub> = 10⁻⁴</td><td class="n">9.4 dB</td><td class="n">11.7 dB</td><td class="n">13.3 dB</td></tr>
+    <tr><td>P<sub>fa</sub> = 10⁻⁶</td><td class="n">11.2 dB</td><td class="n">13.1 dB</td><td class="n">14.5 dB</td></tr>
+    <tr><td>P<sub>fa</sub> = 10⁻⁸</td><td class="n">12.5 dB</td><td class="n">14.2 dB</td><td class="n">15.5 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Fluctuating targets need much more.</b> R1 step 2 showed that a real target's RCS changes with aspect. If the echo fades from look to look (the "Swerling 1" model), a single look sometimes catches a deep fade, and no threshold can save it. For one pulse, P<sub>d</sub> = P<sub>fa</sub><sup>1/(1+SNR)</sup>, which needs <b>21.1 dB</b> for P<sub>d</sub> = 0.9 at P<sub>fa</sub> = 10⁻⁶: 8 dB more than a steady target. The extra is called the <b>fluctuation loss</b>. It is largest at high P<sub>d</sub>, and it is one reason radars use several looks (frequency agility decorrelates the fades, so the looks fade independently).</p>
+    <p><b>Integration helps.</b> With N = 10 pulses integrated, Albersheim gives 5.0 dB per pulse. With 100 pulses, −1.3 dB per pulse: each individual echo is below the noise, yet the sum is detectable. This connects back to R1 step 7.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cAl" width="640" height="300" aria-label="Required SNR against probability of detection"></canvas>
+    <div class="ctrl">
+      <label for="alF">P<sub>fa</sub> = 10^−<b id="alFv"></b></label><input id="alF" type="range" min="2" max="10" step="1" value="6">
+      <label for="alN">Pulses integrated N <b id="alNv"></b></label><input id="alN" type="range" min="0" max="3" step="0.1" value="0">
+      <label for="alP">Wanted P<sub>d</sub> <b id="alPv"></b></label><input id="alP" type="range" min="0.1" max="0.999" step="0.001" value="0.9">
+      <div class="readout" id="alOut"></div>
+    </div>
+    <p class="cap">Required SNR per pulse against P<sub>d</sub>. Teal: steady target (Albersheim). Purple: single-pulse fluctuating target (Swerling 1), drawn only when N = 1. The marker is the wanted P<sub>d</sub>. The N slider is logarithmic: 0 means 1 pulse, 3 means 1 000.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li>Every 1 dB of <b>noise figure</b> you save is 1 dB less SNR needed from the transmitter or the antenna. In R1's equation it is the same as 26 % more power.</li>
+    <li><b>Frequency agility</b> (a fast-settling synthesiser) decorrelates target fades between pulses, which cuts the fluctuation loss.</li>
+  </ul></div>
+</section>
+
+<!-- 5 -->
+<section id="vary">
+  <div class="secno">Step 5</div>
+  <h2>When the noise is not steady</h2>
+  <div class="col">
+    <p>A threshold set at 11.4 dB above the noise works only if the noise stays where it was measured. In practice it does not:</p>
+    <ul>
+      <li><b>Receiver gain drifts</b> with temperature, and the noise floor moves with it.</li>
+      <li><b>Clutter</b>: echoes from ground, sea, rain and chaff. They are noise-like, but much stronger than thermal noise and they vary from place to place.</li>
+      <li><b>Interference and jamming</b> (Part 6) raise the noise in some directions and at some ranges.</li>
+    </ul>
+    <p>Here is how sharp the effect is. If the noise power rises by 3 dB (doubles) but the threshold stays fixed, the threshold is now only 13.8/2 = 6.9 times the new mean. P<sub>fa</sub> goes from e<sup>−13.8</sup> = 10<sup>−6</sup> to e<sup>−6.9</sup> = 10<sup>−3</sup>: <b>a thousand times more false alarms from a 3 dB change</b>. In general a noise rise by a factor k turns P<sub>fa</sub> into P<sub>fa</sub><sup>1/k</sup>. Try it with the "Noise rises by" slider in step 1.</p>
+    <p>Setting the threshold high enough for the worst case fixes the false alarms but throws away detection everywhere else. The answer is to measure the noise locally, all the time, and set the threshold from that measurement: <b>CFAR</b>.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Clutter</b>: unwanted echoes from the environment.<br><b>CFAR (constant false-alarm rate)</b>: a detector that estimates the local noise and clutter level around each cell and scales its threshold to it, so that P<sub>fa</sub> stays constant.</p></div>
+</section>
+
+<!-- 6 -->
+<section id="cfar">
+  <div class="secno">Step 6</div>
+  <h2>CFAR: giving every cell its own threshold</h2>
+  <div class="col">
+    <p>This step builds CFAR in four parts, each resting on the one before:</p>
+    <ol>
+      <li><b>6.1</b> Why one single threshold for all cells cannot work.</li>
+      <li><b>6.2</b> The fix: judge each cell against its neighbours. What the <b>cell under test</b>, the <b>gap (guard) cells</b> and the <b>reference cells</b> are, why each one is needed, and how each changes whether a target is called a target.</li>
+      <li><b>6.3</b> Four ways of turning the neighbours into a threshold (average, greatest, smallest, ordered), with the threshold each one gives on the same cells.</li>
+      <li><b>6.4</b> How to choose the gap and the number of reference cells, and what each choice does to the threshold.</li>
+    </ol>
+    <p>Only after that, 6.5 and 6.6 let you try it. All examples use the same row of 40 range cells, drawn below. Powers are relative to the average thermal noise (1.0 = 0 dB).</p>
+  </div>
+
+  <h3 id="cfar1">6.1 What goes wrong with one single threshold</h3>
+  <div class="col">
+    <p>Our example row has three regions: quiet thermal noise (cells 0–27), a strong target <b>T1 = 30 at cell 14</b> (some of its energy spills into cells 13 and 15, at 8 and 7.2), a weaker target <b>T2 = 15 at cell 20</b>, and <b>clutter from cell 29 onwards</b>, where the background is about 30 times stronger and varies from cell to cell (1.2 to 101).</p>
+  </div>
+  <div class="bench" style="grid-template-columns:minmax(0,1fr)">
+    <canvas id="cFx" width="640" height="260" aria-label="Forty range cells with two candidate fixed thresholds"></canvas>
+    <p class="cap">Bars: power in each cell (dB). Lower dashed line: a fixed threshold set for thermal noise (9.2 = 9.6 dB, P<sub>fa</sub> = 10⁻⁴). Upper dashed line: a fixed threshold raised above the clutter (110 = 20.4 dB). Markers under the axis: teal = target detected, red = false alarm, hollow = target missed. Top row of markers is for the lower line, bottom row for the upper line.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Fixed threshold</th><th>T1 (30)</th><th>T2 (15)</th><th>Clutter cells 29–39</th><th>Verdict</th></tr>
+    <tr><td>Set for noise: 9.2</td><td>detected</td><td>detected</td><td>9 of 11 crossed: <b>9 false targets</b></td><td>Floods the display</td></tr>
+    <tr><td>Raised above clutter: 110</td><td><b>missed</b></td><td><b>missed</b></td><td>none crossed</td><td>Blind everywhere</td></tr>
+    <tr><td>Anything between</td><td colspan="3">some clutter cells still cross, and T2 (then T1) is lost as the line rises</td><td>No value works</td></tr>
+  </table></div>
+  <div class="col"><p>The reason is simple: <b>one number cannot describe two different backgrounds.</b> A line that suits the quiet cells is far too low in clutter, and a line that suits the clutter is far too high in the quiet cells. The threshold has to be measured locally, cell by cell. That is CFAR.</p></div>
+
+  <h3 id="cfar2">6.2 The fix: compare each cell with its neighbours</h3>
+  <div class="col"><p>CFAR asks, for every cell in turn: <b>"is this cell much louder than the background around it?"</b> To answer, it splits the cells around the one being decided into three groups:</p></div>
+  <div class="diag"><svg viewBox="0 0 760 120" role="img" aria-label="CFAR window: four reference cells, one gap cell, the cell under test, one gap cell, four reference cells">
+    <g font-family="IBM Plex Mono, monospace" font-size="13" text-anchor="middle">
+      <g fill="var(--trace2)" fill-opacity=".3" stroke="var(--trace2)">
+        <rect x="20" y="20" width="60" height="44"/><rect x="85" y="20" width="60" height="44"/><rect x="150" y="20" width="60" height="44"/><rect x="215" y="20" width="60" height="44"/>
+        <rect x="485" y="20" width="60" height="44"/><rect x="550" y="20" width="60" height="44"/><rect x="615" y="20" width="60" height="44"/><rect x="680" y="20" width="60" height="44"/></g>
+      <g fill="var(--muted)" fill-opacity=".25" stroke="var(--muted)"><rect x="285" y="20" width="60" height="44"/><rect x="415" y="20" width="60" height="44"/></g>
+      <rect x="350" y="20" width="60" height="44" fill="var(--accent)" stroke="var(--accent)"/>
+      <g fill="var(--ink)"><text x="50" y="47">R</text><text x="115" y="47">R</text><text x="180" y="47">R</text><text x="245" y="47">R</text><text x="315" y="47">gap</text><text x="380" y="47" fill="var(--panel)" font-weight="600">CUT</text><text x="445" y="47">gap</text><text x="515" y="47">R</text><text x="580" y="47">R</text><text x="645" y="47">R</text><text x="710" y="47">R</text></g>
+      <g fill="var(--muted)" font-size="12"><text x="147" y="86">reference cells (left half)</text><text x="612" y="86">reference cells (right half)</text><text x="380" y="86">cell under test</text><text x="380" y="104">gap cells beside it</text></g>
+    </g></svg></div>
+  <div class="term"><h4>The three groups, and why each exists</h4><p>
+    <b>Cell under test (CUT)</b>: the one cell being decided right now. Its own power is <i>never</i> used to set its threshold; it is only compared with the threshold at the end. Every cell takes a turn as the CUT, and the whole window slides along one cell at a time.<br>
+    <b>Reference cells</b> (also called training cells): cells a little way out on both sides. Their average is the estimate of the background "around here". They are the reason the threshold can follow the background: quiet neighbours give a low threshold, loud neighbours a high one.<br>
+    <b>Gap cells</b> (also called guard cells): the cells right next to the CUT, which are <i>skipped</i>. They exist because a real target does not fit in exactly one cell: some of its energy spills into the cells beside it. If those cells were averaged, the target would make its own background look loud and raise its own threshold.</p></div>
+  <h3>Worked: the reference cells set the threshold (T1, cell 14)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Step</th><th>Cells and values</th><th>Result</th></tr>
+    <tr><td>Reference, left (cells 9–12)</td><td>1.3, 0.3, 0.2, 1.4</td><td class="n">sum 3.2</td></tr>
+    <tr><td>Gap (cell 13)</td><td>8 (T1's spill) — skipped</td><td class="n">—</td></tr>
+    <tr><td><b>CUT (cell 14)</b></td><td>30 — kept aside</td><td class="n">—</td></tr>
+    <tr><td>Gap (cell 15)</td><td>7.2 (T1's spill) — skipped</td><td class="n">—</td></tr>
+    <tr><td>Reference, right (cells 16–19)</td><td>0.3, 0.8, 0.4, 3.8</td><td class="n">sum 5.3</td></tr>
+    <tr><td>Background estimate</td><td>(3.2 + 5.3) / 8</td><td class="n">1.06</td></tr>
+    <tr><td>Threshold = α × background</td><td>17.3 × 1.06</td><td class="n">18.4</td></tr>
+    <tr class="sum"><td>Decision</td><td>30 &gt; 18.4</td><td class="n">TARGET</td></tr>
+  </table></div>
+  <div class="col"><p><b>α</b> is the "much louder" in the question: a fixed multiplier chosen once from the false-alarm probability wanted. With 8 reference cells and P<sub>fa</sub> = 10⁻⁴, α = 8 × (10<sup>4/8</sup> − 1) = 17.3. (Where it comes from is in 6.4.)</p></div>
+  <h3>Worked: why the gap matters (the same cell, no gap)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Step</th><th>Cells and values</th><th>Result</th></tr>
+    <tr><td>Reference, left (cells 10–13)</td><td>0.3, 0.2, 1.4, <b>8</b></td><td class="n">sum 9.9</td></tr>
+    <tr><td>Reference, right (cells 15–18)</td><td><b>7.2</b>, 0.3, 0.8, 0.4</td><td class="n">sum 8.7</td></tr>
+    <tr><td>Background estimate</td><td>(9.9 + 8.7) / 8</td><td class="n">2.33</td></tr>
+    <tr><td>Threshold</td><td>17.3 × 2.33</td><td class="n">40.2</td></tr>
+    <tr class="sum"><td>Decision</td><td>30 &lt; 40.2</td><td class="n">MISSED</td></tr>
+  </table></div>
+  <div class="col"><p>Same target, same α. The only change is that T1's own spill (8 and 7.2) was counted as "background". The estimate more than doubled, the threshold rose from 18.4 to 40.2, and the target hid itself. This is <b>self-masking</b>, and the gap cells exist to prevent it.</p></div>
+  <h3>How each group changes the classification</h3>
+  <div class="tw"><table class="t">
+    <tr><th>If…</th><th>Effect on the threshold</th><th>Effect on classification</th></tr>
+    <tr><td>No gap, or gap narrower than the target's spill</td><td>Target's own energy raises it</td><td>Strong targets <b>missed</b> (self-masking)</td></tr>
+    <tr><td>Gap much wider than needed</td><td>Reference cells pushed far away, into background that may differ</td><td>Wrong estimate near clutter changes; more cells lost at the ends of the range</td></tr>
+    <tr><td>Too few reference cells</td><td>Estimate is noisy (it wobbles), so α must be large to stay safe</td><td>Weak targets <b>missed</b> everywhere (higher CFAR loss)</td></tr>
+    <tr><td>Too many reference cells</td><td>Window reaches into clutter edges and other targets</td><td><b>False alarms</b> at clutter edges, or a nearby target <b>masks</b> a weaker one</td></tr>
+    <tr><td>Another target inside the reference cells</td><td>Raised</td><td>The weaker of two close targets can be <b>missed</b></td></tr>
+  </table></div>
+
+  <h3 id="cfar3">6.3 Turning the neighbours into a threshold: four methods</h3>
+  <div class="col"><p>Every method uses the same window. They differ only in which single number they take from the reference cells as the "background". Let L = average of the left half, R = average of the right half.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Method</th><th>Background used</th><th>Threshold</th><th>Thinking behind it</th></tr>
+    <tr><td><b>CA</b>: cell averaging</td><td>average of all reference cells, (L + R)/2</td><td class="n">α × (L+R)/2</td><td>Best estimate when the background is uniform</td></tr>
+    <tr><td><b>GO</b>: greatest-of</td><td>the louder half, max(L, R)</td><td class="n">α × max(L,R)</td><td>"Assume the worse side": safe at clutter edges</td></tr>
+    <tr><td><b>SO</b>: smallest-of</td><td>the quieter half, min(L, R)</td><td class="n">α × min(L,R)</td><td>"Ignore the side with something loud in it": protects weak targets next to strong ones</td></tr>
+    <tr><td><b>OS</b>: ordered statistic</td><td>sort the 8 reference values, take the 6th smallest (the ¾ point)</td><td class="n">α<sub>OS</sub> × 6th value</td><td>A few very loud cells (targets) end up at the top of the sort and are ignored</td></tr>
+  </table></div>
+  <h3>The same three cells, decided by each method</h3>
+  <div class="col"><p>Gap 1 each side, 4 reference cells each side. α = 17.3 for CA, GO and SO (kept equal so the comparison is fair), α<sub>OS</sub> = 18.8.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Method</th><th>Cell 14: T1 = 30<br><small>L = 0.80, R = 1.32</small></th><th>Cell 20: T2 = 15<br><small>L = 2.18 (holds T1's spill 7.2), R = 0.23</small></th><th>Cell 30: clutter 24.2 at the edge<br><small>L = 1.20 (quiet), R = 60.3 (clutter)</small></th></tr>
+    <tr><td><b>CA</b></td><td class="n">18.4 → detected ✓</td><td class="n">20.8 → <b>missed</b> ✗</td><td class="n">532 → background ✓</td></tr>
+    <tr><td><b>GO</b></td><td class="n">22.9 → detected ✓</td><td class="n">37.6 → <b>missed</b> ✗</td><td class="n">1 043 → background ✓</td></tr>
+    <tr><td><b>SO</b></td><td class="n">13.8 → detected ✓</td><td class="n">3.9 → detected ✓</td><td class="n">20.8 → <b>false alarm</b> ✗</td></tr>
+    <tr><td><b>OS</b></td><td class="n">24.4 → detected ✓</td><td class="n">7.5 → detected ✓</td><td class="n">642 → background ✓</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Reading the table:</b></p>
+    <ul>
+      <li><b>Cell 20</b> has one noisy half (T1's spill, 7.2) and one quiet half. CA averages them, and the spill lifts the threshold above T2. GO picks the noisy half, which is worse. SO picks the quiet half and catches T2. OS sorts the values (0.2, 0.2, 0.2, 0.3, 0.3, 0.4, 0.8, <i>7.2</i>): the single loud value lands at the top and the 6th value, 0.4, is ordinary noise.</li>
+      <li><b>Cell 30</b> sits at the clutter edge: one half quiet, one half clutter. SO picks the quiet half, so its threshold is far too low for a clutter cell and it raises a false alarm. CA, GO and OS all include the clutter half and stay safe.</li>
+      <li><b>No method is best everywhere.</b> CA is the most efficient in uniform noise. GO is safest at clutter edges but hides close targets. SO protects close targets but makes false alarms at edges. OS handles both cases here, at the cost of sorting (more FPGA logic) and a slightly higher threshold in plain noise.</li>
+    </ul>
+  </div>
+
+  <h3 id="cfar4">6.4 Choosing the gap and the number of reference cells</h3>
+  <div class="col">
+    <p><b>The gap: just wide enough to hold the target's spill.</b> Count how many cells one target's energy occupies on each side of its peak and use that many gap cells. The spill comes from:</p>
+    <ul>
+      <li>The matched-filter response: a pulse of width τ sampled once per τ spreads over about one cell on each side.</li>
+      <li>Straddle: a target between two sample instants splits its energy between two cells.</li>
+      <li>Pulse-compression sidelobes (R6): small echoes several cells away.</li>
+      <li>Large targets: a 150 m ship with 15 m cells occupies 10 cells, so a 1-cell gap is useless for ships.</li>
+    </ul>
+    <p>Typical choice: 1–3 cells on each side for aircraft-sized targets. Wider than necessary is not free: the reference cells move further away, where the background may already be different, and more cells at the ends of the range have no complete window.</p>
+    <p><b>The reference cells: as many as the background stays uniform over.</b> More cells give a steadier average, so α can be smaller and the threshold sits closer to the ideal. But the whole window must still lie inside one kind of background.</p>
+  </div>
+  <div class="eq">α = N · (P<sub>fa</sub><sup>−1/N</sup> − 1) &nbsp; (CA-CFAR, N reference cells in total)<small>With perfect knowledge of the noise the threshold would be ln(1/P<sub>fa</sub>) × noise. CFAR only has an estimate that wobbles by about ±1/√N (±25 % for N = 16). A low estimate lets noise through much more easily than a high one keeps it out, so α must be larger than ln(1/P<sub>fa</sub>) to hold the same average P<sub>fa</sub>. The difference is the <b>CFAR loss</b>.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Reference cells N (total)</th><th>α at P<sub>fa</sub> = 10⁻⁶</th><th>Threshold</th><th>Above the ideal 11.4 dB</th><th>What it means</th></tr>
+    <tr><td>8</td><td class="n">37.0</td><td class="n">15.7 dB</td><td class="n">+4.3 dB</td><td>Follows rapid changes, but targets need 4 dB more SNR</td></tr>
+    <tr><td>16</td><td class="n">21.9</td><td class="n">13.4 dB</td><td class="n">+2.0 dB</td><td>Common choice</td></tr>
+    <tr><td>32</td><td class="n">17.3</td><td class="n">12.4 dB</td><td class="n">+1.0 dB</td><td>Common choice</td></tr>
+    <tr><td>64</td><td class="n">15.4</td><td class="n">11.9 dB</td><td class="n">+0.5 dB</td><td>Low loss, but a long window often straddles clutter edges and other targets</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Worked sizing.</b> 1 µs pulse, 1 MHz sampling, so cells are 150 m. Choose a gap of 2 cells and 16 reference cells (8 each side): the window spans 8 + 2 + 1 + 2 + 8 = 21 cells = 3.15 km. That is fine over open sea or clear sky, where the background is steady over several km. Over a coastline or the edge of a rain cell, the background changes within a few hundred metres, so a shorter window (or GO or OS) is better.</p>
+    <p><b>Rule of thumb, putting it together:</b></p>
+    <ol>
+      <li>Gap = the target's spill on each side (1–3 cells; more for big targets or pulse compression).</li>
+      <li>Reference = 8–16 cells each side, so the window is shorter than the typical patch of uniform background.</li>
+      <li>Method: CA for uniform noise, GO where clutter edges dominate, SO where dense targets dominate, OS when both occur.</li>
+      <li>α from the wanted P<sub>fa</sub> and the number of reference cells (the formula above for CA).</li>
+    </ol>
+  </div>
+
+  <h3 id="cfar5">6.5 Try it: step through the row</h3>
+  <div class="col"><p>Now everything above in one demo. Press <b>Next cell</b> to move the CUT one cell along, or <b>Play</b>. Choose a method, then change the gap and the number of reference cells and watch the threshold line rebuild. <b>Reset</b> returns to the start.</p></div>
+  <div class="bench">
+    <canvas id="cSt" width="640" height="330" aria-label="CFAR stepping one cell at a time along a row of range cells"></canvas>
+    <div class="ctrl">
+      <div class="row"><button id="stPrev" type="button">◀ Previous cell</button><button id="stNext" type="button">Next cell ▶</button></div>
+      <div class="row"><button id="stPlay" type="button" aria-pressed="false">Play</button><button id="stReset" type="button">Reset</button></div>
+      <label for="stM">Method</label>
+      <select id="stM"><option value="ca" selected>CA: average of all</option><option value="go">GO: louder half</option><option value="so">SO: quieter half</option><option value="os">OS: 3/4 point of sorted</option><option value="fix">Fixed threshold (no CFAR)</option></select>
+      <label for="stU">Cell under test <b id="stUv"></b></label><input id="stU" type="range" min="0" max="39" step="1" value="0">
+      <label for="stG">Gap cells each side <b id="stGv"></b></label><input id="stG" type="range" min="0" max="3" step="1" value="1">
+      <label for="stN">Reference cells each side <b id="stNv"></b></label><input id="stN" type="range" min="2" max="8" step="1" value="4">
+      <div class="readout" id="stOut"></div>
+    </div>
+    <p class="cap">Top row: the 40 cells. The cells inside the current window show their power, written sideways. <b style="color:var(--accent)">Orange</b> = CUT, <b style="color:var(--trace2)">purple</b> = reference cells, grey = gap cells. Bottom: power as bars (dB). The orange step line is the threshold each cell received when it was the CUT; it builds up as you step. Markers: teal = target detected, red = false alarm. α is held at the CA value for CA, GO and SO so the methods compare fairly; OS uses its own α.</p>
+  </div>
+  <div class="col">
+    <p><b>Things to check, each tied to the explanation above:</b></p>
+    <ul>
+      <li><b>CA, gap 1, reference 4:</b> T1 detected, T2 missed (6.3, cell 20), clutter quiet.</li>
+      <li><b>Set gap to 0:</b> T1 is now missed too: self-masking (6.2).</li>
+      <li><b>SO:</b> T2 is caught, but false alarms appear at the clutter edge (6.3, cell 30), and at cell 2, where the left half has only one cell to average.</li>
+      <li><b>GO:</b> clutter edges are clean, T2 still missed.</li>
+      <li><b>OS:</b> both targets, no false alarms.</li>
+      <li><b>Fixed threshold:</b> both targets, plus a row of red false alarms in the clutter (6.1).</li>
+      <li><b>CA, reference 2 each side:</b> α jumps from 17.3 to 36 and the threshold line becomes jumpy, because it now rests on only 4 cells. Here T2 is detected, because the short window no longer reaches T1's spill. A short window avoids masking but pays a larger α in every cell (6.4).</li>
+      <li><b>CA, reference 8 each side:</b> α falls to 12.4 and the line is smooth, but T2 is missed again: the longer window reaches T1's spill (6.2, "too many reference cells").</li>
+    </ul>
+  </div>
+
+  <h3 id="cfar6">6.6 The same at full size</h3>
+  <div class="col"><p>A real range line has hundreds of cells. This demo has 500, with a longer clutter region, four targets and fresh random noise on demand. The CUT slider shows the window of any one cell; the orange curve is the threshold of every cell.</p></div>
+  <div class="bench">
+    <canvas id="cCf" width="640" height="380" aria-label="Range profile with CFAR threshold and detections"></canvas>
+    <div class="ctrl">
+      <label for="cfT">CFAR type</label>
+      <select id="cfT"><option value="ca" selected>CA: cell averaging</option><option value="go">GO: greatest-of</option><option value="so">SO: smallest-of</option><option value="os">OS: ordered statistic</option><option value="fix">Fixed threshold (no CFAR)</option></select>
+      <label for="cfN">Reference cells N <b id="cfNv"></b></label><input id="cfN" type="range" min="4" max="64" step="2" value="16">
+      <label for="cfG">Gap cells each side <b id="cfGv"></b></label><input id="cfG" type="range" min="0" max="8" step="1" value="2">
+      <label for="cfP">P<sub>fa</sub> = 10^−<b id="cfPv"></b></label><input id="cfP" type="range" min="2" max="8" step="1" value="4">
+      <label for="cfC">Clutter level (cells 300–420) <b id="cfCv"></b></label><input id="cfC" type="range" min="0" max="35" step="1" value="20">
+      <label for="cfS">Target SNR <b id="cfSv"></b></label><input id="cfS" type="range" min="0" max="30" step="0.5" value="16">
+      <label for="cfD">Second target spacing <b id="cfDv"></b></label><input id="cfD" type="range" min="1" max="30" step="1" value="5">
+      <label for="cfU">Cell under test (CUT) <b id="cfUv"></b></label><input id="cfU" type="range" min="0" max="499" step="1" value="120">
+      <button id="cfB" type="button">New noise sample</button>
+      <div class="readout" id="cfOut"></div>
+    </div>
+    <p class="cap">500 range cells, power in dB relative to thermal noise. Orange vertical line = CUT; purple bands = its reference cells; grey bands = its gap cells. Targets: T1 at cell 120, T2 (3 dB weaker) a few cells further, T3 at cell 250, T4 at 360 inside the clutter (its SNR is relative to thermal noise, so strong clutter hides it). Orange curve: threshold. Teal ticks: detections on targets. Red ticks: false alarms. GO and SO use the CA multiplier; OS uses its own exact multiplier.</p>
+  </div>
+
+  <h3>In a real radar</h3>
+  <div class="col"><ul>
+    <li><b>Two dimensions.</b> Pulse-Doppler and FMCW radars produce a range-Doppler map (R4–R6). CFAR then uses a window in both range and Doppler around each cell, with gap cells in both directions.</li>
+    <li><b>Where it runs.</b> In an FPGA, CA is a running sum: add the cell entering the window, subtract the one leaving. OS needs sorting and costs more logic.</li>
+    <li><b>Clutter maps.</b> For fixed ground clutter, some radars keep a map of the average power in each cell over many scans and use that as the background.</li>
+    <li><b>Jamming.</b> A noise jammer raises the background in every cell in its direction. CFAR raises the threshold with it, so the display is not flooded, but every target in that direction now needs more SNR. CFAR protects the display, not the detection range (Part 6).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why is the CUT's own value never included in its background estimate?</summary><p>If it were, a target would raise its own threshold in proportion to its own strength, and strong targets would never cross it. The CUT is the thing being judged, so it cannot also be the judge.</p></details>
+    <details><summary>Your radar uses 15 m range cells and must detect ships up to 120 m long. How many gap cells?</summary><p>A 120 m ship covers 8 cells, so its echo spreads about 4 cells either side of its centre, plus about 1 cell of matched-filter spill: use about 5 gap cells each side. With 1 or 2 the ship masks itself.</p></details>
+    <details><summary>Over a coastline, CA-CFAR gives false alarms just inside the land clutter. Name two fixes.</summary><p>Switch to GO (take the louder half, which is the clutter side), or shorten the window so it does not straddle the edge. A clutter map is a third option for fixed coastlines.</p></details>
+    <details><summary>Two aircraft fly in close formation, 3 cells apart, and the weaker one keeps disappearing. Why, and what helps?</summary><p>Each sits in the other's reference cells and raises its threshold (masking). SO or OS-CFAR ignore the half or the values that hold the strong target. A narrower window also helps, at the cost of a larger α.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="plot">
+  <div class="secno">Step 7</div>
+  <h2>From a detection to a plot and a track</h2>
+  <div class="col"><ul>
+    <li><b>Clustering.</b> One target often crosses the threshold in several neighbouring cells (in range, in Doppler and in adjacent beams). These are merged into one <b>plot</b>, and the strongest or a weighted centre gives its position.</li>
+    <li><b>Confirmation.</b> A single crossing could be a false alarm. Radars use rules such as <b>M-of-N</b>: declare a target only if it is detected in, say, 2 of 3 consecutive looks near the same place. A false alarm at P<sub>fa</sub> = 10⁻⁶ almost never repeats in the same cell, but a real target does. Phased arrays send an immediate confirmation dwell (R2 step 7).</li>
+    <li><b>Tracking.</b> Confirmed plots are joined from frame to frame into tracks with position and velocity, which smooth the noise and predict where to look next.</li>
+  </ul>
+  <p>Confirmation is why the detector can run at a fairly high P<sub>fa</sub>: the tracker filters most false alarms out. The system's true false-target rate is much lower than the detector's.</p></div>
+</section>
+
+<!-- 8 -->
+<section id="comp">
+  <div class="secno">Step 8</div>
+  <h2>Where your components show up in detection</h2>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA noise figure</b> sets the thermal noise floor P<sub>n</sub>. It is the reference for every threshold on this page.</li>
+    <li><b>Spurs</b> from synthesisers, clocks, DC-DC converters or ADC interleaving appear in the same cells every pulse. They are not random, so they cross a threshold every time and look like real targets. A spur must sit well below the noise in the final processed cell, after integration gain, not just below it at the ADC.</li>
+    <li><b>LO phase noise</b> spreads strong clutter into neighbouring Doppler cells, which raises the noise floor around it. CFAR then raises the threshold and small moving targets near clutter are lost (R4, R6).</li>
+    <li><b>ADC clipping and LNA compression</b> on strong clutter change the noise statistics and create intermodulation products: false alarms and a wrong CFAR estimate. AGC that changes gain within one pulse would also confuse CFAR, which is why radars use STC instead (R4).</li>
+    <li><b>Limiter recovery</b> after transmit leaves a decaying "noise" at short range, which is a clutter edge for CFAR.</li>
+    <li><b>I/Q imbalance and DC offset</b> create image and zero-Doppler false targets.</li>
+  </ul></div>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Range cell</dt><dd>One sample time after the pulse, which corresponds to one distance.</dd>
+    <dt>Envelope / power</dt><dd>√(I² + Q²) / I² + Q² of a sample.</dd>
+    <dt>Rayleigh / exponential distribution</dt><dd>The distribution of the noise envelope / noise power.</dd>
+    <dt>Rician distribution</dt><dd>The distribution of the envelope of a steady echo plus noise.</dd>
+    <dt>Threshold</dt><dd>The level above which a cell is declared a detection.</dd>
+    <dt>P<sub>d</sub>, P<sub>fa</sub></dt><dd>Probability of detecting a real target / of noise crossing the threshold.</dd>
+    <dt>False-alarm rate</dt><dd>P<sub>fa</sub> × number of decisions per second.</dd>
+    <dt>Albersheim's equation</dt><dd>Curve fit giving the SNR needed for a P<sub>d</sub>, P<sub>fa</sub> and N, for a steady target.</dd>
+    <dt>Swerling 1, fluctuation loss</dt><dd>A model of a target whose RCS fades from look to look / the extra SNR this costs.</dd>
+    <dt>Clutter</dt><dd>Unwanted echoes from ground, sea, rain or chaff.</dd>
+    <dt>CFAR</dt><dd>Constant false-alarm rate detection: the threshold follows a local estimate of the noise.</dd>
+    <dt>Cell under test, gap (guard) cells, reference cells</dt><dd>The cell being decided / cells skipped next to it so a target cannot raise its own threshold / cells averaged to estimate the background.</dd>
+    <dt>Self-masking, masking</dt><dd>A target's own spill raises its threshold / a nearby target raises another target's threshold.</dd>
+    <dt>CA / GO / SO / OS-CFAR</dt><dd>Cell-averaging / greatest-of / smallest-of / ordered-statistic variants.</dd>
+    <dt>CFAR loss</dt><dd>The extra SNR needed because the noise is estimated, not known.</dd>
+    <dt>Clutter edge</dt><dd>A sudden change in clutter level along range, where CA-CFAR makes errors.</dd>
+    <dt>Plot, M-of-N, track</dt><dd>Merged detections of one target / confirmation over several looks / a target followed over time.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, <a href="R4-pulse-radar.html">R4 · The pulse radar end to end</a>:</b> the timing chain from trigger to range cell, the duplexer and limiter, STC, blind range, second-time-around echoes, coherence and pulse-Doppler.</p>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i>; Richards, <i>Fundamentals of Radar Signal Processing</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>; Albersheim (1981). Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+
+/* random */
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const expo=r=>-Math.log(1-r()); // exponential power, mean 1
+function I0e(x){ const ax=Math.abs(x); if(ax<3.75){ const y=(x/3.75)**2; return Math.exp(-ax)*(1+y*(3.5156229+y*(3.0899424+y*(1.2067492+y*(0.2659732+y*(0.0360768+y*0.0045813)))))); }
+  const y=3.75/ax; return (1/Math.sqrt(ax))*(0.39894228+y*(0.01328592+y*(0.00225319+y*(-0.00157565+y*(0.00916281+y*(-0.02057706+y*(0.02635537+y*(-0.01647633+y*0.00392377)))))))); }
+const rice=(r,A)=>2*r*Math.exp(-((r-A)*(r-A)))*I0e(2*A*r); // noise power mean 1
+function pdOf(snr,thr){ const A=Math.sqrt(snr), t=Math.sqrt(thr); const hi=Math.max(A,t)+8, n=3000, dr=(hi-t)/n; let s=0; for(let i=0;i<n;i++){ const r=t+(i+.5)*dr; s+=rice(r,A)*dr; } return Math.min(1,s); }
+function sci(x){ if(x>=0.01) return x.toFixed(x>=0.1?3:4); if(x<=0) return '0'; const e=Math.floor(Math.log10(x)); return (x/Math.pow(10,e)).toFixed(1)+'×10^'+e; }
+
+/* 0 RANGE CELLS */
+bind(['rcT','rcF','rcR','rcR2'],function(){
+  const tau=+$('rcT').value*1e-6, fs=+$('rcF').value*1e6, R1=+$('rcR').value*1e3, R2=+$('rcR2').value*1e3, Tw=20e-6;
+  $('rcTv').textContent=fmt(tau,'s'); $('rcFv').textContent=fmt(fs,'Hz'); $('rcRv').textContent=fmt(R1,'m'); $('rcR2v').textContent=fmt(R2,'m');
+  const t1=2*R1/c0, t2=2*R2/c0, tri=(t,tc)=>Math.max(0,1-Math.abs(t-tc)/tau), y=t=>tri(t,t1)+0.8*tri(t,t2);
+  const c=$('cRc'), g=ctx(c), x0=46, w=c.width-60, X=t=>x0+w*t/Tw, ty=14, th=110, by=176, bh=90;
+  frame(g,x0,ty,w,th,2); frame(g,x0,by,w,bh,2);
+  g.fillStyle=css('--muted'); g.fillText('receiver output after the pulse',x0+w-240,ty+12); g.fillText('samples handed to the detector: one bar per range cell',x0+4,by+12);
+  const ym=1.9, YT=v=>ty+th-th*v/ym, YB=v=>by+bh-bh*v/ym;
+  g.fillStyle=css('--accent'); g.globalAlpha=.35; g.fillRect(X(0),YT(1.6),Math.max(2,X(tau)-X(0)),ty+th-YT(1.6)); g.globalAlpha=1; g.fillText('TX',X(0)+3,YT(1.6)-3);
+  const N=Math.floor(Tw*fs), dense=N>60;
+  g.strokeStyle=css('--grid'); for(let n=0;n<=N;n++){ const xx=X(n/fs); g.beginPath(); g.moveTo(xx,ty+th-(dense?6:th)); g.lineTo(xx,ty+th); g.stroke(); }
+  g.strokeStyle=css('--trace'); g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=800;i++){ const t=Tw*i/800; const Y=YT(y(t)); i?g.lineTo(X(t),Y):g.moveTo(X(t),Y); } g.stroke(); g.lineWidth=1;
+  const s=[]; for(let n=0;n<N;n++) s.push(y(n/fs));
+  const bw=Math.max(1,w/N*0.7), k1=Math.round(t1*fs), k2=Math.round(t2*fs);
+  for(let n=0;n<N;n++){ const xx=X(n/fs); g.fillStyle=(n===k1||n===k2)?css('--accent'):css('--trace'); g.fillRect(xx-bw/2,YB(s[n]),bw,by+bh-YB(s[n])); }
+  g.fillStyle=css('--muted'); const step=Math.max(1,Math.ceil(N/10));
+  for(let n=0;n<N;n+=step){ g.fillText(n,X(n/fs)-3,by+bh+14); }
+  g.fillText('cell number',x0,by+bh+28>c.height?by+bh-6:by+bh+28); [0,5,10,15,20].forEach(v=>g.fillText(v+' µs',X(v*1e-6)-10,ty+th+14));
+  g.fillText('= '+fmt(c0/(2*fs)*step,'m',0)+' per '+step+' cell'+(step>1?'s':''),x0+w-150,by+bh+28>c.height?by+bh-6:by+bh+28);
+  // separation check
+  let sep='—'; if(k1!==k2){ const a=Math.min(k1,k2), b=Math.max(k1,k2); let dip=Infinity; for(let n=a+1;n<b;n++) dip=Math.min(dip,s[n]); const pk=Math.min(s[a]||0,s[b]||0); sep=(b-a>=2&&dip<0.5*pk)?'yes: a dip between them':'no: they merge'; } else sep='no: same cell';
+  ro($('rcOut'),[['Cell width c/(2f<sub>s</sub>)',fmt(c0/(2*fs),'m',1)],['Range resolution cτ/2',fmt(c0*tau/2,'m',1)],['Cells in 20 µs (3 km)',N],['Echo 1 arrives',fmt(t1,'s',2)+' → cell '+k1],['Echo 2 arrives',fmt(t2,'s',2)+' → cell '+k2],['Seen as two targets?',sep]]);
+});
+
+/* 1 NOISE */
+let nzSeed=7;
+function nzDraw(){
+  const T=+$('nzT').value, S=+$('nzS').value, R=+$('nzR').value, N=+$('nzN').value;
+  $('nzTv').textContent=T.toFixed(1)+' dB'; $('nzSv').textContent=S.toFixed(1)+' dB'; $('nzRv').textContent=R.toFixed(1)+' dB'; $('nzNv').textContent=N;
+  const r=rng(nzSeed), k=lin(R), p=[]; for(let i=0;i<N;i++) p.push(expo(r)*k);
+  const tc=Math.min(300,N-1); { const A=Math.sqrt(lin(S)), ph=2*Math.PI*r(); const ni=Math.sqrt(k/2)*Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r()), nq=Math.sqrt(k/2)*Math.sqrt(-2*Math.log(1-r()))*Math.sin(2*Math.PI*r()); p[tc]=(A*Math.cos(ph)+ni)**2+(A*Math.sin(ph)+nq)**2; }
+  const c=$('cNz'), g=ctx(c);
+  const x0=46,y0=12,w=c.width-60,h=170,lo=-20,hi=30, Y=v=>y0+h*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted'); for(let v=lo;v<=hi;v+=10) g.fillText(v+'',x0-28,Y(v)+4); g.fillText('cell',x0+w-30,y0+h+14);
+  g.strokeStyle=css('--trace'); g.beginPath(); for(let i=0;i<N;i++){ const X=x0+w*i/(N-1), v=db(p[i]+1e-12); i?g.lineTo(X,Y(v)):g.moveTo(X,Y(v)); } g.stroke();
+  g.strokeStyle=css('--muted'); g.setLineDash([3,4]); g.beginPath(); g.moveTo(x0,Y(R)); g.lineTo(x0+w,Y(R)); g.stroke(); g.setLineDash([]); g.fillText('mean noise',x0+4,Y(R)-4);
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(x0,Y(T)); g.lineTo(x0+w,Y(T)); g.stroke(); g.lineWidth=1; g.fillStyle=css('--accent'); g.fillText('threshold',x0+w-70,Y(T)-4);
+  let fa=0; for(let i=0;i<N;i++){ if(p[i]>lin(T)){ const X=x0+w*i/(N-1); if(i===tc){ g.fillStyle=css('--good'); g.fillRect(X-2,y0+2,4,8);} else { fa++; g.fillStyle=css('--bad'); g.fillRect(X-1,y0+2,3,8);} } }
+  // histogram of noise power (linear power / original mean), log y
+  const hx=x0,hy=232,hw=w,hh=120, maxP=20, bins=40, cnt=new Array(bins).fill(0);
+  for(let i=0;i<N;i++){ if(i===tc) continue; const b=Math.floor(p[i]/maxP*bins); if(b<bins) cnt[b]++; }
+  frame(g,hx,hy,hw,hh,4); const LY=v=>hy+hh*(1-(Math.log10(Math.max(v,1e-6))+6)/6);
+  g.fillStyle=css('--muted'); ['1','10⁻²','10⁻⁴','10⁻⁶'].forEach((t,i)=>g.fillText(t,hx-34,hy+hh*i/3+4)); g.fillText('noise power / original mean noise',hx+hw-250,hy+14); [0,5,10,15,20].forEach(v=>g.fillText(v,hx+hw*v/maxP-4,hy+hh+14));
+  g.fillStyle=css('--trace'); g.globalAlpha=.45; const bw=maxP/bins; for(let b=0;b<bins;b++){ if(!cnt[b]) continue; const f=cnt[b]/(N-1)/bw; g.fillRect(hx+hw*b/bins+1,LY(f),hw/bins-2,hy+hh-LY(f)); } g.globalAlpha=1;
+  g.strokeStyle=css('--ink'); g.beginPath(); for(let i=0;i<=200;i++){ const x=maxP*i/200, f=Math.exp(-x/k)/k; const X=hx+hw*x/maxP; i?g.lineTo(X,LY(f)):g.moveTo(X,LY(f)); } g.stroke();
+  const tl=lin(T); if(tl<maxP){ g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(hx+hw*tl/maxP,hy); g.lineTo(hx+hw*tl/maxP,hy+hh); g.stroke(); g.lineWidth=1; }
+  const pfa=Math.exp(-tl/k);
+  ro($('nzOut'),[['Threshold / mean noise',(tl/k).toFixed(2)+' ×'],['Expected P<sub>fa</sub>',sci(pfa)],['Expected false alarms here',(pfa*(N-1)).toFixed(pfa*(N-1)<1?3:1)],['False alarms counted',fa],['Target cell detected?',p[tc]>tl?'yes':'no'],['At 10⁶ decisions/s',(pfa*1e6<1?(pfa*1e6).toFixed(3):Math.round(pfa*1e6).toLocaleString())+' false/s']]);
+}
+bind(['nzT','nzS','nzR','nzN'],nzDraw); $('nzB').addEventListener('click',()=>{nzSeed++; nzDraw();});
+
+/* 3 PD */
+bind(['pdS','pdT','pdK'],function(){
+  const S=+$('pdS').value, T=+$('pdT').value, K=+$('pdK').value; $('pdSv').textContent=S.toFixed(1)+' dB'; $('pdTv').textContent=T.toFixed(1)+' dB'; $('pdKv').textContent='10^'+K;
+  const snr=lin(S), thr=lin(T), A=Math.sqrt(snr), t=Math.sqrt(thr), pfa=Math.exp(-thr), pd=pdOf(snr,thr);
+  const c=$('cPd'), g=ctx(c), x0=46,y0=14,w=c.width-60,h=c.height-50, xm=Math.max(5,A+3,t+1.5), X=r=>x0+w*r/xm;
+  const n=400, f0=[], f1=[]; for(let i=0;i<=n;i++){ const r=xm*i/n; f0.push(2*r*Math.exp(-r*r)); f1.push(rice(r,A)); }
+  const ym=Math.max(...f0,...f1)*1.08, Y=v=>y0+h*(1-v/ym);
+  frame(g,x0,y0,w,h,4); g.fillStyle=css('--muted'); for(let v=0;v<=xm;v+=Math.ceil(xm/8)) g.fillText(v,X(v)-4,y0+h+16); g.fillText('envelope / rms noise',x0+w-150,y0+h+30>c.height?y0+h-6:y0+h+30);
+  function area(f,col,al){ g.fillStyle=col; g.globalAlpha=al; g.beginPath(); g.moveTo(X(Math.max(t,0)),Y(0)); for(let i=0;i<=n;i++){ const r=xm*i/n; if(r>=t) g.lineTo(X(r),Y(f[i])); } g.lineTo(X(xm),Y(0)); g.closePath(); g.fill(); g.globalAlpha=1; }
+  area(f1,css('--trace'),.28); area(f0,css('--muted'),.5);
+  [[f0,css('--muted')],[f1,css('--trace')]].forEach(([f,col])=>{ g.strokeStyle=col; g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=n;i++){ const r=xm*i/n; i?g.lineTo(X(r),Y(f[i])):g.moveTo(X(r),Y(f[i])); } g.stroke(); }); g.lineWidth=1;
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(X(t),y0); g.lineTo(X(t),y0+h); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText('noise only',X(0.75)+4,Y(Math.max(...f0))-6); g.fillStyle=css('--trace'); g.fillText('echo + noise',X(A)-30,Y(Math.max(...f1))-6); g.fillStyle=css('--accent'); g.fillText('threshold',X(t)+4,y0+12);
+  const fps=pfa*Math.pow(10,K);
+  ro($('pdOut'),[['P<sub>fa</sub>',sci(pfa)],['P<sub>d</sub>',(pd*100).toFixed(1)+' %'],['Echo above threshold by',(S-T).toFixed(1)+' dB'],['False alarms per second',fps<1?fps.toFixed(3):Math.round(fps).toLocaleString()],['Mean time between false alarms',fps>0?fmt(1/fps,'s'):'—']]);
+});
+
+/* 4 ALBERSHEIM */
+const alb=(Pd,Pfa,N)=>{ const A=Math.log(0.62/Pfa), B=Math.log(Pd/(1-Pd)); return -5*Math.log10(N)+(6.2+4.54/Math.sqrt(N+0.44))*Math.log10(A+0.12*A*B+1.7*B); };
+const sw1=(Pd,Pfa)=>db(Math.log(Pfa)/Math.log(Pd)-1);
+bind(['alF','alN','alP'],function(){
+  const F=+$('alF').value, Pfa=Math.pow(10,-F), N=Math.max(1,Math.round(Math.pow(10,+$('alN').value))), P=+$('alP').value;
+  $('alFv').textContent=F; $('alNv').textContent=N; $('alPv').textContent=P.toFixed(3);
+  const c=$('cAl'), g=ctx(c), x0=46,y0=12,w=c.width-60,h=c.height-44, lo=-15, hi=40, X=p=>x0+w*(p-0.1)/(0.999-0.1), Y=v=>y0+h*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted'); for(let v=lo+5;v<=hi;v+=10) g.fillText(v+' dB',x0-42,Y(v)+4); [0.1,0.3,0.5,0.7,0.9,0.99].forEach(p=>g.fillText(p,X(p)-8,y0+h+16)); g.fillText('P_d',x0+w-24,y0+h+30>c.height?y0+h-4:y0+h+30);
+  const line=(fn,col)=>{ g.strokeStyle=col; g.lineWidth=1.8; g.beginPath(); let st=false; for(let i=0;i<=300;i++){ const p=0.1+(0.999-0.1)*i/300, v=fn(p); if(!isFinite(v)) continue; st?g.lineTo(X(p),Y(v)):g.moveTo(X(p),Y(v)); st=true; } g.stroke(); g.lineWidth=1; };
+  line(p=>alb(p,Pfa,N),css('--trace')); if(N===1) line(p=>sw1(p,Pfa),css('--trace2'));
+  const v=alb(P,Pfa,N); g.fillStyle=css('--accent'); g.beginPath(); g.arc(X(P),Y(v),5,0,7); g.fill();
+  if(N===1){ const v2=sw1(P,Pfa); g.fillStyle=css('--trace2'); g.beginPath(); g.arc(X(P),Y(v2),5,0,7); g.fill(); }
+  const pairs=[['Steady target, per pulse',v.toFixed(1)+' dB'],['Total (N pulses)',(v+db(N)).toFixed(1)+' dB'],['Threshold, single pulse',db(Math.log(1/Pfa)).toFixed(1)+' dB']];
+  if(N===1){ const v2=sw1(P,Pfa); pairs.splice(1,0,['Fluctuating (Swerling 1)',v2.toFixed(1)+' dB'],['Fluctuation loss',(v2-v).toFixed(1)+' dB']); }
+  ro($('alOut'),pairs);
+});
+
+/* 6a CFAR STEPPER */
+const stData=(function(){ const r=rng(7), v=[]; for(let i=0;i<40;i++){ let p=expo(r); if(i>=28) p*=30; v.push(Math.max(0.1,Math.round(p*10)/10)); } v[14]=30; v[13]=8; v[15]=7.2; v[20]=15; return v; })();
+const stTargets=[14,20], stPfa=1e-4;
+const stThr=new Array(40).fill(null);
+function stCalc(U,n,G,meth){ const L=[],R=[]; for(let j=n;j>=1;j--){ const a=U-G-j; if(a>=0) L.push(a); } for(let j=1;j<=n;j++){ const b=U+G+j; if(b<40) R.push(b); }
+  const idx=L.concat(R), sumOf=a=>a.reduce((s,i)=>s+stData[i],0), sum=sumOf(idx), m=idx.length, a=m*(Math.pow(stPfa,-1/m)-1);
+  let mL=L.length?sumOf(L)/L.length:NaN, mR=R.length?sumOf(R)/R.length:NaN; if(isNaN(mL)) mL=mR; if(isNaN(mR)) mR=mL;
+  const o={L,R,idx,sum,m,avg:sum/m,mL,mR,alpha:a};
+  if(meth==='fix'){ o.bg=1; o.alpha=Math.log(1/stPfa); o.rule='fixed: ignores neighbours'; }
+  else if(meth==='go'){ o.bg=Math.max(mL,mR); o.rule='louder half = max('+mL.toFixed(2)+', '+mR.toFixed(2)+')'; }
+  else if(meth==='so'){ o.bg=Math.min(mL,mR); o.rule='quieter half = min('+mL.toFixed(2)+', '+mR.toFixed(2)+')'; }
+  else if(meth==='os'){ const s=idx.map(i=>stData[i]).sort((x,y)=>x-y), k=Math.max(1,Math.round(0.75*m)); o.bg=s[k-1]; o.alpha=osAlpha(m,k,stPfa); o.rule=k+'th smallest of '+m+' sorted = '+s[k-1]; }
+  else { o.bg=sum/m; o.rule='average of all = '+sum.toFixed(1)+' / '+m; }
+  o.thr=o.alpha*o.bg; return o; }
+let stLastKey='';
+function stDraw(){
+  const U=+$('stU').value, n=+$('stN').value, G=+$('stG').value; $('stUv').textContent=U; $('stNv').textContent=n; $('stGv').textContent=G;
+  const M=$('stM').value, key=n+'|'+G+'|'+M; if(key!==stLastKey){ stThr.fill(null); stLastKey=key; }
+  const k=stCalc(U,n,G,M); for(let i=0;i<=U;i++) if(stThr[i]===null) stThr[i]=stCalc(i,n,G,M).thr;
+  const c=$('cSt'), g=ctx(c), x0=14, cw=(c.width-28)/40, by=12, bh=34;
+  g.font='10px "IBM Plex Mono",monospace';
+  for(let i=0;i<40;i++){ const x=x0+i*cw; let col=null;
+    if(i===U) col=css('--accent'); else if(k.idx.includes(i)) col=css('--trace2'); else if(Math.abs(i-U)<=G) col=css('--muted');
+    if(col){ g.fillStyle=col; g.globalAlpha=i===U?.9:.35; g.fillRect(x+1,by,cw-2,bh); g.globalAlpha=1; }
+    g.strokeStyle=css('--line'); g.strokeRect(x+1,by,cw-2,bh);
+    if(Math.abs(i-U)<=G+n){ g.save(); g.translate(x+cw/2+4,by+bh-4); g.rotate(-Math.PI/2); g.fillStyle=i===U?css('--panel'):css('--ink'); const t=stData[i]>=10?stData[i].toFixed(0):stData[i].toFixed(1); g.fillText(t,0,0); g.restore(); }
+    if(i%5===0){ g.fillStyle=css('--muted'); g.fillText(i,x+3,by+bh+12); } }
+  g.font='12px "IBM Plex Mono",monospace';
+  // labels above window
+  g.fillStyle=css('--muted'); g.fillText('cell no.',x0+40*cw-56,by+bh+12);
+  // bars
+  const py=by+bh+26, ph=c.height-py-22, lo=-10, hi=35, Y=v=>py+ph*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0+30,py,40*cw-30,ph,3); g.fillStyle=css('--muted'); [0,15,30].forEach(v=>g.fillText(v+' dB',x0-12,Y(v)+4));
+  for(let i=0;i<40;i++){ const x=x0+i*cw, v=db(stData[i]); g.fillStyle=i===U?css('--accent'):k.idx.includes(i)?css('--trace2'):css('--trace'); g.globalAlpha=i===U?1:.6; g.fillRect(x+cw*0.2,Y(v),cw*0.6,Y(lo)-Y(v)); g.globalAlpha=1; }
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); let st=false; for(let i=0;i<40;i++){ if(stThr[i]===null){ st=false; continue; } const y=Y(db(stThr[i])), x=x0+i*cw; if(!st){ g.moveTo(x,y); st=true; } else g.lineTo(x,y); g.lineTo(x+cw,y); } g.stroke(); g.lineWidth=1;
+  for(let i=0;i<40;i++){ if(stThr[i]!==null&&stData[i]>stThr[i]){ g.fillStyle=stTargets.includes(i)?css('--good'):css('--bad'); g.fillRect(x0+i*cw+cw/2-3,py+ph+4,6,8); } }
+  g.setLineDash([3,3]); g.strokeStyle=css('--accent'); g.beginPath(); g.moveTo(x0+30,Y(db(k.thr))); g.lineTo(x0+40*cw,Y(db(k.thr))); g.stroke(); g.setLineDash([]);
+  const v=stData[U], hit=v>k.thr;
+  const isT=stTargets.includes(U);
+  ro($('stOut'),[['CUT',U+' (power '+v+')'],['Gap cells',G+' each side, skipped'],['Reference cells',k.L.length+' left + '+k.R.length+' right'],['Left avg L / right avg R',k.mL.toFixed(2)+' / '+k.mR.toFixed(2)],['Background used',M==='fix'?'none':k.rule],['Threshold',k.alpha.toFixed(1)+' × '+(M==='fix'?'1 (noise)':k.bg.toFixed(2))+' = '+k.thr.toFixed(1)],['Compare',v+(hit?' > ':' < ')+k.thr.toFixed(1)],['Decision',hit?(isT?'TARGET ✓':'false alarm ✗'):(isT?'target MISSED ✗':'background')]]);
+}
+bind(['stU','stN','stG','stM'],stDraw);
+/* 6.1 fixed threshold picture */
+function fxDraw(){
+  const c=$('cFx'), g=ctx(c), x0=46, w=c.width-60, cw=w/40, py=14, ph=170, lo=-10, hi=25, Y=v=>py+ph*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0,py,w,ph,5); g.fillStyle=css('--muted'); for(let v=-10;v<=25;v+=10) g.fillText(v+' dB',x0-42,Y(v)+4); for(let i=0;i<40;i+=5) g.fillText(i,x0+i*cw+2,py+ph+14);
+  g.globalAlpha=.10; g.fillRect(x0+29*cw,py,11*cw,ph); g.globalAlpha=1; g.fillText('clutter',x0+31*cw,py+14);
+  for(let i=0;i<40;i++){ const v=db(stData[i]); g.fillStyle=stTargets.includes(i)?css('--accent'):css('--trace'); g.globalAlpha=stTargets.includes(i)?1:.6; g.fillRect(x0+i*cw+cw*.2,Y(v),cw*.6,Y(lo)-Y(v)); g.globalAlpha=1; }
+  g.fillStyle=css('--ink'); g.fillText('T1',x0+14*cw-2,Y(db(30))-5); g.fillText('T2',x0+20*cw-2,Y(db(15))-5);
+  const lines=[[9.2,'fixed for noise: 9.2'],[110,'raised above clutter: 110']];
+  lines.forEach(([t,lab],row)=>{ g.strokeStyle=css('--accent'); g.setLineDash([5,4]); g.beginPath(); g.moveTo(x0,Y(db(t))); g.lineTo(x0+w,Y(db(t))); g.stroke(); g.setLineDash([]); g.fillStyle=css('--accent'); g.fillText(lab,x0+4+row*0,Y(db(t))-4);
+    const yy=py+ph+22+row*14; g.fillStyle=css('--muted'); g.fillText(row?'110:':'9.2:',x0-40,yy+8);
+    for(let i=0;i<40;i++){ const isT=stTargets.includes(i), hit=stData[i]>t, cx=x0+i*cw+cw/2-4; if(hit){ g.fillStyle=isT?css('--good'):css('--bad'); g.fillRect(cx,yy,8,8); } else if(isT){ g.strokeStyle=css('--good'); g.strokeRect(cx,yy,8,8); } } });
+}
+redraws.push(fxDraw); fxDraw();
+$('stNext').addEventListener('click',()=>{ $('stU').value=Math.min(39,+$('stU').value+1); stDraw(); });
+$('stPrev').addEventListener('click',()=>{ $('stU').value=Math.max(0,+$('stU').value-1); stDraw(); });
+let stTimer=null; $('stPlay').addEventListener('click',()=>{ const b=$('stPlay'); if(stTimer){ clearInterval(stTimer); stTimer=null; b.setAttribute('aria-pressed','false'); b.textContent='Play'; return; }
+  if(+$('stU').value>=39){ $('stU').value=0; stThr.fill(null); } b.setAttribute('aria-pressed','true'); b.textContent='Pause';
+  stTimer=setInterval(()=>{ const u=+$('stU').value; if(u>=39){ clearInterval(stTimer); stTimer=null; b.setAttribute('aria-pressed','false'); b.textContent='Play'; return; } $('stU').value=u+1; stDraw(); },reduce?900:450); });
+
+$('stReset').addEventListener('click',()=>{ if(stTimer){ clearInterval(stTimer); stTimer=null; $('stPlay').setAttribute('aria-pressed','false'); $('stPlay').textContent='Play'; }
+  $('stU').value=0; $('stN').value=4; $('stG').value=1; $('stM').value='ca'; stThr.fill(null); stLastKey=''; stDraw(); });
+
+/* 6 CFAR */
+let cfSeed=11;
+function osAlpha(N,k,Pfa){ let lo=0,hi=1e6; for(let it=0;it<200;it++){ const a=(lo+hi)/2; let p=1; for(let i=0;i<k;i++) p*=(N-i)/(N-i+a); if(p>Pfa) lo=a; else hi=a; } return (lo+hi)/2; }
+function cfDraw(){
+  const typ=$('cfT').value, N=+$('cfN').value, G=+$('cfG').value, F=+$('cfP').value, Cl=+$('cfC').value, S=+$('cfS').value, D=+$('cfD').value, Pfa=Math.pow(10,-F);
+  $('cfNv').textContent=N+' ('+N/2+' each side)'; $('cfGv').textContent=G; $('cfPv').textContent=F; $('cfCv').textContent=Cl+' dB'; $('cfSv').textContent=S.toFixed(1)+' dB'; $('cfDv').textContent=D+' cells';
+  const M=500, r=rng(cfSeed), base=[]; for(let i=0;i<M;i++){ const cl=(i>=300&&i<420)?lin(Cl):0; base.push(expo(r)*(1+cl)); }
+  const tg=[[120,S],[120+D,S-3],[250,S],[360,S]], p=base.slice();
+  tg.forEach(([i,s])=>{ const A=Math.sqrt(lin(s)), ph=2*Math.PI*r(); const nI=Math.sqrt(base[i])*Math.cos(2*Math.PI*r()), nQ=Math.sqrt(base[i])*Math.sin(2*Math.PI*r()); p[i]=(A*Math.cos(ph)+nI)**2+(A*Math.sin(ph)+nQ)**2; });
+  const h2=N/2, aCA=N*(Math.pow(Pfa,-1/N)-1), kOS=Math.max(1,Math.round(0.75*N)), aOS=osAlpha(N,kOS,Pfa), aSide=h2*(Math.pow(Pfa,-1/h2)-1);
+  const thr=new Array(M).fill(NaN);
+  for(let i=0;i<M;i++){
+    if(typ==='fix'){ thr[i]=Math.log(1/Pfa); continue; }
+    const L=[],R=[]; for(let j=1;j<=h2;j++){ const a=i-G-j, b=i+G+j; if(a>=0) L.push(p[a]); if(b<M) R.push(p[b]); }
+    const mean=v=>v.reduce((x,y)=>x+y,0)/v.length;
+    if(!L.length&&!R.length) continue;
+    if(typ==='ca'){ const all=L.concat(R); thr[i]=aCA*mean(all); }
+    else if(typ==='go'||typ==='so'){ const mL=L.length?mean(L):mean(R), mR=R.length?mean(R):mean(L); thr[i]=aCA*(typ==='go'?Math.max(mL,mR):Math.min(mL,mR)); }
+    else { const all=L.concat(R).sort((x,y)=>x-y); const kk=Math.min(all.length,Math.max(1,Math.round(0.75*all.length))); thr[i]=(all.length===N?aOS:osAlpha(all.length,kk,Pfa))*all[kk-1]; }
+  }
+  const c=$('cCf'), g=ctx(c), x0=46,y0=14,w=c.width-60,h=c.height-48, lo=-15, hi=Math.max(40,Cl+15), X=i=>x0+w*i/(M-1), Y=v=>y0+h*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo);
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted'); for(let v=lo+5;v<=hi;v+=10) g.fillText(v+'',x0-28,Y(v)+4); [0,100,200,300,400,500].forEach(v=>g.fillText(v,X(Math.min(v,M-1))-8,y0+h+16)); g.fillText('range cell',x0+w-70,y0+h+30>c.height?y0+h-4:y0+h+30);
+  g.fillStyle=css('--muted'); g.globalAlpha=.10; g.fillRect(X(300),y0,X(420)-X(300),h); g.globalAlpha=1; g.fillText('clutter',X(340),y0+14);
+  g.strokeStyle=css('--trace'); g.beginPath(); for(let i=0;i<M;i++){ const v=db(p[i]+1e-12); i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)); } g.stroke();
+  g.strokeStyle=css('--accent'); g.lineWidth=1.8; g.beginPath(); let st=false; for(let i=0;i<M;i++){ if(!isFinite(thr[i])){ st=false; continue; } const v=db(thr[i]); st?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)); st=true; } g.stroke(); g.lineWidth=1;
+  const tset=new Set(tg.map(t=>t[0])); let fa=0; const hit=[];
+  for(let i=0;i<M;i++){ if(isFinite(thr[i])&&p[i]>thr[i]){ if(tset.has(i)){ hit.push(i); g.fillStyle=css('--good'); g.fillRect(X(i)-2,y0+h-12,4,12); } else { fa++; g.fillStyle=css('--bad'); g.fillRect(X(i)-1,y0+h-10,3,10); } } }
+  g.fillStyle=css('--ink'); tg.forEach(([i],k)=>g.fillText(['T1','T2','T3','T4'][k],X(i)-6+(k===1?10:0),Y(db(p[i]))-6));
+  const mul=typ==='fix'?Math.log(1/Pfa):typ==='os'?aOS:aCA;
+  // CUT window
+  const U=+$('cfU').value; $('cfUv').textContent='cell '+U;
+  const band=(a,b,col,al)=>{ a=Math.max(0,a); b=Math.min(M-1,b); if(b<a) return; g.fillStyle=col; g.globalAlpha=al; g.fillRect(X(a)-1,y0,Math.max(2,X(b)-X(a)+2),h); g.globalAlpha=1; };
+  if(typ!=='fix'){ band(U-G-h2,U-G-1,css('--trace2'),.22); band(U+G+1,U+G+h2,css('--trace2'),.22); band(U-G,U-1,css('--muted'),.25); band(U+1,U+G,css('--muted'),.25); }
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(X(U),y0); g.lineTo(X(U),y0+h); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--accent'); g.fillText('CUT',X(U)+4,y0+26);
+  const cutDb=db(p[U]+1e-12), thU=thr[U], est=thU/mul, det=isFinite(thU)&&p[U]>thU;
+  ro($('cfOut'),[['<b>CUT</b> cell '+U+' power',cutDb.toFixed(1)+' dB'],['Noise estimate from window',typ==='fix'?'none (fixed)':db(est).toFixed(1)+' dB'],['CUT threshold',isFinite(thU)?db(thU).toFixed(1)+' dB':'—'],['Decision at CUT',det?(tset.has(U)?'detection (real target)':'detection (false alarm)'):'no detection'],['Multiplier α',mul.toFixed(1)+' = '+db(mul).toFixed(1)+' dB'],['Ideal (noise known)',db(Math.log(1/Pfa)).toFixed(1)+' dB'],['Threshold penalty',typ==='os'?'n/a: α scales one sorted cell, not the mean':(db(mul)-db(Math.log(1/Pfa))).toFixed(1)+' dB'],['Targets detected',tg.map(([i],k)=>['T1','T2','T3','T4'][k]+(hit.includes(i)?' ✓':' ✗')).join(' ')],['False alarms',fa],['Expected in plain noise',(M*Pfa).toFixed(M*Pfa<1?3:1)]]);
+}
+['cfT','cfN','cfG','cfP','cfC','cfS','cfD','cfU'].forEach(i=>$(i).addEventListener('input',cfDraw)); redraws.push(cfDraw); cfDraw();
+$('cfB').addEventListener('click',()=>{cfSeed++; cfDraw();});
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

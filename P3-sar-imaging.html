@@ -1,0 +1,1094 @@
+<title>SAR Imaging</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as R1. Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Part 3 of 6 · See · RF Systems for Component Engineers</div>
+  <h1>How SAR makes a picture of the ground</h1>
+  <p class="lede">This page follows one job from start to finish: take a picture of one patch of land, detailed enough to see a car, at any hour and in any weather. It first shows why a camera cannot always do it and why an ordinary radar's picture is a blur. Then it shows how flying a small antenna past the land builds a "synthetic" antenna 300 m long. Every equation is solved with the same numbers, and the last steps show how the recorded amplitudes and phases are turned into the image, pixel by pixel. It builds on R1–R6: range resolution from bandwidth (R6), phase that turns with distance (R4 Step 6) and the matched filter (R6 Step 1).</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#job">0 The job</a><a href="#opt">1 Why not a camera</a><a href="#ap">2 What an aperture is</a><a href="#rar">3 A real-aperture radar</a><a href="#sa">4 The synthetic aperture</a><a href="#eq">5 The equations, solved</a><a href="#raw">6 Recording amplitude and phase</a><a href="#img">7 Forming the image</a><a href="#prf">8 The PRF window</a><a href="#rcm">9 Range migration</a><a href="#modes">10 Modes</a><a href="#look">11 What the image looks like</a><a href="#nesz">12 Sensitivity</a><a href="#comp">13 Your components</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="job">
+  <div class="secno">Step 0</div>
+  <h2>The job: a picture of one patch of land</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>We want a picture of the patch of land below, taken from an aircraft 10 km away. It has to be sharp enough to see the shape of each house, and to show the two parked cars as two cars, not one blob. We also want it at night, through monsoon cloud and through smoke. Every step on this page uses this same patch and the same numbers.</div>
+  <div class="bench">
+    <canvas id="cPatch" width="640" height="350" aria-label="Map of the patch of land: fields, road, two cars, houses, water tank, pond and trees"></canvas>
+    <p class="cap">The patch: 400 m along the flight track × 240 m across it. The aircraft flies left to right along the top edge, 10 km away, looking sideways at the patch. Its distance to each point is the "range". The two cars are parked 8 m apart (centre to centre); each is 4.6 m × 1.9 m.</p>
+  </div>
+  <div class="term"><h4>Resolution</h4><p>The <b>resolution</b> of an image is the smallest distance at which two points still appear as two separate points. Closer than that, they merge into one blob. An image has a resolution in each direction. Here the two directions are <b>along the flight track</b> (called <b>azimuth</b>) and <b>across it</b>, away from the aircraft (called <b>range</b>).</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>What we want to see in the patch</th><th>Its size</th><th>Resolution needed</th></tr>
+    <tr><td>That there is a village at all</td><td class="n">≈ 100 m</td><td class="n">≈ 30 m</td></tr>
+    <tr><td>Each house as a separate building</td><td class="n">10–16 m, 5–8 m gaps</td><td class="n">≈ 3 m</td></tr>
+    <tr><td>A car as a car (length and width)</td><td class="n">4.6 m × 1.9 m</td><td class="n">≈ 1 m</td></tr>
+    <tr class="sum"><td>Target for this page</td><td></td><td class="n">≈ 1 m in range, 0.5 m in azimuth</td></tr>
+  </table></div>
+  <div class="col"><p>The fixed numbers used on every step: the aircraft is at slant range R = 10 km and flies at V = 100 m/s. The radar runs at 10 GHz, so λ = 3 cm. Its antenna is D = 1 m long, and the signal bandwidth is B = 150 MHz. The beam meets the ground at 45°.</p></div>
+</section>
+
+<!-- 1 -->
+<section id="opt">
+  <div class="secno">Step 1</div>
+  <h2>First try: why not just use a camera?</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>A camera from 10 km away would show the cars beautifully on a clear day. But it needs sunlight, and it is blinded by cloud, smoke and haze. A radar brings its own illumination, and its 3 cm waves go straight through cloud. The catch, which the rest of the page solves, is that a radar antenna of a sensible size gives a picture hundreds of metres blurry.</div>
+  <div class="col">
+    <p><b>How a camera makes its picture.</b> The lens collects light from every point of the ground and focuses each point to a small spot on the sensor. The spot cannot be smaller than diffraction allows. The finest angle a lens of diameter D can separate is</p>
+  </div>
+  <div class="eq">θ<sub>min</sub> = 1.22 · λ / D &nbsp;&nbsp;&nbsp; detail on the ground = R · θ<sub>min</sub></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked, from R = 10 km</th><th>Wavelength λ</th><th>Aperture D</th><th>1.22 λ / D</th><th>Detail on the ground</th></tr>
+    <tr><td>Camera (visible light)</td><td class="n">0.55 µm</td><td class="n">10 cm lens</td><td class="n">6.7 µrad</td><td class="n">6.7 cm</td></tr>
+    <tr><td>Thermal camera (heat, 8–12 µm)</td><td class="n">10 µm</td><td class="n">10 cm lens</td><td class="n">122 µrad</td><td class="n">1.2 m</td></tr>
+    <tr class="sum"><td>Radar, used the same way</td><td class="n">3 cm</td><td class="n">1 m antenna</td><td class="n">36.6 mrad</td><td class="n">366 m</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Where the camera fails.</b></p>
+    <p>1. <b>It is passive.</b> It only sees light that the sun (or a lamp) puts on the ground. At night a visible camera sees nothing. A thermal camera sees the heat that objects give off themselves, so it works at night, but its longer wavelength makes it 18 times coarser (1.2 m instead of 6.7 cm).</p>
+    <p>2. <b>Cloud.</b> Cloud is made of water droplets about 5–20 µm across. That is the same size as, or larger than, the wavelength of light (0.5 µm) and heat (10 µm). Droplets that size scatter light very strongly, so a 1 km thick cloud blocks both cameras completely. A 3 cm radar wave is about 3 000 times larger than a droplet. Scattering by small particles falls as (size/λ)<sup>4</sup>, so the radar wave barely notices: a whole cloud costs about 0.1 dB at 10 GHz.</p>
+    <p>3. <b>Smoke, haze and dust.</b> These particles are 0.1–1 µm, so they scatter visible light strongly, heat less, and radar not at all.</p>
+    <p>4. <b>Rain.</b> Raindrops (1–5 mm) are closer to the radar wavelength. At 10 GHz, rain of 10 mm/h costs about 0.3 dB/km, so 5 km of rain costs about 3 dB there and back. The image gets dimmer but is still there. Lower-frequency radars (C band, L band) lose less.</p>
+    <p>5. <b>No distance.</b> A camera measures only direction. A radar measures distance directly, and very precisely, from the echo's delay.</p>
+    <p>So a radar has the right properties: it brings its own illumination, ignores weather and measures distance. Used the way a camera is used, though, the same diffraction formula with λ = 3 cm and a 1 m antenna gives 366 m. That would put the whole village in one pixel. That is the problem the rest of this page solves.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cOpt" width="640" height="340" aria-label="The patch as seen by a camera, a thermal camera and a radar under different conditions"></canvas>
+    <div class="ctrl">
+      <label for="opS">Sensor</label><select id="opS"><option value="0" selected>Camera (visible light)</option><option value="1">Thermal camera (8–12 µm)</option><option value="2">Radar, 10 GHz (with the SAR detail of Steps 4–7)</option></select>
+      <label for="opC">Conditions</label><select id="opC"><option value="0" selected>Clear day</option><option value="1">Night</option><option value="2">Cloud between aircraft and ground</option><option value="3">Smoke or haze</option><option value="4">Heavy rain (10 mm/h over 5 km)</option></select>
+      <div class="readout" id="opOut"></div>
+    </div>
+    <p class="cap">Try it: the patch from Step 0 as each sensor would see it. Things to check: (1) camera, clear day: every detail, 6.7 cm resolution; (2) camera, cloud: nothing; the thermal camera sees nothing either; (3) camera, night: dark; the thermal camera still works, though at 1.2 m it is coarser; (4) radar: the same picture in all five conditions (rain makes it about 3 dB dimmer). The radar picture shown here is the one SAR produces at 0.5 m; Step 3 shows what the radar gives without SAR. The radar shows different things from a camera: bright corners of houses, dark smooth road and water, grainy fields (Step 11 explains why).</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="ap">
+  <div class="secno">Step 2</div>
+  <h2>What an aperture is, and why its size sets the detail</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>The aperture is the opening that collects or sends the wave: the lens of a camera, the dish or the antenna of a radar. A bigger opening makes a narrower beam, and a narrower beam sees finer detail. What matters is not its size in metres but its size in wavelengths. A 10 cm lens is 182 000 wavelengths of light across. A 1 m radar antenna is only 33 wavelengths of 3 cm.</div>
+  <div class="know"><h4>You already know</h4>From R2: a beam's width is about λ/D radians, and its footprint at range R is R·λ/D wide. This step shows where that comes from, using the camera and the radar side by side.</div>
+  <div class="term"><h4>Aperture</h4><p>The <b>aperture</b> is the area of a sensor that actually collects (or radiates) the wave: the clear diameter of a lens or mirror, the diameter of a dish, or the length of an antenna or array. Its size <b>D</b> is measured in the direction in which you want detail. For detail along the flight track, D is the antenna's length along the track.</p></div>
+  <div class="diag"><svg viewBox="0 0 760 250" role="img" aria-label="A wave leaving an aperture of width D at angle theta: the path difference between the edges is D sin theta">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <line x1="120" y1="40" x2="120" y2="210" stroke="var(--ink)" stroke-width="3"/>
+      <text x="40" y="128" fill="var(--ink)">aperture D</text>
+      <g fill="var(--trace)"><circle cx="120" cy="50" r="4"/><circle cx="120" cy="90" r="4"/><circle cx="120" cy="125" r="4"/><circle cx="120" cy="160" r="4"/><circle cx="120" cy="200" r="4"/></g>
+      <line x1="120" y1="50" x2="620" y2="50" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="560" y="44" fill="var(--muted)">θ = 0: all paths equal</text>
+      <line x1="120" y1="50" x2="520" y2="0" stroke="var(--accent)"/>
+      <line x1="120" y1="200" x2="600" y2="140" stroke="var(--accent)"/>
+      <line x1="120" y1="50" x2="139" y2="198" stroke="var(--trace2)" stroke-dasharray="3 3"/>
+      <line x1="120" y1="200" x2="139" y2="198" stroke="var(--trace2)" stroke-width="3"/>
+      <text x="150" y="215" fill="var(--trace2)">extra path = D·sin θ</text>
+      <text x="420" y="110" fill="var(--accent)">direction θ</text>
+      <text x="250" y="240" fill="var(--ink)">When D·sin θ = λ, the top half cancels the bottom half: the first null.</text>
+    </g></svg></div>
+  <div class="col">
+    <p><b>Why a bigger aperture gives a narrower beam.</b> Think of the aperture as many small sources side by side (the dots). Straight ahead (θ = 0) every path to the far point is the same length, so all contributions add. At an angle θ, the far edge's path is longer than the near edge's by D·sin θ. When that extra path is exactly one wavelength, each point in the upper half has a partner in the lower half whose path is half a wavelength longer. The partners cancel in pairs and nothing arrives: the first null of the beam. So the beam's half-width to the first null is sin θ = λ/D. The −3 dB width of a uniformly lit aperture is 0.886 λ/D, about λ/D.</p>
+    <p>A circular lens gives 1.22 λ/D instead of λ/D (the Bessel-function pattern of the Antenna fundamentals page). A radar's beam footprint at range R is therefore about R·λ/D wide. A radar also uses its antenna twice, once to transmit and once to receive, which narrows the effective beam a little more; Step 4 uses that.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Aperture in wavelengths</th><th>D</th><th>λ</th><th>D / λ</th><th>Beam ≈ λ/D</th><th>Footprint at 10 km</th></tr>
+    <tr><td>Camera</td><td class="n">10 cm</td><td class="n">0.55 µm</td><td class="n">182 000</td><td class="n">5.5 µrad</td><td class="n">5.5 cm</td></tr>
+    <tr><td>Thermal camera</td><td class="n">10 cm</td><td class="n">10 µm</td><td class="n">10 000</td><td class="n">100 µrad</td><td class="n">1.0 m</td></tr>
+    <tr><td>Our radar antenna</td><td class="n">1 m</td><td class="n">3 cm</td><td class="n">33</td><td class="n">30 mrad (1.7°)</td><td class="n">300 m</td></tr>
+    <tr class="sum"><td>Radar antenna as fine as the camera</td><td class="n">5.5 km</td><td class="n">3 cm</td><td class="n">182 000</td><td class="n">5.5 µrad</td><td class="n">5.5 cm</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cAp" width="640" height="330" aria-label="Beam pattern of an aperture and its footprint on the patch"></canvas>
+    <div class="ctrl">
+      <label for="apL">Wave</label><select id="apL"><option value="0.55e-6">Visible light, 0.55 µm</option><option value="10e-6">Heat (thermal), 10 µm</option><option value="0.03" selected>Radar X band, 3 cm (10 GHz)</option><option value="0.23">Radar L band, 23 cm (1.3 GHz)</option></select>
+      <label for="apD">Aperture D <b id="apDv"></b></label><input id="apD" type="range" min="0" max="100" step="1" value="40">
+      <label for="apR">Range R <b id="apRv"></b></label><input id="apR" type="range" min="1" max="100" step="1" value="10">
+      <div class="readout" id="apOut"></div>
+    </div>
+    <p class="cap">Try it: top, the beam's power against angle (±10°, uniformly lit aperture). Bottom, the beam's footprint on the patch at range R. Things to check: (1) default, 3 cm with a 1 m antenna: a 1.7° beam, footprint 300 m, most of the patch; (2) visible light with the same 1 m: the beam collapses to a spike, footprint 5.5 mm; (3) radar 3 cm: the aperture must be about 300 m for a 1 m footprint at 10 km; (4) L band needs 7.7 times more aperture than X band for the same footprint.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="rar">
+  <div class="secno">Step 3</div>
+  <h2>A real-aperture radar: sharp in range, a blur along the track</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>A radar on the aircraft looks sideways at the patch. It can tell distance very precisely from the echo delay, so the picture is sharp across the track: 1 m. Along the track it can only say "somewhere in my beam", and the beam is 300 m wide on the ground. Every house, and both cars, becomes a 300 m long smear. This is a "real-aperture" radar: its detail comes only from its real, physical antenna.</div>
+  <div class="diag"><svg viewBox="0 0 760 260" role="img" aria-label="SAR side-looking geometry">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <line x1="20" y1="220" x2="740" y2="220" stroke="var(--muted)"/>
+      <path d="M70 40 l22 -8 l0 16 z" fill="var(--accent)"/><text x="40" y="26" fill="var(--ink)">platform, speed V →</text>
+      <line x1="80" y1="40" x2="80" y2="220" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="86" y="140" fill="var(--muted)">height H</text>
+      <path d="M80 40 L360 220 L640 220 Z" fill="var(--trace)" fill-opacity=".14" stroke="var(--trace)"/>
+      <line x1="80" y1="40" x2="500" y2="220" stroke="var(--trace)" stroke-dasharray="2 3"/><text x="300" y="120" fill="var(--trace)">slant range R</text>
+      <text x="360" y="240" fill="var(--ink)">near range</text><text x="590" y="240" fill="var(--ink)">far range</text>
+      <line x1="360" y1="250" x2="640" y2="250" stroke="var(--ink)"/><text x="470" y="258" fill="var(--muted)">swath</text>
+      <path d="M80 70 A 40 40 0 0 0 108 58" fill="none" stroke="var(--ink)"/><text x="112" y="76" fill="var(--ink)">look angle</text>
+      <path d="M470 220 A 30 30 0 0 0 485 200" fill="none" stroke="var(--ink)"/><text x="490" y="205" fill="var(--ink)">incidence angle θᵢ</text>
+      <text x="200" y="250" fill="var(--muted)">ground range →</text><text x="560" y="40" fill="var(--muted)">azimuth = along track (into the page)</text>
+    </g></svg></div>
+  <div class="col">
+    <p><b>Why sideways.</b> The radar looks to one side, not down. Looking straight down, a point to the left and a point to the right at the same distance would return at the same time and could not be told apart. Looking to one side, every distance corresponds to one strip of ground parallel to the track.</p>
+  </div>
+  <div class="term"><h4>Definitions</h4><p><b>Azimuth</b>: the direction along the flight track. <b>Range</b>: the direction across it, away from the track.<br><b>Slant range R</b>: the straight-line distance from radar to ground point, which is what the radar measures. <b>Ground range</b>: the distance along the ground.<br><b>Look angle</b>: the angle of the beam from vertical at the radar. <b>Incidence angle θ<sub>i</sub></b>: the angle between the beam and the vertical at the ground. For an aircraft it is about the same as the look angle; for a satellite it is larger, because the Earth curves.<br><b>Swath</b>: the width of ground imaged, between near range and far range.<br><b>Pixel</b>: one range cell × one azimuth cell of the final image.</p></div>
+  <div class="bench">
+    <canvas id="cGeo" width="640" height="300" aria-label="Side view of the SAR geometry"></canvas>
+    <div class="ctrl">
+      <label for="geH">Platform height H <b id="geHv"></b></label><input id="geH" type="range" min="0.5" max="15" step="0.5" value="5">
+      <label for="geA">Look angle (beam centre) <b id="geAv"></b></label><input id="geA" type="range" min="15" max="75" step="1" value="45">
+      <label for="geE">Beamwidth in elevation <b id="geEv"></b></label><input id="geE" type="range" min="4" max="40" step="1" value="20">
+      <label for="geB">Bandwidth B <b id="geBv"></b></label><input id="geB" type="range" min="10" max="600" step="10" value="150">
+      <div class="readout" id="geOut"></div>
+    </div>
+    <p class="cap">Try it: side view (flat Earth), radar on the left, looking to the right. The orange strip on the ground is the swath. Things to check: (1) default: incidence from 35° to 55°, and with 150 MHz the ground resolution is 1.7 m at near range and 1.2 m at far range; (2) look more steeply (smaller look angle): the swath moves in and the near-range ground resolution gets much coarser; (3) raise the height: the same angles cover a wider swath.</p>
+  </div>
+  <h3>3a. Across the track (range): sharp, from timing</h3>
+  <div class="col">
+    <p>The radar sends a pulse and times the echoes. An echo from a point 1 m further away arrives 6.7 ns later (2 × 1 m / c). With pulse compression (R6 Step 1) or a dechirped FMCW signal (R5), two echoes can be separated when they are c/2B apart in slant range. The image is wanted in ground range, though. On flat ground one slant step δr covers a longer stretch of ground, δr / sin θ<sub>i</sub>, and the steeper the beam looks down, the longer that stretch.</p>
+  </div>
+  <div class="diag"><svg viewBox="0 0 760 150" role="img" aria-label="Echoes from a near and a far point arriving at different times">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <text x="20" y="20" fill="var(--ink)">one pulse, echoes arriving afterwards:</text>
+      <line x1="40" y1="100" x2="720" y2="100" stroke="var(--muted)"/><text x="620" y="120" fill="var(--muted)">time = 2R/c →</text>
+      <rect x="40" y="60" width="8" height="40" fill="var(--accent)"/><text x="26" y="138" fill="var(--accent)">pulse out</text>
+      <rect x="250" y="50" width="8" height="50" fill="var(--trace2)"/><text x="200" y="138" fill="var(--trace2)">near point (R₁)</text>
+      <rect x="290" y="62" width="8" height="38" fill="var(--trace2)"/><text x="300" y="60" fill="var(--muted)">1 m further = 6.7 ns later</text>
+      <rect x="520" y="70" width="8" height="30" fill="var(--trace2)"/><text x="480" y="138" fill="var(--trace2)">far point (R₂)</text>
+    </g></svg></div>
+  <div class="eq">δr<sub>slant</sub> = c / 2B &nbsp;&nbsp; δr<sub>ground</sub> = δr<sub>slant</sub> / sin θ<sub>i</sub></div>
+  <div class="tw"><table class="t">
+    <tr><th>B = 150 MHz (δr<sub>slant</sub> = 3×10⁸ / (2 × 150×10⁶) = 1 m)</th><th>θ<sub>i</sub> = 30°</th><th>θ<sub>i</sub> = 45° (our patch)</th><th>θ<sub>i</sub> = 60°</th></tr>
+    <tr><td>Ground-range resolution</td><td class="n">2.0 m</td><td class="n">1.41 m</td><td class="n">1.15 m</td></tr>
+  </table></div>
+  <div class="col"><p>That is why SAR never looks straight down: as θ<sub>i</sub> → 0 the ground resolution becomes infinitely coarse. Across the track, the patch is already fine: 1.41 m, enough to see a car's length.</p></div>
+  <h3>3b. Along the track (azimuth): a blur as wide as the beam</h3>
+  <div class="col">
+    <p>Along the track there is no timing to help. Two points at the same range, one at the front of the beam and one at the back, send their echoes back at the same moment. The radar can only say that a point is "somewhere inside my beam right now". As the aircraft flies, it paints each echo at the position of the beam's centre, so a single point shows up in every pulse while the beam passes over it: a streak as long as the footprint.</p>
+  </div>
+  <div class="eq">azimuth resolution (real aperture) = R · λ / D</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: our patch, λ = 3 cm, D = 1 m</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Azimuth resolution at R = 10 km</td><td>10 000 × 0.03 / 1</td><td class="n">300 m</td></tr>
+    <tr><td>The two cars, 8 m apart</td><td>8 m ≪ 300 m</td><td class="n">one blob</td></tr>
+    <tr><td>The village, about 110 m long</td><td>110 m &lt; 300 m</td><td class="n">one smear</td></tr>
+    <tr><td>The same radar on a satellite at 850 km</td><td>850 000 × 0.03 / 1</td><td class="n">25.5 km</td></tr>
+    <tr class="sum"><td>Antenna needed for 0.5 m at 10 km</td><td>D = R·λ / 0.5 = 10 000 × 0.03 / 0.5</td><td class="n">600 m long</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>The obvious fixes fail.</b></p>
+    <p>• <b>A bigger antenna</b>: 600 m cannot be carried by an aircraft, let alone a satellite.</p>
+    <p>• <b>Fly closer</b>: at 1 km range the blur is still 30 m, and the aircraft is now within reach of the ground and sees only a narrow strip.</p>
+    <p>• <b>A higher frequency</b>: at 100 GHz (3 mm) the blur at 10 km is still 30 m, and the air and rain absorb several dB per km.</p>
+    <p>A real aperture alone cannot do the job.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cRar" width="640" height="360" aria-label="The patch as imaged by a real-aperture radar"></canvas>
+    <div class="ctrl">
+      <label for="raV">Show</label><select id="raV"><option value="0" selected>Real-aperture radar image</option><option value="1">The scene (daylight photo)</option></select>
+      <label for="raD">Antenna length D <b id="raDv"></b></label><input id="raD" type="range" min="0" max="100" step="1" value="0">
+      <label for="raR">Range R <b id="raRv"></b></label><input id="raR" type="range" min="1" max="50" step="1" value="10">
+      <label for="raB">Bandwidth B <b id="raBv"></b></label><input id="raB" type="range" min="10" max="600" step="10" value="150">
+      <div class="readout" id="raOut"></div>
+    </div>
+    <p class="cap">Try it: the patch as a real-aperture radar images it (45° incidence, 10 GHz). The antenna slider runs from 1 m to 600 m on a log scale. Things to check: (1) default, D = 1 m: the picture is sharp from top to bottom (range, 1.41 m), but every house, the tank and both cars are smeared 300 m along the track; (2) drag D up: the smear shrinks as R·λ/D, and the two cars only separate when D is above about 90 m (smear shorter than their 3.4 m gap); (3) 600 m gives 0.5 m, a clear picture, from an antenna nobody can fly; (4) drop the bandwidth to 10 MHz: now range is blurred too (21 m).</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="sa">
+  <div class="secno">Step 4</div>
+  <h2>The synthetic aperture: building a 300 m antenna by flying a 1 m one</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4><p style="margin:0 0 6px">An antenna does not have to exist all at once. A 300 m array would be 300 m of small antennas, each catching the echo, with their signals added together with the right phases. SAR uses one small antenna and moves it along those 300 m, catching the echo at each position in turn. It records every echo's strength and phase, and adds them together afterwards in a computer, as if all the positions had been there at once.</p><p style="margin:0">Imagine walking past a lamp post, clapping at every step and recording the echo. As you approach, the echo comes back slightly sooner each clap; after you pass, slightly later. That pattern is unique to that post's position. SAR finds each point's pattern in the recording.</p></div>
+  <div class="diag"><svg viewBox="0 0 760 230" role="img" aria-label="A real 300 m array compared with one 1 m antenna recorded at many positions">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <text x="20" y="20" fill="var(--ink)">A real 300 m array: all elements at once</text>
+      <g fill="var(--trace)"><rect x="60" y="30" width="600" height="10" opacity=".25"/></g>
+      <g fill="var(--trace)"><circle cx="70" cy="35" r="3"/><circle cx="130" cy="35" r="3"/><circle cx="190" cy="35" r="3"/><circle cx="250" cy="35" r="3"/><circle cx="310" cy="35" r="3"/><circle cx="370" cy="35" r="3"/><circle cx="430" cy="35" r="3"/><circle cx="490" cy="35" r="3"/><circle cx="550" cy="35" r="3"/><circle cx="610" cy="35" r="3"/><circle cx="650" cy="35" r="3"/></g>
+      <text x="20" y="100" fill="var(--ink)">SAR: one 1 m antenna, recorded at each position in turn</text>
+      <line x1="60" y1="120" x2="660" y2="120" stroke="var(--muted)" stroke-dasharray="4 4"/>
+      <g fill="var(--accent)"><path d="M70 120 l14 -5 l0 10 z"/></g>
+      <g fill="none" stroke="var(--accent)"><circle cx="130" cy="120" r="3"/><circle cx="190" cy="120" r="3"/><circle cx="250" cy="120" r="3"/><circle cx="310" cy="120" r="3"/><circle cx="370" cy="120" r="3"/><circle cx="430" cy="120" r="3"/><circle cx="490" cy="120" r="3"/><circle cx="550" cy="120" r="3"/><circle cx="610" cy="120" r="3"/><circle cx="650" cy="120" r="3"/></g>
+      <text x="100" y="145" fill="var(--muted)">pulse 1 → record amplitude and phase · pulse 2 → record · … · pulse 1200 → record</text>
+      <line x1="60" y1="160" x2="660" y2="160" stroke="var(--ink)"/><line x1="60" y1="154" x2="60" y2="166" stroke="var(--ink)"/><line x1="660" y1="154" x2="660" y2="166" stroke="var(--ink)"/>
+      <text x="250" y="180" fill="var(--ink)">synthetic aperture L = 300 m, flown in 3 s</text>
+      <rect x="350" y="200" width="10" height="10" fill="var(--trace2)"/><text x="368" y="210" fill="var(--trace2)">one point of the patch, 10 km away</text>
+    </g></svg></div>
+  <div class="col">
+    <p><b>How long the synthetic antenna can be.</b> A point of the patch can only contribute while it is inside the real beam. The beam's footprint is R·λ/D = 300 m long (Step 3), so the aircraft flies 300 m while any one point is lit. That flown distance is the longest synthetic aperture available for that point: L = R·λ/D = 300 m, flown in 3 s at 100 m/s.</p>
+    <p><b>Why the resolution comes out as D/2.</b> A real array of length L gives a beam λ/L wide when it transmits from one place and receives on all elements: the path differences across it are one-way. In SAR, each position transmits <i>and</i> receives its own pulse, so each position's path difference counts twice, there and back. The synthetic beam is therefore half as wide, λ/(2L), and the azimuth resolution is</p>
+  </div>
+  <div class="eq">δa = R · λ / (2L) = R · λ / (2 · R·λ/D) = D / 2</div>
+  <div class="col">
+    <p>For our patch that is 10 000 × 0.03 / 600 = 0.5 m. R and λ have cancelled. A point further away stays in the beam longer, so its synthetic aperture is longer by the same factor. A <i>shorter</i> real antenna gives a <i>finer</i> picture, because its wider beam lights each point for longer (Step 8 shows the price: a higher pulse rate).</p>
+    <p><b>Three conditions for it to work.</b> (1) The ground stays still while the aircraft passes. (2) The radar's oscillator keeps its phase steady for the whole 3 s, so that phases recorded at the start and at the end can be compared (R4 Step 6). (3) The position of the antenna at every pulse is known to about 2 mm, a small fraction of the 3 cm wavelength (Step 6).</p>
+  </div>
+  <h3>See it: the aircraft flying past a village</h3>
+  <div class="bench">
+    <canvas id="cFly" width="640" height="470" aria-label="Aircraft flying past a village; ordinary radar picture and SAR picture building up"></canvas>
+    <div class="ctrl">
+      <div class="row"><button id="flP" type="button" aria-pressed="false">Play</button><button id="flR" type="button">Reset</button></div>
+      <label for="flX">Aircraft position <b id="flXv"></b></label><input id="flX" type="range" min="0" max="1" step="0.002" value="0">
+      <label for="flB">Beam footprint R·λ/D <b id="flBv"></b></label><input id="flB" type="range" min="40" max="200" step="10" value="120">
+      <label for="flS">Play speed <b id="flSv"></b></label><input id="flS" type="range" min="1" max="5" step="1" value="2">
+      <div class="readout" id="flOut"></div>
+    </div>
+    <p class="cap">Try it: press Play. Top: the village from above, the aircraft and its beam footprint. Middle: a real-aperture radar places each echo at the beam's position, so every house becomes a streak as long as the footprint, and nearby houses merge (Step 3). Bottom: SAR keeps every echo and, for each spot, adds up the echoes whose phase history matches that spot (Steps 5–7). A house becomes a sharp square only once the beam has passed completely over it: the full synthetic aperture is needed. (Village about 400 m long; the footprint is shortened so the effect is visible.)</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="eq">
+  <div class="secno">Step 5</div>
+  <h2>The equations, solved for our patch</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Here is the whole design of the radar for our patch, one equation at a time, each solved with the same numbers. Read down the table: every line uses the ones above it.</div>
+  <div class="tw"><table class="t">
+    <tr><th>#</th><th>Quantity</th><th>Equation</th><th>Solved for the patch</th><th>Result</th></tr>
+    <tr><td>1</td><td>Wavelength</td><td>λ = c / f</td><td>3×10⁸ / 10×10⁹</td><td class="n">3 cm</td></tr>
+    <tr><td>2</td><td>Slant-range resolution</td><td>δr = c / 2B</td><td>3×10⁸ / (2 × 150×10⁶)</td><td class="n">1.0 m</td></tr>
+    <tr><td>3</td><td>Ground-range resolution</td><td>δr / sin θ<sub>i</sub></td><td>1.0 / sin 45°</td><td class="n">1.41 m</td></tr>
+    <tr><td>4</td><td>Real beam footprint</td><td>R·λ / D</td><td>10 000 × 0.03 / 1</td><td class="n">300 m</td></tr>
+    <tr><td>5</td><td>Synthetic aperture length</td><td>L = R·λ / D</td><td>same as line 4</td><td class="n">300 m</td></tr>
+    <tr><td>6</td><td>Time to fly it</td><td>T = L / V</td><td>300 / 100</td><td class="n">3.0 s</td></tr>
+    <tr><td>7</td><td>Azimuth resolution</td><td>δa = R·λ / 2L = D / 2</td><td>10 000 × 0.03 / 600</td><td class="n">0.5 m</td></tr>
+    <tr><td>8</td><td>Extra range at the aperture's ends</td><td>ΔR = √(R² + x²) − R ≈ x² / 2R</td><td>150² / 20 000</td><td class="n">1.125 m</td></tr>
+    <tr><td>9</td><td>Phase turned between centre and end</td><td>2ΔR / λ cycles</td><td>2 × 1.125 / 0.03</td><td class="n">75 cycles (27 000°)</td></tr>
+    <tr><td>10</td><td>Doppler at the aperture's ends</td><td>f<sub>D</sub> = 2V·x / (λR)</td><td>2 × 100 × 150 / (0.03 × 10 000)</td><td class="n">±100 Hz</td></tr>
+    <tr><td>11</td><td>Doppler bandwidth</td><td>B<sub>d</sub> = 2V / D</td><td>2 × 100 / 1</td><td class="n">200 Hz</td></tr>
+    <tr><td>12</td><td>Lowest pulse rate</td><td>PRF ≥ B<sub>d</sub> (one pulse per D/2 flown)</td><td>200 Hz → a pulse every 0.5 m</td><td class="n">we use 400 Hz</td></tr>
+    <tr><td>13</td><td>Pulses per aperture</td><td>N = T · PRF</td><td>3.0 × 400</td><td class="n">1 200</td></tr>
+    <tr><td>14</td><td>Gain from adding them in phase</td><td>10 log N</td><td>10 log 1 200</td><td class="n">30.8 dB</td></tr>
+    <tr><td>15</td><td>Range migration across the aperture</td><td>L² / 8R</td><td>300² / 80 000</td><td class="n">1.125 m, more than one 1 m cell</td></tr>
+    <tr><td>16</td><td>Resolution without phase correction</td><td>√(λR) / 2</td><td>√300 / 2</td><td class="n">8.7 m</td></tr>
+    <tr class="sum"><td>17</td><td>Pixels in the patch image</td><td>(400 / 0.5) × (240 / 1.41)</td><td>800 × 170</td><td class="n">136 000, each a sum of 1 200 echoes</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Lines 8–11 are the heart of SAR. Follow one point of the patch as the aircraft flies past, in four steps:</p>
+    <p><b>5a. How long the point is seen</b> (lines 4–6). The point stays in the 300 m footprint while the aircraft flies 300 m, which takes 3 s.</p>
+    <p><b>5b. How the range to the point changes</b> (line 8). At closest approach the range is R<sub>0</sub> = 10 km. When the aircraft is a distance x along the track from that point, the range is √(R<sub>0</sub>² + x²) ≈ R<sub>0</sub> + x²/(2R<sub>0</sub>). It shrinks while approaching and grows after passing: a parabola. At the edge of the 300 m aperture (x = 150 m) the extra range is 150² / 20 000 = 1.125 m.</p>
+    <p><b>5c. What that does to the phase</b> (lines 9–11). From R4 Step 6: every λ/2 change of range turns the echo phase by 360°. 1.125 m of extra range is 2 × 1.125 / 0.03 = 75 cycles. So the echo phase follows the same parabola: it turns fast at the start, slows to zero at closest approach, then turns fast the other way. The rate of turning is the Doppler shift, so the Doppler frequency sweeps <i>linearly</i> from +100 Hz to −100 Hz as the point passes. That is a chirp, like the range chirp of R6 but in azimuth, with bandwidth B<sub>d</sub> = 2V/D = 200 Hz.</p>
+    <p><b>5d. Compress it</b> (line 7). A matched filter multiplies the recording by the conjugate of the expected phase history and sums. That collapses the azimuth chirp, just as it did in range: the point's echoes across all 300 m add in phase only at the point's own position. The time resolution is 1/B<sub>d</sub> = 5 ms, and the aircraft moves V/B<sub>d</sub> = 100 × 0.005 = 0.5 m in that time: δa = V / B<sub>d</sub> = V / (2V/D) = D/2, the same answer as Step 4.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cTv" width="640" height="360" aria-label="Distance, phase and Doppler of a point as the aircraft moves along the synthetic aperture"></canvas>
+    <div class="ctrl">
+      <label for="tvX">Aircraft position along the aperture <b id="tvXv"></b></label><input id="tvX" type="range" min="-150" max="150" step="0.5" value="-150">
+      <label for="tvB">Second point B, further along by <b id="tvBv"></b></label><input id="tvB" type="range" min="0" max="5" step="0.1" value="0.5">
+      <div class="readout" id="tvOut"></div>
+    </div>
+    <p class="cap">Try it: our numbers, 10 GHz, D = 1 m, R₀ = 10 km, V = 100 m/s, so the aperture is 300 m. Drag the aircraft along. The dial shows the echo phase of point A at this position (5c); the curve below shows how many turns the phase has made (5b: the parabola, in units of phase). Things to check: (1) at −150 m the Doppler is +100 Hz, at 0 it is zero, at +150 m it is −100 Hz: a linear sweep of 200 Hz = 2V/D (line 11); (2) point B, 0.5 m further along, gives almost the same curve, but at the ends of the aperture its phase differs from A's by about 180°: that difference is what lets the matched filter separate them (5d).</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>The same equations, two platforms</th><th>Airborne (our patch): 10 GHz, D = 1 m, R = 10 km, V = 100 m/s</th><th>Spaceborne: 5.4 GHz, D = 10 m, R = 850 km, V = 7.5 km/s</th></tr>
+    <tr><td>Real-aperture footprint R·λ/D</td><td class="n">300 m</td><td class="n">4.8 km</td></tr>
+    <tr><td>Synthetic aperture length</td><td class="n">300 m</td><td class="n">4.8 km</td></tr>
+    <tr><td>Time in the beam</td><td class="n">3.0 s</td><td class="n">0.63 s</td></tr>
+    <tr><td>Doppler bandwidth 2V/D</td><td class="n">200 Hz</td><td class="n">1 500 Hz</td></tr>
+    <tr class="sum"><td>Azimuth resolution D/2</td><td class="n">0.5 m</td><td class="n">5 m</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>Why the phase correction matters: "unfocused" SAR</b> (line 16). If the recorded echoes are simply added without removing the parabolic phase, they only add in phase over the short stretch where the parabola stays within about a quarter wavelength of round trip: L ≈ √(λR) = √300 = 17 m. The resolution is then about √(λR)/2 = 8.7 m instead of 0.5 m. Focusing is what makes SAR work. It requires the phase of every echo to be right to a small fraction of a cycle over the whole aperture: the coherence requirement of R4 Step 6, held for seconds instead of milliseconds.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cAz" width="640" height="420" aria-label="Range history, phase history and compressed azimuth response of one point"></canvas>
+    <div class="ctrl">
+      <label for="azD">Antenna length D <b id="azDv"></b></label><input id="azD" type="range" min="0.5" max="4" step="0.1" value="1">
+      <label for="azR">Range R<sub>0</sub> <b id="azRv"></b></label><input id="azR" type="range" min="1" max="20" step="0.5" value="10">
+      <label for="azF">Frequency <b id="azFv"></b></label><input id="azF" type="range" min="3" max="20" step="0.5" value="10">
+      <label for="azV">Platform speed V <b id="azVv"></b></label><input id="azV" type="range" min="50" max="300" step="10" value="100">
+      <div class="readout" id="azOut"></div>
+    </div>
+    <p class="cap">Try it: top, the extra range to the point as the platform flies along the synthetic aperture (the parabola, 5b). Middle, the echo phase history: the azimuth chirp (5c; only the first cycles can be resolved at screen scale, so only the centre part is drawn). Bottom, the compressed azimuth response, focused (orange) and unfocused (grey). Things to check: (1) default: focused resolution about 0.45 m, unfocused about 8 m. D/2 is 0.5 m; the demo weights the aperture evenly, which gives 0.89 × D/2, while a real antenna's beam shape tapers it back to about D/2; (2) double the range: the aperture doubles, the focused resolution stays 0.5 m, and the unfocused one gets worse; (3) halve D: the focused resolution halves; (4) change V: the resolution is unchanged, and only the time and Doppler bandwidth change.</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="raw">
+  <div class="secno">Step 6</div>
+  <h2>Recording amplitude and phase at every position: the raw data</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>At every pulse, the radar writes down one line of numbers: for every distance, how strong the echo was (amplitude) and where in its cycle the wave was (phase). After 3 s there are 1 200 lines, stacked into a table. That table does not look like the patch at all. Each point of the ground has been spread into a long curved stripe across hundreds of lines, with its phase winding along it. The picture is hidden in those phases, and Step 7 gets it back out.</div>
+  <div class="col">
+    <p><b>What happens at each pulse</b> (the chain of R1 and R4):</p>
+    <p>1. The exciter makes a 150 MHz chirp; the PA sends it out through the antenna.</p>
+    <p>2. The echo comes back and the LNA amplifies it. It is mixed down with the <i>same</i> oscillator that made the transmitted pulse. This is what makes the radar coherent: the phase of the echo is measured against the phase of what was sent.</p>
+    <p>3. Two mixers, 90° apart, give I and Q (in-phase and quadrature). The ADC samples both. Each sample pair I + jQ is one complex number: amplitude √(I² + Q²) and phase atan2(Q, I).</p>
+    <p>4. Range compression (the matched filter of R6) turns the chirp into a sharp 1 m peak at each echo's range. The result is one line of complex numbers, one per range cell.</p>
+  </div>
+  <div class="term"><h4>What each recorded number means</h4><p><b>Amplitude</b>: how strongly the ground in that range cell reflected the pulse. A house corner is strong; smooth water is weak.<br><b>Phase</b>: φ = −4π·R/λ + ψ, wrapped to 0–360°. R is the exact distance to the reflector, and ψ is the reflector's own phase shift, which stays the same from pulse to pulse. Because 4π/λ is so large, the phase records the distance to a tiny fraction of the wavelength. One full turn of phase is λ/2 = 1.5 cm of distance.<br><b>Raw data matrix</b>: one row per pulse (position along the track), one column per range cell. Each entry holds both numbers.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: the water tank's echo, R<sub>0</sub> = 10 km</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Phase at closest approach (x = 0)</td><td>2R<sub>0</sub>/λ = 666 666.67 cycles → keep the fraction 0.67</td><td class="n">240°</td></tr>
+    <tr><td>Aircraft 50 m further along</td><td>ΔR = 50² / 20 000 = 0.125 m → 2ΔR/λ = 8.33 more cycles</td><td class="n">240° − 120° = 120°</td></tr>
+    <tr><td>Aircraft 150 m along (aperture end)</td><td>ΔR = 1.125 m → 75 more cycles exactly</td><td class="n">240° again</td></tr>
+    <tr><td>Phase step between two pulses at the aperture end (PRF 400 Hz)</td><td>360° × f<sub>D</sub> / PRF = 360 × 100 / 400</td><td class="n">90°</td></tr>
+    <tr class="sum"><td>Position error that spoils the phase by 45°</td><td>45° of 360° is 1/8 turn = λ/16 of round-trip path</td><td class="n">1.9 mm</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The last line is why SAR aircraft carry GPS and inertial sensors that track the antenna to millimetres. Whatever they miss, autofocus software estimates from the data afterwards.</p>
+    <p><b>What the stored table looks like.</b> One point on the ground is lit for 1 200 pulses. In each of those rows it appears at its range at that moment, √(R<sub>0</sub>² + x²): the same parabola as Step 5, now as a curved stripe through the table. Along the stripe the phase winds: slowly in the middle, faster towards the ends, up to the 90° per pulse found above. Every other point makes its own stripe, shifted along the track by its position and across by its range. The stripes overlap, so the raw data is a jumble.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cRaw" width="640" height="460" aria-label="The aircraft flying past five reflectors and the raw data matrix being recorded row by row"></canvas>
+    <div class="ctrl">
+      <div class="row"><button id="rwP" type="button" aria-pressed="false">Play</button><button id="rwR" type="button">Reset</button></div>
+      <label for="rwX">Pulses recorded <b id="rwXv"></b></label><input id="rwX" type="range" min="0" max="1" step="0.001" value="0.5">
+      <label for="rwD">Antenna length D</label><select id="rwD"><option value="0.5">0.5 m (aperture 600 m)</option><option value="1" selected>1 m (aperture 300 m)</option><option value="2">2 m (aperture 150 m)</option></select>
+      <label for="rwM">Show each number as</label><select id="rwM"><option value="0">Amplitude only</option><option value="1" selected>Phase as colour, amplitude as brightness</option><option value="2">I (the real part)</option></select>
+      <label for="rwZ">Rows</label><select id="rwZ"><option value="0" selected>Whole flight (skips pulses)</option><option value="1">Middle 75 m, every pulse</option></select>
+      <div class="readout" id="rwOut"></div>
+    </div>
+    <p class="cap">Try it: a 40 m × 32 m corner of the patch with five reflectors: a house corner, a fence post, the water tank and two lamp posts 1.5 m apart. Top: the aircraft and its beam footprint. Left: the raw data table, one row per pulse (PRF 400 Hz, one pulse every 0.25 m), one column per 0.25 m of range. Right: the row just recorded, with each reflector's phase on a dial. Press Play to record. Things to check: (1) each reflector becomes a stripe about 1 200 pulses long (300 m of flight), not a dot; (2) with D = 0.5 m the stripes are 2 400 pulses long and bend by 4.5 m of range (L²/8R), more than four 1 m range cells, and the phase steps by 180° per pulse at their ends, the most 400 Hz can follow (Step 8); (3) "Middle 75 m, every pulse": the colour winds slowly at a stripe's centre and faster away from it, the phase history of Step 5. In "Whole flight" the display skips pulses, so the colours there are aliased; (4) the two lamp posts' stripes overlap almost completely.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="img">
+  <div class="secno">Step 7</div>
+  <h2>Forming the image: adding 1 200 echoes for every pixel</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>To find out how bright one pixel of the image should be, the computer asks: "If there were a reflector exactly here, where in the table would its echoes be, and what phase would each one have?" It reads those 1 200 entries, turns each one back by the phase it should have, and adds them up. If there really is a reflector there, all 1 200 arrows point the same way and add up to a big number. If there is nothing there, the arrows point every which way and nearly cancel. Doing this for every pixel draws the picture.</div>
+  <div class="col">
+    <p><b>The method (time-domain back-projection), for one pixel at along-track position x<sub>0</sub> and range r<sub>0</sub>:</b></p>
+    <p>1. For every pulse p, with the antenna at x<sub>p</sub>, compute the distance the pixel would have: R<sub>p</sub> = √(r<sub>0</sub>² + (x<sub>p</sub> − x<sub>0</sub>)²).</p>
+    <p>2. In row p of the table, read the complex sample at range R<sub>p</sub>, interpolating between cells.</p>
+    <p>3. Rotate that sample by +4π·R<sub>p</sub>/λ. That removes the phase a reflector at this pixel would have had. A real reflector at this pixel now points the same way in every row.</p>
+    <p>4. Add the rotated samples from all pulses that lit the pixel. The magnitude of the sum is the pixel's brightness.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: three pixels, N = 1 200 pulses, each sample of strength 1</th><th>What the 1 200 rotated samples do</th><th>|sum|</th><th>In dB, relative to the reflector</th></tr>
+    <tr><td>Pixel exactly on the water tank</td><td>All point the same way</td><td class="n">1 200</td><td class="n">0 dB</td></tr>
+    <tr><td>Pixel 0.5 m further along the track</td><td>The phase error grows from 0° at the centre to ±180° at the aperture ends, so the arrows curl round and cancel</td><td class="n">≈ 0 (the first null)</td><td class="n">far below (≈ −15 dB with a real beam's taper)</td></tr>
+    <tr><td>Empty pixel (noise and distant clutter only)</td><td>Random directions: a random walk</td><td class="n">≈ √1 200 = 35</td><td class="n">−31 dB (= line 14 of Step 5)</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The middle row is the resolution of Step 4 seen from the inside. 0.5 m is exactly the shift that makes the phase error reach ±180° at the two ends of the aperture, so the sum curls into a closed loop and cancels.</p>
+    <p><b>Compare the methods on the same data.</b> The demo below can form the image three ways. <b>Amplitude only</b> adds the strengths and ignores the phase: nothing can cancel, so every reflector is smeared over its whole 300 m stripe, just like the real-aperture radar. <b>Unfocused</b> ignores the parabola: it adds the samples in a fixed range cell with a fixed phase, over only the central √(λR) = 17 m of flight, because beyond that the samples would start to cancel. A 17 m aperture gives 8.7 m. <b>Focused</b> follows the curve and undoes each phase: 0.5 m.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Method</th><th>Uses phase?</th><th>Follows the range curve?</th><th>Azimuth resolution (our patch)</th><th>Work for the 136 000-pixel patch</th></tr>
+    <tr><td>Amplitude only (like a real aperture)</td><td>No</td><td>Yes</td><td class="n">300 m</td><td class="n">—</td></tr>
+    <tr><td>Unfocused SAR</td><td>Fixed only</td><td>No</td><td class="n">8.7 m</td><td class="n">small</td></tr>
+    <tr><td>Focused, back-projection</td><td>Yes, exact</td><td>Yes, exact</td><td class="n">0.5 m</td><td class="n">136 000 × 1 200 = 163 million multiply-adds</td></tr>
+    <tr class="sum"><td>Focused, range-Doppler or ω-k (with FFTs)</td><td>Yes</td><td>Yes, corrected in bulk</td><td class="n">0.5 m</td><td class="n">≈ 10 × less here; thousands of times less for a satellite scene</td></tr>
+  </table></div>
+  <div class="col">
+    <p>The FFT methods do the same job as back-projection: range compression, then range migration correction (Step 9), then the azimuth matched filter of Step 5d done as a multiplication in the Doppler domain. They assume a straight flight path; back-projection handles any path, which is why it is used for drones and wobbly flights.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cBp" width="640" height="440" aria-label="The image being formed pulse by pulse, the arrows summed for one pixel, and a cut through the image"></canvas>
+    <div class="ctrl">
+      <div class="row"><button id="bpP" type="button" aria-pressed="false">Play</button><button id="bpR" type="button">Reset</button></div>
+      <label for="bpN">Pulses added so far <b id="bpNv"></b></label><input id="bpN" type="range" min="0" max="1" step="0.001" value="1">
+      <label for="bpM">Method</label><select id="bpM"><option value="2" selected>Focused: follow the curve, undo each phase</option><option value="1">Unfocused: fixed range cell, fixed phase</option><option value="0">Amplitude only: ignore phase</option></select>
+      <label for="bpX">Pixel along track <b id="bpXv"></b></label><input id="bpX" type="range" min="-20" max="20" step="0.25" value="6">
+      <label for="bpY">Pixel range <b id="bpYv"></b></label><input id="bpY" type="range" min="-16" max="15.75" step="0.25" value="-6">
+      <div class="readout" id="bpOut"></div>
+    </div>
+    <p class="cap">Try it: the same five reflectors and the same raw data as Step 6 (D = 1 m). Left: the image, built up as each pulse's samples are added to every pixel it lit (brightness in dB, 30 dB range). Right: for the selected pixel (the orange cross; click the image to move it), the rotated samples drawn tip to tail, and their sum (the orange arrow). Below: a cut along the track through the selected pixel's range. Things to check: (1) on the tank (default): the arrows form a straight line, and the sum is 100 % of their total length; (2) move the pixel 0.5 m along: the arrows curl round and the sum drops to about 17 % (−15 dB; the beam's taper keeps the loop from closing completely); (3) an empty pixel, for example 0 m, 0 m: a random walk, and the sum is only about 3 % of the arrows' total length, 1/√1 200; (4) press Play: the points start as long smears and sharpen as more of the aperture is added; (5) the lamp posts 1.5 m apart are separated when focused, and merge with the other two methods; (6) the tank's measured width is about 0.5 m focused and about 8 m unfocused (√(λR)/2 = 8.7 m).</p>
+  </div>
+  <h3>7b. The whole patch: real aperture against synthetic aperture</h3>
+  <div class="bench">
+    <canvas id="cFin" width="640" height="660" aria-label="The patch imaged by a real-aperture radar and by SAR with the same antenna"></canvas>
+    <div class="ctrl">
+      <label for="fiD">Antenna length D (both images) <b id="fiDv"></b></label><input id="fiD" type="range" min="0.5" max="4" step="0.25" value="1">
+      <label for="fiR">Range R <b id="fiRv"></b></label><input id="fiR" type="range" min="2" max="50" step="1" value="10">
+      <div class="readout" id="fiOut"></div>
+    </div>
+    <p class="cap">Try it: the same antenna, the same 150 MHz, the same patch. Top: the real-aperture radar of Step 3. Bottom: SAR, after the processing of Steps 6–7. Things to check: (1) default: 300 m against 0.5 m from the same 1 m antenna; (2) move the range out to 50 km: the real-aperture smear grows to 1.5 km, while the SAR image does not change; (3) make the antenna bigger: the real-aperture image gets slightly better, the SAR image slightly worse (D/2).</p>
+  </div>
+  <div class="col"><p>Everything after this point is about the price of that picture: the pulse rate (Step 8), the curved stripes (Step 9), how much area can be covered (Step 10), what the image really looks like (Step 11) and how much transmit power it needs (Step 12).</p></div>
+</section>
+
+
+<!-- 4 -->
+<section id="prf">
+  <div class="secno">Step 8</div>
+  <h2>The PRF window: why SAR cannot have everything</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>Two rules squeeze the pulse rate from both sides. <b>Fast enough</b>: the aircraft must not move more than half the antenna length between pulses, or the fingerprints are sampled too coarsely. <b>Slow enough</b>: all echoes from the near edge to the far edge of the strip must come back before the next pulse goes out. For an aircraft there is plenty of room between the two. For a fast satellite the gap is narrow.</div>
+  <div class="col">
+    <p><b>The lower limit: sample the azimuth chirp.</b> The pulses are the samples of the azimuth chirp. Its bandwidth is 2V/D, so (sampling I and Q) the PRF must exceed 2V/D, usually by 10–30 %. Otherwise the chirp aliases and ghost copies of bright targets appear along the track (azimuth ambiguities). In distance terms: the platform must move less than D/2 between pulses.</p>
+    <p><b>The upper limit: the whole swath must fit in one PRI.</b> Echoes from near range to far range must all come back before the next pulse, or far-range echoes are mistaken for near-range ones (R4 Step 5, range ambiguity). So PRI &gt; 2·(far − near slant range)/c.</p>
+  </div>
+  <div class="eq">2V/D &lt; PRF &lt; c / (2·ΔR<sub>slant</sub>)</div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked</th><th>Airborne: V = 100 m/s, D = 1 m, swath 10 km slant</th><th>Spaceborne: V = 7.5 km/s, D = 10 m, swath 100 km ground (57 km slant)</th></tr>
+    <tr><td>Minimum PRF (×1.2)</td><td class="n">240 Hz</td><td class="n">1 800 Hz</td></tr>
+    <tr><td>Maximum PRF</td><td class="n">15 kHz</td><td class="n">2.6 kHz</td></tr>
+    <tr class="sum"><td>Window</td><td class="n">wide open</td><td class="n">narrow: 1.8–2.6 kHz</td></tr>
+  </table></div>
+  <div class="col">
+    <p><b>The trade this creates.</b> For a fast satellite, finer azimuth resolution (smaller D) raises the minimum PRF, and a wider swath lowers the maximum. Push either too far and the window closes. This is the reason spaceborne SAR antennas are large (10–15 m long) and why the modes of Step 10 exist: there is no free lunch between resolution and swath. (A further constraint, not drawn: the radar cannot receive while transmitting, nor during the strong echo from directly below, the nadir return; real PRF choice avoids those times too.)</p>
+  </div>
+  <div class="bench">
+    <canvas id="cPrf" width="640" height="200" aria-label="Allowed PRF window"></canvas>
+    <div class="ctrl">
+      <label for="prP">Platform</label><select id="prP"><option value="air" selected>Airborne, 100 m/s</option><option value="sat">Satellite, 7.5 km/s</option></select>
+      <label for="prD">Antenna length D <b id="prDv"></b></label><input id="prD" type="range" min="0.5" max="15" step="0.5" value="1">
+      <label for="prS">Swath (slant extent) <b id="prSv"></b></label><input id="prS" type="range" min="1" max="150" step="1" value="10">
+      <div class="readout" id="prOut"></div>
+    </div>
+    <p class="cap">Try it: the PRF axis (log scale). Red on the left: too slow to sample the azimuth chirp. Red on the right: too fast for the swath. Green: allowed. Things to check: (1) airborne, D = 1 m, 10 km swath: a wide window; (2) switch to satellite with D = 10 m and 57 km: a narrow window; (3) on the satellite, shrink D to 5 m for 2.5 m resolution: the window closes unless the swath is cut.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="rcm">
+  <div class="secno">Step 9</div>
+  <h2>Range migration: when the parabola crosses range cells</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>While the aircraft flies past a point, its distance to that point changes a little. If it changes by more than one range cell, the point's echo slides from one cell to the next during the recording, and the processor must follow it. It is like tracking a car that changes lanes: you must look in the new lane, not the old one.</div>
+  <div class="col">
+    <p>Step 5b showed the range to a point changes by x²/(2R) along the aperture. At the aperture edges, x = L/2, so the total change is L²/(8R). If that is more than about one range cell, the point's echo walks across several range cells during the aperture, and the azimuth compression must follow it from cell to cell. This is <b>range cell migration</b>, and the processing step that straightens it is <b>range cell migration correction (RCMC)</b>.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th></th><th>Aperture L</th><th>Migration L²/8R</th><th>Range cell</th><th>Needs RCMC?</th></tr>
+    <tr><td>Airborne example</td><td class="n">300 m</td><td class="n">1.1 m</td><td class="n">1 m</td><td>yes, about 1 cell</td></tr>
+    <tr><td>Spaceborne example</td><td class="n">4.8 km</td><td class="n">3.3 m</td><td class="n">5 m</td><td>small, but satellite squint and Earth rotation add more</td></tr>
+    <tr><td>Fine airborne, 10 cm cells</td><td class="n">1.2 km (D = 0.25 m)</td><td class="n">18 m</td><td class="n">0.1 m</td><td>yes: 180 cells</td></tr>
+  </table></div>
+  <div class="col"><p>For component engineers the message is simple: the processor needs the platform's exact position along the whole aperture, to a fraction of a wavelength. Motion sensors (GPS and an inertial unit) and "autofocus" algorithms supply it. A platform that wobbles by a centimetre at 10 GHz has shifted the phase by 240°, and the image blurs exactly as if the antenna were defocused.</p></div>
+</section>
+
+<!-- 6 -->
+<section id="modes">
+  <div class="secno">Step 10</div>
+  <h2>Modes: trading resolution against swath</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>The longer you watch a point, the sharper it gets. Watch one patch for a long time (spotlight) and it becomes very sharp. Hop between several strips (ScanSAR) and you cover more ground, but each strip is watched for less time and comes out less sharp.</div>
+  <div class="tw"><table class="t">
+    <tr><th>Mode</th><th>How the beam is used</th><th>Azimuth resolution</th><th>Swath / coverage</th></tr>
+    <tr><td>Stripmap</td><td>Fixed beam, continuous strip</td><td class="n">D/2</td><td>One beam's swath, unlimited length</td></tr>
+    <tr><td>Spotlight</td><td>Beam steered backwards as the platform flies, to keep one area in view longer</td><td class="n">finer than D/2 (longer aperture)</td><td>One small patch, not continuous</td></tr>
+    <tr><td>ScanSAR</td><td>Beam switched between several sub-swaths in turn</td><td class="n">coarser (each sub-swath sees only part of the aperture)</td><td>Several swaths wide</td></tr>
+    <tr><td>Ground moving-target indication (GMTI)</td><td>Several receive channels; moving targets separated from the stationary ground (R6 Step 3 ideas)</td><td>—</td><td>Shows vehicles, not an image</td></tr>
+  </table></div>
+  <div class="col"><p>All three imaging modes follow the same rule: the azimuth resolution is set by how long, in angle, each point is watched. Watching longer (spotlight) gives finer detail; sharing the time among several swaths (ScanSAR) gives coarser detail but more area. Electronically steered arrays (R2 Step 5) make all three possible with one antenna.</p></div>
+</section>
+
+<!-- 7 -->
+<section id="look">
+  <div class="secno">Step 11</div>
+  <h2>What a SAR image looks like, and why</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4><b>Speckle</b>: even a smooth field looks grainy, because each pixel holds many tiny reflectors whose echoes add up randomly, like the shimmering spots you see when a laser shines on a wall. Averaging several images (looks) smooths it, at the cost of sharpness. <b>Layover and shadow</b>: the radar sorts everything by distance, so the top of a tall building, being nearer to the radar, is drawn before its base, and the ground behind it gets no signal at all.</div>
+  <h3>11a. Speckle</h3>
+  <div class="col">
+    <p>Each pixel of grass, soil or water contains many small scatterers. Their echoes add with random phases, exactly as noise does in R3 Step 1, so even a perfectly uniform field gives pixels whose brightness varies randomly from pixel to pixel: an exponential distribution of power with a standard deviation as large as its mean. This grainy pattern is <b>speckle</b>. It is not noise from the receiver; it is a real property of coherent imaging, and the same field imaged again from the same place gives the same speckle.</p>
+    <p><b>Reducing it: multilooking.</b> Split the synthetic aperture (or the range bandwidth) into N parts, form N lower-resolution images ("looks") and average them. The scatter shrinks by √N, and the resolution gets N times coarser in that direction. 4 looks halve the scatter at 4 times coarser resolution.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cSp" width="640" height="300" aria-label="Speckle and multilook averaging"></canvas>
+    <div class="ctrl">
+      <label for="spN">Number of looks N <b id="spNv"></b></label><input id="spN" type="range" min="0" max="6" step="1" value="0">
+      <button id="spB" type="button">New speckle</button>
+      <div class="readout" id="spOut"></div>
+    </div>
+    <p class="cap">Try it: a simple scene (a dark field, a brighter field, a bright road and a few strong point targets), imaged with speckle. The slider sets the looks: 1, 2, 4, 8, 16, 32, 64. Things to check: (1) 1 look: the two fields are hard to tell apart; (2) 16 looks: the fields separate clearly, but the road and points are smeared, because each look has coarser resolution.</p>
+  </div>
+  <h3>11b. Layover, foreshortening and shadow</h3>
+  <div class="diag"><svg viewBox="0 0 760 230" role="img" aria-label="Layover and shadow geometry">
+    <g font-family="IBM Plex Mono, monospace" font-size="12">
+      <line x1="20" y1="190" x2="740" y2="190" stroke="var(--muted)"/>
+      <path d="M40 30 l20 -6 l0 12 z" fill="var(--accent)"/><text x="30" y="20" fill="var(--ink)">radar</text>
+      <path d="M380 190 L430 90 L480 190 Z" fill="var(--trace2)" fill-opacity=".25" stroke="var(--trace2)"/><text x="415" y="82" fill="var(--ink)">hill / tower</text>
+      <line x1="50" y1="30" x2="430" y2="90" stroke="var(--trace)" stroke-dasharray="3 3"/><line x1="50" y1="30" x2="380" y2="190" stroke="var(--trace)" stroke-dasharray="3 3"/>
+      <path d="M480 190 L600 190" stroke="var(--bad)" stroke-width="5"/><text x="500" y="210" fill="var(--bad)">shadow: no echo</text>
+      <text x="230" y="215" fill="var(--muted)">the top is closer in slant range than the foot,</text><text x="230" y="228" fill="var(--muted)">so it is drawn nearer to the radar: layover</text>
+    </g></svg></div>
+  <div class="col">
+    <ul>
+      <li><b>Foreshortening</b>: a slope facing the radar is compressed in the image, because its far end is only slightly further away in slant range than its near end. It looks short and bright.</li>
+      <li><b>Layover</b>: if the slope is steeper than the beam, the top is actually <i>closer</i> in slant range than the foot. The image then shows the top before the foot: tall buildings and mountains appear to lean towards the radar.</li>
+      <li><b>Shadow</b>: the ground behind a tall object receives no illumination and returns nothing: a black area in the image, longer at shallow look angles.</li>
+    </ul>
+    <p>None of these is a fault. They come from measuring slant range, and a SAR image must be read with the radar's position in mind, unlike a photograph.</p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="nesz">
+  <div class="secno">Step 12</div>
+  <h2>Sensitivity: noise-equivalent sigma zero (NESZ)</h2>
+  <div class="know" style="background:var(--chip);border-left:3px solid var(--accent)"><h4 style="color:var(--accent)">In plain words</h4>NESZ answers one question: <b>how dark a surface can the radar still see?</b> Calm water reflects very little (about −25 dB), towns reflect a lot (0 dB). If the NESZ is −37 dB, everything brighter than −37 dB shows up and anything darker is lost in noise. More power, a bigger antenna, a lower noise figure, a shorter range or a slower aircraft all push the NESZ lower (better).</div>
+  <div class="col">
+    <p><b>What is measured.</b> SAR images ground, not point targets, so its sensitivity is quoted for distributed scatterers: <b>σ⁰ ("sigma nought")</b>, the radar cross section per square metre of ground (dimensionless, in dB). Typical values at 10 GHz: calm water −25 dB or lower, grass and fields −15 dB, forest −10 dB, towns 0 dB and above.</p>
+    <p><b>NESZ</b> is the σ⁰ that gives a pixel SNR of 1 (0 dB). Anything darker than the NESZ is lost in the receiver's noise, so a SAR that should image calm water must have an NESZ below about −25 dB.</p>
+    <p><b>The SAR radar equation, step by step.</b> Start from R1's energy form for a point target, SNR ∝ P<sub>avg</sub>·T·G²λ²σ / R⁴. Three SAR-specific substitutions:</p>
+    <ol>
+      <li>The integration time T is the time in the beam: λR / (2V·δa), from Step 5 (for a resolution δa).</li>
+      <li>The target is a pixel of ground: σ = σ⁰ · δa · δr<sub>ground</sub>.</li>
+      <li>Multiply out: the δa cancels.</li>
+    </ol>
+  </div>
+  <div class="eq">SNR = P<sub>avg</sub> · G² · λ³ · σ⁰ · δr<sub>ground</sub> / (2 · (4π)³ · R³ · V · kT<sub>0</sub> · F · L) &nbsp;&nbsp; NESZ = σ⁰ at SNR = 1</div>
+  <div class="col">
+    <p><b>Reading the equation.</b> R³, not R⁴: the longer aperture at long range recovers one factor of R. V in the denominator: flying faster means less time on each pixel. Azimuth resolution does not appear: finer azimuth detail is paid for with exactly the longer integration it needs. Average power, gain and noise figure appear just as in R1.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Worked: airborne, 1 W average, G = 30 dBi, 10 GHz, δr<sub>ground</sub> = 1.41 m, V = 100 m/s, R = 10 km, NF = 4 dB, losses 3 dB</th><th>NESZ</th></tr>
+    <tr><td>As given</td><td class="n">−37 dB</td></tr>
+    <tr><td>10 W average power</td><td class="n">−47 dB (10 dB better)</td></tr>
+    <tr><td>Twice the range, 20 km</td><td class="n">−28 dB (9 dB worse: R³)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cNe" width="640" height="260" aria-label="NESZ compared with typical ground reflectivity"></canvas>
+    <div class="ctrl">
+      <label for="neP">Average power <b id="nePv"></b></label><input id="neP" type="range" min="-1" max="3" step="0.1" value="0">
+      <label for="neG">Antenna gain <b id="neGv"></b></label><input id="neG" type="range" min="20" max="45" step="1" value="30">
+      <label for="neF">Frequency <b id="neFv"></b></label><input id="neF" type="range" min="1" max="35" step="0.5" value="10">
+      <label for="neR">Range <b id="neRv"></b></label><input id="neR" type="range" min="1" max="100" step="1" value="10">
+      <label for="neV">Speed <b id="neVv"></b></label><input id="neV" type="range" min="30" max="300" step="10" value="100">
+      <label for="neN">Noise figure <b id="neNv"></b></label><input id="neN" type="range" min="1" max="10" step="0.5" value="4">
+      <div class="readout" id="neOut"></div>
+    </div>
+    <p class="cap">Try it: the dashed line is the NESZ; the bars are typical σ⁰ values of different ground. Bars above the line appear in the image; bars below are lost in noise. Ground-range resolution 1.41 m and 3 dB losses are fixed. Things to check: (1) default: everything down to calm water is visible; (2) 40 km range: calm water disappears; (3) recover it with 10 dB more average power; a lower noise figure helps only by as many dB as it is lowered (4 → 1 dB gives 3 dB, not enough here).</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="comp">
+  <div class="secno">Step 13</div>
+  <h2>Where your components show up in SAR</h2>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Exciter / chirp generator:</b> bandwidth sets range resolution; linearity and flatness set range sidelobes (R6).</li>
+    <li><b>Master oscillator and STALO:</b> phase must stay coherent over the whole synthetic aperture, seconds long. Low-frequency phase noise and drift defocus the azimuth compression and raise azimuth sidelobes.</li>
+    <li><b>PA and LNA:</b> average power and noise figure set NESZ directly; PA phase drift with temperature over the aperture time blurs the image.</li>
+    <li><b>T/R switch and limiter recovery:</b> set the shortest usable range and the nadir-return blanking; they constrain the PRF window.</li>
+    <li><b>ADC and digital receiver:</b> sample rate follows the chirp bandwidth (hundreds of MHz for sub-metre SAR); data rate and storage become large.</li>
+    <li><b>Antenna:</b> its length D sets the azimuth resolution and the minimum PRF; its sidelobes cause range and azimuth ambiguities.</li>
+    <li><b>Timing and navigation interfaces:</b> pulse timestamps and the platform motion data must line up to a fraction of a wavelength of position.</li>
+  </ul></div>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Resolution</dt><dd>The smallest separation at which two points still appear as two.</dd>
+    <dt>Aperture</dt><dd>The part of a sensor that collects or radiates the wave (lens, dish, antenna length); beam ≈ λ/D.</dd>
+    <dt>Real-aperture radar</dt><dd>A radar whose along-track detail comes only from its physical antenna: R·λ/D.</dd>
+    <dt>I/Q, complex sample</dt><dd>The two mixer outputs 90° apart; together they give each echo's amplitude and phase.</dd>
+    <dt>Raw data matrix</dt><dd>The stored echoes: one row per pulse, one column per range cell, each a complex number.</dd>
+    <dt>Back-projection</dt><dd>Forming each pixel by reading every pulse at that pixel's range, undoing its expected phase and adding.</dd>
+    <dt>SAR</dt><dd>Synthetic aperture radar: uses platform motion to synthesise a long antenna for fine azimuth resolution.</dd>
+    <dt>Azimuth / range</dt><dd>Along the flight track / across it.</dd>
+    <dt>Slant range / ground range</dt><dd>Line-of-sight distance / distance along the ground.</dd>
+    <dt>Incidence angle, swath</dt><dd>Angle of the beam to the vertical at the ground / width of ground imaged.</dd>
+    <dt>Synthetic aperture</dt><dd>The distance flown while a point stays in the beam, R·λ/D.</dd>
+    <dt>Azimuth chirp, Doppler bandwidth</dt><dd>The linear Doppler sweep of a point as it passes / its width, 2V/D.</dd>
+    <dt>Focused / unfocused SAR</dt><dd>With / without correcting the parabolic phase history.</dd>
+    <dt>PRF window, azimuth ambiguity</dt><dd>The PRFs allowed by azimuth sampling and swath width / ghosts caused by too low a PRF.</dd>
+    <dt>Range cell migration, RCMC</dt><dd>A point's echo walking across range cells during the aperture / its correction.</dd>
+    <dt>Stripmap, spotlight, ScanSAR</dt><dd>Fixed beam / beam held on a patch / beam switched between sub-swaths.</dd>
+    <dt>Speckle, multilook</dt><dd>Random pixel brightness from coherent scattering / averaging lower-resolution looks to reduce it.</dd>
+    <dt>Foreshortening, layover, shadow</dt><dd>Geometric distortions of slopes and tall objects in slant-range images.</dd>
+    <dt>σ⁰, NESZ</dt><dd>Radar cross section per unit ground area / the σ⁰ that gives SNR = 1.</dd>
+  </dl>
+  <p class="col" style="margin-top:20px"><b>Next, <a href="P4-listening.html">Part 4 · Listen</a>:</b> how a wideband receiver watches the spectrum for radars like these.</p>
+</section>
+
+<footer>General textbook material: Curlander &amp; McDonough, <i>Synthetic Aperture Radar: Systems and Signal Processing</i>; Cumming &amp; Wong, <i>Digital Processing of Synthetic Aperture Radar Data</i>; Richards, Scheer &amp; Holm, <i>Principles of Modern Radar</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+
+
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const kB=1.380649e-23;
+
+/* 3 AZIMUTH */
+bind(['azD','azR','azF','azV'],function(){
+  const D=+$('azD').value, R0=+$('azR').value*1e3, f=+$('azF').value*1e9, V=+$('azV').value, lam=c0/f;
+  $('azDv').textContent=D.toFixed(1)+' m'; $('azRv').textContent=fmt(R0,'m',1); $('azFv').textContent=fmt(f,'Hz',1); $('azVv').textContent=V+' m/s';
+  const L=R0*lam/D, dR=x=>x*x/(R0+Math.sqrt(R0*R0+x*x)), focus=D/2, Lu=Math.sqrt(lam*R0), unf=Math.sqrt(lam*R0)/2;
+  // compressed responses
+  const N=Math.min(40000,Math.ceil(L/(D/4))), xs=[]; for(let n=0;n<N;n++) xs.push(-L/2+L*(n+.5)/N);
+  const span=Math.max(6*focus,2.2*unf), M=241, ys=[], pf=[], pu=[];
+  const Nu=Math.max(16,Math.ceil(Lu/(D/4))), xu=[]; for(let n=0;n<Nu;n++) xu.push(-Lu/2+Lu*(n+.5)/Nu);
+  for(let i=0;i<M;i++){ const y=-span+2*span*i/(M-1); ys.push(y);
+    let re=0,im=0; for(let n=0;n<N;n++){ const x=xs[n], p=4*Math.PI/lam*(dR(x)-dR(x-y)); re+=Math.cos(p); im+=Math.sin(p); } pf.push(re*re+im*im);
+    re=0; im=0; for(let n=0;n<Nu;n++){ const x=xu[n], p=-4*Math.PI/lam*dR(x-y); re+=Math.cos(p); im+=Math.sin(p); } pu.push(re*re+im*im); }
+  const nf=Math.max(...pf), nu=Math.max(...pu), df=pf.map(v=>db(v/nf+1e-12)), du=pu.map(v=>db(v/nu+1e-12));
+  const width=d=>{ let ip=d.indexOf(Math.max(...d)), l=ip, r=ip; while(l>0&&d[l]>-3) l--; while(r<d.length-1&&d[r]>-3) r++; return ys[r]-ys[l]; };
+  const fineW=(()=>{ const K=161, yy=[], pp=[]; for(let i=0;i<K;i++){ const y=-1.5*D+3*D*i/(K-1); yy.push(y); let re=0,im=0; for(let n=0;n<N;n++){ const x=xs[n], p=4*Math.PI/lam*(dR(x)-dR(x-y)); re+=Math.cos(p); im+=Math.sin(p); } pp.push(re*re+im*im); }
+    const m=Math.max(...pp), dd=pp.map(v=>db(v/m)); let ip=dd.indexOf(0), l=ip, r=ip; while(l>0&&dd[l]>-3) l--; while(r<K-1&&dd[r]>-3) r++;
+    const il=(a,b)=>yy[a]+(yy[b]-yy[a])*(-3-dd[a])/(dd[b]-dd[a]); return il(r-1,r)-il(l+1,l); })();
+  const c=$('cAz'), g=ctx(c), x0=56, w=c.width-70; const X=x=>x0+w*(x+L/2)/L;
+  // panel 1: range history
+  const p1=12, h1=100, mx=dR(L/2), Y1=v=>p1+h1-h1*v/mx;
+  frame(g,x0,p1,w,h1,2); g.fillStyle=css('--muted'); g.fillText('extra range (m)',x0+6,p1+12); g.fillText(mx.toFixed(2),x0-44,p1+8); g.fillText('0',x0-14,p1+h1);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=200;i++){ const x=-L/2+L*i/200; i?g.lineTo(X(x),Y1(dR(x))):g.moveTo(X(x),Y1(dR(x))); } g.stroke(); g.lineWidth=1;
+  [-L/2,0,L/2].forEach(x=>g.fillText(x===0?'0 m':fmt(x,'m',0),X(x)-14,p1+h1+14));
+  // panel 2: phase history (centre part, resolvable)
+  const p2=p1+h1+30, h2=70, cyc=40, xr=Math.sqrt(cyc*lam*R0/2), Xc=x=>x0+w*(x+xr)/(2*xr);
+  frame(g,x0,p2,w,h2,2); g.fillStyle=css('--muted'); g.fillText('echo phase history (cos φ), centre ±'+fmt(xr,'m',1)+' of the aperture',x0+6,p2+12);
+  g.strokeStyle=css('--trace2'); g.beginPath(); for(let i=0;i<=1200;i++){ const x=-xr+2*xr*i/1200, v=Math.cos(4*Math.PI*dR(x)/lam); const yy=p2+h2/2-v*h2*0.38; i?g.lineTo(Xc(x),yy):g.moveTo(Xc(x),yy); } g.stroke();
+  // panel 3: compressed
+  const p3=p2+h2+30, h3=c.height-p3-24, lo=-40, X3=y=>x0+w*(y+span)/(2*span), Y3=v=>p3+h3*(-Math.max(lo,v))/(-lo);
+  frame(g,x0,p3,w,h3,4); g.fillStyle=css('--muted'); [0,-20,-40].forEach(v=>g.fillText(v+' dB',x0-44,Y3(v)+4)); [-span,0,span].forEach(y=>g.fillText(y===0?'0 m':fmt(y,'m',1),X3(y)-14,p3+h3+14)); g.fillText('compressed azimuth response',x0+6,p3+12);
+  const ln=(d,col,wd)=>{ g.strokeStyle=col; g.lineWidth=wd; g.beginPath(); d.forEach((v,i)=>{ i?g.lineTo(X3(ys[i]),Y3(v)):g.moveTo(X3(ys[i]),Y3(v)); }); g.stroke(); g.lineWidth=1; };
+  ln(du,css('--muted'),1.4); ln(df,css('--accent'),2);
+  ro($('azOut'),[['Real-beam footprint Rλ/D',fmt(R0*lam/D,'m',1)],['Synthetic aperture L',fmt(L,'m',1)],['Time in beam',fmt(L/V,'s',2)],['Doppler bandwidth 2V/D',fmt(2*V/D,'Hz',0)],['Focused resolution (−3 dB)',fmt(fineW,'m',2)+' (D/2 = '+fmt(focus,'m',2)+')'],['Unfocused resolution',fmt(width(du),'m',1)],['Edge range change',fmt(mx,'m',2)]]);
+});
+
+/* 4 PRF WINDOW */
+bind(['prP','prD','prS'],function(){
+  const V=$('prP').value==='air'?100:7500, D=+$('prD').value, sw=+$('prS').value*1e3; $('prDv').textContent=D.toFixed(1)+' m (res '+(D/2).toFixed(2)+' m)'; $('prSv').textContent=fmt(sw,'m',0);
+  const pmin=1.2*2*V/D, pmax=c0/(2*sw), c=$('cPrf'), g=ctx(c), x0=40, w=c.width-60, y=60, h=50, fa=10, fb=1e6, X=f=>x0+w*Math.log10(f/fa)/Math.log10(fb/fa);
+  g.fillStyle=css('--bad'); g.globalAlpha=.35; g.fillRect(x0,y,X(Math.min(fb,pmin))-x0,h); g.fillRect(X(Math.max(fa,pmax)),y,x0+w-X(Math.max(fa,pmax)),h); g.globalAlpha=1;
+  if(pmax>pmin){ g.fillStyle=css('--good'); g.globalAlpha=.45; g.fillRect(X(pmin),y,X(pmax)-X(pmin),h); g.globalAlpha=1; }
+  g.strokeStyle=css('--line'); g.strokeRect(x0,y,w,h); g.fillStyle=css('--muted'); [10,100,1e3,1e4,1e5,1e6].forEach(f=>g.fillText(fmt(f,'Hz',0),X(f)-12,y+h+16));
+  g.fillStyle=css('--ink'); g.fillText('min '+fmt(pmin,'Hz',0),Math.min(X(pmin),x0+w-100)-10,y-22); g.fillText('max '+fmt(pmax,'Hz',0),Math.min(X(pmax),x0+w-100)-10,y-8);
+  g.fillStyle=css('--muted'); g.fillText('azimuth sampling too slow',x0+4,y+h+38); g.fillText('swath does not fit',x0+w-130,y+h+38);
+  const fq=f=>fmt(f,'Hz',f>=1e3?2:0);
+  ro($('prOut'),[['Minimum PRF 1.2 × 2V/D',fq(pmin)],['Maximum PRF c/(2·swath)',fq(pmax)],['Window',pmax>pmin?fq(pmin)+' – '+fq(pmax):'CLOSED'],['Azimuth resolution',fmt(D/2,'m',2)]]);
+});
+
+/* 7 SPECKLE */
+let spSeed=4;
+function spDraw(){
+  const N=Math.pow(2,+$('spN').value); $('spNv').textContent=N;
+  const c=$('cSp'), g=ctx(c), W=160, H=75, px=c.width/W, r=rng(spSeed);
+  const scene=(i,j)=>{ let s=i<W/2?0.05:0.2; if(Math.abs(j-H*0.55)<1.2) s=1.5; if((i===40&&j===20)||(i===120&&j===15)||(i===100&&j===60)) s=20; return s; };
+  // multilook: average N looks; each look has coarser azimuth resolution: blur along i by N samples (boxcar)
+  const vals=[]; for(let j=0;j<H;j++){ const row=[]; for(let i=0;i<W;i++){ let m=0; for(let q=0;q<N;q++){ const ii=Math.min(W-1,Math.max(0,i+q-Math.floor(N/2))); m+=scene(ii,j); } m/=N; let acc=0; for(let k=0;k<N;k++) acc+=m*(-Math.log(1-r())); row.push(acc/N); } vals.push(row); }
+  for(let j=0;j<H;j++) for(let i=0;i<W;i++){ const v=Math.max(0,Math.min(1,(db(vals[j][i]+1e-6)+25)/30)), b=Math.round(v*255); g.fillStyle='rgb('+b+','+b+','+b+')'; g.fillRect(i*px,j*(c.height/H),Math.ceil(px),Math.ceil(c.height/H)); }
+  // stats on left field
+  let s=0,s2=0,n=0; for(let j=45;j<70;j++) for(let i=5;i<35;i++){ const v=vals[j][i]; s+=v; s2+=v*v; n++; } const m=s/n, sd=Math.sqrt(s2/n-m*m);
+  ro($('spOut'),[['Looks',N],['Scatter (std / mean)',(sd/m).toFixed(2)+' (theory 1/√N = '+(1/Math.sqrt(N)).toFixed(2)+')'],['Azimuth resolution','× '+N+' coarser'],['Field contrast','6 dB']]);
+}
+bind(['spN'],spDraw); $('spB').addEventListener('click',()=>{ spSeed++; spDraw(); });
+
+/* 8 NESZ */
+bind(['neP','neG','neF','neR','neV','neN'],function(){
+  const P=Math.pow(10,+$('neP').value), G=lin(+$('neG').value), f=+$('neF').value*1e9, lam=c0/f, R=+$('neR').value*1e3, V=+$('neV').value, F=lin(+$('neN').value), L=lin(3), drg=1.41;
+  $('nePv').textContent=fmt(P,'',P<1?2:1).trim()+' W'; $('neGv').textContent=$('neG').value+' dBi'; $('neFv').textContent=fmt(f,'Hz',1); $('neRv').textContent=fmt(R,'m',0); $('neVv').textContent=V+' m/s'; $('neNv').textContent=$('neN').value+' dB';
+  const nesz=db(2*V*Math.pow(4*Math.PI,3)*Math.pow(R,3)*kB*290*F*L/(P*G*G*Math.pow(lam,3)*drg));
+  const items=[['calm water',-25],['rough water',-15],['grass',-15],['forest',-10],['town',0]];
+  const c=$('cNe'), g=ctx(c), x0=60, y0=12, w=c.width-74, h=c.height-46, lo=-60, hi=10, Y=v=>y0+h*(hi-Math.max(lo,Math.min(hi,v)))/(hi-lo), bw=w/items.length;
+  frame(g,x0,y0,w,h,7); g.fillStyle=css('--muted'); for(let v=hi;v>=lo;v-=10) g.fillText(v+' dB',x0-48,Y(v)+4);
+  items.forEach(([n,v],i)=>{ const vis=v>nesz; g.fillStyle=vis?css('--trace'):css('--muted'); g.globalAlpha=vis?.8:.35; g.fillRect(x0+i*bw+bw*0.2,Y(v),bw*0.6,Y(lo)-Y(v)); g.globalAlpha=1; g.fillStyle=css('--ink'); g.fillText(n,x0+i*bw+bw*0.2,y0+h+16); });
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.setLineDash([6,4]); g.beginPath(); g.moveTo(x0,Y(nesz)); g.lineTo(x0+w,Y(nesz)); g.stroke(); g.setLineDash([]); g.lineWidth=1; g.fillStyle=css('--accent'); g.fillText('NESZ '+nesz.toFixed(1)+' dB',x0+w-120,Y(nesz)-6);
+  ro($('neOut'),[['NESZ',nesz.toFixed(1)+' dB'],['Calm water (−25 dB)',-25>nesz?'visible, '+(-25-nesz).toFixed(1)+' dB SNR':'lost in noise'],['Grass (−15 dB)',-15>nesz?'visible, '+(-15-nesz).toFixed(1)+' dB SNR':'lost in noise']]);
+});
+
+/* ===== intuitive visuals (merged) ===== */
+const LAMS=0.03, R0S=10000, DS=1, LS=R0S*LAMS/DS, VS=100;
+const dRx=(x,R)=>x*x/(R+Math.sqrt(R*R+x*x));
+
+/* 1 GEOMETRY (flat earth) */
+bind(['geH','geA','geE','geB'],function(){
+  const H=+$('geH').value*1e3, th=+$('geA').value*deg, be=+$('geE').value*deg, B=+$('geB').value*1e6;
+  $('geHv').textContent=fmt(H,'m',1); $('geAv').textContent=(th/deg).toFixed(0)+'°'; $('geEv').textContent=(be/deg).toFixed(0)+'°'; $('geBv').textContent=fmt(B,'Hz',0);
+  const tn=Math.max(1*deg,th-be/2), tf=Math.min(85*deg,th+be/2), gn=H*Math.tan(tn), gf=H*Math.tan(tf), rn=H/Math.cos(tn), rf=H/Math.cos(tf), dr=c0/(2*B);
+  const c=$('cGeo'), g=ctx(c), x0=40, gy=c.height-50, sc=Math.min((c.width-80)/(gf*1.05), (gy-30)/H), X=x=>x0+x*sc, Y=z=>gy-z*sc;
+  g.strokeStyle=css('--muted'); g.beginPath(); g.moveTo(20,gy); g.lineTo(c.width-20,gy); g.stroke();
+  g.fillStyle=css('--trace'); g.globalAlpha=.18; g.beginPath(); g.moveTo(X(0),Y(H)); g.lineTo(X(gn),gy); g.lineTo(X(gf),gy); g.closePath(); g.fill(); g.globalAlpha=1;
+  g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(X(0),Y(H)); g.lineTo(X(gn),gy); g.moveTo(X(0),Y(H)); g.lineTo(X(gf),gy); g.stroke();
+  g.strokeStyle=css('--muted'); g.setLineDash([4,4]); g.beginPath(); g.moveTo(X(0),Y(H)); g.lineTo(X(0),gy); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--accent'); g.beginPath(); g.arc(X(0),Y(H),6,0,7); g.fill();
+  g.fillStyle=css('--ink'); g.fillText('radar, height '+fmt(H,'m',1),X(0)+10,Y(H)+4);
+  g.strokeStyle=css('--accent'); g.lineWidth=4; g.beginPath(); g.moveTo(X(gn),gy); g.lineTo(X(gf),gy); g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--muted'); g.fillText('near '+fmt(gn,'m',1),X(gn)-20,gy+16); g.fillText('far '+fmt(gf,'m',1),X(gf)-40,gy+30); g.fillText('swath '+fmt(gf-gn,'m',1),(X(gn)+X(gf))/2-30,gy-8);
+  ro($('geOut'),[['Near / far slant range',fmt(rn,'m',1)+' / '+fmt(rf,'m',1)],['Near / far ground range',fmt(gn,'m',1)+' / '+fmt(gf,'m',1)],['Swath (ground)',fmt(gf-gn,'m',1)],['Incidence near / far',(tn/deg).toFixed(0)+'° / '+(tf/deg).toFixed(0)+'°'],['Slant resolution c/2B',fmt(dr,'m',2)],['Ground resolution near / far',fmt(dr/Math.sin(tn),'m',2)+' / '+fmt(dr/Math.sin(tf),'m',2)]]);
+});
+
+/* 3 FLY-PAST VILLAGE */
+const HOUSES=[[60,25],[75,25],[92,55],[150,70],[166,70],[230,38],[248,38],[266,38],[330,78],[362,22]], LEN=400;
+function flDraw(){
+  const f=+$('flX').value, W=+$('flB').value, a=-W/2+f*(LEN+W); $('flXv').textContent=Math.round(a)+' m'; $('flBv').textContent=W+' m'; $('flSv').textContent=$('flS').value+'×';
+  const c=$('cFly'), g=ctx(c), x0=20, pw=c.width-40, sx=pw/LEN, X=x=>x0+x*sx;
+  const panels=[['The village from above (beam footprint in teal)',40,120],['Ordinary radar picture: echo placed where the beam was',200,110],['SAR picture: echoes matched to each spot and added',345,110]];
+  panels.forEach(([t,y,h])=>{ g.fillStyle=css('--muted'); g.fillText(t,x0,y-8); g.fillStyle=css('--chip'); g.fillRect(x0,y,pw,h); g.strokeStyle=css('--line'); g.strokeRect(x0,y,pw,h); });
+  const Ym=(y,p)=>p[1]+8+y*(p[2]-16)/100, m=panels[0], o=panels[1], sI=panels[2];
+  const road=(p,to)=>{ g.strokeStyle=css('--muted'); g.globalAlpha=.6; g.lineWidth=5; g.beginPath(); g.moveTo(x0,Ym(90,p)); g.lineTo(X(Math.max(0,Math.min(LEN,to))),Ym(90,p)); g.stroke(); g.lineWidth=1; g.globalAlpha=1; };
+  road(m,LEN); HOUSES.forEach(([hx,hy])=>{ g.fillStyle=css('--trace2'); g.fillRect(X(hx)-6,Ym(hy,m)-6,12,12); });
+  g.save(); g.beginPath(); g.rect(x0,0,pw,c.height); g.clip();
+  g.fillStyle=css('--trace'); g.globalAlpha=.2; g.fillRect(X(a-W/2),m[1],W*sx,m[2]); g.globalAlpha=1; g.strokeStyle=css('--trace'); g.strokeRect(X(a-W/2),m[1],W*sx,m[2]);
+  g.strokeStyle=css('--muted'); g.setLineDash([6,4]); g.beginPath(); g.moveTo(x0,14); g.lineTo(x0+pw,14); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(X(a)+14,14); g.lineTo(X(a)-10,7); g.lineTo(X(a)-6,14); g.lineTo(X(a)-10,21); g.closePath(); g.fill();
+  g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(X(a),18); g.lineTo(X(a-W/2),m[1]); g.moveTo(X(a),18); g.lineTo(X(a+W/2),m[1]); g.stroke();
+  road(o,a); let inBeam=0; HOUSES.forEach(([hx,hy])=>{ if(Math.abs(a-hx)<W/2) inBeam++; const s=hx-W/2, e=Math.min(a,hx+W/2); if(e>s){ g.fillStyle=css('--trace2'); g.globalAlpha=.35; g.fillRect(X(s),Ym(hy,o)-6,(e-s)*sx,12); g.globalAlpha=1; } });
+  road(sI,a-W/2); let done=0; HOUSES.forEach(([hx,hy])=>{ const fr=Math.max(0,Math.min(1,(a-(hx-W/2))/W)); if(fr<=0) return; if(fr>=1) done++; const wp=12+(1-fr)*Math.min(W*sx,60); g.fillStyle=css('--trace2'); g.globalAlpha=0.2+0.8*fr; g.fillRect(X(hx)-wp/2,Ym(hy,sI)-6,wp,12); g.globalAlpha=1; });
+  g.restore(); g.fillStyle=css('--muted'); [0,100,200,300,400].forEach(x=>g.fillText(x+' m',X(x)-10,c.height-6));
+  ro($('flOut'),[['Aircraft at',Math.round(a)+' m'],['Houses in the beam now',inBeam],['Ordinary radar smear',W+' m (the beam)'],['SAR houses finished',done+' of '+HOUSES.length]]);
+}
+bind(['flX','flB','flS'],flDraw);
+let flTimer=null;
+function flStop(){ if(flTimer){ cancelAnimationFrame(flTimer); flTimer=null; } $('flP').setAttribute('aria-pressed','false'); $('flP').textContent='Play'; }
+function flStep(){ const x=$('flX'); const v=+x.value+0.0012*(+$('flS').value); if(v>=1){ x.value=1; flDraw(); flStop(); return; } x.value=v; flDraw(); flTimer=requestAnimationFrame(flStep); }
+$('flP').addEventListener('click',()=>{ if(flTimer){ flStop(); return; } if(+$('flX').value>=1) $('flX').value=0; $('flP').setAttribute('aria-pressed','true'); $('flP').textContent='Pause'; flTimer=requestAnimationFrame(flStep); });
+$('flR').addEventListener('click',()=>{ flStop(); $('flX').value=0; flDraw(); });
+
+/* 3 TOP VIEW: distance, phase and Doppler at each aircraft position */
+bind(['tvX','tvB'],function(){
+  const x=+$('tvX').value, b=+$('tvB').value; $('tvXv').textContent=(x>0?'+':'')+x.toFixed(1)+' m'; $('tvBv').textContent=b.toFixed(1)+' m';
+  const d1=dRx(x,R0S), d2=dRx(x-b,R0S), ph=d=>(2*d/LAMS)*360, p1=ph(d1), p2=ph(d2), fd=-2*VS*x/(LAMS*Math.sqrt(R0S*R0S+x*x));
+  const c=$('cTv'), g=ctx(c);
+  // top view schematic (not to scale)
+  const tx0=20, tw=330, ty=24, X=xx=>tx0+tw*(xx+LS/2)/LS;
+  g.fillStyle=css('--muted'); g.fillText('top view (not to scale)',tx0,14);
+  g.strokeStyle=css('--muted'); g.setLineDash([5,4]); g.beginPath(); g.moveTo(tx0,ty+10); g.lineTo(tx0+tw,ty+10); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--trace'); g.globalAlpha=.12; g.fillRect(tx0,ty+10,tw,4); g.globalAlpha=1; g.fillText('synthetic aperture: 300 m of flight',tx0+60,ty+30);
+  const tgx=X(0), tgy=150; g.fillStyle=css('--trace'); g.fillRect(tgx-5,tgy-5,10,10); g.fillText('A',tgx-16,tgy+4); if(b>0){ g.fillStyle=css('--accent'); g.fillRect(X(b)-5,tgy+12,10,10); g.fillText('B',X(b)+8,tgy+22); }
+  g.fillStyle=css('--muted'); g.fillText('R₀ = 10 km',tgx+10,(ty+10+tgy)/2);
+  g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(X(x),ty+10); g.lineTo(tgx,tgy); g.stroke();
+  g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(X(x)+12,ty+10); g.lineTo(X(x)-8,ty+4); g.lineTo(X(x)-8,ty+16); g.fill();
+  // phase dials
+  const dial=(cx,cy,deg_,col,lab)=>{ g.strokeStyle=css('--grid'); g.beginPath(); g.arc(cx,cy,34,0,7); g.stroke(); const a=-(deg_%360)*Math.PI/180; g.strokeStyle=col; g.lineWidth=2.5; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+30*Math.cos(a),cy+30*Math.sin(a)); g.stroke(); g.lineWidth=1; g.fillStyle=col; g.fillText(lab,cx-30,cy+50); };
+  dial(410,90,p1,css('--trace'),'echo phase A'); if(b>0) dial(530,90,p2,css('--accent'),'echo phase B');
+  // bottom plot: extra distance (turns of phase) across aperture
+  const px0=50, pw=c.width-64, py=200, ph_=c.height-py-26, mx=ph(dRx(LS/2+b,R0S))/360, PX=xx=>px0+pw*(xx+LS/2)/LS, PY=t=>py+ph_-ph_*t/mx;
+  frame(g,px0,py,pw,ph_,3); g.fillStyle=css('--muted'); g.fillText('turns of echo phase',px0+6,py+12); g.fillText(mx.toFixed(0),px0-26,py+8); g.fillText('0',px0-14,py+ph_);
+  [-150,0,150].forEach(xx=>g.fillText((xx>0?'+':'')+xx+' m',PX(xx)-14,py+ph_+16));
+  const ln=(off,col)=>{ g.strokeStyle=col; g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=200;i++){ const xx=-LS/2+LS*i/200, t=ph(dRx(xx-off,R0S))/360; i?g.lineTo(PX(xx),PY(t)):g.moveTo(PX(xx),PY(t)); } g.stroke(); g.lineWidth=1; };
+  ln(0,css('--trace')); if(b>0) ln(b,css('--accent'));
+  g.fillStyle=css('--ink'); g.beginPath(); g.arc(PX(x),PY(p1/360),5,0,7); g.fill();
+  const diff=((p2-p1)%360+360)%360, dW=diff>180?diff-360:diff;
+  ro($('tvOut'),[['Extra distance to A',(d1*1000).toFixed(1)+' mm'],['Echo phase of A','turned '+(p1/360).toFixed(2)+' times since closest approach'],['Doppler right now',fmt(fd,'Hz',1)+(Math.abs(x)<1?' (zero at closest approach)':'')],['Phase difference B − A',b>0?dW.toFixed(0)+'°':'—']]);
+});
+
+/* ===== THE PATCH (Steps 0, 1, 3, 7b) ===== */
+const PW=600, PH=288, PXm=400/PW, PYm=240/PH; // metres per pixel along / across
+const PHOUSES=[[218,22,14,10],[238,24,12,9],[256,20,16,11],[278,26,12,10],[298,22,14,12],[220,48,12,10],[240,52,16,10],[262,50,12,12],[284,54,14,9],[306,50,12,11],[226,80,14,10],[248,84,12,9],[270,82,16,11],[296,86,12,10]];
+const PCARS=[[112,116.6,4.6,1.9],[120,116.6,4.6,1.9]], PTANK=[240,150,3], PPOND=[330,195,38,24];
+let PATCH=null;
+function patch(){ if(PATCH) return PATCH;
+  const r=rng(11), n=PW*PH, cls=new Uint8Array(n), sub=new Uint8Array(n), shd=new Uint8Array(n), nz=new Float32Array(n);
+  const trees=[]; for(let i=0;i<14;i++) trees.push([18+i*13+r()*4,127+r()*3,3+r()*1.5]); for(let i=0;i<12;i++) trees.push([352+r()*40,148+r()*22,2.5+r()*2]); for(let i=0;i<6;i++) trees.push([212+r()*110,100+r()*8,2+r()*1.5]);
+  for(let j=0;j<PH;j++){ const Y=(j+.5)*PYm; for(let i=0;i<PW;i++){ const X=(i+.5)*PXm, k=j*PW+i; let c;
+    if(X<200&&Y<113) c=0; else if(X<200&&Y>120) c=1; else if(X>207&&Y>120) c=2; else if(X>207&&Y<113) c=11; else c=3;
+    if(Y>=113&&Y<=120) c=3; if(X>=200&&X<=207) c=3;
+    const pd=((X-PPOND[0])/PPOND[2])**2+((Y-PPOND[1])/PPOND[3])**2; if(pd<1) c=7;
+    for(const t of trees){ if((X-t[0])**2+(Y-t[1])**2<t[2]*t[2]){ c=8; break; } }
+    for(let h=0;h<PHOUSES.length;h++){ const H=PHOUSES[h]; if(X>=H[0]&&X<=H[0]+H[2]&&Y>=H[1]&&Y<=H[1]+H[3]){ c=(Y<H[1]+0.9)?5:4; sub[k]=h%2; }
+      if(X>=H[0]&&X<=H[0]+H[2]&&Y>H[1]+H[3]&&Y<H[1]+H[3]+6) shd[k]=1; }
+    for(const t of trees){ if(Math.abs(X-t[0])<t[2]*.8&&Y>t[1]+t[2]&&Y<t[1]+t[2]+3) shd[k]=1; }
+    if((X-PTANK[0])**2+(Y-PTANK[1])**2<PTANK[2]*PTANK[2]) c=9;
+    for(let q=0;q<2;q++){ const C=PCARS[q]; if(X>=C[0]&&X<=C[0]+C[2]&&Y>=C[1]&&Y<=C[1]+C[3]){ c=10; sub[k]=q; } }
+    cls[k]=c; nz[k]=r(); } }
+  // daylight colour
+  const rgb=new Uint8ClampedArray(n*3), base=[[196,170,92],[96,140,64],[124,96,70],[118,118,116],[168,82,60],[168,82,60],null,[52,92,120],[44,82,40],[214,214,208],null,[150,140,110]];
+  // thermal (0..1) and radar sigma
+  const th=new Float32Array(n), sg=new Float32Array(n);
+  const TH=[.55,.45,.62,.72,.76,.76,0,.28,.36,.5,.92,.6], SG=[.12,.2,.3,.005,.25,8,0,.002,.5,20,10,.15];
+  for(let j=0;j<PH;j++){ const Y=(j+.5)*PYm; for(let i=0;i<PW;i++){ const X=(i+.5)*PXm, k=j*PW+i, c=cls[k]; let col=base[c];
+    if(c===10) col=sub[k]?[205,205,205]:[40,70,160]; if((c===4||c===5)&&sub[k]) col=[150,150,150];
+    let m=1+(nz[k]-.5)*.08; if(c===0) m*=1+.07*Math.sin(Y*2*Math.PI/2.5); if(c===2) m*=1+.12*Math.sin(Y*2*Math.PI/1.6); if(c===1) m*=1+.06*Math.sin(X*2*Math.PI/3);
+    if(c===8) m*=.8+.4*nz[k];
+    for(let q=0;q<3;q++) rgb[k*3+q]=col[q]*m;
+    th[k]=TH[c]*(0.94+0.12*nz[k]);
+    let s=SG[c]; if(c===0) s*=1+.5*Math.sin(Y*2*Math.PI/2.5); if(c===2) s*=1+.6*Math.sin(Y*2*Math.PI/1.6); if(shd[k]&&c!==4&&c!==5&&c!==10&&c!==9) s=0;
+    sg[k]=s; } }
+  // speckle: exponential intensity
+  const r2=rng(23), sp=new Float32Array(n); const ex=()=>-Math.log(1-r2()*0.999999); for(let k=0;k<n;k++) sp[k]=sg[k]*(ex()+ex()+ex())/3+1e-4*ex();
+  // cloud / smoke field (value noise)
+  function vnoise(seed,gx,gy){ const rr=rng(seed), g=[]; for(let q=0;q<(gx+1)*(gy+1);q++) g.push(rr()); const out=new Float32Array(n);
+    for(let j=0;j<PH;j++) for(let i=0;i<PW;i++){ const u=i/PW*gx, v=j/PH*gy, a=Math.floor(u), b=Math.floor(v), fu=u-a, fv=v-b, s=t=>t*t*(3-2*t);
+      const at=(p,q)=>g[q*(gx+1)+p]; const x1=at(a,b)+(at(a+1,b)-at(a,b))*s(fu), x2=at(a,b+1)+(at(a+1,b+1)-at(a,b+1))*s(fu); out[j*PW+i]=x1+(x2-x1)*s(fv); } return out; }
+  const n1=vnoise(5,6,3), n2=vnoise(6,15,7), n3=vnoise(7,40,19), fog=new Float32Array(n); for(let k=0;k<n;k++) fog[k]=.55*n1[k]+.3*n2[k]+.15*n3[k];
+  PATCH={cls,sub,rgb,th:blurX(blurY(th,1.5),1.8),thRaw:th,sg,sp,fog}; return PATCH; }
+function boxBlur(src,w,h,rad,horiz){ const out=new Float32Array(src.length); if(rad<0.5){ out.set(src); return out; }
+  const L=horiz?w:h, M=horiz?h:w, cs=new Float64Array(L+1), R=rad;
+  for(let m=0;m<M;m++){ cs[0]=0; for(let l=0;l<L;l++){ const k=horiz?m*w+l:l*w+m; cs[l+1]=cs[l]+src[k]; }
+    for(let l=0;l<L;l++){ const a=l-R, b=l+R; const ia=Math.max(0,Math.floor(a)), ib=Math.min(L,Math.ceil(b)+1); const k=horiz?m*w+l:l*w+m; out[k]=(cs[ib]-cs[ia])/(ib-ia); } }
+  return out; }
+function blurX(s,r){ return boxBlur(s,PW,PH,r,true); } function blurY(s,r){ return boxBlur(s,PW,PH,r,false); }
+function putGrey(g,arr,x0,y0,map){ const im=g.createImageData(PW,PH); for(let k=0;k<PW*PH;k++){ const v=map(arr[k]); im.data[k*4]=im.data[k*4+1]=im.data[k*4+2]=v; im.data[k*4+3]=255; } g.putImageData(im,x0,y0); }
+const radarGrey=I=>{ const d=10*Math.log10(I+1e-6); return Math.max(0,Math.min(255,(d+24)/30*255)); };
+function putRGB(g,P,x0,y0,fx){ const im=g.createImageData(PW,PH); for(let k=0;k<PW*PH;k++){ const o=fx(k,P.rgb[k*3],P.rgb[k*3+1],P.rgb[k*3+2]); im.data[k*4]=o[0]; im.data[k*4+1]=o[1]; im.data[k*4+2]=o[2]; im.data[k*4+3]=255; } g.putImageData(im,x0,y0); }
+function patchAxes(g,x0,y0){ g.strokeStyle=css('--line'); g.strokeRect(x0-.5,y0-.5,PW+1,PH+1); g.fillStyle=css('--muted'); g.font='11px "IBM Plex Mono",monospace';
+  for(let m=0;m<=400;m+=100){ const x=x0+m/PXm; g.fillRect(x,y0+PH,1,4); g.fillText(m+' m',Math.min(x-10,x0+PW-34),y0+PH+15); }
+  g.fillText('along track (azimuth) →',x0+PW/2-70,y0+PH+28); g.save(); g.translate(x0-6,y0+PH/2+60); g.rotate(-Math.PI/2); g.fillText('range →',0,0); g.restore(); }
+
+/* 0 PATCH MAP */
+(function(){ const c=$('cPatch'); function draw(){ const g=ctx(c), P=patch(), x0=24, y0=26;
+  g.fillStyle=css('--ink'); g.fillText('aircraft flies along this edge, 10 km away  →',x0,16);
+  putRGB(g,P,x0,y0,(k,r,gg,b)=>[r,gg,b]); patchAxes(g,x0,y0);
+  const L=(t,x,y,tx,ty)=>{ g.strokeStyle='#fff'; g.lineWidth=1.2; g.beginPath(); g.moveTo(x0+x/PXm,y0+y/PYm); g.lineTo(x0+tx/PXm,y0+ty/PYm); g.stroke(); g.font='bold 12px "IBM Plex Sans",sans-serif'; const w=g.measureText(t).width; g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(x0+tx/PXm-3,y0+ty/PYm-12,w+6,16); g.fillStyle='#fff'; g.fillText(t,x0+tx/PXm,y0+ty/PYm); g.lineWidth=1; };
+  L('houses (village)',270,60,330,10); L('two cars, 8 m apart',118,117,60,100); L('road',60,116,20,148); L('water tank',240,150,215,175); L('pond',330,195,350,230); L('trees',100,128,135,160); L('wheat field',90,60,70,40); L('green crop',100,190,80,210); L('ploughed field',260,180,240,225);
+  g.font='12px "IBM Plex Mono",monospace'; g.fillStyle=css('--ink'); const sb=x0+PW-110; g.fillRect(sb,y0+PH+34,50/PXm,3); g.fillText('50 m',sb+20,y0+PH+50); }
+  redraws.push(draw); draw(); })();
+
+/* 1 CAMERA / THERMAL / RADAR */
+bind(['opS','opC'],function(){ const c=$('cOpt'), g=ctx(c), P=patch(), s=+$('opS').value, cd=+$('opC').value, x0=24, y0=26;
+  const names=['Camera, visible light','Thermal camera, 8–12 µm','Radar, 10 GHz, SAR-processed'], conds=['clear day','night','cloud','smoke or haze','heavy rain'];
+  g.fillStyle=css('--ink'); g.fillText(names[s]+' · '+conds[cd],x0,16);
+  // transmission through the obscurant (0..1 of the scene left) per sensor
+  const T=[[1,1,.02,.12,.55],[1,1,.03,.8,.6],[1,1,.98,1,.71]][s][cd];
+  if(s===0){ const night=cd===1; putRGB(g,P,x0,y0,(k,r,gg,b)=>{ let f=night?.035:1; let o=[r*f,gg*f,b*f];
+      if(night&&P.cls[k]===4&&P.fog[k]>.62&&((k*7919)%97)<3) o=[255,214,120];
+      const veil=cd===2?Math.min(1,.97+.06*(P.fog[k]-.5)):cd===3?Math.min(1,.82+.3*(P.fog[k]-.5)):cd===4?.42:0, vc=cd===2?[236,238,242]:cd===3?[150,140,128]:[150,156,165];
+      const a=Math.max(0,veil); return [o[0]*(1-a)+vc[0]*a,o[1]*(1-a)+vc[1]*a,o[2]*(1-a)+vc[2]*a]; });
+    if(cd===4){ g.strokeStyle='rgba(220,225,235,.35)'; const rr=rng(3); for(let q=0;q<260;q++){ const x=x0+rr()*PW, y=y0+rr()*(PH-12); g.beginPath(); g.moveTo(x,y); g.lineTo(x-3,y+12); g.stroke(); } } }
+  else if(s===1){ const night=cd===1; putGrey(g,P.th.map((v,k)=>{ let t=v; if(night){ const cl=P.cls[k]; t=cl===7?.62:cl===10?.85:cl===3?.55:(cl===4||cl===5)?.5:cl===8?.45:v*.6; }
+      const veil=cd===2?Math.min(1,.96+.06*(P.fog[k]-.5)):cd===3?.2+.15*(P.fog[k]-.5):cd===4?.4:0; return t*(1-veil)+(cd===2?.35:.42)*veil; }),x0,y0,v=>v*255); }
+  else { const f=T; putGrey(g,P.sp,x0,y0,I=>radarGrey(I*f*f)); }
+  patchAxes(g,x0,y0);
+  const lam=[0.55e-6,10e-6,0.03][s], D=[0.1,0.1,1][s], res=s<2?1.22*lam/D*10000:0.5;
+  const sees=[[1,0,0,0,1],[1,1,0,1,1],[1,1,1,1,1]][s][cd];
+  ro($('opOut'),[['wavelength',s===0?'0.55 µm':s===1?'10 µm':'3 cm'],['aperture',s<2?'10 cm lens':'1 m antenna'],['resolution at 10 km',s<2?fmt(res,'m',1):'0.5 m (needs SAR; 366 m without)'],['own illumination','sun only/heat only/its own transmitter'.split('/')[s]],['scene left after the conditions',s===2&&cd===4?'−3 dB (rain loss)':(T*100).toFixed(0)+' %'],['usable picture?',sees?'yes':'no']]);
+});
+
+/* 2 APERTURE */
+const apDm=v=>0.01*Math.pow(10,v*5/100);
+bind(['apL','apD','apR'],function(){ const c=$('cAp'), g=ctx(c), lam=+$('apL').value, D=apDm(+$('apD').value), R=+$('apR').value*1000;
+  $('apDv').textContent=fmt(D,'m',D<1?1:D<10?2:0); $('apRv').textContent=(R/1000)+' km';
+  const x0=56,y0=16,w=560,h=150; frame(g,x0,y0,w,h,4); g.fillStyle=css('--muted'); g.fillText('0 dB',x0-40,y0+10); g.fillText('−40',x0-34,y0+h); g.fillText('−10°',x0-12,y0+h+14); g.fillText('0°',x0+w/2-6,y0+h+14); g.fillText('+10°',x0+w-24,y0+h+14);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.6; g.beginPath(); const NP=1121; for(let q=0;q<NP;q++){ const th=(-10+20*q/(NP-1))*deg, u=D*Math.sin(th)/lam; const s=Math.abs(u)<1e-9?1:Math.sin(Math.PI*u)/(Math.PI*u); const p=Math.max(-40,db(s*s+1e-12)); const X=x0+w*q/(NP-1), Y=y0+h*(-p/40); q?g.lineTo(X,Y):g.moveTo(X,Y); } g.stroke(); g.lineWidth=1;
+  g.fillStyle=css('--ink'); g.fillText('beam power against angle (uniform aperture)',x0+6,y0+14);
+  // footprint over the patch strip
+  const P=patch(), fy=200, sx=560/400;
+  const tw=560, thh=96, tim=g.createImageData(tw,thh); for(let j=0;j<thh;j++) for(let i=0;i<tw;i++){ const si=Math.min(PW-1,Math.floor(i/tw*PW)), sj=Math.min(PH-1,Math.floor(j/thh*PH)), k=sj*PW+si; for(let q=0;q<3;q++) tim.data[(j*tw+i)*4+q]=P.rgb[k*3+q]; tim.data[(j*tw+i)*4+3]=255; }
+  g.putImageData(tim,x0,fy); g.strokeStyle=css('--line'); g.strokeRect(x0-.5,fy-.5,tw+1,thh+1);
+  const fp=R*lam/D; const fw=fp*sx, cx=x0+tw/2; g.fillStyle=css('--accent'); g.globalAlpha=.35;
+  if(fw<tw) g.fillRect(cx-Math.max(fw,1)/2,fy,Math.max(fw,1),thh); else g.fillRect(x0,fy,tw,thh); g.globalAlpha=1;
+  g.strokeStyle=css('--accent'); g.lineWidth=2; if(fw<tw){ g.strokeRect(cx-Math.max(fw,1)/2,fy,Math.max(fw,1),thh); } g.lineWidth=1;
+  g.fillStyle=css('--ink'); g.fillText('footprint on the 400 m patch: '+fmt(fp,'m',fp<1?1:fp<10?2:0)+(fw>=tw?' (wider than the whole patch)':''),x0,fy-8);
+  g.fillStyle=css('--muted'); g.fillText('0',x0,fy+thh+14); g.fillText('400 m',x0+tw-40,fy+thh+14);
+  const Dl=D/lam; ro($('apOut'),[['aperture in wavelengths D/λ',Dl>=100?Math.round(Dl).toLocaleString('en-GB'):Dl.toFixed(1)],['beamwidth ≈ λ/D',(lam/D>=0.01?(lam/D*1000).toFixed(1)+' mrad = '+(lam/D/deg).toFixed(2)+'°':(lam/D*1e6).toFixed(lam/D<1e-5?2:1)+' µrad')],['footprint at R',fmt(fp,'m',fp<1?1:2)],['aperture for a 1 m footprint',fmt(R*lam/1,'m',R*lam<1?1:0)],['cars 8 m apart, real aperture',fp<3.4?'separated':'one blob']]);
+});
+
+/* 3 REAL-APERTURE IMAGE  (D from 1 m to 600 m, log) */
+const raDm=v=>Math.pow(600,v/100);
+let RAc={}; function rarImage(fp,gr){ const key=fp.toFixed(3)+'|'+gr.toFixed(3); if(RAc.k===key) return RAc.v; const P=patch(); const v=blurY(blurX(P.sp,(fp/PXm)/2),(gr/PYm)/2); RAc={k:key,v}; return v; }
+bind(['raV','raD','raR','raB'],function(){ const c=$('cRar'), g=ctx(c), P=patch(), D=raDm(+$('raD').value), R=+$('raR').value*1000, B=+$('raB').value*1e6, x0=24, y0=26;
+  $('raDv').textContent=fmt(D,'m',D<10?1:0); $('raRv').textContent=(R/1000)+' km'; $('raBv').textContent=fmt(B,'Hz',0);
+  const fp=R*0.03/D, gr=c0/(2*B)/Math.sin(45*deg);
+  if(+$('raV').value===1){ putRGB(g,P,x0,y0,(k,r,gg,b)=>[r,gg,b]); g.fillStyle=css('--ink'); g.fillText('the scene, daylight',x0,16); }
+  else { putGrey(g,rarImage(fp,gr),x0,y0,radarGrey); g.fillStyle=css('--ink'); g.fillText('real-aperture radar: each pixel '+fmt(fp,'m',fp<10||fp>=1000?1:0)+' along × '+fmt(gr,'m',2)+' across',x0,16); }
+  patchAxes(g,x0,y0);
+  // resolution cell drawn to scale
+  g.strokeStyle=css('--accent'); g.lineWidth=2; const cw=Math.min(PW-20,fp/PXm), ch=Math.max(2,gr/PYm); g.strokeRect(x0+PW-cw-8,y0+PH-ch-8,cw,ch); g.lineWidth=1;
+  g.fillStyle=css('--accent'); g.fillText('one resolution cell',Math.max(x0+4,x0+PW-cw-8),y0+PH-ch-14);
+  const sep=fp<3.4; ro($('raOut'),[['azimuth resolution R·λ/D',fmt(fp,'m',fp<10?2:fp>=1000?1:0)],['ground-range resolution c/2B ÷ sin 45°',fmt(gr,'m',2)],['two cars 8 m apart',sep?'two cars':'one blob'],['antenna needed for 0.5 m at this range',fmt(R*0.03/0.5,'m',0)]]);
+});
+
+/* 6 RAW DATA SIMULATION (shared with Step 7) */
+const SIMR0=10000, SIMLAM=0.03, SIMDX=0.25, SIMBIN=0.25, SIMNB=128, SIMROFF=-16, SIMDR=1;
+const SPTS=[{n:'house corner',x:-12,r:6,a:1},{n:'fence post',x:-15,r:-10,a:.6},{n:'water tank',x:6,r:-6,a:1.2},{n:'lamp post 1',x:10,r:9,a:.9},{n:'lamp post 2',x:11.5,r:9,a:.9}];
+const SIMC={};
+function sim(D){ if(SIMC[D]) return SIMC[D]; const L=SIMLAM*SIMR0/D, half=Math.round((L/2+20)/SIMDX), Np=2*half+1, x0=-half*SIMDX, re=new Float32Array(Np*SIMNB), im=new Float32Array(Np*SIMNB), r=rng(41);
+  const k4=4*Math.PI/SIMLAM; SPTS.forEach(p=>p.psi=r()*2*Math.PI);
+  for(let p=0;p<Np;p++){ const xp=x0+p*SIMDX; for(const s of SPTS){ const dx=xp-s.x; if(Math.abs(dx)>L/2) continue; const u=D*dx/(SIMLAM*SIMR0), w=Math.abs(u)<1e-9?1:Math.pow(Math.sin(Math.PI*u)/(Math.PI*u),2);
+      const Rr=Math.sqrt((SIMR0+s.r)**2+dx*dx), rel=Rr-SIMR0; const ph=-(k4*(Rr-SIMR0)+((k4*SIMR0)%(2*Math.PI)))+s.psi;
+      const kc=(rel-SIMROFF)/SIMBIN; for(let k=Math.max(0,Math.floor(kc-16));k<=Math.min(SIMNB-1,Math.ceil(kc+16));k++){ const q=(SIMROFF+k*SIMBIN-rel)/SIMDR, sn=Math.abs(q)<1e-9?1:Math.sin(Math.PI*q)/(Math.PI*q); const a=s.a*w*sn; re[p*SIMNB+k]+=a*Math.cos(ph); im[p*SIMNB+k]+=a*Math.sin(ph); } } }
+  // receiver noise and weak ground clutter
+  for(let q=0;q<Np*SIMNB;q++){ const g1=Math.sqrt(-2*Math.log(1-r()*.999999)), t=2*Math.PI*r(); re[q]+=.04*g1*Math.cos(t); im[q]+=.04*g1*Math.sin(t); }
+  return SIMC[D]={D,L,half,Np,x0,re,im}; }
+
+let rwTimer=null;
+function rwDraw(){ const c=$('cRaw'), g=ctx(c), D=+$('rwD').value, S=sim(D), frac=+$('rwX').value, np=Math.round(frac*(S.Np-1)), mode=+$('rwM').value, zoom=+$('rwZ').value;
+  const xp=S.x0+np*SIMDX; $('rwXv').textContent=(np+1)+' of '+S.Np+' (x = '+xp.toFixed(1)+' m)';
+  // top view
+  const tx0=20,tw=600, X=x=>tx0+(x-S.x0)/(S.Np*SIMDX)*tw; g.fillStyle=css('--muted'); g.fillText('top view: flight track (x from '+S.x0.toFixed(0)+' to +'+(-S.x0).toFixed(0)+' m)',tx0,12);
+  g.strokeStyle=css('--muted'); g.setLineDash([4,4]); g.beginPath(); g.moveTo(tx0,26); g.lineTo(tx0+tw,26); g.stroke(); g.setLineDash([]);
+  g.fillStyle=css('--trace'); g.globalAlpha=.18; g.beginPath(); g.moveTo(X(xp),26); g.lineTo(X(xp-S.L/2),84); g.lineTo(X(xp+S.L/2),84); g.closePath(); g.fill(); g.globalAlpha=1;
+  g.fillStyle=css('--accent'); g.beginPath(); g.moveTo(X(xp)+9,26); g.lineTo(X(xp)-7,21); g.lineTo(X(xp)-7,31); g.fill();
+  g.fillStyle=css('--ink'); g.fillText('beam footprint '+S.L.toFixed(0)+' m',tx0+tw-150,12);
+  for(const s of SPTS){ const inb=Math.abs(xp-s.x)<=S.L/2; g.fillStyle=inb?css('--trace2'):css('--muted'); g.fillRect(X(s.x)-2,84-s.r*.6-12,4,4); }
+  g.fillStyle=css('--muted'); g.fillText('the five reflectors (40 m × 32 m corner)',X(0)+16,92);
+  // matrix
+  const mx0=20,my0=134,mw=256,mh=300; g.fillStyle=css('--ink'); g.fillText('raw data table: row = pulse, column = range',mx0,122);
+  const rows=mh; const pA=zoom?Math.max(0,S.half-150):0, pB=zoom?Math.min(S.Np-1,S.half+149):S.Np-1, per=(pB-pA+1)/rows;
+  const img=g.createImageData(mw,mh); let mxA=0; for(let q=0;q<S.re.length;q+=7){ const a=Math.hypot(S.re[q],S.im[q]); if(a>mxA) mxA=a; }
+  for(let y=0;y<rows;y++){ const p=pA+Math.floor(y*per); for(let xk=0;xk<mw;xk++){ const k=xk>>1, o=(y*mw+xk)*4; img.data[o+3]=255; if(p>np){ img.data[o]=img.data[o+1]=img.data[o+2]=40; continue; }
+      const re=S.re[p*SIMNB+k], im=S.im[p*SIMNB+k], a=Math.hypot(re,im)/mxA;
+      if(mode===0){ const v=Math.min(255,a*420); img.data[o]=img.data[o+1]=img.data[o+2]=v; }
+      else if(mode===2){ const v=128+Math.max(-127,Math.min(127,re/mxA*400)); img.data[o]=img.data[o+1]=img.data[o+2]=v; }
+      else { const hh=(Math.atan2(im,re)/(2*Math.PI)+1)%1, br=Math.min(1,a*1.6); const f=n=>{ const kk=(n+hh*6)%6; return br*(1-Math.max(0,Math.min(kk,4-kk,1))); }; img.data[o]=255*f(5); img.data[o+1]=255*f(3); img.data[o+2]=255*f(1); } } }
+  g.putImageData(img,mx0,my0); g.strokeStyle=css('--line'); g.strokeRect(mx0-.5,my0-.5,mw+1,mh+1);
+  if(np>=pA&&np<=pB){ const yy=my0+(np-pA)/per; g.strokeStyle=css('--accent'); g.beginPath(); g.moveTo(mx0-6,yy); g.lineTo(mx0,yy); g.stroke(); }
+  g.fillStyle=css('--muted'); g.fillText('−16 m',mx0,my0+mh+14); g.fillText('range',mx0+108,my0+mh+14); g.fillText('+16 m',mx0+mw-40,my0+mh+14);
+  g.save(); g.translate(mx0+mw+12,my0+4); g.rotate(Math.PI/2); g.fillText(zoom?'pulses '+(pA+1)+'–'+(pB+1)+' (middle 75 m)':'all '+S.Np+' pulses, 1 row per '+per.toFixed(1),0,0); g.restore();
+  // current row
+  const rx0=316,ry0=134,rw=310,rh=120; frame(g,rx0,ry0,rw,rh,4); g.fillStyle=css('--ink'); g.fillText('row just recorded: amplitude vs range',rx0,122);
+  g.strokeStyle=css('--trace'); g.lineWidth=1.5; g.beginPath(); for(let k=0;k<SIMNB;k++){ const a=Math.hypot(S.re[np*SIMNB+k],S.im[np*SIMNB+k])/mxA; const XX=rx0+k/(SIMNB-1)*rw, YY=ry0+rh-Math.min(1,a)*rh; k?g.lineTo(XX,YY):g.moveTo(XX,YY); } g.stroke(); g.lineWidth=1;
+  // dials
+  g.fillStyle=css('--ink'); g.fillText('phase of each reflector in this row',rx0,ry0+rh+28); const out=[];
+  SPTS.forEach((s,i)=>{ const cx=rx0+30+i*62, cy=ry0+rh+80, rr=22; g.strokeStyle=css('--grid'); g.beginPath(); g.arc(cx,cy,rr,0,7); g.stroke(); const inb=Math.abs(xp-s.x)<=S.L/2;
+    const Rr=Math.sqrt((SIMR0+s.r)**2+(xp-s.x)**2), kc=Math.round((Rr-SIMR0-SIMROFF)/SIMBIN); let txt='—';
+    if(inb&&kc>=0&&kc<SIMNB){ const re=S.re[np*SIMNB+kc], im=S.im[np*SIMNB+kc], ph=Math.atan2(im,re); g.strokeStyle=css('--trace2'); g.lineWidth=2; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+rr*Math.cos(ph),cy-rr*Math.sin(ph)); g.stroke(); g.lineWidth=1; txt=(((ph/deg)%360+360)%360).toFixed(0)+'°'; }
+    g.fillStyle=css('--muted'); g.font='10px "IBM Plex Mono",monospace'; g.fillText(['house','fence','tank','post 1','post 2'][i],cx-18,cy+36); g.fillText(txt,cx-12,cy+48); g.font='12px "IBM Plex Mono",monospace'; out.push(inb); });
+  const ts=SPTS[2], Rt=Math.sqrt((SIMR0+ts.r)**2+(xp-ts.x)**2);
+  ro($('rwOut'),[['synthetic aperture L = λR/D',S.L.toFixed(0)+' m = '+Math.round(S.L/SIMDX)+' pulses'],['range bend across the aperture L²/8R',(S.L*S.L/8/SIMR0).toFixed(2)+' m = '+(S.L*S.L/8/SIMR0/SIMDR).toFixed(1)+' range cells of 1 m'],['reflectors in the beam now',out.filter(Boolean).length+' of 5'],['phase step per pulse at a stripe end (PRF 400 Hz)',(360*(2*100*(S.L/2)/(SIMLAM*SIMR0))/400).toFixed(0)+'°'],['table size so far',((np+1)*SIMNB).toLocaleString('en-GB')+' complex numbers']]);
+}
+bind(['rwX','rwD','rwM','rwZ'],rwDraw);
+function rwStop(){ if(rwTimer){ cancelAnimationFrame(rwTimer); rwTimer=null; } $('rwP').setAttribute('aria-pressed','false'); $('rwP').textContent='Play'; }
+$('rwP').addEventListener('click',()=>{ if(rwTimer){ rwStop(); return; } if(+$('rwX').value>=1) $('rwX').value=0; $('rwP').setAttribute('aria-pressed','true'); $('rwP').textContent='Pause';
+  (function st(){ const v=+$('rwX').value+0.004; if(v>=1){ $('rwX').value=1; rwDraw(); rwStop(); return; } $('rwX').value=v; rwDraw(); rwTimer=requestAnimationFrame(st); })(); });
+$('rwR').addEventListener('click',()=>{ rwStop(); $('rwX').value=0; rwDraw(); });
+
+/* 7 BACK-PROJECTION */
+const BPNX=161, BPNY=SIMNB; // pixels: x -20..20 step .25, r = range bins
+const BPT={};
+function bpTables(S){ if(BPT[S.D]) return BPT[S.D]; const M=Math.round(S.L/2/SIMDX), nm=2*M+1, bi=new Int32Array(BPNY*nm), bf=new Float32Array(BPNY*nm), pc=new Float32Array(BPNY*nm), ps=new Float32Array(BPNY*nm), k4=4*Math.PI/SIMLAM, base=(k4*SIMR0)%(2*Math.PI);
+  for(let k=0;k<BPNY;k++){ const r0=SIMROFF+k*SIMBIN; for(let m=-M;m<=M;m++){ const dx=m*SIMDX, Rr=Math.sqrt((SIMR0+r0)**2+dx*dx), b=(Rr-SIMR0-SIMROFF)/SIMBIN, q=k*nm+m+M; bi[q]=Math.floor(b); bf[q]=b-Math.floor(b); const ph=k4*(Rr-SIMR0)+base; pc[q]=Math.cos(ph); ps[q]=Math.sin(ph); } }
+  return BPT[S.D]={M,nm,bi,bf,pc,ps,MU:Math.round(Math.sqrt(SIMLAM*SIMR0)/2/SIMDX)}; }
+const BP={n:-1,meth:-1,ar:null,ai:null,aa:null};
+function bpAdd(S,T,p,meth){ const xp=S.x0+p*SIMDX; for(let ix=0;ix<BPNX;ix++){ const x0=-20+ix*.25, m=Math.round((xp-x0)/SIMDX); if(m<-T.M||m>T.M) continue;
+    for(let k=0;k<BPNY;k++){ const o=k*BPNX+ix, row=p*SIMNB;
+      if(meth===1){ if(Math.abs(m)>T.MU) continue; const q=k*T.nm+T.M; BP.ar[o]+=S.re[row+k]*T.pc[q]-S.im[row+k]*T.ps[q]; BP.ai[o]+=S.re[row+k]*T.ps[q]+S.im[row+k]*T.pc[q]; continue; }
+      const q=k*T.nm+m+T.M, b=T.bi[q]; if(b<0||b>=SIMNB-1) continue; const f=T.bf[q], re=S.re[row+b]*(1-f)+S.re[row+b+1]*f, im=S.im[row+b]*(1-f)+S.im[row+b+1]*f;
+      if(meth===0){ BP.aa[o]+=Math.hypot(re,im); continue; }
+      BP.ar[o]+=re*T.pc[q]-im*T.ps[q]; BP.ai[o]+=re*T.ps[q]+im*T.pc[q]; } } }
+function bpTo(n,meth){ const S=sim(1), T=bpTables(S); if(meth!==BP.meth||n<BP.n||!BP.ar){ BP.ar=new Float32Array(BPNX*BPNY); BP.ai=new Float32Array(BPNX*BPNY); BP.aa=new Float32Array(BPNX*BPNY); BP.n=-1; BP.meth=meth; }
+  for(let p=BP.n+1;p<=n;p++) bpAdd(S,T,p,meth); BP.n=n; }
+function bpMag(o){ return BP.meth===0?BP.aa[o]:Math.hypot(BP.ar[o],BP.ai[o]); }
+function bpWidth(k,xc){ // -3 dB width along x around the peak nearest xc in row k
+  let ic=Math.round((xc+20)/.25), best=ic; for(let d=-8;d<=8;d++){ const i=ic+d; if(i>=0&&i<BPNX&&bpMag(k*BPNX+i)>bpMag(k*BPNX+best)) best=i; } const pk=bpMag(k*BPNX+best), h=pk/Math.SQRT2; if(pk<=0) return NaN;
+  let a=best; while(a>0&&bpMag(k*BPNX+a)>h) a--; let b=best; while(b<BPNX-1&&bpMag(k*BPNX+b)>h) b++;
+  const fa=a+(h-bpMag(k*BPNX+a))/(bpMag(k*BPNX+a+1)-bpMag(k*BPNX+a)||1), fb=b-(h-bpMag(k*BPNX+b))/(bpMag(k*BPNX+b-1)-bpMag(k*BPNX+b)||1); if(a===0||b===BPNX-1) return Infinity; return (fb-fa)*.25; }
+let bpTimer=null;
+function bpDraw(){ const c=$('cBp'), g=ctx(c), S=sim(1), T=bpTables(S), meth=+$('bpM').value, n=Math.round(+$('bpN').value*(S.Np-1)), sx=+$('bpX').value, sy=+$('bpY').value;
+  bpTo(n,meth); $('bpNv').textContent=(n+1)+' of '+S.Np; $('bpXv').textContent=sx.toFixed(2)+' m'; $('bpYv').textContent=sy.toFixed(2)+' m';
+  // image
+  const ix0=12,iy0=30,sc=2; let mx=0; for(let o=0;o<BPNX*BPNY;o++){ const v=bpMag(o); if(v>mx) mx=v; }
+  const im=g.createImageData(BPNX*sc,BPNY*sc); for(let k=0;k<BPNY;k++) for(let i=0;i<BPNX;i++){ const v=bpMag(k*BPNX+i)/(mx||1), d=20*Math.log10(v+1e-9), gr=Math.max(0,Math.min(255,(d+30)/30*255));
+    for(let a=0;a<sc;a++) for(let b=0;b<sc;b++){ const o=((k*sc+a)*BPNX*sc+i*sc+b)*4; im.data[o]=im.data[o+1]=im.data[o+2]=gr; im.data[o+3]=255; } }
+  g.putImageData(im,ix0,iy0); g.strokeStyle=css('--line'); g.strokeRect(ix0-.5,iy0-.5,BPNX*sc+1,BPNY*sc+1);
+  g.fillStyle=css('--ink'); g.fillText('image so far ('+['amplitude only','unfocused','focused'][meth]+'), range ↓',ix0,iy0-12);
+  g.fillStyle=css('--muted'); g.fillText('−20 m',ix0,iy0+BPNY*sc+14); g.fillText('along track',ix0+120,iy0+BPNY*sc+14); g.fillText('+20 m',ix0+BPNX*sc-40,iy0+BPNY*sc+14);
+  const pxX=ix0+(sx+20)/.25*sc+1, pxY=iy0+(sy-SIMROFF)/SIMBIN*sc+1; g.strokeStyle=css('--accent'); g.lineWidth=1.5; g.beginPath(); g.moveTo(pxX-7,pxY); g.lineTo(pxX+7,pxY); g.moveTo(pxX,pxY-7); g.lineTo(pxX,pxY+7); g.stroke(); g.lineWidth=1;
+  // phasor chain for the selected pixel
+  const k=Math.round((sy-SIMROFF)/SIMBIN), x0p=sx; const zr=[], zi=[]; let sumA=0;
+  for(let p=0;p<=n;p++){ const xp=S.x0+p*SIMDX, m=Math.round((xp-x0p)/SIMDX); if(m<-T.M||m>T.M) continue; const row=p*SIMNB; let re,imv;
+    if(meth===1){ if(Math.abs(m)>T.MU) continue; const q=k*T.nm+T.M; re=S.re[row+k]*T.pc[q]-S.im[row+k]*T.ps[q]; imv=S.re[row+k]*T.ps[q]+S.im[row+k]*T.pc[q]; }
+    else { const q=k*T.nm+m+T.M, b=T.bi[q]; if(b<0||b>=SIMNB-1) continue; const f=T.bf[q], a=S.re[row+b]*(1-f)+S.re[row+b+1]*f, bb=S.im[row+b]*(1-f)+S.im[row+b+1]*f;
+      if(meth===0){ re=Math.hypot(a,bb); imv=0; } else { re=a*T.pc[q]-bb*T.ps[q]; imv=a*T.ps[q]+bb*T.pc[q]; } }
+    zr.push(re); zi.push(imv); sumA+=Math.hypot(re,imv); }
+  const px0=352,py0=30,pw=276,ph=256; g.strokeStyle=css('--line'); g.strokeRect(px0,py0,pw,ph); g.fillStyle=css('--ink'); g.fillText('the '+zr.length+' rotated samples, tip to tail',px0,py0-12);
+  let cx=0,cy=0,mnx=0,mxx=0,mny=0,mxy=0; for(let q=0;q<zr.length;q++){ cx+=zr[q]; cy+=zi[q]; mnx=Math.min(mnx,cx); mxx=Math.max(mxx,cx); mny=Math.min(mny,cy); mxy=Math.max(mxy,cy); }
+  const span=Math.max(mxx-mnx,mxy-mny,1e-9), s2=(pw-30)/span, ox=px0+15+(-mnx)*s2+((pw-30)-(mxx-mnx)*s2)/2, oy=py0+ph-15-(-mny)*s2-((ph-30)-(mxy-mny)*s2)/2;
+  g.strokeStyle=css('--trace'); g.beginPath(); g.moveTo(ox,oy); cx=0; cy=0; for(let q=0;q<zr.length;q++){ cx+=zr[q]; cy+=zi[q]; g.lineTo(ox+cx*s2,oy-cy*s2); } g.stroke();
+  g.strokeStyle=css('--accent'); g.lineWidth=2.5; g.beginPath(); g.moveTo(ox,oy); g.lineTo(ox+cx*s2,oy-cy*s2); g.stroke(); g.lineWidth=1; g.fillStyle=css('--accent'); g.beginPath(); g.arc(ox,oy,3,0,7); g.fill();
+  const sumM=Math.hypot(cx,cy), align=sumA>0?sumM/sumA:0;
+  // cut along track
+  const cx0=56,cy0=330,cw=572,chh=90; frame(g,cx0,cy0,cw,chh,3); g.fillStyle=css('--muted'); g.fillText('0 dB',cx0-38,cy0+10); g.fillText('−30',cx0-30,cy0+chh); g.fillText('cut along track at range '+sy.toFixed(2)+' m',cx0+6,cy0-6);
+  g.strokeStyle=css('--trace2'); g.lineWidth=1.5; g.beginPath(); for(let i=0;i<BPNX;i++){ const v=bpMag(k*BPNX+i)/(mx||1), d=Math.max(-30,20*Math.log10(v+1e-9)); const XX=cx0+i/(BPNX-1)*cw, YY=cy0-d/30*chh; i?g.lineTo(XX,YY):g.moveTo(XX,YY); } g.stroke(); g.lineWidth=1;
+  g.strokeStyle=css('--accent'); g.beginPath(); const xs=cx0+(sx+20)/40*cw; g.moveTo(xs,cy0); g.lineTo(xs,cy0+chh); g.stroke();
+  // measurements
+  const kt=Math.round((SPTS[2].r-SIMROFF)/SIMBIN), wT=bpWidth(kt,SPTS[2].x);
+  const kl=Math.round((SPTS[3].r-SIMROFF)/SIMBIN), i1=Math.round((10+20)/.25), i2=Math.round((11.5+20)/.25), im2=Math.round((10.75+20)/.25);
+  const pkL=Math.min(bpMag(kl*BPNX+i1),bpMag(kl*BPNX+i2)), dip=bpMag(kl*BPNX+im2), dipdB=20*Math.log10((dip+1e-12)/(pkL+1e-12));
+  const ref=bpMag(kt*BPNX+Math.round((SPTS[2].x+20)/.25));
+  ro($('bpOut'),[['samples added for this pixel',zr.length],['|sum| ÷ (sum of |samples|)',(align*100).toFixed(0)+' %'],['pixel brightness vs the tank',(20*Math.log10((bpMag(k*BPNX+Math.round((sx+20)/.25))+1e-12)/(ref+1e-12))).toFixed(1)+' dB'],['tank width along track (−3 dB)',isFinite(wT)?wT.toFixed(2)+' m':'wider than the 40 m window'],['lamp posts 1.5 m apart',dipdB<-3?'separated (dip '+dipdB.toFixed(0)+' dB)':'merged']]);
+}
+bind(['bpN','bpM','bpX','bpY'],bpDraw);
+$('cBp').addEventListener('click',e=>{ const r=$('cBp').getBoundingClientRect(), sc=$('cBp').width/r.width, x=(e.clientX-r.left)*sc, y=(e.clientY-r.top)*sc; if(x<12||x>12+BPNX*2||y<30||y>30+BPNY*2) return;
+  $('bpX').value=Math.max(-20,Math.min(20,-20+Math.round((x-12)/2)*.25)); $('bpY').value=Math.max(-16,Math.min(15.75,SIMROFF+Math.round((y-30)/2)*SIMBIN)); bpDraw(); });
+function bpStop(){ if(bpTimer){ cancelAnimationFrame(bpTimer); bpTimer=null; } $('bpP').setAttribute('aria-pressed','false'); $('bpP').textContent='Play'; }
+$('bpP').addEventListener('click',()=>{ if(bpTimer){ bpStop(); return; } if(+$('bpN').value>=1) $('bpN').value=0; $('bpP').setAttribute('aria-pressed','true'); $('bpP').textContent='Pause';
+  (function st(){ const v=+$('bpN').value+0.006; if(v>=1){ $('bpN').value=1; bpDraw(); bpStop(); return; } $('bpN').value=v; bpDraw(); bpTimer=requestAnimationFrame(st); })(); });
+$('bpR').addEventListener('click',()=>{ bpStop(); $('bpN').value=0; bpDraw(); });
+
+/* 7b REAL APERTURE vs SAR */
+bind(['fiD','fiR'],function(){ const c=$('cFin'), g=ctx(c), P=patch(), D=+$('fiD').value, R=+$('fiR').value*1000, x0=24, y1=26, y2=y1+PH+60;
+  $('fiDv').textContent=fmt(D,'m',2); $('fiRv').textContent=(R/1000)+' km';
+  const fp=R*0.03/D, gr=c0/(2*150e6)/Math.sin(45*deg), sa=D/2;
+  putGrey(g,rarImage(fp,gr),x0,y1,radarGrey); patchAxes(g,x0,y1); g.fillStyle=css('--ink'); g.fillText('real-aperture radar: '+fmt(fp,'m',fp>=1000?1:0)+' along × 1.41 m across',x0,16);
+  putGrey(g,blurY(blurX(P.sp,(sa/PXm)/2),(gr/PYm)/2),x0,y2,radarGrey); patchAxes(g,x0,y2); g.fillStyle=css('--ink'); g.fillText('SAR, same antenna: '+fmt(sa,'m',2)+' along × 1.41 m across',x0,y2-10);
+  ro($('fiOut'),[['real aperture R·λ/D',fmt(fp,'m',fp>=1000?1:0)],['SAR D/2',fmt(sa,'m',2)],['improvement',(fp/sa).toFixed(0)+' ×'],['synthetic aperture flown',fmt(fp,'m',fp>=1000?1:0)+' in '+(fp/100).toFixed(1)+' s']]);
+});
+
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>

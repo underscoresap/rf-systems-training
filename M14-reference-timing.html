@@ -1,0 +1,1227 @@
+<meta charset="utf-8">
+<title>Reference, Clocks and Timing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">References, Clocks and Timing · RF Systems for Component Engineers</div>
+  <h1>Frequency reference, clocks and timing: the oscillator that keeps a coherent system coherent</h1>
+  <p class="lede">Every radar, SAR, ESM receiver and jammer has one small oscillator, usually a crystal in a box, from which every other frequency and every clock edge is made. Its accuracy decides where your signal sits in the spectrum. Its short-term stability decides whether pulses can be added up coherently, whether stationary clutter stays in the MTI notch and whether a SAR image focuses. Its sensitivity to vibration can ruin all of that on an aircraft. And the clocks it drives decide how well the system knows <i>when</i> something happened, which is what time-of-arrival and TDOA geolocation measure. This page builds those ideas from first principles: what coherence means, the oscillator types, Allan deviation against phase noise, g-sensitivity, multiplication to microwave LOs, clock distribution, coherence over a processing interval, timing for TOA and TDOA, and synchronising several channels or sites. Every term is defined before it is used, every step has worked numbers, and every choice is traced from your component to the system.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">0 One reference drives everything</a><a href="#coh">1 Coherence from first principles</a><a href="#types">2 Oscillator types</a><a href="#adev">3 Allan deviation vs phase noise</a><a href="#vib">4 g-sensitivity and vibration</a><a href="#mult">5 Multiplication and the LO floor</a><a href="#dist">6 Clock distribution</a><a href="#cpi">7 Coherence over the CPI</a><a href="#toa">8 Timing for TOA and TDOA</a><a href="#sync">9 Channels and sites</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="role">
+  <div class="secno">Step 0</div>
+  <h2>One reference drives everything</h2>
+  <div class="know"><h4>You already know</h4><p>A synthesiser makes its output frequency from a reference input, usually 10 MHz or 100 MHz. An ADC needs a sampling clock. A mixer needs an LO. You have probably seen a "10 MHz ref in" connector on the back of test equipment, and you know that two instruments locked to the same 10 MHz agree on frequency exactly.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Reference oscillator (master oscillator):</b> the one oscillator in the system whose frequency every other frequency is derived from. Typically a quartz crystal oscillator at 10 MHz or 100 MHz, sometimes steered by a rubidium cell or GPS.</p>
+    <p><b>Derived frequency:</b> a frequency made from the reference by multiplying, dividing, phase-locking or synthesising (PLL, DDS). Every derived frequency is an exact ratio of the reference: if the reference is 1 part per million high, every LO, clock and PRF is also 1 part per million high.</p>
+    <p><b>Clock:</b> a square-wave version of a derived frequency, used to time digital events: ADC sampling instants, DAC updates, the pulse repetition timer and the counters that time-stamp pulses.</p>
+    <p><b>ppm, ppb:</b> parts per million (10<sup>−6</sup>) and parts per billion (10<sup>−9</sup>) of the nominal frequency. 1 ppm of 10 GHz is 10 kHz; 1 ppb of 10 GHz is 10 Hz.</p>
+  </div>
+  <div class="col">
+    <p>The diagram shows a typical coherent radar or receiver. One reference feeds a distribution amplifier. From it, the transmit synthesiser makes the exciter LO and the DDS clock; the receive synthesisers make the first and second down-conversion LOs; a clock synthesiser makes the ADC and DAC sampling clocks; and a timing generator divides it down to make the pulse repetition frequency (PRF), the range gates and the time-stamp counter. An optional GPS receiver or rubidium cell steers the reference over long times.</p>
+    <p>Because everything is a ratio of one source, the transmitted carrier, the receive LOs and the sampling instants all move together. That shared movement is what makes the system <b>coherent</b>, the subject of Step 1. A component engineer meets this reference in three ways: as the oscillator itself (Steps 2 to 4), as the multiplier chain or PLL that inherits its noise (Step 5, and module 02 for the PLL), and as the clock buffers that carry it to every board (Step 6).</p>
+  </div>
+  <div class="diag" role="img" aria-label="Block diagram: one reference oscillator feeds the transmit synthesiser, the receive LOs, the ADC and DAC clocks and the timing generator">
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg">
+      <g style="fill:var(--chip);stroke:var(--line)">
+        <rect x="10" y="120" width="130" height="56" rx="4"/><rect x="190" y="120" width="120" height="56" rx="4"/>
+        <rect x="380" y="14" width="200" height="48" rx="4"/><rect x="380" y="78" width="200" height="48" rx="4"/><rect x="380" y="142" width="200" height="48" rx="4"/><rect x="380" y="206" width="200" height="48" rx="4"/>
+        <rect x="650" y="14" width="200" height="48" rx="4"/><rect x="650" y="78" width="200" height="48" rx="4"/><rect x="650" y="142" width="200" height="48" rx="4"/><rect x="650" y="206" width="200" height="48" rx="4"/>
+        <rect x="10" y="240" width="130" height="44" rx="4" style="stroke-dasharray:4 3"/>
+      </g>
+      <g style="stroke:var(--trace);stroke-width:1.6;fill:none">
+        <path d="M140 148 H190"/><path d="M310 148 H345 V38 H380"/><path d="M345 102 H380"/><path d="M345 148 V166 H380"/><path d="M345 166 V230 H380"/>
+        <path d="M580 38 H650"/><path d="M580 102 H650"/><path d="M580 166 H650"/><path d="M580 230 H650"/>
+      </g>
+      <path d="M75 240 V176" style="stroke:var(--muted);stroke-dasharray:4 3;fill:none"/>
+      <text x="22" y="143">Reference</text><text x="22" y="160" class="mut">OCXO 100 MHz</text>
+      <text x="200" y="143">Distribution</text><text x="200" y="160" class="mut">buffers, Step 6</text>
+      <text x="390" y="34">Transmit synthesiser</text><text x="390" y="51" class="mut">PLL ×N, DDS clock</text>
+      <text x="390" y="98">Receive synthesisers</text><text x="390" y="115" class="mut">LO1, LO2</text>
+      <text x="390" y="162">Clock synthesiser</text><text x="390" y="179" class="mut">ADC and DAC clocks</text>
+      <text x="390" y="226">Timing generator</text><text x="390" y="243" class="mut">÷M: PRF, gates, counter</text>
+      <text x="660" y="34">Exciter and PA</text><text x="660" y="51" class="mut">transmitted carrier</text>
+      <text x="660" y="98">Mixers</text><text x="660" y="115" class="mut">down-conversion</text>
+      <text x="660" y="162">ADC / DAC</text><text x="660" y="179" class="mut">sampling instants</text>
+      <text x="660" y="226">Pulse timing, TOA</text><text x="660" y="243" class="mut">time stamps, PDWs</text>
+      <text x="22" y="260">GPS or Rb</text><text x="22" y="276" class="mut">optional steering</text>
+    </svg>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design gives each subsystem its own convenient oscillator: a TCXO on the exciter board, another on the receiver board, a crystal on the ADC card. Each one is "accurate to 1 ppm". At 10 GHz, 1 ppm is 10 kHz. The transmitter and the receiver LO can therefore differ by up to 20 kHz, and the difference wanders as each board warms. A stationary building now appears to move at up to 300 m/s (Step 1), the Doppler filters put clutter in the wrong place, and the ADC samples drift against the PRF. The fix costs almost nothing: one reference, distributed. The rest of this page is about how good that one reference must be, and how to carry it without spoiling it.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Derived from the reference</th><th>Typical ratio to 100 MHz</th><th>What its error does</th></tr>
+    <tr><td>Exciter / receive LO at 10 GHz</td><td class="n">× 100</td><td>Phase noise × 100 (40 dB, Step 5); Doppler errors if Tx and Rx differ (Step 1)</td></tr>
+    <tr><td>ADC clock at 1 GHz</td><td class="n">× 10</td><td>Sampling jitter, SNR limit (Step 6; module 07)</td></tr>
+    <tr><td>PRF at 10 kHz</td><td class="n">÷ 10 000</td><td>PRI error, range-gate timing</td></tr>
+    <tr><td>Time-stamp counter at 100 MHz</td><td class="n">× 1</td><td>TOA quantisation and drift (Step 8)</td></tr>
+  </table></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>The reference is 2 ppm high. By how much is a 9.6 GHz LO high, and by how much is a 3.2 kHz PRF high?</summary><p>Every derived frequency is high by the same fraction: 9.6 GHz × 2×10<sup>−6</sup> = 19.2 kHz, and 3.2 kHz × 2×10<sup>−6</sup> = 0.0064 Hz. The fraction is the same everywhere; only the absolute Hertz differ.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="coh">
+  <div class="secno">Step 1</div>
+  <h2>Coherence from first principles</h2>
+  <div class="know"><h4>You already know</h4><p>A sine wave is A·cos(2πft + φ). Phase is the angle 2πft + φ, and frequency is how fast that angle turns: one full turn (360°) per cycle. Two signals at exactly the same frequency keep a constant phase difference; at slightly different frequencies the difference turns continuously, by 360° every 1/Δf seconds.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Coherent system:</b> one in which the phase of the transmitted signal is known when the echo comes back, so that the receiver can measure the echo's phase and compare it from pulse to pulse. In practice: the transmit carrier and the receive LO come from the same reference.</p>
+    <p><b>Pulse repetition frequency (PRF) and interval (PRI):</b> the radar sends a pulse every PRI seconds; PRF = 1/PRI. Example: PRF 8 kHz, PRI 125 µs.</p>
+    <p><b>Doppler shift f<sub>D</sub>:</b> a target moving towards the radar at radial speed v shifts the echo by f<sub>D</sub> = 2v/λ, where λ = c/f<sub>c</sub> is the wavelength. At 10 GHz, λ = 3.0 cm, so 30 m/s gives 2 kHz.</p>
+    <p><b>Pulse-to-pulse phase step:</b> between one pulse and the next, the echo phase of a target with Doppler f<sub>D</sub> turns by 360°·f<sub>D</sub>·PRI. A stationary target should give a step of exactly 0°.</p>
+    <p><b>Doppler filter bank and MTI notch:</b> an FFT across N pulses sorts echoes by their phase step, that is by Doppler. Stationary clutter (ground, buildings) lands at 0 Hz, where the processor puts a notch (MTI, moving-target indication) to remove it.</p>
+    <p><b>Fractional frequency offset y:</b> y = Δf/f. Two references 1 ppm apart have y = 10<sup>−6</sup>.</p>
+  </div>
+  <div class="col">
+    <p>Follow one pulse. The transmitter sends a burst of carrier at f<sub>Tx</sub>. It returns after the round-trip delay τ<sub>d</sub> = 2R/c and is mixed with the receive LO at f<sub>LO</sub>. The phase of the mixer output is the difference of the two phases at the moment of reception. If f<sub>Tx</sub> = f<sub>LO</sub> exactly, the difference is −2π·f·τ<sub>d</sub>: a constant for a stationary target, the same on every pulse. If the target moves, τ<sub>d</sub> changes a little each pulse and the phase steps, which is Doppler.</p>
+    <p>Now suppose the transmitter and the receive LO come from <i>different</i> references that differ by Δf = y·f<sub>c</sub>. The difference phase now also turns by 360°·Δf·PRI every pulse, even for a stationary target. The receiver cannot tell this from Doppler. The stationary target appears to move at v = Δf·λ/2.</p>
+    <p>If both come from the <i>same</i> reference, Δf = 0 exactly, whatever the reference's own error. A reference that is 1 ppm high makes the transmitter and the LO both 1 ppm high; the difference is still zero. This is the most important idea on the page: <b>coherence needs a common reference, not an accurate one</b>. The reference's accuracy only matters for where the carrier sits in the spectrum and for systems whose transmitter and receiver are apart (Steps 7 to 9).</p>
+  </div>
+  <div class="eq">Δφ<sub>pulse</sub> = 360° · (f<sub>D</sub> + y·f<sub>c</sub>) · PRI &nbsp;&nbsp; v<sub>false</sub> = y·f<sub>c</sub> · λ/2 = y·c/2<small>With a common reference y = 0 between transmitter and LO. The apparent Doppler is folded into −PRF/2 … +PRF/2 by the pulse sampling (aliasing): only the step modulo 360° is visible.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>Use two free-running TCXOs, one for the exciter and one for the receiver, which happen to be 1 ppm apart. At 10 GHz, Δf = 10 kHz, which on its own would look like 150 m/s. With PRF 8 kHz the phase step per pulse is 360° × 10 000 × 125 µs = 450°, which the processor sees as 90°: stationary clutter appears at +2 kHz, as if moving at 30 m/s. It sits outside the MTI notch, swamps the Doppler bins where real 30 m/s targets would be, and drifts as the TCXOs warm. The alternative extreme is a non-coherent transmitter, such as a magnetron, whose start phase is random on every pulse: then there is no phase step to measure at all.</p></div>
+  <h3>Side by side on one example: 10 GHz, PRF 8 kHz, 64 pulses, stationary target</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Arrangement</th><th>Tx − LO offset</th><th>Phase step per pulse</th><th>Clutter appears at</th><th>Coherent gain over 64 pulses</th></tr>
+    <tr><td>Common reference</td><td class="n">0 Hz</td><td class="n">0°</td><td class="n">0 Hz (in the notch)</td><td class="n">18.1 dB</td></tr>
+    <tr><td>Separate OCXOs, 50 ppb apart</td><td class="n">500 Hz</td><td class="n">22.5°</td><td class="n">+500 Hz (7.5 m/s)</td><td class="n">18.1 dB, wrong bin</td></tr>
+    <tr><td>Separate TCXOs, 1 ppm apart</td><td class="n">10 kHz</td><td class="n">450° ≡ 90°</td><td class="n">+2 kHz (30 m/s)</td><td class="n">18.1 dB, wrong bin</td></tr>
+    <tr><td>Non-coherent (random phase each pulse)</td><td class="n">n/a</td><td class="n">random</td><td class="n">spread over all bins</td><td class="n">about 0 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Coherent gain is 10·log<sub>10</sub>(N) = 18.1 dB for 64 pulses: when every echo has the same phase step the FFT adds them in phase. Separate references keep the gain but put the energy in the wrong Doppler bin. Random phases destroy the gain.</p></div>
+  <h3>How to choose the arrangement</h3>
+  <div class="col"><p>(1) Derive the transmitter carrier, every receive LO and the ADC clock from one reference; that sets y = 0 between them and costs only distribution (Step 6). (2) If the transmitter and receiver cannot share a reference (bistatic radar, two-site TDOA, a jammer that repeats a victim's signal), the allowed offset follows from the Doppler error you can tolerate: y ≤ 2·v<sub>err</sub>/c. For a 1 m/s error that is 6.7 ppb, beyond any TCXO and at the edge of an OCXO; it needs rubidium or GPS discipline (Step 2). (3) Raising the carrier raises Δf in Hz but not the false velocity, which is y·c/2 at every frequency. Raising the PRF reduces folding but does not remove the offset.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCo" width="680" height="320" aria-label="Echo phase of a stationary target on successive pulses, and its Doppler spectrum"></canvas>
+    <div class="ctrl">
+      <label for="coA"><span>Arrangement</span></label><select id="coA"><option value="common">Common reference</option><option value="sep" selected>Separate references</option><option value="nc">Non-coherent (random phase)</option></select>
+      <label for="coY"><span>Offset between references</span> <b id="coYv"></b></label><input id="coY" type="range" min="-2" max="4" step="0.01" value="3">
+      <label for="coF"><span>Carrier frequency</span> <b id="coFv"></b></label><input id="coF" type="range" min="1" max="35" step="0.1" value="10">
+      <label for="coP"><span>PRF</span> <b id="coPv"></b></label><input id="coP" type="range" min="1" max="50" step="0.1" value="8">
+      <div class="readout" id="coOut"></div>
+    </div>
+    <p class="cap">Left: the echo phase of a stationary target on 16 successive pulses (dot 1 dark, later dots lighter). Right: the Doppler spectrum after an FFT over 64 pulses; the shaded band is the MTI notch around 0 Hz. The offset slider is logarithmic, 0.01 ppb to 10 ppm (3.0 = 1 ppm), and acts only for separate references.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Separate references, 1 ppm, 10 GHz, PRF 8 kHz (the start): offset 10 kHz, step 90° after folding, clutter at +2.00 kHz, false speed 30.0 m/s, the third row of the table.</li>
+    <li>Set the offset to 50 ppb (slider 1.70): step 22.5° and clutter at +500 Hz, 7.5 m/s.</li>
+    <li>Switch to common reference: the dots sit on one point, the peak returns to 0 Hz inside the notch, and moving the offset slider changes nothing.</li>
+    <li>Non-coherent: the dots scatter around the circle and the highest bin drops to about −10 dB. The average level is −18.1 dB (1/64) in every arrangement: the energy is the same, and coherence only decides whether it piles up in one bin, the 18.1 dB of coherent gain.</li>
+    <li>Separate references: change the carrier; the offset in Hz scales with it but the folded false speed only changes through aliasing, the unfolded y·c/2 stays 150 m/s at 1 ppm.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Common reference</td><td>Architecture: one reference, distributed to every synthesiser</td><td>"External reference input" on every synthesiser</td><td>y = 0 between Tx and LO: clutter stays at 0 Hz whatever the oscillator error</td></tr>
+    <tr><td>Reference offset (separate sites only)</td><td>Oscillator type and discipline (Step 2)</td><td>Frequency accuracy, ppm or ppb</td><td>False velocity y·c/2: 1 ppm → 150 m/s; 50 ppb → 7.5 m/s</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> every PLL must lock to the system reference, never to a local crystal "for convenience". Check the reference-input sensitivity and that a missing reference raises an alarm instead of letting the PLL free-run.</li>
+    <li><b>Transmitter designers:</b> a solid-state exciter driven by the common LO is coherent by construction; a magnetron or free-running oscillator is not.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An X-band radar at 9.4 GHz uses separate TCXOs that are 0.3 ppm apart. What false velocity does stationary clutter show (before folding)?</summary><p>v = y·c/2 = 0.3×10<sup>−6</sup> × 3×10<sup>8</sup>/2 = 45 m/s. The carrier does not enter: Δf = 2.82 kHz and λ/2 = 1.6 cm give the same 45 m/s.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="types">
+  <div class="secno">Step 2</div>
+  <h2>Oscillator types: accuracy, ageing, temperature and warm-up</h2>
+  <div class="know"><h4>You already know</h4><p>A quartz crystal is a mechanical resonator: a thin plate of quartz that vibrates at a frequency set by its thickness and cut, with Q between 10<sup>4</sup> and 10<sup>6</sup>. Its frequency changes a little with temperature. Module 02 explains why high Q gives low phase noise.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Accuracy (frequency tolerance):</b> how far the frequency is from nominal when delivered or after adjustment, in ppm or ppb.</p>
+    <p><b>Temperature stability (tempco):</b> how much the frequency moves as the ambient temperature changes, usually given as ± ppm over the operating range (for example ±0.5 ppm over −40 to +85 °C). On this page it is expressed as an average slope in ppb per °C.</p>
+    <p><b>Ageing:</b> the slow, steady drift of frequency over days and years as the crystal mounting relaxes and contaminants move, in ppb per day or ppm per year. It is fastest when new and slows with time.</p>
+    <p><b>Warm-up and retrace:</b> warm-up is the time after switch-on until the frequency is within a stated error; retrace is how close it comes back to its old value after being switched off and on.</p>
+    <p><b>XO:</b> a bare crystal oscillator, no compensation. <b>TCXO</b> (temperature-compensated): a thermistor network measures temperature and pulls the crystal with a varactor to cancel its curve. <b>OCXO</b> (oven-controlled): an SC-cut crystal held in an oven at its turnover temperature (about 80 °C), where the curve is flat, so ambient changes hardly matter. <b>Rubidium (Rb):</b> an atomic frequency standard; a crystal oscillator is locked to the 6.834 682 611 GHz transition of rubidium-87 atoms, which does not age like quartz. <b>GPSDO</b> (GPS-disciplined oscillator): an OCXO steered by the GPS one-pulse-per-second (1 PPS) timing signal with a slow loop, time constant about 1 000 s. <b>Holdover:</b> a GPSDO that has lost GPS and coasts on its OCXO.</p>
+  </div>
+  <div class="col">
+    <p>The frequency error of a real oscillator at time t after switch-on is the sum of four parts: the initial offset (accuracy), a warm-up transient that dies away, a temperature term that follows the ambient (here a daily swing), and an ageing term that grows with time. Each oscillator type attacks a different part. A TCXO attacks temperature with compensation, an OCXO with an oven, rubidium attacks ageing with an atomic reference, and a GPSDO attacks all slow terms by steering to GPS, which is ultimately steered to atomic clocks.</p>
+  </div>
+  <div class="eq">y(t) = y<sub>0</sub> + y<sub>warm</sub>·e<sup>−t/τ<sub>w</sub></sup> + k<sub>T</sub>·ΔT(t) + D·t &nbsp;&nbsp; Δf = y·f<sub>c</sub> &nbsp;&nbsp; time error x(t) = ∫ y dt<small>y<sub>0</sub> initial offset, k<sub>T</sub> temperature slope (ppb/°C), D ageing rate (ppb/day). The last formula links this step to Step 8: a frequency offset is a clock that runs fast, so a time error builds up.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>A plain XO costs little and "only" has a 20 ppm tolerance. In a monostatic radar with a common reference this hardly matters for coherence (Step 1), but the carrier at 10 GHz is 200 kHz off nominal and moves another ±40 kHz with a 40 °C daily swing, which can put it outside its frequency allocation and outside a narrow preselector. In a two-site TDOA system it is far worse: 20 ppm is a clock gaining 20 µs every second, and 20 µs of timing error is 6 km of range difference (Step 8). Choosing the oscillator type is choosing which of these errors you can live with.</p></div>
+  <h3>Side by side on one example: 40 °C daily swing, carrier 10 GHz (illustrative values)</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Type</th><th>Accuracy</th><th>Temperature (±, 40 °C swing)</th><th>Ageing</th><th>Warm-up</th><th>Worst offset at 10 GHz (first day)</th><th>Power, size</th></tr>
+    <tr><td>XO</td><td class="n">20 ppm</td><td class="n">4 ppm</td><td class="n">5 ppb/day</td><td>immediate</td><td class="n">240 kHz</td><td>mW, tiny</td></tr>
+    <tr><td>TCXO</td><td class="n">1 ppm</td><td class="n">80 ppb</td><td class="n">3 ppb/day</td><td>seconds</td><td class="n">10.8 kHz</td><td>mW, small</td></tr>
+    <tr><td>OCXO</td><td class="n">50 ppb</td><td class="n">1.6 ppb</td><td class="n">0.3 ppb/day</td><td>≈ 8 min to 10 ppb</td><td class="n">517 Hz</td><td>1–3 W, 25–50 mm</td></tr>
+    <tr><td>Rubidium</td><td class="n">0.05 ppb</td><td class="n">0.016 ppb</td><td class="n">0.0017 ppb/day</td><td>≈ 7 min to lock</td><td class="n">0.66 Hz</td><td>6–15 W, larger</td></tr>
+    <tr><td>GPSDO, locked</td><td class="n">0.001 ppb (1 day average)</td><td class="n">0.12 ppb (loop residual)</td><td class="n">removed by GPS</td><td>≈ 30 min to lock</td><td class="n">1.2 Hz</td><td>OCXO + GPS receiver, antenna</td></tr>
+    <tr><td>GPSDO, holdover</td><td class="n">starts at 0.001 ppb</td><td class="n">1.6 ppb</td><td class="n">0.3 ppb/day</td><td>n/a</td><td class="n">17 Hz</td><td>as above</td></tr>
+  </table></div>
+  <div class="col"><p>Each step down the table buys about one to three orders of magnitude, paid for in power, size and cost. Notice that the GPSDO's daily temperature residual (0.12 ppb) is larger than its one-day average (0.001 ppb): the loop is too slow to follow temperature fully within the day, but over a day it averages to GPS. And holdover starts excellent and degrades at the OCXO's ageing rate.</p></div>
+  <h3>How to choose the oscillator type</h3>
+  <div class="col"><p>(1) Write down the longest time over which the frequency must hold without correction: one CPI (ms), one SAR aperture (s), one TDOA measurement between synchronisations (s to hours), or the whole mission. (2) Write down the largest frequency error that is allowed over that time: from the spectrum allocation (absolute), from Doppler error y ≤ 2v<sub>err</sub>/c (separate sites), or from time error x = y·t (Step 8). (3) Pick the cheapest type whose accuracy + temperature + ageing over that time stays inside it. (4) Check warm-up against the required time from switch-on to operation: an OCXO or rubidium may need several minutes, and a GPSDO tens of minutes before it reaches its locked figure. Raising the requirement on accuracy pushes from XO to TCXO to OCXO; raising the hold time without GPS pushes towards rubidium.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTy" width="680" height="320" aria-label="Fractional frequency error against time since switch-on for the chosen oscillator"></canvas>
+    <div class="ctrl">
+      <label for="tyK"><span>Oscillator type</span></label><select id="tyK"><option value="xo">XO</option><option value="tcxo">TCXO</option><option value="ocxo" selected>OCXO</option><option value="rb">Rubidium</option><option value="gpsdo">GPSDO, locked</option><option value="hold">GPSDO, holdover</option></select>
+      <label for="tyS"><span>Daily ambient swing (peak to peak)</span> <b id="tySv"></b></label><input id="tyS" type="range" min="0" max="80" step="1" value="40">
+      <label for="tyT"><span>Time span shown</span> <b id="tyTv"></b></label><input id="tyT" type="range" min="0" max="1" step="0.005" value="0.35">
+      <label for="tyF"><span>Carrier frequency</span> <b id="tyFv"></b></label><input id="tyF" type="range" min="1" max="35" step="0.1" value="10">
+      <div class="readout" id="tyOut"></div>
+    </div>
+    <p class="cap">Frequency error in ppb from switch-on. The plot scale ignores the first hour when the span is longer than three hours, so the warm-up spike may run off the top. The span slider is logarithmic, one hour to one year (0.35 = one day).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>OCXO over one day with a 40 °C swing: worst offset after the first hour 51.7 ppb, 517 Hz at 10 GHz, the OCXO row.</li>
+    <li>Set the span to one hour (slider at the left end): the warm-up dominates; the OCXO is still 121 ppb high at 5 minutes and needs about 8 minutes to come within 10 ppb of its settled value.</li>
+    <li>TCXO with the swing at 0 °C, then 80 °C: the temperature term goes from 0 to ±160 ppb.</li>
+    <li>GPSDO locked against holdover over one year: the locked unit stays within about 0.1 ppb; in holdover the ageing reaches 110 ppb, the same as a free OCXO.</li>
+    <li>The last readout line is the time error accumulated over the span; for the OCXO over one day it is about 4.5 ms, which is why Step 8 needs synchronisation.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Crystal cut and oven</td><td>AT-cut vs SC-cut, oven setpoint at turnover, insulation</td><td>Temperature stability (± ppb over range)</td><td>Carrier movement with weather: ±40 kHz (XO) vs ±16 Hz (OCXO) at 10 GHz for 40 °C</td></tr>
+    <tr><td>Crystal processing</td><td>Cleaning, sealing, mounting stress, pre-ageing</td><td>Ageing ppb/day, ppm/year</td><td>Recalibration interval; holdover time for a GPSDO</td></tr>
+    <tr><td>Steering</td><td>Rb physics package or GPS receiver with loop time constant</td><td>Accuracy, holdover, time to lock</td><td>Sites agree on frequency to 10<sup>−12</sup>, needed for bistatic and TDOA (Steps 7, 8)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Oscillator designers:</b> the oven controller gain, the turnover-point setting and the thermal design decide the temperature line; the crystal and its mount decide ageing and g-sensitivity (Step 4).</li>
+    <li><b>Power and mechanical designers:</b> an OCXO draws several watts while warming; the supply and the warm-up time are system requirements.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A ground radar must stay within 2 kHz of its assigned 5.6 GHz carrier for a year without recalibration, ambient −20 to +50 °C. Is a TCXO enough?</summary><p>2 kHz / 5.6 GHz = 357 ppb. A TCXO (1 ppm accuracy, ±140 ppb over a 70 °C range, about 1.1 ppm/year ageing) is not. An OCXO (50 ppb + 2.8 ppb + 110 ppb/year ≈ 163 ppb) is.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="adev">
+  <div class="secno">Step 3</div>
+  <h2>Short-term stability: Allan deviation against phase noise</h2>
+  <div class="know"><h4>You already know</h4><p>Phase noise L(f), in dBc/Hz at an offset f from the carrier, describes the random wobble of an oscillator's phase seen as noise sidebands. Module 02 builds it from first principles and shows how to integrate it into rms jitter. Step 2 above covered slow, predictable drifts. This step covers the random part in between.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Averaging time τ:</b> the length of time over which you measure the average frequency. A counter with a 1 s gate measures the average over τ = 1 s.</p>
+    <p><b>Allan deviation σ<sub>y</sub>(τ) (ADEV):</b> measure the average fractional frequency over many consecutive intervals of length τ; take the differences between neighbours; σ<sub>y</sub><sup>2</sup>(τ) = ½·mean((ȳ<sub>k+1</sub> − ȳ<sub>k</sub>)<sup>2</sup>). It answers: "if I measure the frequency over τ, how much does the next τ-long measurement differ?" Example: σ<sub>y</sub>(1 s) = 5.5×10<sup>−13</sup> means successive 1 s averages differ by about 5.5×10<sup>−13</sup>, that is 5.5 mHz at 10 GHz.</p>
+    <p><b>Noise types:</b> the random fluctuations are usually a sum of power laws. In order of importance from short to long times: <b>white PM</b> and <b>flicker PM</b> (phase noise floor and flicker of the amplifier, ADEV falls as 1/τ), <b>white FM</b> (ADEV falls as 1/√τ), <b>flicker FM</b> (ADEV flat: the "flicker floor", the best the oscillator can do), <b>random-walk FM</b> (ADEV rises as √τ: the frequency wanders away).</p>
+    <p><b>Phase wander over an interval τ:</b> the rms phase change accumulated over τ, Δφ ≈ 2π·f<sub>c</sub>·τ·σ<sub>y</sub>(τ); and the time wander Δx ≈ τ·σ<sub>y</sub>(τ).</p>
+  </div>
+  <div class="col">
+    <p>Phase noise and Allan deviation describe the same random wobble in two languages. Phase noise is the <b>frequency-domain</b> view: how much noise power sits at each offset f. Allan deviation is the <b>time-domain</b> view: how much the frequency changes over each interval τ. A rough dictionary is f ≈ 1/(2πτ): noise at offsets around 1.6 Hz shows up in ADEV around τ = 0.1 s, and noise at 1.6 kHz around τ = 0.1 ms.</p>
+    <p>Which one to use depends on the time scale of the job. Doppler filters, pulse compression and MTI work over microseconds to milliseconds: their neighbours in frequency are hundreds of hertz to megahertz away, so phase noise is the natural language (module 02, Steps 9 and 10). A SAR aperture, a long coherent integration or a bistatic link works over 0.1 s to 10 s: phase noise below 1 Hz is hard to measure and to specify, so ADEV is the natural language. Beyond about 1 000 s the deterministic terms of Step 2 (temperature, ageing) take over.</p>
+  </div>
+  <div class="eq">L(f) = (ν<sub>0</sub><sup>2</sup>/2f<sup>2</sup>)·Σ h<sub>α</sub>f<sup>α</sup> &nbsp;&nbsp; σ<sub>y</sub><sup>2</sup>(τ): white FM h<sub>0</sub>/2τ, flicker FM 2·ln2·h<sub>−1</sub>, random walk (2π<sup>2</sup>/3)·h<sub>−2</sub>·τ<small>ν<sub>0</sub> is the oscillator frequency, h<sub>α</sub> the strength of each power law in the fractional-frequency spectrum S<sub>y</sub>(f). The same five numbers give both curves; the plots below are computed this way, all at 100 MHz. White and flicker PM depend also on the measurement bandwidth (1 MHz here).</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach reads the "stability" line on a TCXO datasheet, 1×10<sup>−10</sup> at 1 s, and concludes it is tiny. At 10 GHz it is about 1 Hz rms of frequency change between successive seconds, and over a 1 s interval the phase wanders by 360° × 10<sup>10</sup> × 1 × 1.05×10<sup>−10</sup> ≈ 377° (the model gives 1.05×10<sup>−10</sup> once random walk is added): more than one whole cycle. A bistatic SAR whose receiver used that TCXO over a 1 s aperture would not focus. An OCXO at 5.5×10<sup>−13</sup> wanders 2° over the same second. The reverse mistake is to specify only ADEV at 1 s and forget phase noise: two oscillators with the same σ<sub>y</sub>(1 s) can differ by 20 dB at 1 kHz offset, which is where the Doppler filters live.</p></div>
+  <h3>Side by side on one example: phase wander at 10 GHz over three intervals</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Oscillator</th><th>σ<sub>y</sub>(1 ms)</th><th>σ<sub>y</sub>(1 s)</th><th>σ<sub>y</sub>(100 s)</th><th>Wander over 1 ms</th><th>Wander over 1 s</th></tr>
+    <tr><td>XO</td><td class="n">1.0e−9</td><td class="n">1.0e−9</td><td class="n">3.3e−9</td><td class="n">3.75°</td><td class="n">3 770°</td></tr>
+    <tr><td>TCXO</td><td class="n">1.7e−10</td><td class="n">1.0e−10</td><td class="n">3.3e−10</td><td class="n">0.61°</td><td class="n">377°</td></tr>
+    <tr><td>OCXO, 100 MHz</td><td class="n">1.6e−11</td><td class="n">5.5e−13</td><td class="n">1.7e−12</td><td class="n">0.056°</td><td class="n">2.0°</td></tr>
+    <tr><td>OCXO, 10 MHz low-noise</td><td class="n">2.2e−10</td><td class="n">2.9e−13</td><td class="n">8.3e−13</td><td class="n">0.79°</td><td class="n">1.0°</td></tr>
+    <tr><td>Rubidium</td><td class="n">1.6e−11</td><td class="n">5.5e−13</td><td class="n">3.0e−13</td><td class="n">0.056°</td><td class="n">2.0°</td></tr>
+    <tr><td>GPSDO</td><td class="n">1.6e−11</td><td class="n">5.5e−13</td><td class="n">2.4e−12</td><td class="n">0.056°</td><td class="n">2.0°</td></tr>
+  </table></div>
+  <div class="col"><p>Three lessons. (1) Below about 10 s, rubidium and GPSDO are only as good as their internal crystal: the atomic or GPS steering acts slowly (10 s and 1 000 s loops here), so for short times you buy the crystal. (2) The 10 MHz OCXO is better at 1 s (lower flicker floor) but worse at 1 ms (higher white-PM floor once scaled to 100 MHz); no single oscillator wins at every τ. (3) The GPSDO is slightly <i>worse</i> than its OCXO near 1 000 s, where the GPS timing noise is passed through the loop: this "bump" is normal and sets the loop time constant choice.</p></div>
+  <h3>How to choose the specification</h3>
+  <div class="col"><p>(1) List the time intervals that matter: the range delay τ<sub>d</sub> (monostatic radar, Step 7), the CPI, the SAR aperture, the time between synchronisations. (2) For intervals shorter than about 10 ms, specify phase noise at the offsets 1/(2π·interval) and above, up to the Doppler bandwidth. (3) For intervals from 10 ms to 1 000 s, specify σ<sub>y</sub>(τ) at those τ, from Δφ<sub>allowed</sub> = 2π·f<sub>c</sub>·τ·σ<sub>y</sub>: for 10° at 10 GHz over 2 s, σ<sub>y</sub>(2 s) ≤ 1.4×10<sup>−12</sup>. (4) Beyond 1 000 s, use the Step 2 terms. Choosing a higher-Q, larger crystal lowers the flicker floor; choosing a lower-noise sustaining amplifier lowers white and flicker PM; steering with Rb or GPS removes the random walk at long τ but not below its loop time constant.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cAd" width="680" height="320" aria-label="Phase noise at 100 MHz and Allan deviation of the chosen oscillator, with markers at the chosen averaging time"></canvas>
+    <div class="ctrl">
+      <label for="adK"><span>Oscillator</span></label><select id="adK"><option value="xo">XO</option><option value="tcxo">TCXO</option><option value="ocxo" selected>OCXO, 100 MHz</option><option value="ocxo10">OCXO, 10 MHz low-noise</option><option value="rb">Rubidium</option><option value="gpsdo">GPS-disciplined OCXO</option></select>
+      <label for="adT"><span>Averaging time τ</span> <b id="adTv"></b></label><input id="adT" type="range" min="-3" max="4" step="0.01" value="0">
+      <label for="adF"><span>Carrier for the wander readout</span> <b id="adFv"></b></label><input id="adF" type="range" min="1" max="35" step="0.1" value="10">
+      <div class="readout" id="adOut"></div>
+    </div>
+    <p class="cap">Left: phase noise L(f) at 100 MHz; the vertical marker is at f = 1/(2πτ). Right: Allan deviation; the dot is at the chosen τ. Grey curves are the other oscillators. The τ slider is logarithmic, 1 ms to 10 000 s (0 = 1 s).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>OCXO at τ = 1 s (the start): σ<sub>y</sub> 5.5e−13, flicker FM dominant, wander 2.0° at 10 GHz, as in the table.</li>
+    <li>TCXO at τ = 1 s: σ<sub>y</sub> 1.0e−10 and a wander of 377°, the naive case.</li>
+    <li>Rubidium from τ = 1 s to τ = 10 000 s (slider 4): the ADEV keeps falling to about 4.4e−14 while the OCXO rises to 1.6e−11.</li>
+    <li>GPSDO at τ = 1 000 s (slider 3): 1.3e−11, the bump, worse than the free OCXO's 5.0e−12 at the same τ; by 10 000 s it is 1.7e−12 and falling.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Flicker floor</td><td>Crystal Q, size, drive level, cut</td><td>ADEV 1–10 s; L(f) close in (f<sup>−3</sup>)</td><td>Phase wander over SAR apertures and bistatic CPIs: 2° vs 377° per second at 10 GHz</td></tr>
+    <tr><td>White and flicker PM</td><td>Sustaining amplifier, output buffer, filtering</td><td>L(f) floor, ADEV at ms</td><td>Doppler-filter noise and multiplied LO floor (Step 5)</td></tr>
+    <tr><td>Random walk and steering</td><td>Thermal design; Rb or GPS loop time constant</td><td>ADEV 100–10 000 s</td><td>Holdover and long-baseline TDOA (Step 8)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Oscillator designers:</b> you set the h<sub>α</sub> coefficients; ask the system engineer which τ range matters before trading flicker floor against far-out noise.</li>
+    <li><b>Test engineers:</b> ADEV is measured with a phase or time-interval analyser against a better reference; phase noise with a phase-noise analyser. Both need a reference at least 10 dB better at the τ or f of interest.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A Ku-band (16 GHz) bistatic receiver must keep phase wander under 20° over a 0.5 s aperture. What σ<sub>y</sub>(0.5 s) is needed?</summary><p>Δφ = 2π·f<sub>c</sub>·τ·σ<sub>y</sub> → σ<sub>y</sub> = (20/360)/(16×10<sup>9</sup> × 0.5) = 6.9×10<sup>−12</sup>. An OCXO meets it easily; a TCXO (≈10<sup>−10</sup>) does not.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="vib">
+  <div class="secno">Step 4</div>
+  <h2>g-sensitivity: vibration-induced phase noise on moving platforms</h2>
+  <div class="know"><h4>You already know</h4><p>A quartz crystal's frequency depends on the stress in the plate: that is how it is pulled by its mounting and how it ages. Acceleration also stresses the plate. A sine-wave frequency modulation at rate f<sub>m</sub> with peak deviation Δf has modulation index β = Δf/f<sub>m</sub> and puts sidebands at ±f<sub>m</sub> at a level of about 20·log<sub>10</sub>(β/2) dBc when β is small.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>g:</b> the acceleration of gravity, 9.81 m/s². Vibration levels are given in g.</p>
+    <p><b>g-sensitivity Γ:</b> the fractional frequency change per g of acceleration, in ppb/g (10<sup>−9</sup>/g). It is a vector: the crystal is most sensitive along one axis. Typical values: 1–2 ppb/g for a standard SC-cut crystal, 0.1 ppb/g for a low-g design, 0.01–0.05 ppb/g with active compensation.</p>
+    <p><b>Static g-shift (2g tip-over):</b> turning the oscillator upside down changes the acceleration by 2 g, so the frequency shifts by 2Γ. At Γ = 1 ppb/g, a 100 MHz OCXO moves 0.2 Hz.</p>
+    <p><b>Sine vibration:</b> a single tone, amplitude A (g peak) at frequency f<sub>v</sub>, as from a rotor or propeller. <b>Random vibration:</b> broadband shaking described by its power spectral density G(f) in g²/Hz; its rms level g<sub>rms</sub> is the square root of the area under G(f). A jet-aircraft profile of 0.04 g²/Hz from 15 to 2 000 Hz is 8.9 g<sub>rms</sub>.</p>
+    <p><b>Vibration isolator:</b> a spring-and-damper mount with natural frequency f<sub>n</sub>. Above about 1.4·f<sub>n</sub> it attenuates vibration; near f<sub>n</sub> it amplifies it (by about 5× here, damping ratio 0.1).</p>
+  </div>
+  <div class="col">
+    <p>An acceleration a(t) changes the frequency by Γ·a(t)·ν<sub>0</sub>. A vibration at f<sub>v</sub> is therefore a frequency modulation at f<sub>v</sub>, and it puts phase-noise sidebands exactly at the vibration frequencies: tens of hertz to a few kilohertz from the carrier. That is the region where a static OCXO is at its best and where the radar's Doppler filters sit. On a bench the effect is invisible; on an aircraft it usually dominates the close-in phase noise.</p>
+    <p>For random vibration each slice of G(f) acts like a small sine. The resulting phase noise follows the profile shape and falls as 1/f<sup>2</sup>, because the same frequency deviation gives a smaller phase deviation at higher rates. Multiplying the reference by N to make the LO adds 20·log N to these sidebands exactly as to all other phase noise (Step 5).</p>
+  </div>
+  <div class="eq">sine: L(f<sub>v</sub>) = 20·log<sub>10</sub>(Γ·A·ν<sub>0</sub> / 2f<sub>v</sub>) &nbsp;&nbsp; random: L(f) = 20·log<sub>10</sub>(Γ·ν<sub>0</sub>·√(G(f)/2) / f) &nbsp;&nbsp; at the LO: + 20·log<sub>10</sub>(f<sub>LO</sub>/ν<sub>0</sub>)<small>Worked: jet profile, G = 0.04 g²/Hz, Γ = 1 ppb/g, ν<sub>0</sub> = 100 MHz, f = 100 Hz: Γ·ν<sub>0</sub> = 0.1 Hz/g; √0.02 = 0.141; 0.1 × 0.141/100 = 1.41×10<sup>−4</sup> → −77.0 dBc/Hz. The same OCXO standing still has −141.2 dBc/Hz at 100 Hz: vibration is 64 dB worse. At a 10 GHz LO both rise by 40 dB: −37.0 against −101.2 dBc/Hz.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach takes the oscillator that measured best on the lab bench and hard-mounts it in the aircraft. With Γ = 1 ppb/g the 10 GHz LO has −37 dBc/Hz at 100 Hz and −57 dBc/Hz at 1 kHz offset, and an integrated phase error of about 29° from 10 Hz to 2 kHz. Ground clutter 60 dB above the noise is smeared by these sidebands across hundreds of hertz of Doppler and buries slow targets. On a helicopter a single 1 g rotor line at 17 Hz puts a discrete sideband at −10.6 dBc on the 10 GHz LO: a false target at ±17 Hz Doppler next to every strong echo.</p></div>
+  <h3>Side by side on one example: jet profile, 10 GHz LO from a 100 MHz OCXO</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Treatment</th><th>L at 50 Hz</th><th>L at 100 Hz</th><th>L at 1 kHz</th><th>Phase error 10 Hz–2 kHz</th></tr>
+    <tr><td>Static (no vibration)</td><td class="n">−96.6</td><td class="n">−101.2</td><td class="n">−111.9</td><td class="n">0.02°</td></tr>
+    <tr><td>1 ppb/g, hard-mounted</td><td class="n">−31.0</td><td class="n">−37.0</td><td class="n">−57.0</td><td class="n">29.5°</td></tr>
+    <tr><td>1 ppb/g, isolator f<sub>n</sub> 50 Hz (badly placed)</td><td class="n">−16.8</td><td class="n">−46.0</td><td class="n">−96.7</td><td class="n">52.7°</td></tr>
+    <tr><td>1 ppb/g, isolator f<sub>n</sub> 10 Hz</td><td class="n">−55.6</td><td class="n">−69.9</td><td class="n">−111.0</td><td class="n">9.3°</td></tr>
+    <tr><td>0.1 ppb/g low-g crystal, isolator f<sub>n</sub> 10 Hz</td><td class="n">−75.6</td><td class="n">−89.9</td><td class="n">−131.0</td><td class="n">0.93°</td></tr>
+  </table></div>
+  <div class="col"><p>(Levels in dBc/Hz; the static column is the oscillator alone, vibration rows show the vibration term.) An isolator only helps above its resonance: one placed at 50 Hz, inside the vibration band, makes 50 Hz 14 dB worse and the integrated error larger. Each factor of ten in Γ is worth 20 dB everywhere. The two measures multiply: a low-g crystal on a well-placed isolator is about 60 dB better than the naive case at 1 kHz.</p></div>
+  <h3>How to choose Γ and the mounting</h3>
+  <div class="col"><p>(1) Get the platform vibration profile (g²/Hz against frequency, and any sine lines). (2) Decide the allowed L(f) at the LO at the Doppler offsets that matter, from the clutter-to-noise ratio the Doppler filters must preserve. (3) Solve for Γ: Γ ≤ 10<sup>L/20</sup>·f / (f<sub>LO</sub>·√(G/2)). Example: −90 dBc/Hz at 100 Hz at 10 GHz on the jet profile needs Γ ≤ 3.16×10<sup>−5</sup> × 100/(10<sup>10</sup> × 0.141) = 2.2×10<sup>−12</sup>/g without isolation, beyond any crystal; with a 10 Hz isolator (−33 dB at 100 Hz) the need relaxes to about 0.1 ppb/g. (4) Put the isolator resonance well below the lowest strong vibration frequency, and check sway space and shock. (5) For sine lines, also orient the crystal's most sensitive axis away from the strongest vibration axis.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cVb" width="680" height="320" aria-label="LO phase noise with and without vibration for the chosen profile, g-sensitivity and isolator"></canvas>
+    <div class="ctrl">
+      <label for="vbP"><span>Vibration profile</span></label><select id="vbP"><option value="lab">Laboratory bench (no vibration)</option><option value="veh">Ground vehicle</option><option value="jet" selected>Jet aircraft</option><option value="heli">Helicopter (rotor lines)</option><option value="uav">Small UAV (propeller line)</option></select>
+      <label for="vbG"><span>g-sensitivity Γ</span> <b id="vbGv"></b></label><input id="vbG" type="range" min="-2" max="1" step="0.01" value="0">
+      <label for="vbI"><span>Isolator</span></label><select id="vbI"><option value="none" selected>None (hard-mounted)</option><option value="i50">Isolator, f_n 50 Hz</option><option value="i10">Isolator, f_n 10 Hz</option></select>
+      <label for="vbF"><span>LO frequency</span> <b id="vbFv"></b></label><input id="vbF" type="range" min="1" max="35" step="0.1" value="10">
+      <div class="readout" id="vbOut"></div>
+    </div>
+    <p class="cap">Dashed: the static OCXO multiplied to the LO. Accent: the vibration-induced term (spikes are sine lines). Solid: the total. The shaded band is the vibration profile's frequency range. The Γ slider is logarithmic, 0.01 to 10 ppb/g (0 = 1 ppb/g).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Jet, 1 ppb/g, hard-mounted, 10 GHz (the start): vibration term at 100 Hz −37.0 dBc/Hz against −101.2 static, 64 dB worse; integrated error 29.5°.</li>
+    <li>Choose the 50 Hz isolator: 100 Hz improves to −46.0 but 50 Hz worsens to −16.8 dBc/Hz and the integrated error rises to 52.7°.</li>
+    <li>Choose the 10 Hz isolator and set Γ to 0.1 ppb/g (slider −1): −89.9 dBc/Hz at 100 Hz and 0.93°, the last row.</li>
+    <li>Helicopter, hard-mounted, 1 ppb/g: the 17 Hz rotor line is at −10.6 dBc on the 10 GHz LO.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Γ</td><td>Crystal cut, mounting (four-point, symmetric), compensation with an accelerometer</td><td>g-sensitivity, ppb/g, per axis or worst axis</td><td>Each ×10 is 20 dB of close-in LO noise on a moving platform</td></tr>
+    <tr><td>Isolator f<sub>n</sub>, damping</td><td>Mount stiffness, elastomer, sway space</td><td>Transmissibility curve</td><td>−33 dB at 100 Hz for a 10 Hz mount; +14 dB near resonance if misplaced</td></tr>
+    <tr><td>Multiplication N</td><td>LO frequency / reference frequency</td><td>Phase noise at the LO</td><td>Vibration sidebands rise 20·log N, like all reference noise</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Oscillator and mechanical designers:</b> Γ is a crystal-and-mount property; ask for it on all three axes and for the vibration-phase-noise test, not only the static one.</li>
+    <li><b>Everyone near the reference:</b> cables and connectors on the reference path can be microphonic; a loose SMA can add vibration sidebands of its own.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A UAV propeller line is 0.5 g at 120 Hz. With Γ = 1 ppb/g and a 100 MHz reference multiplied to 5 GHz, what is the spur level at the LO?</summary><p>At 100 MHz: 20·log(10<sup>−9</sup> × 0.5 × 10<sup>8</sup>/240) = −73.6 dBc. Multiplying by 50 adds 34.0 dB: −39.6 dBc at ±120 Hz on the 5 GHz LO.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="mult">
+  <div class="secno">Step 5</div>
+  <h2>Multiplying the reference: 20·log N and the close-in floor of every LO</h2>
+  <div class="know"><h4>You already know</h4><p>Module 02 (Step 3) shows why multiplying a frequency by N multiplies its phase wobble by N and its phase-noise power by N², so L(f) rises by 20·log<sub>10</sub>N: 40 dB from 100 MHz to 10 GHz. It also covers PLL loop bandwidth, VCO noise and the phase-detector floor in detail. This step uses those results to answer one system question: what floor does the reference set for every LO in the system, and how should the reference be chosen for it?</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>N:</b> the ratio f<sub>LO</sub>/f<sub>ref</sub>. 10 GHz from 100 MHz is N = 100 (40 dB); from 10 MHz it is N = 1 000 (60 dB).</p>
+    <p><b>Loop bandwidth B<sub>L</sub>:</b> inside it the PLL output follows the (multiplied) reference; outside it the output follows its own VCO.</p>
+    <p><b>Phase-detector floor:</b> the PLL's own in-band noise, L<sub>PD</sub> = FOM + 10·log<sub>10</sub>f<sub>PFD</sub> + 20·log<sub>10</sub>N, where FOM is the PLL chip's normalised figure of merit (−230 dBc/Hz here) and f<sub>PFD</sub> the phase-detector comparison frequency (here the reference frequency). With 100 MHz and N = 100: −230 + 80 + 40 = −110 dBc/Hz.</p>
+    <p><b>Close-in floor of an LO:</b> the lowest phase noise any LO derived from this reference can have at small offsets: L<sub>ref</sub>(f) + 20·log N. No later filtering removes it, because it is in-band.</p>
+    <p><b>Dual-oscillator reference:</b> a 100 MHz OCXO phase-locked to a 10 MHz OCXO with a narrow loop (about 100 Hz), so that the 10 MHz crystal sets the noise below 100 Hz and the 100 MHz crystal above.</p>
+  </div>
+  <div class="col">
+    <p>Within the loop bandwidth, every LO is the reference multiplied: the transmit LO, the first and second receive LOs, the DDS clock and the ADC clock each carry L<sub>ref</sub> + 20·log N<sub>i</sub>, with their own N<sub>i</sub>. A 1 GHz ADC clock carries the reference + 20 dB; a 10 GHz LO carries it + 40 dB. Above a few hundred hertz the phase-detector floor usually takes over, and beyond the loop bandwidth the VCO. So the reference decides the region from about 1 Hz to a few hundred hertz offset at every LO: exactly where slow targets, ground clutter spreading and SAR azimuth sidelobes live.</p>
+  </div>
+  <div class="eq">L<sub>LO</sub>(f) ≈ [L<sub>ref</sub>(f) + 20·log N] ⊕ L<sub>PD</sub> inside B<sub>L</sub>, &nbsp;&nbsp; L<sub>VCO</sub>(f) outside B<sub>L</sub><small>⊕ means adding the noise powers. Worked, 100 MHz OCXO to 10 GHz: at 10 Hz −119.6 + 40 = −79.6 dBc/Hz; at 100 Hz −141.2 + 40 = −101.2, against the phase-detector floor −110, total −100.6; at 1 kHz the floor dominates.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach chooses the reference by its price and its far-out floor, because "the PLL cleans it up". A TCXO-class 100 MHz reference has a good floor, but at 10 GHz its close-in noise is −64.3 dBc/Hz at 100 Hz and −88.6 dBc/Hz at 1 kHz, against −100.6 and −107.8 with an OCXO: 36 and 19 dB worse, and the integrated phase error from 10 Hz to 10 MHz rises from 0.12° to 3.5°. No PLL setting can fix this, because a wider loop passes more reference noise and a narrower one lets the VCO in. The opposite naive choice, a 10 MHz OCXO because it is "lower noise", raises N to 1 000 and the phase-detector floor by 10 dB.</p></div>
+  <h3>Side by side on one example: 10 GHz LO, 100 kHz loop bandwidth</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Reference</th><th>N</th><th>L at 10 Hz</th><th>L at 100 Hz</th><th>L at 1 kHz</th><th>Integrated 10 Hz–10 MHz</th></tr>
+    <tr><td>100 MHz TCXO-class</td><td class="n">100</td><td class="n">−34.4</td><td class="n">−64.3</td><td class="n">−88.6</td><td class="n">3.45°</td></tr>
+    <tr><td>100 MHz OCXO</td><td class="n">100</td><td class="n">−79.6</td><td class="n">−100.6</td><td class="n">−107.8</td><td class="n">0.124°</td></tr>
+    <tr><td>10 MHz low-noise OCXO</td><td class="n">1 000</td><td class="n">−86.7</td><td class="n">−97.3</td><td class="n">−98.6</td><td class="n">0.322°</td></tr>
+    <tr><td>100 MHz OCXO locked to 10 MHz OCXO</td><td class="n">100</td><td class="n">−86.9</td><td class="n">−100.4</td><td class="n">−107.8</td><td class="n">0.123°</td></tr>
+  </table></div>
+  <div class="col"><p>(dBc/Hz at the 10 GHz LO.) The 10 MHz crystal is 7 dB better at 10 Hz; the 100 MHz system is 9 dB better at 1 kHz because its phase-detector floor is lower. The dual-oscillator reference takes the better of each. Integrated jitter barely tells them apart (0.124° and 0.123°, 34 fs) because the area close in is small: that is why close-in requirements must be written as L(f) at stated offsets, not as one jitter number.</p></div>
+  <h3>How to choose the reference frequency and loop</h3>
+  <div class="col"><p>(1) From the system, write L(f) required at the highest LO for offsets from 1/CPI up to the Doppler band. (2) Subtract 20·log N for each candidate reference frequency to get the reference requirement. (3) Compare with the phase-detector floor: a higher reference frequency lowers N and the floor (by 10·log f<sub>PFD</sub> − 20·log N, net −10 dB per decade of f<sub>ref</sub>). (4) If no single crystal meets both the close-in and the floor, use a dual reference. (5) Set the loop bandwidth where the in-band floor meets the VCO curve; widening it lets more reference and detector noise through, narrowing it lets the VCO in.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cMl" width="680" height="320" aria-label="Phase noise of an LO made from the chosen reference: reference times N, phase-detector floor, VCO and total"></canvas>
+    <div class="ctrl">
+      <label for="mlR"><span>Reference</span></label><select id="mlR"><option value="t100">100 MHz TCXO-class</option><option value="o100" selected>100 MHz OCXO</option><option value="o10">10 MHz low-noise OCXO</option><option value="dual">100 MHz OCXO locked to 10 MHz OCXO</option></select>
+      <label for="mlF"><span>LO frequency</span> <b id="mlFv"></b></label><input id="mlF" type="range" min="1" max="35" step="0.1" value="10">
+      <label for="mlB"><span>PLL loop bandwidth</span> <b id="mlBv"></b></label><input id="mlB" type="range" min="3" max="6" step="0.01" value="5">
+      <div class="readout" id="mlOut"></div>
+    </div>
+    <p class="cap">Dashed: reference + 20·log N. Dotted: phase-detector floor. Thin: VCO. Solid: the LO. The shaded region is the loop bandwidth. The loop-bandwidth slider is logarithmic, 1 kHz to 1 MHz (5 = 100 kHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>100 MHz OCXO at 10 GHz (the start): N = 100, 40.0 dB, −79.6 dBc/Hz at 10 Hz, −107.8 at 1 kHz, 0.124° integrated, the second row.</li>
+    <li>TCXO-class: −88.6 dBc/Hz at 1 kHz and 3.45°, the naive case.</li>
+    <li>10 MHz OCXO: N = 1 000, phase-detector floor −100 dBc/Hz, 10 dB above the 100 MHz case.</li>
+    <li>Move the LO from 10 to 1 GHz: every in-band level drops by 20 dB, the ADC-clock case.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Reference close-in L(f)</td><td>Crystal frequency and Q, dual-oscillator lock</td><td>L at 1, 10, 100 Hz</td><td>+20·log N at every LO: the floor for slow targets and SAR azimuth sidelobes</td></tr>
+    <tr><td>Reference frequency</td><td>10 MHz vs 100 MHz</td><td>f<sub>ref</sub></td><td>N and phase-detector floor: −10 dB per decade of f<sub>ref</sub></td></tr>
+    <tr><td>Loop bandwidth</td><td>Loop filter</td><td>Integrated jitter of the synthesiser</td><td>Which source sets each offset; module 02 for the design</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> state your in-band floor at the system reference frequency, so the system engineer can see where the reference stops mattering.</li>
+    <li><b>Multiplier designers:</b> a frequency multiplier chain (×2, ×4…) adds 20·log N too, plus its own residual floor; it has no loop bandwidth, so it passes the reference noise at all offsets.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 100 MHz OCXO has −120 dBc/Hz at 10 Hz. What is the best possible L(10 Hz) of a 35 GHz LO made from it?</summary><p>N = 350, 20·log 350 = 50.9 dB: −69.1 dBc/Hz. Nothing after the reference can improve on that inside the loop.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="dist">
+  <div class="secno">Step 6</div>
+  <h2>Clock distribution: buffers, fan-out, added jitter and skew</h2>
+  <div class="know"><h4>You already know</h4><p>Module 07 shows that sampling-clock jitter t<sub>j</sub> limits an ADC's SNR to −20·log<sub>10</sub>(2π·f<sub>in</sub>·t<sub>j</sub>): 100 fs gives 64 dB at 1 GHz. Jitter is the rms timing error of the clock edges, the time-domain view of phase noise integrated over a band.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Clock buffer (fan-out buffer):</b> an IC that takes one clock input and drives several identical outputs, in a logic standard such as LVCMOS, LVDS, LVPECL or HCSL. <b>Fan-out:</b> the number of outputs per device (4, 8, 10…).</p>
+    <p><b>Additive (residual) jitter:</b> the jitter a buffer adds to a perfect input, in fs rms over a stated band (often 12 kHz–20 MHz). It comes from the buffer's noise floor divided by the edge slew rate.</p>
+    <p><b>RSS:</b> root-sum-square. Independent jitters add as σ<sub>total</sub> = √(σ<sub>1</sub><sup>2</sup> + σ<sub>2</sub><sup>2</sup> + …).</p>
+    <p><b>Skew:</b> the difference in arrival time of the same edge at two destinations. <b>Output-to-output skew</b> is between outputs of one device; <b>part-to-part skew</b> is between two devices of the same type, and is much larger. <b>Cable or trace mismatch</b> adds 4.8 ps per mm of coax (velocity factor 0.7).</p>
+    <p><b>Jitter cleaner:</b> a PLL with a narrow loop and a low-noise VCXO that replaces the incoming jitter above its loop bandwidth with its own lower jitter.</p>
+  </div>
+  <div class="col">
+    <p>A system with 16 ADCs needs 16 copies of the sampling clock. They come from a tree: one buffer drives several, each of those drives several more. Each level the clock passes through adds its own jitter (RSS) and its own delay, which differs from device to device. Jitter limits the SNR of every channel; skew makes the channels sample at different instants, which at the signal frequency is a phase error between channels.</p>
+    <p>Skew is mostly <i>static</i>: it can be measured and calibrated out (Step 9). Jitter is random: it cannot. And skew that changes with temperature (delay tempco of buffers and cables) is a slow random error that must be re-calibrated.</p>
+  </div>
+  <div class="eq">stages k = ⌈log N<sub>dest</sub> / log fan-out⌉ &nbsp;&nbsp; σ<sub>clk</sub> = √(σ<sub>src</sub><sup>2</sup> + k·σ<sub>buf</sub><sup>2</sup>) &nbsp;&nbsp; skew ≈ √k·σ<sub>p2p</sub> + 4.8 ps/mm·ΔL &nbsp;&nbsp; Δφ = 360°·f<sub>in</sub>·skew<small>Worked: 16 destinations with 1:4 LVDS buffers → k = 2 levels (1 + 4 = 5 devices). Source 100 fs, 100 fs per buffer: √(100² + 2×100²) = 173 fs → SNR limit at 1 GHz −20·log(2π × 10<sup>9</sup> × 173×10<sup>−15</sup>) = 59.3 dB. Skew √2 × 100 ps = 141 ps → 51° at 1 GHz.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive approach routes the ADC clocks through an FPGA, which has plenty of outputs. Logic fabric adds about 5 ps of jitter: the 1 GHz SNR limit falls to 30.1 dB, 29 dB worse than the LVDS tree, whatever the ADC (the same number appears in module 07). The fabric's part-to-part skew (800 ps here) is 288° at 1 GHz, almost a full cycle, and it moves with every recompilation of the FPGA. The other naive mistake is to equalise the clock chips but not the cables: 20 mm of extra coax is 96 ps.</p></div>
+  <h3>Side by side on one example: 16 destinations, source 100 fs, signal at 1 GHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Distribution</th><th>Levels</th><th>Clock jitter</th><th>SNR limit at 1 GHz</th><th>Channel skew</th><th>Phase skew at 1 GHz</th></tr>
+    <tr><td>FPGA fabric</td><td class="n">1</td><td class="n">5 001 fs</td><td class="n">30.1 dB</td><td class="n">800 ps</td><td class="n">288°</td></tr>
+    <tr><td>LVCMOS 1:4</td><td class="n">2</td><td class="n">367 fs</td><td class="n">52.7 dB</td><td class="n">424 ps</td><td class="n">153°</td></tr>
+    <tr><td>LVDS 1:4</td><td class="n">2</td><td class="n">173 fs</td><td class="n">59.3 dB</td><td class="n">141 ps</td><td class="n">51°</td></tr>
+    <tr><td>LVPECL / HCSL 1:8</td><td class="n">2</td><td class="n">122 fs</td><td class="n">62.3 dB</td><td class="n">113 ps</td><td class="n">41°</td></tr>
+    <tr><td>Low-noise distribution IC 1:10</td><td class="n">2</td><td class="n">106 fs</td><td class="n">63.5 dB</td><td class="n">71 ps</td><td class="n">25°</td></tr>
+  </table></div>
+  <div class="col"><p>Once the buffers are good, the source dominates: the last three rows differ by only 4 dB because the 100 fs source is in all of them. Skew differs more, and is where the device choice still shows.</p></div>
+  <h3>How to choose the distribution</h3>
+  <div class="col"><p>(1) From the highest signal frequency at the ADC and the SNR needed, get the jitter budget: t<sub>j</sub> ≤ 10<sup>−SNR/20</sup>/(2π·f<sub>in</sub>). For 60 dB at 1 GHz: 159 fs. (2) Subtract the source and the ADC's own aperture jitter (RSS). (3) Divide what remains by √k to get the per-buffer allowance, and choose a family with fan-out large enough to keep k small. (4) Budget the skew: what is left after calibration (Step 9), and the temperature drift between calibrations; match cable lengths to a few millimetres. (5) If the source is the problem, put a jitter cleaner at the root, close to the ADCs.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cDs" width="680" height="320" aria-label="Clock distribution tree and jitter budget"></canvas>
+    <div class="ctrl">
+      <label for="dsB"><span>Buffer family</span></label><select id="dsB"><option value="fpga">FPGA fabric / logic gate</option><option value="cmos">LVCMOS fan-out buffer</option><option value="lvds" selected>LVDS fan-out buffer</option><option value="pecl">LVPECL / HCSL low-noise buffer</option><option value="dist">Low-noise clock distribution IC</option></select>
+      <label for="dsN"><span>Destinations</span> <b id="dsNv"></b></label><input id="dsN" type="range" min="2" max="64" step="1" value="16">
+      <label for="dsJ"><span>Source jitter</span> <b id="dsJv"></b></label><input id="dsJ" type="range" min="1.3" max="3.3" step="0.01" value="2">
+      <label for="dsL"><span>Cable length mismatch</span> <b id="dsLv"></b></label><input id="dsL" type="range" min="0" max="200" step="1" value="0">
+      <label for="dsF"><span>Signal frequency at the ADC</span> <b id="dsFv"></b></label><input id="dsF" type="range" min="7" max="9.5" step="0.01" value="9">
+      <div class="readout" id="dsOut"></div>
+    </div>
+    <p class="cap">Left: the fan-out tree (each box is one device). Right: the jitter budget, source and each level, added RSS. The source-jitter slider is logarithmic, 20 to 2 000 fs (2 = 100 fs); the frequency slider is logarithmic, 10 MHz to 3.16 GHz (9 = 1 GHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>LVDS, 16 destinations, 100 fs, 1 GHz (the start): 2 levels, 5 devices, 173 fs, 59.3 dB, skew 141 ps, 51°.</li>
+    <li>FPGA fabric: 5 001 fs and 30.1 dB, the naive case.</li>
+    <li>Set the cable mismatch to 20 mm: the skew grows by 96 ps to 237 ps.</li>
+    <li>Low-noise IC, then raise the source jitter to 1 000 fs (slider 3): the SNR limit falls to about 44 dB; the source now dominates whatever the buffer.</li>
+    <li>Raise the destinations from 16 to 17 with LVDS: a third level appears and the jitter rises to 200 fs.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Additive jitter</td><td>Buffer family, slew rate, supply filtering</td><td>fs rms, 12 kHz–20 MHz</td><td>ADC SNR limit: 30.1 dB (FPGA) vs 59.3 dB (LVDS) at 1 GHz</td></tr>
+    <tr><td>Number of levels</td><td>Fan-out per device, tree layout</td><td>Outputs per device</td><td>Each level adds σ<sub>buf</sub> in RSS and part-to-part skew</td></tr>
+    <tr><td>Skew and its drift</td><td>Device choice, length matching, delay tempco</td><td>Output and part-to-part skew, ps</td><td>Channel phase error (Step 9); calibration interval</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Board designers:</b> route clocks as matched, terminated differential pairs, keep them away from switching supplies, and give each buffer a clean supply: supply noise turns directly into additive jitter.</li>
+    <li><b>Cable and interconnect designers:</b> phase-stable cable keeps the skew drift with temperature small; standard PTFE coax has a large step near room temperature.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 3 GHz IF is sampled directly and needs 55 dB jitter SNR. The source is 50 fs and each buffer adds 40 fs. How many buffer levels are allowed?</summary><p>t<sub>j</sub> ≤ 10<sup>−55/20</sup>/(2π × 3×10<sup>9</sup>) = 94 fs. Then k·40² ≤ 94² − 50² = 6 336, so k ≤ 3.96: three levels.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="cpi">
+  <div class="secno">Step 7</div>
+  <h2>Coherence over the coherent processing interval: Doppler, MTI and SAR</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 1, a coherent radar measures the phase step of each echo from pulse to pulse. From Step 3, an oscillator's phase wanders by about 2π·f<sub>c</sub>·τ·σ<sub>y</sub>(τ) over an interval τ. Module 02 (Step 9) explains the range-correlation effect for a single radar.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Coherent processing interval (CPI), T:</b> the length of time over which echoes are added in phase: one Doppler FFT (ms to tens of ms), or one SAR synthetic aperture (0.1 s to several s). Doppler resolution is 1/T; one Doppler bin is 1/T wide.</p>
+    <p><b>Monostatic:</b> the transmitter and receiver share one site and one reference. <b>Bistatic:</b> they are separate, each with its own reference.</p>
+    <p><b>Range correlation:</b> in a monostatic radar the echo is compared with the same oscillator τ<sub>d</sub> = 2R/c later. Only the phase change during τ<sub>d</sub> counts; slower wander cancels. Phase noise at offset f is suppressed by 4·sin²(π·f·τ<sub>d</sub>).</p>
+    <p><b>Quadratic phase error (QPE):</b> a frequency that changes linearly across the CPI makes a phase that grows as t²; its peak value at the edges, in degrees, sets how much the Doppler peak or SAR point response broadens. Below about 45° the loss is small.</p>
+    <p><b>MTI improvement limit:</b> random pulse-to-pulse phase jitter σ<sub>φ</sub> (radians) leaves a clutter residue; the best clutter cancellation is about 1/σ<sub>φ</sub><sup>2</sup>, written in dB as −20·log<sub>10</sub>σ<sub>φ</sub>.</p>
+  </div>
+  <div class="col">
+    <p>Three things can spoil a CPI. (1) A <b>constant frequency offset</b> between transmitter and receiver puts the target in the wrong Doppler bin (Step 1). (2) A <b>frequency change during the CPI</b> makes a quadratic phase that broadens the peak and raises sidelobes. (3) <b>Random phase noise</b> across the Doppler band adds a noise floor around every strong echo, which limits MTI and SAR contrast.</p>
+    <p>A monostatic radar with a common reference is immune to (1) and (2): both the transmitter and the LO move together, and only the change within τ<sub>d</sub> (200 µs at 30 km) matters. A bistatic radar, or a multistatic SAR, sees the full wander of two independent oscillators over the whole CPI: it is exactly the case where Step 2 and Step 3 numbers apply directly.</p>
+  </div>
+  <div class="eq">Doppler error = f<sub>c</sub>·Δy<sub>0</sub> (bins: × T) &nbsp;&nbsp; QPE ≈ π·f<sub>c</sub>·Δy·T/4 &nbsp;&nbsp; σ<sub>φ</sub><sup>2</sup> = 2∫ L(f)·H(f) df, f = 1/T … PRF/2<small>Δy<sub>0</sub>: offset between the two references; Δy ≈ √2·σ<sub>y</sub>(T): change across the CPI for two independent oscillators. H(f) = 4·sin²(π·f·τ<sub>d</sub>) for monostatic and 2 for bistatic (two oscillators). The plot uses 256 samples across T, so PRF/2 = 128/T.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive bistatic design gives the remote receiver a TCXO and treats it like a monostatic radar. With a 1 ppm offset at 10 GHz the Doppler error is 10 kHz, 10 000 bins of a 1 s CPI, folded to a random place; the drift across the second adds a QPE of 66.6°, and the phase noise integrated over the Doppler band is 49° rms. The Doppler spectrum is not a peak any more. The same TCXO in a monostatic radar at 30 km range, over a 10 ms CPI, gives σ<sub>φ</sub> = 0.24° and an MTI limit of 47.7 dB: usable, but 23 dB below an OCXO.</p></div>
+  <h3>Side by side on one example: 10 GHz, two arrangements</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Oscillator</th><th>Monostatic, 30 km, T = 10 ms: σ<sub>φ</sub></th><th>MTI limit</th><th>Bistatic, T = 1 s: Doppler error</th><th>QPE</th><th>σ<sub>φ</sub></th></tr>
+    <tr><td>TCXO</td><td class="n">0.237°</td><td class="n">47.7 dB</td><td class="n">10 kHz (10 000 bins)</td><td class="n">66.6°</td><td class="n">49.0°</td></tr>
+    <tr><td>OCXO</td><td class="n">0.017°</td><td class="n">70.4 dB</td><td class="n">500 Hz (500 bins)</td><td class="n">0.35°</td><td class="n">0.26°</td></tr>
+    <tr><td>Rubidium</td><td class="n">0.017°</td><td class="n">70.4 dB</td><td class="n">0.5 Hz (0.5 bin)</td><td class="n">0.35°</td><td class="n">0.26°</td></tr>
+    <tr><td>GPSDO</td><td class="n">0.017°</td><td class="n">70.4 dB</td><td class="n">0.1 Hz (0.1 bin)</td><td class="n">0.35°</td><td class="n">0.26°</td></tr>
+  </table></div>
+  <div class="col"><p>Read the two halves differently. Monostatic: only short-term noise matters, and every crystal-based reference with an OCXO inside performs the same. Bistatic: the OCXO is fine for phase noise and QPE but its 50 ppb offset misplaces the target by 500 bins; only rubidium or GPS discipline brings the offset under a bin. (Time synchronisation for the bistatic range is Step 8.)</p></div>
+  <h3>How to choose for a given CPI</h3>
+  <div class="col"><p>(1) Monostatic: from the clutter cancellation needed, σ<sub>φ</sub> ≤ 10<sup>−I/20</sup> rad; for 60 dB, 1 mrad = 0.057°. Specify L(f) over the Doppler band at the LO with the range-correlation factor for the shortest range of interest. (2) Bistatic: keep the offset under a fraction of a bin, Δy<sub>0</sub> ≤ 0.25/(f<sub>c</sub>·T): for 10 GHz and 1 s, 2.5×10<sup>−11</sup>, so rubidium or GPSDO; keep the QPE under 45°: √2·σ<sub>y</sub>(T) ≤ 1/(f<sub>c</sub>·T), which is 10<sup>−10</sup> for 10 GHz and 1 s. (3) A longer CPI improves Doppler resolution but makes both the bin count of an offset and the QPE grow in proportion to T. (4) A higher carrier makes every phase error proportionally larger.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cCp" width="680" height="320" aria-label="Doppler spectrum of a target over one CPI with the oscillator errors of the chosen arrangement"></canvas>
+    <div class="ctrl">
+      <label for="cpA"><span>Arrangement</span></label><select id="cpA"><option value="common">Monostatic, common reference</option><option value="sep" selected>Bistatic, separate references</option></select>
+      <label for="cpK"><span>Oscillator</span></label><select id="cpK"><option value="tcxo" selected>TCXO</option><option value="ocxo">OCXO</option><option value="rb">Rubidium</option><option value="gpsdo">GPSDO</option></select>
+      <label for="cpT"><span>CPI or aperture time T</span> <b id="cpTv"></b></label><input id="cpT" type="range" min="-3" max="1" step="0.01" value="0">
+      <label for="cpF"><span>Carrier frequency</span> <b id="cpFv"></b></label><input id="cpF" type="range" min="1" max="35" step="0.1" value="10">
+      <label for="cpR"><span>Range (monostatic)</span> <b id="cpRv"></b></label><input id="cpR" type="range" min="1" max="300" step="1" value="30">
+      <div class="readout" id="cpOut"></div>
+    </div>
+    <p class="cap">Doppler spectrum of one target over the CPI (256 pulses, Hann window), in Doppler bins of 1/T, folded into ±128 bins. Dashed: an ideal oscillator, peak at bin 0. Solid: with the chosen oscillator. The T slider is logarithmic, 1 ms to 10 s (0 = 1 s). The range acts only for the monostatic arrangement.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Bistatic TCXO, 1 s, 10 GHz (the start): Doppler error 10 kHz, QPE 66.6°, σ<sub>φ</sub> 49°: no clean peak left, the naive case.</li>
+    <li>Choose OCXO: the peak is sharp again but folded to bin −12 (500 bins modulo 256), QPE 0.35°.</li>
+    <li>Choose GPSDO: the peak sits within 0.1 bin of the ideal.</li>
+    <li>Monostatic, TCXO, T = 10 ms (slider −2), 30 km: σ<sub>φ</sub> 0.237° and an MTI limit of 47.7 dB; choose OCXO for 70.4 dB.</li>
+    <li>Monostatic OCXO: raise the range from 30 to 300 km; σ<sub>φ</sub> grows because less of the phase noise is cancelled by range correlation.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Short-term phase noise</td><td>Crystal, multiplication, vibration (Steps 3–5)</td><td>L(f) over the Doppler band at the LO</td><td>MTI limit: 47.7 dB (TCXO) vs 70.4 dB (OCXO) at 30 km, 10 ms</td></tr>
+    <tr><td>Offset between sites</td><td>Rb or GPS discipline</td><td>Accuracy</td><td>Bistatic Doppler error: 500 bins (OCXO) vs 0.1 bin (GPSDO) at 1 s</td></tr>
+    <tr><td>Stability over T</td><td>Crystal flicker floor</td><td>σ<sub>y</sub>(T)</td><td>QPE: SAR or long-CPI focusing</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Oscillator designers:</b> for monostatic radars your close-in L(f) at 10 Hz–10 kHz is what matters; for bistatic and multistatic systems, σ<sub>y</sub> at the aperture time and the discipline loop.</li>
+    <li><b>SAR system engineers:</b> long apertures at high carrier frequency are where the oscillator's QPE and its vibration sidebands both show up as image defocus and ghosts (module 02, Step 10).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A bistatic Ka-band (35 GHz) SAR uses a 2 s aperture. What reference offset keeps the Doppler error under a quarter of a bin?</summary><p>Δy<sub>0</sub> ≤ 0.25/(35×10<sup>9</sup> × 2) = 3.6×10<sup>−12</sup>. Only a GPS-disciplined or atomic reference, or a direct synchronisation link, can hold that.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="toa">
+  <div class="secno">Step 8</div>
+  <h2>Timing accuracy for TOA, TDOA and pulse-descriptor time stamps</h2>
+  <div class="know"><h4>You already know</h4><p>A counter clocked at f<sub>clk</sub> measures time in steps of 1/f<sub>clk</sub>: at 100 MHz, 10 ns. From Step 2, a clock whose frequency is high by y gains y seconds every second. Radio waves travel 30 cm in 1 ns.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Time of arrival (TOA):</b> the time stamp an ESM or radar receiver attaches to the leading edge of a pulse, read from a counter driven by the reference.</p>
+    <p><b>Pulse descriptor word (PDW):</b> the record an ESM receiver makes for each pulse: TOA, pulse width, frequency, amplitude and angle of arrival. Deinterleaving sorts the pulses into emitters mainly by the differences between successive TOAs (the PRI).</p>
+    <p><b>Quantisation of a time stamp:</b> a counter LSB of 1/f<sub>clk</sub> gives an rms error of 1/(√12·f<sub>clk</sub>): 2.9 ns at 100 MHz, 0.29 ns at 1 GHz.</p>
+    <p><b>TDOA (time difference of arrival):</b> two or more receivers at known places measure the TOA of the same pulse; the difference fixes the emitter on a hyperbola (line of position). A TDOA error δt moves the range difference by c·δt: 1 ns → 0.30 m.</p>
+    <p><b>Synchronise / syntonise:</b> to synchronise is to align the clocks' <i>time</i>; to syntonise is to align their <i>frequency</i>. Synchronised clocks drift apart again at the rate of their frequency difference.</p>
+    <p><b>1 PPS:</b> one pulse per second from a GPS receiver, aligned to GPS time to about 20 ns rms (illustrative). <b>Two-way fibre time transfer</b> (White Rabbit class): time sent both ways over a fibre so the delay cancels; sub-nanosecond.</p>
+  </div>
+  <div class="col">
+    <p>A time stamp's error has four parts: the error at the last synchronisation x<sub>0</sub>; a frequency offset y<sub>0</sub> that makes it grow linearly; ageing that makes it grow as t²; and the random wander from Step 3, τ·σ<sub>y</sub>(τ). On top sits the counter quantisation. For a single receiver doing deinterleaving, only differences over a pulse train (microseconds to milliseconds) matter, and the counter quantisation and the pulse-edge detection dominate: the reference is not the problem. For TDOA, two sites must agree on absolute time, and the reference and its synchronisation dominate everything.</p>
+  </div>
+  <div class="eq">x(t) = √(x<sub>0</sub><sup>2</sup> + (y<sub>0</sub>·t)<sup>2</sup> + (½·D·t<sup>2</sup>)<sup>2</sup> + (t·σ<sub>y</sub>(t))<sup>2</sup> + q<sup>2</sup>) &nbsp;&nbsp; δt<sub>TDOA</sub> = √2·x &nbsp;&nbsp; δR = c·δt<sub>TDOA</sub><small>The terms are combined as if independent (RSS), which is pessimistic for some and optimistic for others; illustrative. q = 1/(√12·f<sub>clk</sub>). Two sites with equal, independent errors give √2·x for the difference.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive TDOA design synchronises two sites once and lets them run on TCXOs. Even with perfect initial time, the factory accuracy of 1 ppm makes each clock gain up to 1 µs per second. After 10 s each site is 10 µs out, the time difference is 14 µs, and the range difference is wrong by 4.2 km: the line of position is useless. Syntonising them once (so that only a 0.1 ppm residual is left) only buys a factor of ten.</p></div>
+  <h3>Side by side on one example: two sites, 100 MHz time-stamp clock</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Reference and synchronisation</th><th>After</th><th>Time error per site</th><th>Range-difference error</th></tr>
+    <tr><td>TCXO, free-running</td><td class="n">1 s</td><td class="n">1.0 µs</td><td class="n">424 m</td></tr>
+    <tr><td>TCXO, synchronised and syntonised once</td><td class="n">1 s</td><td class="n">100 ns</td><td class="n">42 m</td></tr>
+    <tr><td>OCXO, synchronised once</td><td class="n">10 s</td><td class="n">10.5 ns</td><td class="n">4.4 m</td></tr>
+    <tr><td>OCXO, synchronised once</td><td class="n">1 h</td><td class="n">3.6 µs</td><td class="n">1.5 km</td></tr>
+    <tr><td>Rubidium, synchronised once</td><td class="n">1 h</td><td class="n">36 ns</td><td class="n">15 m</td></tr>
+    <tr><td>Any, GPS 1 PPS disciplined</td><td class="n">always</td><td class="n">20.2 ns</td><td class="n">8.6 m</td></tr>
+    <tr><td>Any, two-way fibre, 100 MHz counter</td><td class="n">always</td><td class="n">2.9 ns</td><td class="n">1.2 m</td></tr>
+    <tr><td>Any, two-way fibre, 1 GHz counter</td><td class="n">always</td><td class="n">0.35 ns</td><td class="n">0.15 m</td></tr>
+  </table></div>
+  <div class="col"><p>Two regimes. Free-running or once-synchronised clocks get worse with time, at a rate set by the oscillator (Steps 2, 3). Continuously disciplined clocks stay at a constant error set by the synchronisation method, and then the counter resolution can be the limit: with fibre transfer, the 100 MHz counter's 2.9 ns quantisation is the largest term until the clock is raised to 1 GHz.</p></div>
+  <h3>How to choose the timing chain</h3>
+  <div class="col"><p>(1) From the geolocation accuracy, get the TDOA budget: δt ≤ δR/c, then per site δt/√2. For 30 m: 100 ns per pair, 71 ns per site. (2) If sites can be continuously disciplined (GPS, fibre), choose the method whose error fits, then a counter clock with q well below it. (3) If they cannot (GPS denied, no link), choose the oscillator and the re-synchronisation interval so that y<sub>res</sub>·t and t·σ<sub>y</sub>(t) stay inside the budget: rubidium holds 71 ns for about 2 hours here. (4) For PDW deinterleaving alone, choose the counter clock so q is a small fraction of the PRI jitter you must resolve; the reference type barely matters.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cTo" width="680" height="320" aria-label="Time error against time since synchronisation for the chosen oscillator and synchronisation method"></canvas>
+    <div class="ctrl">
+      <label for="toK"><span>Oscillator at each site</span></label><select id="toK"><option value="tcxo" selected>TCXO</option><option value="ocxo">OCXO</option><option value="rb">Rubidium</option><option value="gpsdo">GPSDO (OCXO inside)</option></select>
+      <label for="toS"><span>Synchronisation</span></label><select id="toS"><option value="free" selected>Free-running (factory accuracy)</option><option value="once">Synchronised and syntonised once</option><option value="gps">GPS 1 PPS disciplined (locked)</option><option value="fib">Two-way fibre (White Rabbit class)</option></select>
+      <label for="toT"><span>Time since synchronisation</span> <b id="toTv"></b></label><input id="toT" type="range" min="-3" max="4.94" step="0.01" value="0">
+      <label for="toC"><span>Time-stamp clock</span> <b id="toCv"></b></label><input id="toC" type="range" min="7" max="9.3" step="0.01" value="8">
+      <div class="readout" id="toOut"></div>
+    </div>
+    <p class="cap">Time error per site against time since the last synchronisation (log-log). Grey: the other oscillators with the same synchronisation. Dashed lines: 1 ns (0.3 m) and 71 ns (30 m TDOA). The time slider is logarithmic, 1 ms to 1 day (0 = 1 s); the clock slider is logarithmic, 10 MHz to 2 GHz (8 = 100 MHz).</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>TCXO, free-running, 1 s, 100 MHz (the start): 1.0 µs per site and 424 m of range difference, the first row.</li>
+    <li>Move the time to 10 s (slider 1): 10 µs and 4.2 km, the naive case.</li>
+    <li>OCXO synchronised once at 1 h (slider 3.56): 3.6 µs; rubidium at 1 h: 36 ns.</li>
+    <li>Two-way fibre: 2.9 ns at 100 MHz; raise the clock to 1 GHz (slider 9): 0.35 ns and 0.15 m.</li>
+    <li>GPS 1 PPS: the curve is flat at about 20 ns whatever the oscillator and the time.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Residual frequency offset</td><td>Oscillator type, syntonisation</td><td>Accuracy, ageing</td><td>Time error grows as y·t: 1 ppm → 1 µs/s → 424 m/s of TDOA error</td></tr>
+    <tr><td>Synchronisation method</td><td>GPS receiver, fibre link, two-way transfer</td><td>Time accuracy, ns rms</td><td>Flat TDOA floor: 8.6 m (GPS) vs 0.15 m (fibre, 1 GHz counter)</td></tr>
+    <tr><td>Counter clock</td><td>Time-stamp clock frequency, interpolating TDC</td><td>TOA resolution</td><td>q = 1/(√12·f<sub>clk</sub>): 2.9 ns at 100 MHz</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Digital and FPGA designers:</b> the time-stamp counter must run from the distributed reference, not from a local clock, and its latency from antenna to counter must be calibrated per channel.</li>
+    <li><b>Receiver designers:</b> the analogue path's group delay (module 04) and its variation with frequency and temperature are part of the TOA error budget; a 5 ns uncalibrated delay difference is 1.5 m.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two sites with OCXOs are syntonised to 1 ppb and synchronised. How long before the time difference reaches 100 ns?</summary><p>Each site drifts y·t; two independent sites √2·y·t = 100 ns → t = 100×10<sup>−9</sup>/(1.41 × 10<sup>−9</sup>) ≈ 71 s. Without continuous discipline, re-synchronise at least once a minute.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="sync">
+  <div class="secno">Step 9</div>
+  <h2>Synchronising multiple channels or sites</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 6, clock and LO paths to different channels have skew. From Step 8, sites need time and frequency transfer. An interferometer measures the angle of arrival from the phase difference between two antennas a distance d apart.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Channel:</b> one antenna, receiver and ADC path. Arrays, monopulse and direction-finding receivers have several, which must agree in phase and time.</p>
+    <p><b>Interferometer phase:</b> φ = 360°·d·sinθ/λ for a wave arriving at angle θ from boresight. A phase error δφ gives an angle error δθ = (δφ/360°)·λ/(d·cosθ) (in radians). If d > λ/2 the phase wraps and the angle is ambiguous; real interferometers add shorter baselines to resolve it.</p>
+    <p><b>Path delay mismatch:</b> the difference in delay between two channels' LO and clock paths, in ps. At the signal frequency it is a phase error 360°·f·Δτ.</p>
+    <p><b>Calibration injection:</b> a known signal injected at the front of every channel so the processor can measure and remove the phase and delay differences. Once at switch-on, or continuously.</p>
+    <p><b>Phase synchronisation between sites:</b> sharing not only time and frequency but the carrier phase, for coherent multistatic radar, by distributing the RF reference over phase-stabilised fibre.</p>
+  </div>
+  <div class="col">
+    <p>Within one equipment the rule from Step 0 applies: one reference, one distributed LO, one distributed clock per channel group, length-matched. What is left is a static skew, which calibration removes, and a slow drift with temperature (about 0.2 ps/°C of differential drift here), which only repeated calibration removes. Between sites the same three levels apply: syntonise (frequency, Steps 2, 7), synchronise (time, Step 8), and, for coherent multistatic work, phase-synchronise.</p>
+  </div>
+  <div class="eq">δφ = 360°·f<sub>c</sub>·Δτ<sub>res</sub> &nbsp;&nbsp; δθ = (δφ/360°)·λ/(d·cosθ) &nbsp;&nbsp; Δτ<sub>res</sub>: skew (no cal) + drift·ΔT; drift·ΔT (cal at start); ≈ 0.5 ps (continuous)<small>Worked: 10 GHz, d = 0.15 m, 20 ps skew uncalibrated: δφ = 360 × 10<sup>10</sup> × 20×10<sup>−12</sup> = 72°; δθ = 0.2 × 0.030/0.15 = 0.040 rad = 2.29° at boresight.</small></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design matches the cables "by eye" and skips calibration. 20 ps of residual path mismatch is only 4 mm of coax, yet at 10 GHz it is 72° of phase and a 2.3° bearing error on a 15 cm baseline, the same at every angle near boresight and growing towards the edges. Calibrating once at switch-on removes the 20 ps, but a 20 °C warm-up leaves 4 ps (14.4°, 0.46°). Continuous injection holds it at about 0.06°.</p></div>
+  <h3>Side by side on one example: 10 GHz, 0.15 m baseline, 20 ps mismatch, 20 °C change</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Calibration</th><th>Residual delay</th><th>Phase error</th><th>Bearing error at boresight</th></tr>
+    <tr><td>None</td><td class="n">24 ps</td><td class="n">86.4°</td><td class="n">2.75°</td></tr>
+    <tr><td>Once at switch-on</td><td class="n">4 ps</td><td class="n">14.4°</td><td class="n">0.46°</td></tr>
+    <tr><td>Continuous injection</td><td class="n">0.5 ps</td><td class="n">1.8°</td><td class="n">0.057°</td></tr>
+  </table></div>
+  <div class="tw"><table class="t">
+    <tr><th>Between sites</th><th>Time</th><th>Frequency</th><th>Phase</th></tr>
+    <tr><td>GPS 1 PPS at each site</td><td class="n">≈ 20 ns</td><td class="n">10<sup>−12</sup> (1 day)</td><td>no</td></tr>
+    <tr><td>GPS common view</td><td class="n">≈ 5 ns</td><td class="n">10<sup>−13</sup></td><td>no</td></tr>
+    <tr><td>PTP (IEEE 1588), hardware time stamps</td><td class="n">10 ns–1 µs</td><td class="n">network dependent</td><td>no</td></tr>
+    <tr><td>Two-way fibre (White Rabbit class)</td><td class="n">&lt; 1 ns</td><td class="n">10<sup>−12</sup> in 1 s</td><td>no</td></tr>
+    <tr><td>RF reference over phase-stabilised fibre</td><td class="n">ps</td><td class="n">locked</td><td>yes</td></tr>
+  </table></div>
+  <div class="col"><p>(Illustrative figures.) The first table is one equipment; the second, between equipments. Both follow the same rule: the finer the quantity you must share (frequency, then time, then phase), the more continuous and the more direct the link has to be.</p></div>
+  <h3>How to choose the synchronisation</h3>
+  <div class="col"><p>(1) From the angle accuracy, get the phase budget: δφ ≤ 360°·δθ·d·cosθ/λ; for 0.5° at boresight, 10 GHz, 0.15 m: 15.7°, which is 4.4 ps. (2) If the static mismatch is larger, calibrate; if the drift between calibrations (drift rate × temperature change) is larger, calibrate continuously or more often. (3) A longer baseline lowers δθ in proportion to d but makes the phase wrap more often (more ambiguity). (4) A higher carrier raises the phase error for the same picoseconds (at 18 GHz the same 4 ps is 26°), but the bearing error from a pure delay mismatch is c·Δτ/d at any frequency. Phase errors that are not delays (mixer and filter phase differences) do not scale this way and must be calibrated at each frequency.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="bench">
+    <canvas id="cSy" width="680" height="320" aria-label="Bearing error of a two-channel interferometer against true angle for the chosen mismatch and calibration"></canvas>
+    <div class="ctrl">
+      <label for="syF"><span>Carrier frequency</span> <b id="syFv"></b></label><input id="syF" type="range" min="0.5" max="18" step="0.1" value="10">
+      <label for="syD"><span>Baseline d</span> <b id="syDv"></b></label><input id="syD" type="range" min="-1.7" max="0.3" step="0.01" value="-0.82">
+      <label for="syS"><span>Static path mismatch</span> <b id="sySv"></b></label><input id="syS" type="range" min="0" max="100" step="1" value="20">
+      <label for="syC"><span>Calibration</span></label><select id="syC"><option value="none" selected>No calibration</option><option value="start">Calibrated once at switch-on</option><option value="cont">Continuous calibration injection</option></select>
+      <label for="syT"><span>Temperature change since calibration</span> <b id="syTv"></b></label><input id="syT" type="range" min="0" max="50" step="1" value="0">
+      <div class="readout" id="syOut"></div>
+    </div>
+    <p class="cap">Bearing error against true angle of arrival, −60° to +60°. The error grows as 1/cosθ towards the edges. The baseline slider is logarithmic, 2 cm to 2 m (−0.82 = 0.15 m); the drift is 0.2 ps/°C. Mismatch acts without calibration; temperature acts unless calibration is continuous.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>10 GHz, 0.15 m, 20 ps, no calibration, 0 °C (the start): 72° and 2.29° at boresight, as in the worked example.</li>
+    <li>Set the temperature change to 20 °C: residual 24 ps, 86.4°, 2.75°, the first row of the table.</li>
+    <li>Calibrated once: 4 ps, 14.4°, 0.46°; continuous: 0.5 ps, 1.8°, 0.057°.</li>
+    <li>At 60° from boresight the error is twice the boresight value (1/cos 60° = 2).</li>
+    <li>Change the carrier from 10 GHz to 1 GHz: the phase error falls tenfold to 7.2° but the bearing error stays 2.29°, because a pure delay mismatch is a path-length error and δθ = c·Δτ/d at any frequency.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Static path mismatch</td><td>Length matching of LO, clock and RF paths</td><td>Channel-to-channel phase and delay match</td><td>20 ps → 72° → 2.3° bearing at 10 GHz, 0.15 m</td></tr>
+    <tr><td>Drift with temperature</td><td>Phase-stable cable, thermal layout, matched parts</td><td>Phase vs temperature, ps/°C</td><td>Calibration interval; 0.46° after 20 °C in the example</td></tr>
+    <tr><td>Calibration path</td><td>Injection coupler, switch, cal source</td><td>Coupling flatness, isolation</td><td>Residual 0.5 ps: 0.057° bearing</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Receiver and front-end designers:</b> match the channels in phase over frequency and temperature, not just at one point; the calibration coupler must itself be matched across channels.</li>
+    <li><b>LO distribution designers:</b> an LO splitter tree is a clock tree at RF: every Step 6 rule (levels, skew, drift) applies, and at 10 GHz one picosecond is 3.6°.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An 18 GHz interferometer with a 0.3 m baseline must hold 0.2° at boresight. What residual delay mismatch is allowed?</summary><p>δφ = 360° × (0.2 × π/180) × 0.3/0.01667 = 22.6°; Δτ = 22.6/(360 × 18×10<sup>9</sup>) = 3.5 ps.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: each parameter, what sets it, and where it shows up</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Common reference</td><td>Architecture: all synthesisers locked to one source</td><td>Tx − LO offset exactly 0; without it, 1 ppm → 150 m/s false clutter velocity</td></tr>
+    <tr><td>Accuracy</td><td>Oscillator type, adjustment, discipline</td><td>Carrier position (200 kHz XO vs 0.5 Hz Rb at 10 GHz); bistatic Doppler error</td></tr>
+    <tr><td>Temperature stability</td><td>Compensation (TCXO), oven (OCXO), atomic or GPS steering</td><td>Carrier movement with weather: ±40 kHz XO vs ±16 Hz OCXO at 10 GHz for 40 °C</td></tr>
+    <tr><td>Ageing</td><td>Crystal processing; Rb or GPS discipline</td><td>Recalibration interval; GPSDO holdover (0.3 ppb/day)</td></tr>
+    <tr><td>Warm-up</td><td>Oven power and thermal mass; lock time</td><td>Minutes from switch-on to coherent operation</td></tr>
+    <tr><td>Allan deviation σ<sub>y</sub>(τ)</td><td>Crystal flicker floor, random walk, loop time constant</td><td>Phase wander 2π·f<sub>c</sub>·τ·σ<sub>y</sub>: 2° (OCXO) vs 377° (TCXO) per second at 10 GHz</td></tr>
+    <tr><td>Close-in phase noise</td><td>Crystal Q, frequency, dual-oscillator lock</td><td>+20·log N at every LO: −79.6 dBc/Hz at 10 Hz on a 10 GHz LO from a 100 MHz OCXO</td></tr>
+    <tr><td>g-sensitivity</td><td>Crystal cut and mount, compensation, isolator</td><td>Airborne LO −37 dBc/Hz at 100 Hz (1 ppb/g, hard-mounted) vs −90 (0.1 ppb/g on 10 Hz isolator)</td></tr>
+    <tr><td>Reference frequency</td><td>10 or 100 MHz, dual</td><td>N and the PLL floor: −10 dB per decade of f<sub>ref</sub></td></tr>
+    <tr><td>Clock jitter</td><td>Source, buffer family, levels, cleaner</td><td>ADC SNR limit at 1 GHz: 30.1 dB (FPGA) vs 59.3 dB (LVDS)</td></tr>
+    <tr><td>Clock and LO skew</td><td>Device choice, length matching, temperature</td><td>Channel phase error; 20 ps → 2.3° bearing at 10 GHz, 0.15 m</td></tr>
+    <tr><td>Coherence over the CPI</td><td>Short-term noise (monostatic), offset and σ<sub>y</sub>(T) (bistatic)</td><td>MTI limit 47.7 vs 70.4 dB; bistatic offset 500 bins (OCXO) vs 0.1 bin (GPSDO)</td></tr>
+    <tr><td>Time-stamp accuracy</td><td>Synchronisation method, oscillator between syncs, counter clock</td><td>TDOA: 4.2 km after 10 s (free TCXOs) vs 8.6 m (GPS) vs 0.15 m (fibre, 1 GHz counter)</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (module 02: phase noise, PLL, 20·log N, range correlation, SAR effects); <a href="M07-adc-dac-sampling.html">ADC, DAC and sampling</a> (module 07: aperture jitter and the SNR limit); <a href="M04-filters.html">Filters and preselection</a> (module 04: group delay in the TOA budget); <a href="M11-esm-receivers.html">ESM receivers</a> (module 11: PDWs and deinterleaving); <a href="R4-pulse-radar.html">R4</a> (pulse and Doppler processing) and <a href="P3-sar-imaging.html">Part 3</a> (SAR imaging) use these numbers in full systems.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>1 PPS</dt><dd>One pulse per second from a GPS receiver, aligned to GPS time; used to discipline oscillators and to synchronise sites.</dd>
+    <dt>Accuracy</dt><dd>Offset of the frequency from nominal at delivery or after adjustment, in ppm or ppb.</dd>
+    <dt>Additive jitter</dt><dd>Jitter a buffer or device adds to a perfect input clock, fs rms over a stated band.</dd>
+    <dt>Ageing</dt><dd>Slow drift of an oscillator's frequency with time, ppb/day or ppm/year.</dd>
+    <dt>Allan deviation σ<sub>y</sub>(τ)</dt><dd>Time-domain measure of frequency stability: typical change between successive frequency averages over τ.</dd>
+    <dt>Bistatic</dt><dd>Transmitter and receiver at different sites, with separate references.</dd>
+    <dt>Calibration injection</dt><dd>A known signal fed into every channel so phase and delay differences can be measured and removed.</dd>
+    <dt>Coherent</dt><dd>Transmit and receive phases related through one reference, so echo phase can be compared from pulse to pulse.</dd>
+    <dt>CPI</dt><dd>Coherent processing interval: the time over which echoes are added in phase; Doppler resolution is 1/CPI.</dd>
+    <dt>Dual-oscillator reference</dt><dd>A high-frequency OCXO locked to a low-frequency OCXO with a narrow loop, taking the better close-in and far-out noise of each.</dd>
+    <dt>Fan-out</dt><dd>Number of outputs driven by one clock buffer.</dd>
+    <dt>Flicker floor</dt><dd>The flat part of the Allan deviation, set by flicker FM; the best stability an oscillator reaches.</dd>
+    <dt>g-sensitivity Γ</dt><dd>Fractional frequency change per g of acceleration, ppb/g.</dd>
+    <dt>GPSDO</dt><dd>GPS-disciplined oscillator: an OCXO steered to GPS with a slow loop.</dd>
+    <dt>Holdover</dt><dd>Operation of a disciplined oscillator after losing its steering signal; it drifts at its own ageing and temperature rates.</dd>
+    <dt>Isolator (vibration)</dt><dd>Spring-and-damper mount that attenuates vibration above about 1.4 × its natural frequency and amplifies it near resonance.</dd>
+    <dt>MTI improvement limit</dt><dd>Best clutter cancellation allowed by pulse-to-pulse phase jitter, about −20·log σ<sub>φ</sub> dB.</dd>
+    <dt>Monostatic</dt><dd>Transmitter and receiver at one site, sharing one reference.</dd>
+    <dt>OCXO</dt><dd>Oven-controlled crystal oscillator: crystal held at its turnover temperature.</dd>
+    <dt>PDW</dt><dd>Pulse descriptor word: TOA, pulse width, frequency, amplitude and angle for one intercepted pulse.</dd>
+    <dt>Phase-detector floor</dt><dd>A PLL's own in-band noise: FOM + 10·log f<sub>PFD</sub> + 20·log N.</dd>
+    <dt>ppm, ppb</dt><dd>Parts per million (10<sup>−6</sup>) and per billion (10<sup>−9</sup>).</dd>
+    <dt>Quadratic phase error</dt><dd>Phase error growing as t² across the CPI, from a frequency change; broadens Doppler peaks and SAR responses.</dd>
+    <dt>Range correlation</dt><dd>Cancellation of slow phase noise in a monostatic radar because the echo is compared with the same oscillator τ<sub>d</sub> later.</dd>
+    <dt>Rubidium standard</dt><dd>Atomic frequency standard locking a crystal to a rubidium-87 transition near 6.8 GHz.</dd>
+    <dt>RSS</dt><dd>Root-sum-square addition of independent errors.</dd>
+    <dt>Skew</dt><dd>Difference in arrival time of the same clock edge at two destinations.</dd>
+    <dt>Synchronise / syntonise</dt><dd>Align time / align frequency.</dd>
+    <dt>TCXO</dt><dd>Temperature-compensated crystal oscillator: a thermistor network pulls the crystal to cancel its temperature curve.</dd>
+    <dt>TDOA</dt><dd>Time difference of arrival of one signal at two sites; locates the emitter on a hyperbola.</dd>
+    <dt>TOA</dt><dd>Time of arrival: the time stamp of a pulse's leading edge.</dd>
+    <dt>XO</dt><dd>Plain crystal oscillator without compensation.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Vig, <i>Quartz Crystal Resonators and Oscillators for Frequency Control and Timing Applications</i> (tutorial); Rubiola, <i>Phase Noise and Frequency Stability in Oscillators</i>; Riley, <i>Handbook of Frequency Stability Analysis</i>; Allan's variance as presented in these texts; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Willis, <i>Bistatic Radar</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>; Kester (ed.), <i>Data Conversion Handbook</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${String(p[1]).replace(/(^|[\s(])-(?=\d)/g,'$1−')}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+
+/* ---- reference and timing maths (shared by node checks and the page) ---- */
+const LN2=Math.LN2, PI=Math.PI, C0=c0;
+const db10=x=>10*Math.log10(x);
+/* power-law oscillator models: fractional-frequency PSD Sy(f)=sum h_a f^a, all referred to nu0 (Hz) */
+const OSC={
+  xo:  {n:'XO (plain crystal)',nu:100e6,h:{2:2e-31,1:1e-25,0:1e-25,'-1':7.2e-19,'-2':1.5e-20}},
+  tcxo:{n:'TCXO',nu:100e6,h:{2:6.3e-32,1:2e-26,0:1e-26,'-1':7.2e-21,'-2':1.5e-22}},
+  ocxo:{n:'OCXO, 100 MHz',nu:100e6,h:{2:2e-33,1:1.26e-28,0:6.3e-28,'-1':2e-25,'-2':3.8e-27}},
+  ocxo10:{n:'OCXO, 10 MHz low-noise',nu:10e6,h:{2:6.3e-31,1:1e-28,0:1e-27,'-1':2e-26,'-2':1e-27}},
+  rb:  {n:'Rubidium',nu:100e6,h:{2:2e-33,1:1.26e-28,0:6.3e-28,'-1':2e-25,'-2':3.8e-27},ref:{h0:1.8e-23,hm1:6.5e-28,hm2:2e-33},tl:10},
+  gpsdo:{n:'GPS-disciplined OCXO',nu:100e6,h:{2:2e-33,1:1.26e-28,0:6.3e-28,'-1':2e-25,'-2':3.8e-27},gps:1.7e-8,tl:1000}
+};
+const FH=1e6; /* measurement bandwidth for white and flicker PM */
+function adevXtal(h,tau){
+  const s2= 3*FH*h[2]/(4*PI*PI*tau*tau)
+          +(1.038+3*Math.log(TAU*FH*tau))*h[1]/(4*PI*PI*tau*tau)
+          +h[0]/(2*tau)
+          +2*LN2*h['-1']
+          +(2*PI*PI/3)*h['-2']*tau;
+  return Math.sqrt(s2);
+}
+/* components at tau for "dominant noise type" */
+function adevParts(h,tau){
+  return [['white PM',3*FH*h[2]/(4*PI*PI*tau*tau)],['flicker PM',(1.038+3*Math.log(TAU*FH*tau))*h[1]/(4*PI*PI*tau*tau)],['white FM',h[0]/(2*tau)],['flicker FM',2*LN2*h['-1']],['random-walk FM',(2*PI*PI/3)*h['-2']*tau]];
+}
+function adev(k,tau){
+  const o=OSC[k]; const sx=adevXtal(o.h,tau);
+  if(!o.ref&&!o.gps) return sx;
+  let sr;
+  if(o.ref) sr=Math.sqrt(o.ref.h0/(2*tau)+2*LN2*o.ref.hm1+(2*PI*PI/3)*o.ref.hm2*tau);
+  else sr=o.gps/tau+1e-14;
+  const r=Math.pow(tau/o.tl,4);
+  return Math.sqrt(sx*sx/(1+r)+sr*sr*r/(1+r));
+}
+function dominant(k,tau){ const o=OSC[k]; if((o.ref||o.gps)&&tau>o.tl) return o.ref?'rubidium atomic reference':'GPS timing (white PM)'; const p=adevParts(o.h,tau); p.sort((a,b)=>b[1]-a[1]); return p[0][0]; }
+/* phase noise L(f) in dBc/Hz at nu0 of the model, scaled to nuOut */
+function Lref(k,f,nuOut){
+  const o=OSC[k], h=o.h; const nu=nuOut||o.nu;
+  const Sy=h[2]*f*f+h[1]*f+h[0]+h['-1']/f+h['-2']/(f*f);
+  return db10(nu*nu*Sy/(2*f*f));
+}
+/* ---- Step 2: frequency error over time (ppb) ---- */
+const DRIFT={
+  xo:   {init:20000,tc:200,age:5,wu:0,wuT:1,lab:'XO'},
+  tcxo: {init:1000,tc:4,age:3,wu:200,wuT:2,lab:'TCXO'},
+  ocxo: {init:50,tc:0.08,age:0.3,wu:2000,wuT:90,lab:'OCXO'},
+  rb:   {init:0.05,tc:0.0008,age:0.0017,wu:2000,wuT:90,lock:420,lab:'Rubidium'},
+  gpsdo:{init:0.001,tc:0.08,age:0.3,wu:2000,wuT:90,lock:1800,tl:1000,lab:'GPSDO, locked'},
+  hold: {init:0.001,tc:0.08,age:0.3,wu:0,wuT:1,lab:'GPSDO, holdover'}
+};
+/* y(t) in ppb, t in s, swing = peak-to-peak daily ambient change */
+function yDrift(k,t,swing){
+  const d=DRIFT[k]; const day=86400;
+  let wu=d.wu*Math.exp(-t/d.wuT);
+  const temp=d.tc*(swing/2)*Math.sin(TAU*t/day);
+  let age=d.age*t/day;
+  let y=d.init+temp+age;
+  if(k==='gpsdo'){ const red=Math.min(1,TAU*d.tl/day); y=d.init+temp*red+5*Math.exp(-t/(d.lock/3)); }
+  if(k==='rb'&&t>=d.lock) wu=0;
+  return y+wu;
+}
+/* ---- Step 4: vibration ---- */
+const VIB={
+  lab:{n:'Laboratory bench (no vibration)',psd:[],lines:[]},
+  veh:{n:'Ground vehicle',psd:[[5,0.02],[500,0.02],[2000,0.02/16]],lines:[]},
+  jet:{n:'Jet aircraft',psd:[[15,0.04],[2000,0.04]],lines:[]},
+  heli:{n:'Helicopter (rotor lines)',psd:[[15,0.002],[2000,0.002]],lines:[[17,1.0],[34,0.5],[68,0.3]]},
+  uav:{n:'Small UAV (propeller line)',psd:[[20,0.005],[1000,0.005]],lines:[[120,0.5]]}
+};
+function vibG(p,f){ const a=VIB[p].psd; if(!a.length||f<a[0][0]||f>a[a.length-1][0]) return 0;
+  for(let i=0;i<a.length-1;i++){ if(f>=a[i][0]&&f<=a[i+1][0]){ const t=Math.log(f/a[i][0])/Math.log(a[i+1][0]/a[i][0]); return Math.exp(Math.log(a[i][1])+t*Math.log(a[i+1][1]/a[i][1])); } } return 0; }
+const ISO={none:{n:'None (hard-mounted)',fn:0},i50:{n:'Isolator, f_n 50 Hz',fn:50},i10:{n:'Isolator, f_n 10 Hz',fn:10}};
+function trans(iso,f){ const fn=ISO[iso].fn; if(!fn) return 1; const z=0.1, r=f/fn; return Math.sqrt((1+(2*z*r)**2)/((1-r*r)**2+(2*z*r)**2)); }
+/* L_vib in dBc/Hz at nuOut from random PSD (gamma in 1/g) */
+function Lvib(p,f,gam,nuOut,iso){ const G=vibG(p,f)*Math.pow(trans(iso,f),2); if(G<=0) return -Infinity; return 20*Math.log10(gam*nuOut*Math.sqrt(G/2)/f); }
+function Lline(A,fv,gam,nuOut,iso){ return 20*Math.log10(gam*A*trans(iso,fv)*nuOut/(2*fv)); }
+/* ---- Step 5: LO built from the reference ---- */
+const REFS={
+  o100:{n:'100 MHz OCXO',k:'ocxo',f:100e6},
+  o10:{n:'10 MHz low-noise OCXO',k:'ocxo10',f:10e6},
+  dual:{n:'100 MHz OCXO locked to 10 MHz OCXO (100 Hz loop)',k:'dual',f:100e6},
+  t100:{n:'100 MHz TCXO-class',k:'tcxo',f:100e6}
+};
+function Lrefsel(r,f,nuOut){ const R=REFS[r];
+  if(R.k==='dual'){ const a=Lref('ocxo10',f,nuOut), b=Lref('ocxo',f,nuOut); const x=Math.pow(f/100,4); const wl=1/(1+x), wh=x/(1+x); return db10(Math.pow(10,a/10)*wl+Math.pow(10,b/10)*wh); }
+  return Lref(R.k,f,nuOut); }
+const FOM=-230;
+function Lpll(r,nuOut){ const R=REFS[r]; return FOM+db10(R.f)+20*Math.log10(nuOut/R.f); }
+function Lvco(f,nuOut){ return -110+20*Math.log10(1e5/f)+(f<1e4?10*Math.log10(1e4/f):0)+20*Math.log10(nuOut/10e9); }
+function Lvco2(f,nuOut){ return db10(Math.pow(10,Lvco(f,nuOut)/10)+1e-16); }
+function Llo(r,f,nuOut,bw){ const x=Math.pow(f/bw,4), lp=1/(1+x), hp=x/(1+x);
+  const inb=Math.pow(10,Lrefsel(r,f,nuOut)/10)+Math.pow(10,Lpll(r,nuOut)/10);
+  return db10(inb*lp+Math.pow(10,Lvco2(f,nuOut)/10)*hp); }
+function integ(Lfun,f1,f2,n){ n=n||400; let s=0; const a=Math.log(f1), b=Math.log(f2);
+  for(let i=0;i<n;i++){ const u=a+(b-a)*(i+0.5)/n, f=Math.exp(u); s+=Math.pow(10,Lfun(f)/10)*f*(b-a)/n; } return Math.sqrt(2*s); } /* rad rms */
+/* ---- Step 6: distribution ---- */
+const BUF={
+  fpga:{n:'FPGA fabric / logic gate',j:5000,sk:200,p2p:800,fo:16},
+  cmos:{n:'LVCMOS fan-out buffer',j:250,sk:50,p2p:300,fo:4},
+  lvds:{n:'LVDS fan-out buffer',j:100,sk:20,p2p:100,fo:4},
+  pecl:{n:'LVPECL / HCSL low-noise buffer',j:50,sk:15,p2p:80,fo:8},
+  dist:{n:'Low-noise clock distribution IC',j:25,sk:10,p2p:50,fo:10}
+};
+function distCalc(b,N,src,mm,fin){ const B=BUF[b]; const k=Math.max(1,Math.ceil(Math.log(N)/Math.log(B.fo)-1e-9));
+  let dev=0,w=1; for(let i=0;i<k;i++){ dev+=w; w=Math.min(w*B.fo,Math.ceil(N/Math.pow(B.fo,k-1-i))); }
+  const jt=Math.sqrt(src*src+k*B.j*B.j); const sk=Math.sqrt(k)*B.p2p+mm*4.8; const snr=-20*Math.log10(TAU*fin*jt*1e-15);
+  return {k,dev,jt,sk,snr,ph:360*fin*sk*1e-12}; }
+/* ---- Step 8: time error since sync ---- */
+const YRES={xo:1e-6,tcxo:1e-7,ocxo:1e-9,rb:1e-11,gpsdo:1e-11};
+const AGE={xo:5e-9/86400,tcxo:3e-9/86400,ocxo:0.3e-9/86400,rb:1.7e-12/86400,gpsdo:0.3e-9/86400};
+const INIT={xo:20e-6,tcxo:1e-6,ocxo:50e-9,rb:5e-11,gpsdo:1e-11};
+const SYNC={free:{n:'Free-running (factory accuracy)'},once:{n:'Synchronised and syntonised once'},gps:{n:'GPS 1 PPS disciplined (locked)',x:20e-9},fib:{n:'Two-way fibre (White Rabbit class)',x:0.2e-9}};
+function terr(k,s,t,fclk){ const q=1/(Math.sqrt(12)*fclk);
+  if(s==='gps'||s==='fib'){ return Math.sqrt(SYNC[s].x**2+q*q); }
+  const y0=(s==='free')?INIT[k]:YRES[k]; const x0=(s==='free')?0:1e-9; const akey=(k==='gpsdo')?'gpsdo':k;
+  const rnd=t*adev(k==='gpsdo'?'ocxo':k,Math.max(t,1e-3));
+  return Math.sqrt(x0*x0+(y0*t)**2+(AGE[akey]*t*t/2)**2+rnd*rnd+q*q); }
+
+/* ---- Step 7: coherence over the CPI ---- */
+function fft(re,im){ const n=re.length; for(let i=1,j=0;i<n;i++){ let b=n>>1; for(;j&b;b>>=1) j^=b; j^=b; if(i<j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; } }
+  for(let len=2;len<=n;len<<=1){ const a=-TAU/len, wr=Math.cos(a), wi=Math.sin(a); for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let j=0;j<len/2;j++){ const ur=re[i+j],ui=im[i+j], vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci, vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr; re[i+j]=ur+vr; im[i+j]=ui+vi; re[i+j+len/2]=ur-vr; im[i+j+len/2]=ui-vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } } }
+function rng(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return (s+0.5)/4294967296; }; }
+function gauss(r){ return Math.sqrt(-2*Math.log(r()))*Math.cos(TAU*r()); }
+const NP=256, NZ=4096;
+function cpiCalc(arr,k,T,fc,Rkm){
+  const td=2*Rkm*1e3/C0; const nuOut=fc;
+  const sy=adev(k,T);
+  let dy0, dy, sphi, dop;
+  const f1=1/T, f2=NP/(2*T);
+  if(arr==='sep'){ dy0=INIT[k]; dy=Math.SQRT2*sy; sphi=Math.SQRT2*integ(f=>Lref(k,f,nuOut),f1,f2,300); }
+  else { dy0=0; dy=0; sphi=integ(f=>Lref(k,f,nuOut)+db10(4*Math.pow(Math.sin(PI*f*td),2)+1e-300),f1,f2,300); }
+  const shift=fc*dy0*T; /* bins */
+  const qpe=PI*fc*Math.abs(dy)*T/4; /* rad, peak at aperture edge */
+  return {td,sy,dy0,dy,sphi,shift,qpe,dopErr:fc*dy0};
+}
+function cpiSpec(c,fc,T){
+  const re=new Float64Array(NZ), im=new Float64Array(NZ); const r=rng(7);
+  let sw=0;
+  for(let n=0;n<NP;n++){ const t=(n-NP/2+0.5)*T/NP; const w=0.5-0.5*Math.cos(TAU*(n+0.5)/NP); sw+=w;
+    const ph=TAU*fc*(c.dy0*t+c.dy*t*t/(2*T))+c.sphi*gauss(r); re[n]=w*Math.cos(ph); im[n]=w*Math.sin(ph); }
+  fft(re,im); const out=new Float64Array(NZ);
+  for(let i=0;i<NZ;i++){ const j=(i+NZ/2)%NZ; out[i]=20*Math.log10(Math.hypot(re[j],im[j])/sw+1e-12); }
+  return out; } /* index i -> bin (i-NZ/2)*NP/NZ */
+/* ---- Step 9: interferometer ---- */
+const CAL={none:{n:'No calibration'},start:{n:'Calibrated once at switch-on'},cont:{n:'Continuous calibration injection'}};
+function aoaCalc(fc,d,skew,cal,dT){ const lam=C0/fc; let res;
+  if(cal==='none') res=skew+0.2*dT; else if(cal==='start') res=0.2*dT; else res=0.5;
+  const dphi=360*fc*res*1e-12; const err=(dphi*PI/180)*lam/(TAU*d)*180/PI; return {lam,res,dphi,err,amb:d>lam/2}; }
+
+
+
+/* ---- page helpers for this module ---- */
+const sig=(x,n)=>Number(Number(x).toPrecision(n||2));
+const lg=v=>sig(Math.pow(10,v),2);
+function sci(x,d){ if(!isFinite(x)) return 'n/a'; if(x===0) return '0'; const e=Math.floor(Math.log10(Math.abs(x))); const m=x/Math.pow(10,e); let ms=m.toFixed(d??1); if(Math.abs(parseFloat(ms))>=10){ return sci(x*1.0000001,d); } return ms+'e'+(e<0?'−'+(-e):e); }
+function setv(id,s){ $(id).textContent=s; }
+function fmtPpb(p){ if(!isFinite(p)) return 'n/a'; const a=Math.abs(p); if(a>=1000) return (p/1000).toPrecision(3)+' ppm'; if(a>=1) return p.toPrecision(3)+' ppb'; return p.toPrecision(2)+' ppb'; }
+function fmtDeg(d){ if(!isFinite(d)) return 'n/a'; const a=Math.abs(d); if(a>=100) return d.toFixed(0)+'°'; if(a>=10) return d.toFixed(1)+'°'; if(a>=1) return d.toFixed(2)+'°'; if(a>=0.001) return d.toPrecision(3)+'°'; return sci(d,1)+'°'; }
+function fmtT(t){ if(!isFinite(t)) return 'n/a'; const a=Math.abs(t); if(a<1e-9) return (t*1e12).toFixed(1)+' ps'; if(a<1e-6) return (t*1e9).toPrecision(3)+' ns'; if(a<1e-3) return (t*1e6).toPrecision(3)+' µs'; if(a<1) return (t*1e3).toPrecision(3)+' ms'; return t.toPrecision(3)+' s'; }
+function fmtDur(s){ if(s<120) return s.toPrecision(2)+' s'; if(s<7200) return (s/60).toPrecision(2)+' min'; if(s<2*86400) return (s/3600).toPrecision(2)+' h'; return (s/86400).toPrecision(3)+' days'; }
+function fmtLen(m){ if(!isFinite(m)) return 'n/a'; const a=Math.abs(m); if(a>=1000) return (m/1000).toPrecision(3)+' km'; if(a>=1) return m.toPrecision(3)+' m'; if(a>=0.01) return (m*100).toPrecision(3)+' cm'; return (m*1000).toPrecision(3)+' mm'; }
+const pw=x=>Math.pow(10,x/10);
+const dbs=v=>isFinite(v)?v.toFixed(1)+' dBc/Hz':'none';
+const logfx=v=>{ const p=Math.round(v); const x=Math.pow(10,p); if(Math.abs(v-p)>1e-6) return ''; if(x>=1e6) return (x/1e6)+'M'; if(x>=1e3) return (x/1e3)+'k'; if(x>=1) return ''+x; return ''+x; };
+function fx10(v,unit){ const p=Math.round(v); if(Math.abs(v-p)>1e-6) return ''; const x=Math.pow(10,p); let s;
+  if(unit==='s'){ s= x>=1? (x>=1000?(x/1000)+'k':''+x)+'s' : (x>=1e-3?(x*1e3)+'ms':(x*1e6)+'µs'); return s; }
+  if(unit==='Hz'){ return x>=1e6?(x/1e6)+'M':x>=1e3?(x/1e3)+'k':''+x; } return '1e'+p; }
+const fe=v=>{ const p=Math.round(v); return Math.abs(v-p)<1e-6?('1e'+(p<0?'−'+(-p):p)):''; };
+
+/* ---- Step 1: coherence ---- */
+function coDraw(){
+  const arr=$('coA').value, yppb=lg(+$('coY').value), fc=+$('coF').value*1e9, prf=+$('coP').value*1e3;
+  setv('coYv',fmtPpb(yppb)); setv('coFv',(fc/1e9).toFixed(1)+' GHz'); setv('coPv',(prf/1e3).toFixed(1)+' kHz');
+  const lam=C0/fc; const df=arr==='sep'?yppb*1e-9*fc:0;
+  const stepRaw=360*df/prf; let stepF=((stepRaw%360)+540)%360-180; if(Math.abs(stepF+180)<1e-9) stepF=180;
+  const fd=stepF/360*prf;
+  const r=rng(3); const N=64, ph=[];
+  for(let n=0;n<N;n++) ph.push(arr==='nc'?TAU*r():TAU*df*n/prf);
+  const c=$('cCo'), g=ctx(c);
+  /* left: phasor circle */
+  const cx=130, cy=170, R=100; g.strokeStyle=css('--line'); g.beginPath(); g.arc(cx,cy,R,0,TAU); g.stroke();
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(cx-R-8,cy); g.lineTo(cx+R+8,cy); g.moveTo(cx,cy-R-8); g.lineTo(cx,cy+R+8); g.stroke();
+  txt(g,'echo phase, pulses 1–16',20,36,css('--muted')); txt(g,'I',cx+R+10,cy+4,css('--muted')); txt(g,'Q',cx-4,cy-R-12,css('--muted'));
+  for(let n=15;n>=0;n--){ const a=ph[n]; g.globalAlpha=1-n/20; dot(g,cx+R*Math.cos(a),cy-R*Math.sin(a),css('--accent'),5); } g.globalAlpha=1;
+  g.strokeStyle=css('--accent'); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+R*Math.cos(ph[0]),cy-R*Math.sin(ph[0])); g.stroke();
+  /* right: Doppler spectrum */
+  const M=512, xs=[], ys=[]; let pk=-1e9, pkf=0, pav=0;
+  for(let i=0;i<M;i++){ const f=-prf/2+prf*i/M; let re=0, im=0; for(let n=0;n<N;n++){ const a=ph[n]-TAU*f*n/prf; re+=Math.cos(a); im+=Math.sin(a); } pav+=(re*re+im*im)/(N*N)/M; const v=20*Math.log10(Math.hypot(re,im)/N+1e-6); xs.push(f/1e3); ys.push(v); if(v>pk){pk=v;pkf=f;} }
+  const X0=300,Y0=30,W=360,H=250, xa=-prf/2e3, xb=prf/2e3;
+  const Xn=x=>X0+W*(x-xa)/(xb-xa); g.fillStyle=css('--chip'); g.fillRect(Xn(-prf/32e3),Y0,Xn(prf/32e3)-Xn(-prf/32e3),H);
+  plot(g,X0,Y0,W,H,xa,xb,-40,0,[{x:xs,y:ys,color:css('--trace'),w:1.8}],{nx:4,ny:4,fx:v=>(Math.abs(v)<1e-9?0:v).toFixed(1),yl:'dB rel. full coherent gain',xl:'Doppler, kHz'});
+  txt(g,'MTI notch',Xn(prf/32e3)+4,Y0+H-8,css('--muted'));
+  const inN=Math.abs(pkf)<prf/32;
+  ro($('coOut'),[['Tx − LO offset',arr==='nc'?'random phase':fmt(df,'Hz',df>=1e3?2:1)],['false speed',arr==='sep'?(yppb*1e-9*C0/2).toPrecision(3)+' m/s':(arr==='nc'?'n/a':'0 m/s')],['step per pulse',arr==='nc'?'random':(stepRaw.toFixed(1)+'° ≡ '+stepF.toFixed(1)+'°')],['clutter at',arr==='nc'?'spread':(fd>=0?'+':'')+fmt(fd,'Hz',2)],['folded speed',arr==='nc'?'n/a':(Math.abs(fd)*lam/2).toFixed(1)+' m/s'],['in MTI notch',arr==='nc'?'no peak':(inN?'yes':'no')],['peak',pk.toFixed(1)+' dB'],['average level',(10*Math.log10(pav)).toFixed(1)+' dB']]);
+}
+bind(['coA','coY','coF','coP'],coDraw);
+
+/* ---- Step 2: oscillator types ---- */
+const WUT={xo:'immediate',tcxo:null,ocxo:null,rb:'locks 7.0 min',gpsdo:'locks ≈30 min',hold:'n/a (warm)'};
+function tyDraw(){
+  const k=$('tyK').value, sw=+$('tyS').value, hrs=sig(Math.pow(10,+$('tyT').value*Math.log10(8760)),2), span=hrs*3600, fc=+$('tyF').value*1e9;
+  setv('tySv',sw+' °C'); setv('tyTv',fmtDur(span)); setv('tyFv',(fc/1e9).toFixed(1)+' GHz');
+  const n=600, xs=[], ys=[]; let mx=-1e9, mn=1e9, worst=0, xacc=0; const skip=span>3*3600?3600:0;
+  for(let i=0;i<=n;i++){ const t=span*i/n; const y=yDrift(k,t,sw); xs.push(t/3600); ys.push(y); if(t>=skip){ mx=Math.max(mx,y); mn=Math.min(mn,y); worst=Math.max(worst,Math.abs(y)); } }
+  const ni=20000; for(let i=0;i<ni;i++){ const t=span*(i+0.5)/ni; xacc+=yDrift(k,t,sw)*1e-9*span/ni; }
+  let lo=Math.min(0,mn), hi=Math.max(mx,0); { const raw=(hi-lo)/5||Math.abs(hi)/5||1e-3; const e=Math.pow(10,Math.floor(Math.log10(raw))); const st=[1,2,2.5,5,10].map(m=>m*e).find(v=>v>=raw); lo=Math.floor(lo/st-1e-9)*st; hi=Math.ceil(hi/st+1e-9)*st; if(hi-lo<st) hi=lo+st; var tyNy=Math.round((hi-lo)/st); }
+  const c=$('cTy'), g=ctx(c);
+  const days=span>3*86400; const xsP=days?xs.map(v=>v/24):xs; const xb=days?span/86400:span/3600;
+  const fy=v=>{ const a=Math.max(Math.abs(hi),Math.abs(lo)); return a>=1000?(v/1000).toFixed(2)+'k':a>=10?v.toFixed(0):a>=1?v.toFixed(1):v.toFixed(3); };
+  plot(g,70,30,580,250,0,xb,lo,hi,[{x:xsP,y:ys,color:css('--trace'),w:1.8}],{nx:4,ny:tyNy,fy,fx:v=>v.toFixed(xb<10?1:0),yl:'frequency error, ppb',xl:days?'days since switch-on':'hours since switch-on'});
+  { const Yf=v=>30+250*(hi-v)/(hi-lo); g.fillStyle=css('--muted'); for(let q=0;q<=tyNy;q++){ const v=lo+(hi-lo)*q/tyNy; const hz=v*1e-9*fc; const sTxt=Math.abs(hz)>=1e3?(hz/1e3).toFixed(1)+'k':Math.abs(hz)>=10?hz.toFixed(0):hz.toFixed(2); g.fillText(sTxt,654,Yf(v)+4); } txt(g,'Hz at '+(fc/1e9).toFixed(1)+' GHz',560,22,css('--muted')); }
+  const d=DRIFT[k];
+  const wtxt=WUT[k]||(d.wu>10?(d.wuT*Math.log(d.wu/10)/60).toFixed(1)+' min':'0.0 min');
+  const tempPk=(k==='gpsdo'?d.tc*sw/2*Math.min(1,TAU*d.tl/86400):d.tc*sw/2);
+  ro($('tyOut'),[['initial offset',fmtPpb(d.init)],['temperature term','±'+fmtPpb(tempPk)],['ageing in span',k==='gpsdo'?'removed by GPS':fmtPpb(d.age*span/86400)],['error at 5 min',fmtPpb(yDrift(k,300,sw))],['to 10 ppb',wtxt],[skip?'worst after 1 h':'worst in span',fmtPpb(worst)],['at the carrier',fmt(worst*1e-9*fc,'Hz',worst*1e-9*fc<10?2:1)],['time error',fmtT(xacc)]]);
+}
+bind(['tyK','tyS','tyT','tyF'],tyDraw);
+
+/* ---- Step 3: Allan deviation vs phase noise ---- */
+const ADK=['xo','tcxo','ocxo','ocxo10','rb','gpsdo'];
+function adDraw(){
+  const k=$('adK').value, tau=lg(+$('adT').value), fc=+$('adF').value*1e9;
+  setv('adTv',fmt(tau,'s',tau<1e-3?0:tau>=10?0:(tau<1?1:2)).replace('.00 s',' s')); setv('adFv',(fc/1e9).toFixed(1)+' GHz');
+  const c=$('cAd'), g=ctx(c);
+  const fxs=[]; for(let i=0;i<=240;i++) fxs.push(6*i/240);
+  const curvesL=[], curvesA=[]; const txs=[]; for(let i=0;i<=240;i++) txs.push(-3+7*i/240);
+  ADK.forEach(o=>{ if(o===k) return; curvesL.push({x:fxs,y:fxs.map(v=>Lref(o,Math.pow(10,v),100e6)),color:css('--muted'),dash:[2,3],w:1}); curvesA.push({x:txs,y:txs.map(v=>Math.log10(adev(o,Math.pow(10,v)))),color:css('--muted'),dash:[2,3],w:1}); });
+  curvesL.push({x:fxs,y:fxs.map(v=>Lref(k,Math.pow(10,v),100e6)),color:css('--trace'),w:2});
+  curvesA.push({x:txs,y:txs.map(v=>Math.log10(adev(k,Math.pow(10,v)))),color:css('--trace'),w:2});
+  const P=plot(g,56,30,250,250,0,6,-180,-20,curvesL,{nx:6,ny:8,fx:v=>fx10(v,'Hz'),yl:'L(f), dBc/Hz at 100 MHz',xl:'offset, Hz'});
+  const feq=1/(TAU*tau); const lf=Math.log10(feq);
+  if(lf>=0&&lf<=6){ vline(g,P.X(lf),30,250,css('--accent')); dot(g,P.X(lf),P.Y(Lref(k,feq,100e6)),css('--accent'),4); }
+  else txt(g,'1/(2πτ) below 1 Hz',62,44,css('--accent'));
+  const A=plot(g,410,30,250,250,-3,4,-14,-7,curvesA,{nx:7,ny:7,fx:v=>fx10(v,'s'),fy:fe,yl:'Allan deviation σy(τ)',xl:'τ'});
+  const s=adev(k,tau); dot(g,A.X(Math.log10(tau)),A.Y(Math.log10(s)),css('--accent'),5);
+  txt(g,'wander over τ at '+(fc/1e9).toFixed(1)+' GHz: '+fmtDeg(360*fc*tau*s),416,48,css('--accent'));
+  const steer={rb:'Rb, 10 s loop',gpsdo:'GPS, 1000 s loop'}[k]||'none';
+  ro($('adOut'),[['σy(τ)',sci(s,1)],['steering',steer],['dominant',dominant(k,tau)],['f = 1/(2πτ)',feq<0.01?sci(feq,1)+' Hz':fmt(feq,'Hz',feq<10?3:1)],['Δf at carrier',fmt(fc*s,'Hz',fc*s<1?4:2)],['phase wander',fmtDeg(360*fc*tau*s)],['time wander',fmtT(tau*s)]]);
+}
+bind(['adK','adT','adF'],adDraw);
+
+/* ---- Step 4: vibration ---- */
+function vbDraw(){
+  const p=$('vbP').value, gam=lg(+$('vbG').value)*1e-9, iso=$('vbI').value, fo=+$('vbF').value*1e9;
+  setv('vbGv',(gam*1e9).toPrecision(2)+' ppb/g'); setv('vbFv',(fo/1e9).toFixed(1)+' GHz');
+  const c=$('cVb'), g=ctx(c); const xs=[]; for(let i=0;i<=400;i++) xs.push(4*i/400);
+  const st=xs.map(v=>Lref('ocxo',Math.pow(10,v),fo)), vb=xs.map(v=>Lvib(p,Math.pow(10,v),gam,fo,iso));
+  const tot=xs.map((v,i)=>db10(pw(st[i])+(isFinite(vb[i])?pw(vb[i]):0)));
+  const X0=60,Y0=30,W=600,H=250; const ps=VIB[p].psd;
+  if(ps.length){ const xa=Math.log10(ps[0][0]), xb=Math.log10(ps[ps.length-1][0]); g.fillStyle=css('--chip'); g.fillRect(X0+W*xa/4,Y0,W*(xb-xa)/4,H); }
+  const P=plot(g,X0,Y0,W,H,0,4,-160,0,[{x:xs,y:st,color:css('--muted'),dash:[5,4],w:1.4},{x:xs,y:tot,color:css('--trace'),w:2.6},{x:xs,y:vb,color:css('--accent'),w:1.2,dash:[4,3]}],{nx:4,ny:8,fx:v=>fx10(v,'Hz'),yl:'L(f) at the LO, dBc/Hz (lines: dBc)',xl:'offset, Hz'});
+  let strongest=null, lineVar=0;
+  VIB[p].lines.forEach(([fv,A])=>{ const L=Lline(A,fv,gam,fo,iso); const x=P.X(Math.log10(fv)); g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(x,Y0+H); g.lineTo(x,P.Y(L)); g.stroke(); g.lineWidth=1; dot(g,x,P.Y(L),css('--accent'),3);
+    if(!strongest||L>strongest[0]) strongest=[L,fv]; lineVar+=2*Math.pow(10,L/10); });
+  let grms=0; for(let i=0;i<2000;i++){ const f1=Math.exp(Math.log(1)+Math.log(1e4)*(i+0.5)/2000); grms+=vibG(p,f1)*f1*Math.log(1e4)/2000; } grms=Math.sqrt(grms);
+  const ig=integ(f=>db10(pw(Lref('ocxo',f,fo))+(isFinite(Lvib(p,f,gam,fo,iso))?pw(Lvib(p,f,gam,fo,iso)):0)),10,2000,800);
+  const totDeg=Math.sqrt(ig*ig+lineVar)*180/PI;
+  const lv=f=>{ const v=Lvib(p,f,gam,fo,iso); return isFinite(v)?v.toFixed(1)+' dBc/Hz':'none'; };
+  ro($('vbOut'),[['profile',grms>0?grms.toFixed(1)+' g rms':'0 g rms'],['static @100 Hz',dbs(Lref('ocxo',100,fo))],['vib. @50 Hz',lv(50)],['vib. @100 Hz',lv(100)],['vib. @1 kHz',lv(1000)],['isolator @100 Hz',(20*Math.log10(trans(iso,100))).toFixed(1)+' dB'],['strongest line',strongest?strongest[0].toFixed(1)+' dBc':'none'],['line at',strongest?strongest[1]+' Hz':'none'],['φ 10 Hz–2 kHz',fmtDeg(totDeg)]]);
+}
+bind(['vbP','vbG','vbI','vbF'],vbDraw);
+
+/* ---- Step 5: multiplication ---- */
+function mlDraw(){
+  const r=$('mlR').value, fo=+$('mlF').value*1e9, bw=lg(+$('mlB').value);
+  setv('mlFv',(fo/1e9).toFixed(1)+' GHz'); setv('mlBv',fmt(bw,'Hz',0));
+  const c=$('cMl'), g=ctx(c); const xs=[]; for(let i=0;i<=420;i++) xs.push(7*i/420);
+  const X0=60,Y0=30,W=600,H=250; g.fillStyle=css('--chip'); g.fillRect(X0,Y0,W*Math.log10(bw)/7,H);
+  const rf=xs.map(v=>Lrefsel(r,Math.pow(10,v),fo)), pd=xs.map(()=>Lpll(r,fo)), vc=xs.map(v=>Lvco2(Math.pow(10,v),fo)), lo=xs.map(v=>Llo(r,Math.pow(10,v),fo,bw));
+  plot(g,X0,Y0,W,H,0,7,-180,-20,[{x:xs,y:rf,color:css('--muted'),dash:[6,4],w:1.4},{x:xs,y:pd,color:css('--trace2'),dash:[2,3],w:1.4},{x:xs,y:vc,color:css('--accent'),w:1},{x:xs,y:lo,color:css('--trace'),w:2.2}],{nx:7,ny:8,fx:v=>fx10(v,'Hz'),yl:'L(f) at the LO, dBc/Hz',xl:'offset, Hz'});
+  txt(g,'loop bandwidth',X0+6,Y0+H-8,css('--muted'));
+  const N=fo/REFS[r].f; const ip=integ(f=>Llo(r,f,fo,bw),10,1e7,500);
+  ro($('mlOut'),[['N',N.toFixed(0)],['20·log N',(20*Math.log10(N)).toFixed(1)+' dB'],['PD floor',Lpll(r,fo).toFixed(1)+' dBc/Hz'],['L(10 Hz)',Llo(r,10,fo,bw).toFixed(1)+' dBc/Hz'],['L(100 Hz)',Llo(r,100,fo,bw).toFixed(1)+' dBc/Hz'],['L(1 kHz)',Llo(r,1e3,fo,bw).toFixed(1)+' dBc/Hz'],['L(1 MHz)',Llo(r,1e6,fo,bw).toFixed(1)+' dBc/Hz'],['φ 10 Hz–10 MHz',fmtDeg(ip*180/PI)],['as jitter',(ip/(TAU*fo)*1e15).toFixed(0)+' fs']]);
+}
+bind(['mlR','mlF','mlB'],mlDraw);
+
+/* ---- Step 6: distribution ---- */
+function dsDraw(){
+  const b=$('dsB').value, N=+$('dsN').value, src=lg(+$('dsJ').value), mm=+$('dsL').value, fin=lg(+$('dsF').value);
+  setv('dsNv',N); setv('dsJv',src.toFixed(0)+' fs'); setv('dsLv',mm+' mm'); setv('dsFv',fmt(fin,'Hz',2));
+  const B=BUF[b]; const r=distCalc(b,N,src,mm,fin); const k=r.k;
+  const devs=[]; for(let i=1;i<=k;i++) devs.push(Math.ceil(N/Math.pow(B.fo,k-i+1)));
+  const ndev=devs.reduce((a,v)=>a+v,0);
+  const c=$('cDs'), g=ctx(c);
+  txt(g,'fan-out tree ('+B.fo+' outputs per device)',16,20,css('--muted'));
+  const colW=Math.min(80,250/(k+1)); const x0=20, yt=40, hh=250;
+  g.fillStyle=css('--chip'); g.strokeStyle=css('--line'); g.fillRect(x0,yt+hh/2-12,46,24); g.strokeRect(x0,yt+hh/2-12,46,24); txt(g,'src',x0+10,yt+hh/2+4,css('--ink'));
+  let prev=[yt+hh/2], px=x0+46;
+  devs.forEach((nd,i)=>{ const x=x0+70+i*colW; const show=Math.min(nd,16); const bh=Math.max(6,Math.min(22,hh/show-4)); const ys=[];
+    for(let j=0;j<show;j++){ const y=yt+hh*(j+0.5)/show; ys.push(y); }
+    g.strokeStyle=css('--grid'); ys.forEach((y,j)=>{ const py=prev[Math.min(prev.length-1,Math.floor(j*prev.length/show))]; g.beginPath(); g.moveTo(px,py); g.lineTo(x,y); g.stroke(); });
+    g.fillStyle=css('--trace'); ys.forEach(y=>{ g.fillRect(x,y-bh/2,22,bh); });
+    txt(g,(nd>show?nd+' (16 shown)':nd+''),x-4,yt+hh+16,css('--muted')); prev=ys; px=x+22; });
+  txt(g,N+' outputs',px+8,yt+hh/2+4,css('--ink'));
+  /* jitter bars */
+  const bx=350, bw=310, items=[['source',src]]; for(let i=1;i<=k;i++) items.push(['level '+i,B.j]); items.push(['total (RSS)',r.jt]);
+  const mx=Math.max(...items.map(v=>v[1]))*1.1; const bhh=Math.min(28,230/items.length-6);
+  txt(g,'jitter budget, fs rms',bx,20,css('--muted'));
+  items.forEach((it,i)=>{ const y=40+i*(bhh+8); const w=(bw-130)*it[1]/mx; g.fillStyle=i===items.length-1?css('--accent'):css('--trace2'); g.fillRect(bx+84,y,Math.max(1,w),bhh); txt(g,it[0],bx,y+bhh/2+4,css('--ink')); txt(g,it[1].toFixed(0),bx+90+w,y+bhh/2+4,css('--ink')); });
+  txt(g,'at f_in '+fmt(fin,'Hz',2)+': SNR limit '+r.snr.toFixed(1)+' dB',bx,262,css('--ink'));
+  txt(g,'skew '+r.sk.toFixed(0)+' ps (cable '+(mm*4.8).toFixed(0)+' ps) = '+r.ph.toFixed(r.ph<10?1:0)+'°',bx,280,css('--ink'));
+  ro($('dsOut'),[['levels',k],['devices',ndev],['clock jitter',r.jt.toFixed(0)+' fs'],['SNR limit',r.snr.toFixed(1)+' dB'],['channel skew',r.sk.toFixed(0)+' ps'],['phase skew',r.ph.toFixed(r.ph<10?1:0)+'°']]);
+}
+bind(['dsB','dsN','dsJ','dsL','dsF'],dsDraw);
+
+/* ---- Step 7: coherence over the CPI ---- */
+let cpIdeal=null;
+function cpDraw(){
+  const arr=$('cpA').value, k=$('cpK').value, T=lg(+$('cpT').value), fc=+$('cpF').value*1e9, R=+$('cpR').value;
+  setv('cpTv',fmt(T,'s',T<1?0:1).replace('.0 s',' s')); setv('cpFv',(fc/1e9).toFixed(1)+' GHz'); setv('cpRv',R+' km');
+  const cc=cpiCalc(arr,k,T,fc,R); const sp=cpiSpec(cc,fc,T);
+  if(!cpIdeal) cpIdeal=cpiSpec({dy0:0,dy:0,sphi:0},1e10,1);
+  const xs=[]; for(let i=0;i<NZ;i++) xs.push((i-NZ/2)*NP/NZ);
+  const c=$('cCp'), g=ctx(c);
+  plot(g,60,30,600,250,-128,128,-60,0,[{x:xs,y:Array.from(cpIdeal),color:css('--muted'),dash:[5,4],w:1.2},{x:xs,y:Array.from(sp),color:css('--trace'),w:1.6}],{nx:8,ny:6,fx:v=>v.toFixed(0),yl:'dB rel. ideal peak',xl:'Doppler bin (1 bin = 1/T)'});
+  let pk=-1e9, ip=0; for(let i=0;i<NZ;i++) if(sp[i]>pk){pk=sp[i];ip=i;}
+  const sphiDeg=cc.sphi*180/PI;
+  const shiftF=((cc.shift%NP)+NP*1.5)%NP-NP/2;
+  ro($('cpOut'),[['range delay τd',arr==='common'?fmt(cc.td,'s'):'n/a'],['σy(T)',sci(cc.sy,2)],['Doppler error',arr==='common'?'0 Hz':fmt(cc.dopErr,'Hz',cc.dopErr<10?2:1)],['bins (folded)',arr==='common'?'0':(cc.shift<10?cc.shift.toFixed(2):cc.shift.toFixed(0))+' ('+shiftF.toFixed(cc.shift<10?2:0)+')'],['QPE',arr==='common'?'0° (cancels)':fmtDeg(cc.qpe*180/PI)],['jitter σφ',fmtDeg(sphiDeg)],['MTI limit',(-20*Math.log10(Math.max(cc.sphi,1e-9))).toFixed(1)+' dB'],['peak level',pk.toFixed(2)+' dB'],['peak at bin',((ip-NZ/2)*NP/NZ).toFixed(2)]]);
+}
+bind(['cpA','cpK','cpT','cpF','cpR'],cpDraw);
+
+/* ---- Step 8: TOA and TDOA ---- */
+const TOK=['tcxo','ocxo','rb','gpsdo'];
+function toDraw(){
+  const k=$('toK').value, s=$('toS').value, t=lg(+$('toT').value), fclk=lg(+$('toC').value);
+  setv('toTv',t<1?(t*1e3).toPrecision(2)+' ms':fmtDur(t)); setv('toCv',fmt(fclk,'Hz',0));
+  const xs=[]; for(let i=0;i<=300;i++) xs.push(-3+7.94*i/300);
+  const c=$('cTo'), g=ctx(c); const curves=[];
+  TOK.forEach(o=>{ if(o!==k) curves.push({x:xs,y:xs.map(v=>Math.log10(terr(o,s,Math.pow(10,v),fclk))),color:css('--muted'),dash:[2,3],w:1}); });
+  curves.push({x:xs,y:xs.map(v=>Math.log10(terr(k,s,Math.pow(10,v),fclk))),color:css('--trace'),w:2.2});
+  const P=plot(g,60,30,600,250,-3,5,-11,0,curves,{nx:8,ny:11,fx:v=>fx10(v,'s'),fy:fe,yl:'time error per site, s',xl:'time since synchronisation'});
+  hline(g,60,600,P.Y(-9),css('--accent')); txt(g,'1 ns',604,P.Y(-9)-4,css('--accent'));
+  hline(g,60,600,P.Y(Math.log10(71e-9)),css('--trace2')); txt(g,'71 ns',600,P.Y(Math.log10(71e-9))-4,css('--trace2'));
+  const x=terr(k,s,t,fclk); dot(g,P.X(Math.log10(t)),P.Y(Math.log10(x)),css('--accent'),5);
+  const q=1/(Math.sqrt(12)*fclk);
+  const y0s=(s==='free')?INIT[k]:(s==='once'?YRES[k]:0);
+  ro($('toOut'),[['since sync',t<1?(t*1e3).toPrecision(2)+' ms':fmtDur(t)],['offset y0',s==='gps'||s==='fib'?'steered':sci(y0s,1)],['error per site',fmtT(x)],['TDOA error',fmtT(Math.SQRT2*x)],['range diff. error',fmtLen(Math.SQRT2*x*C0)],['quantisation q',fmtT(q)],['q share',(100*q*q/(x*x)).toFixed(1)+' %']]);
+}
+bind(['toK','toS','toT','toC'],toDraw);
+
+/* ---- Step 9: channels ---- */
+function syDraw(){
+  const fc=+$('syF').value*1e9, d=lg(+$('syD').value), sk=+$('syS').value, cal=$('syC').value, dT=+$('syT').value;
+  setv('syFv',(fc/1e9).toFixed(1)+' GHz'); setv('syDv',fmtLen(d)); setv('sySv',sk+' ps'); setv('syTv',dT+' °C');
+  const a=aoaCalc(fc,d,sk,cal,dT); const xs=[], ys=[]; for(let i=0;i<=240;i++){ const th=-60+120*i/240; xs.push(th); ys.push(a.err/Math.cos(th*PI/180)); }
+  let top=Math.max(0.05,a.err*2.3); const raw=top/5, e10=Math.pow(10,Math.floor(Math.log10(raw))); const st=[1,2,2.5,5,10].map(m=>m*e10).find(v=>v>=raw); top=st*5; const c=$('cSy'), g=ctx(c);
+  plot(g,70,30,590,250,-60,60,0,top,[{x:xs,y:ys,color:css('--trace'),w:2}],{nx:6,ny:5,fx:v=>v.toFixed(0)+'°',fy:v=>st<0.01?v.toFixed(3):st<0.1?v.toFixed(2):st<1?v.toFixed(1):v.toFixed(0),yl:'bearing error, degrees',xl:'true angle of arrival'});
+  txt(g,'phase error '+fmtDeg(a.dphi)+' at '+(fc/1e9).toFixed(1)+' GHz from '+a.res.toFixed(1)+' ps',80,48,css('--accent'));
+  ro($('syOut'),[['λ',fmtLen(a.lam)],['residual delay',a.res.toFixed(1)+' ps'],['path length',fmtLen(a.res*1e-12*C0)],['phase error',fmtDeg(a.dphi)],['bearing @0°',fmtDeg(a.err)],['bearing @60°',fmtDeg(2*a.err)],['ambiguity',a.amb?'d > λ/2, yes':'none']]);
+}
+bind(['syF','syD','syS','syC','syT'],syDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

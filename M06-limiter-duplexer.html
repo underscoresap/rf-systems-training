@@ -1,0 +1,1216 @@
+<meta charset="utf-8">
+<title>Limiters, Switches and Duplexers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+.tc{max-width:720px;margin:6px 0 16px;padding-left:20px}
+.tc li{margin:4px 0}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Limiters, Switches and Duplexers · RF Systems for Component Engineers</div>
+  <h1>Front-end protection and duplexing: one antenna, kilowatts out, picowatts in</h1>
+  <p class="lede">A radar sends kilowatts out of an antenna and, a few microseconds later, listens through the same antenna for echoes far below a picowatt. The low-noise amplifier that has to hear those echoes would be destroyed by a millionth of the transmit power. This page explains, from first principles, the parts that make this possible: the circulator, the duplexer, the T/R switch and the limiter. For each one it traces your design choice to the datasheet line and then to what the system loses: noise figure, detection range, blind range, dynamic range or time spent deaf. Every term is defined before it is used and every step has worked numbers.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#why">0 The problem</a><a href="#gap">1 The power gap</a><a href="#circ">2 Circulator</a><a href="#vswr">3 Antenna mismatch</a><a href="#duplex">4 Duplexer</a><a href="#switch">5 T/R switch</a><a href="#limiter">6 Limiter</a><a href="#blind">7 Blind range</a><a href="#loss">8 Loss and NF</a><a href="#fmcw">9 FMCW leakage</a><a href="#esm">10 ESM co-site</a><a href="#look">11 Jammer look-through</a><a href="#summary">12 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <div class="secno">Step 0</div>
+  <h2>The problem: one antenna shared by a transmitter and a receiver</h2>
+  <div class="know"><h4>You already know</h4><p>An LNA has a maximum input power (its damage level, often +20 dBm for a GaAs part) and a compression point well below that. A PA can deliver hundreds of watts to kilowatts. Both connect to the same antenna in almost every radar.</p></div>
+  <div class="col">
+    <p>Using one antenna for both directions saves size, weight and cost, and it guarantees that the transmit beam and the receive beam point the same way. The price is that the transmitter and the receiver are now joined by a few centimetres of transmission line. Something has to steer the transmit power to the antenna and not to the receiver, steer the echo from the antenna to the receiver and not back into the transmitter, and catch whatever still leaks across before it reaches the LNA.</p>
+    <p>Four kinds of part do this. A <b>circulator</b> steers power by direction (port 1 → 2 → 3). A <b>duplexer</b> steers it by frequency (transmit band one way, receive band the other). A <b>T/R switch</b> (transmit/receive switch) steers it by time (connected to the transmitter while transmitting, to the receiver while listening). A <b>limiter</b> is the last line of defence: it passes weak signals with little loss and turns into a near short circuit when the power is high. Most pulsed radars use a circulator plus a limiter, sometimes with a switch; continuous-wave systems use a duplexer or two antennas.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Radar front end: the power amplifier feeds port 1 of a circulator; port 2 goes to the antenna; port 3 goes through a T/R switch and a limiter to the LNA. Leakage from port 1 to port 3 and reflection from the antenna both reach the limiter.">
+    <svg viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg">
+      <g style="stroke:var(--line);stroke-width:1.5;fill:var(--chip)">
+        <polygon points="40,62 40,118 110,90" style="fill:var(--panel);stroke:var(--accent);stroke-width:2"/>
+        <circle cx="250" cy="90" r="34"/>
+        <rect x="380" y="146" width="86" height="40" rx="4"/><rect x="500" y="146" width="86" height="40" rx="4"/>
+        <polygon points="620,140 620,192 690,166" style="fill:var(--panel);stroke:var(--trace);stroke-width:2"/>
+      </g>
+      <g style="stroke:var(--muted);stroke-width:1.5;fill:none">
+        <line x1="110" y1="90" x2="216" y2="90"/><line x1="284" y1="90" x2="370" y2="90"/><path d="M370 90 L370 40 M352 22 L370 40 L388 22"/>
+        <path d="M250 124 L250 166 L380 166"/><line x1="466" y1="166" x2="500" y2="166"/><line x1="586" y1="166" x2="620" y2="166"/><line x1="690" y1="166" x2="730" y2="166"/>
+        <path d="M232 70 A24 24 0 1 1 228 104" style="stroke:var(--accent);stroke-width:2"/><path d="M228 104 l-2 -10 l10 4" style="stroke:var(--accent);stroke-width:2"/>
+      </g>
+      <g style="stroke:var(--bad);stroke-width:1.4;fill:none;stroke-dasharray:5 4">
+        <path d="M200 100 Q205 140 245 150"/><path d="M360 98 Q330 130 262 140"/>
+      </g>
+      <text x="62" y="140" text-anchor="middle">PA</text><text x="250" y="94" text-anchor="middle">circ</text>
+      <text x="170" y="82" text-anchor="middle" class="mut">port 1</text><text x="330" y="82" text-anchor="middle" class="mut">port 2</text><text x="272" y="150" class="mut">port 3</text>
+      <text x="370" y="14" text-anchor="middle" class="mut">antenna</text>
+      <text x="423" y="170" text-anchor="middle">T/R sw</text><text x="543" y="170" text-anchor="middle">Limiter</text><text x="646" y="170" text-anchor="middle">LNA</text><text x="740" y="170">receiver</text>
+      <text x="120" y="130" class="mut" style="fill:var(--bad)">leakage 1→3</text><text x="380" y="122" class="mut" style="fill:var(--bad)">reflection from antenna</text>
+      <text x="60" y="40" class="mut">kW out</text><text x="660" y="130" class="mut">pW in</text>
+    </svg>
+  </div>
+  <div class="term"><h4>Definitions used everywhere on this page</h4>
+    <p><b>dB and dBm:</b> dB is a ratio, 10·log<sub>10</sub>(P<sub>2</sub>/P<sub>1</sub>). dBm is power relative to 1 mW: 0 dBm = 1 mW, +30 dBm = 1 W, +60 dBm = 1 kW, −90 dBm = 1 pW.</p>
+    <p><b>Insertion loss (IL):</b> how much weaker the wanted signal is after passing the part, in dB.</p>
+    <p><b>Isolation:</b> how much weaker an unwanted path is than the input, in dB. 20 dB isolation means 1 % of the power gets through.</p>
+    <p><b>Peak and average power:</b> a pulsed radar transmits a pulse of width τ every pulse repetition interval (PRI). Duty cycle = τ/PRI. Average power = peak × duty. Damage from heating follows average power; damage from voltage breakdown and diode burn-out follows peak power.</p>
+  </div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why not simply use two antennas?</summary><p>Many FMCW and some jammer systems do. For a large pulsed radar, a second aperture doubles size and weight, and the two beams must stay aligned. Even two antennas give only 40–80 dB of isolation, so a limiter is still needed.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="gap">
+  <div class="secno">Step 1</div>
+  <h2>The power gap between transmit and receive</h2>
+  <div class="know"><h4>You already know</h4><p>Thermal noise is kTB: −174 dBm/Hz at room temperature, so −114 dBm in 1 MHz. Noise figure (NF) adds to that. The LNA module derives this in full (<a href="M01-lna-noise.html">LNA and receiver noise</a>, step 1).</p></div>
+  <div class="col">
+    <p>A radar echo falls with the fourth power of range, so the weakest echo the radar must detect sits just above the receiver noise floor. The transmitter, on the same antenna, is often 180 dB stronger. A ratio of 180 dB is 10<sup>18</sup>: the same ratio as one second to thirty billion years. No single component provides that much isolation. The design works because the radar does not need it all at once: it needs enough isolation that the LNA survives, and enough that the receiver has recovered by the time the first echo it cares about comes back.</p>
+  </div>
+  <div class="eq">Gap (dB) = P<sub>tx</sub>(dBm) − (−174 + 10·log<sub>10</sub>B + NF) &nbsp;&nbsp; Protection needed = P<sub>tx</sub> − P<sub>damage,LNA</sub><small>B: receiver bandwidth in Hz. P<sub>damage</sub>: the largest input the LNA survives (datasheet "absolute maximum RF input").</small></div>
+  <h3>Worked example</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Peak transmit power 10 kW</td><td>10·log<sub>10</sub>(10<sup>7</sup> mW)</td><td class="n">+70 dBm</td></tr>
+    <tr><td>Noise floor, B = 1 MHz, NF = 3 dB</td><td>−174 + 60 + 3</td><td class="n">−111 dBm</td></tr>
+    <tr><td>Weakest echo to detect (SNR 13 dB)</td><td>−111 + 13</td><td class="n">−98 dBm</td></tr>
+    <tr><td>Gap transmit to noise floor</td><td>70 − (−111)</td><td class="n">181 dB</td></tr>
+    <tr><td>Protection to keep the LNA alive (+20 dBm damage)</td><td>70 − 20</td><td class="n">≥ 50 dB</td></tr>
+    <tr><td>Protection to keep the LNA linear (input P1dB −10 dBm)</td><td>70 − (−10)</td><td class="n">≥ 80 dB</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: join the PA and the LNA with a plain tee</h3>
+  <div class="col"><p>Connect the transmitter, antenna and receiver with a simple three-way junction and no isolation. Roughly half of the 10 kW pulse (+67 dBm, 5 kW) goes straight into the LNA: 47 dB above its +20 dBm damage level. On receive, half of every echo goes back into the transmitter instead of the receiver: 3 dB lost, before anything else. The LNA is destroyed on the first pulse.</p></div>
+  <h3>Methods side by side: the same 10 kW (+70 dBm) transmitter</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Approach</th><th>Isolation</th><th>Power reaching the LNA</th><th>Result</th></tr>
+    <tr><td>Plain tee, no protection</td><td class="n">3 dB</td><td class="n">+67 dBm (5 kW)</td><td>LNA destroyed</td></tr><tr><td>Circulator only (step 2)</td><td class="n">20 dB</td><td class="n">+50 dBm (100 W)</td><td>LNA destroyed</td></tr><tr><td>Circulator + T/R switch (step 5)</td><td class="n">20 + 30 dB</td><td class="n">+20 dBm</td><td>Exactly at damage: no margin</td></tr><tr><td>Circulator + switch + two-stage limiter (step 6)</td><td class="n">limited</td><td class="n">+12.6 dBm</td><td>Safe, receiver blind during the pulse</td></tr><tr><td>Two separate antennas</td><td class="n">60 dB</td><td class="n">+10 dBm</td><td>Survives, but 20 dB above P1dB: compressed</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Start from the transmitter's peak power and the LNA's damage level. The protection chain must cover P<sub>tx</sub> − P<sub>damage</sub> plus a margin (6 dB is common), at the worst antenna VSWR (step 3). Keeping the LNA linear during the pulse (P<sub>tx</sub> − P1dB, 80 dB here) is usually not attempted: the receiver is allowed to be blind while transmitting, which is why recovery time matters (step 7). A GaN LNA with a higher damage level reduces the protection needed by about 13 dB.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LNA damage level</td><td>Device technology (GaAs pHEMT ≈ +20 dBm, GaN ≈ +33 to +40 dBm), gate periphery, input ESD/clamp diodes</td><td>"Max RF input +20 dBm CW"</td><td>Sets how much isolation the circulator, switch and limiter must supply: 50 dB for a 10 kW radar with a GaAs LNA, 33 dB with a GaN LNA</td></tr>
+    <tr><td>Receiver bandwidth and NF</td><td>Filter design, LNA design</td><td>NF 3 dB, B 1 MHz</td><td>Sets the floor at the bottom of the gap; the top is fixed by the transmitter</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cGp" width="640" height="320" aria-label="Power levels in dBm from transmit power down to the receiver noise floor"></canvas>
+    <div class="ctrl">
+      <label for="gpP"><span>Peak transmit power</span> <b id="gpPv"></b></label><input id="gpP" type="range" min="1" max="6" step="0.05" value="4">
+      <label for="gpB"><span>Receiver bandwidth</span> <b id="gpBv"></b></label><input id="gpB" type="range" min="5" max="8" step="0.05" value="6">
+      <label for="gpN"><span>Receiver NF</span> <b id="gpNv"></b></label><input id="gpN" type="range" min="0.5" max="8" step="0.1" value="3">
+      <div class="readout" id="gpOut"></div>
+    </div>
+    <p class="cap">Each bar is a power level on one dBm scale. Orange: transmitter. Red: LNA damage (+20 dBm). Violet: LNA input compression (−10 dBm). Teal: weakest echo the radar must detect. Grey: noise floor. The arrows are the isolation the front end must supply to keep the LNA alive, and the whole gap.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>At 10 kW, 1 MHz, 3 dB NF the readout should match the worked example: gap 181 dB, protection to damage 50 dB.</li>
+    <li>Raise the transmitter to 1 MW: the transmit bar rises 20 dB, so the gap and the protection needed both grow by 20 dB.</li>
+    <li>Widen the bandwidth from 1 MHz to 10 MHz: the floor rises 10 dB and the gap shrinks 10 dB, but the protection needed does not change.</li>
+    <li>Change NF: only the floor and echo bars move. Protection depends only on transmit power and the LNA damage level.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 1 MW peak radar with a 10 MHz receiver and 2 dB NF: what is the gap?</summary><p>+90 dBm − (−174 + 70 + 2) = 90 − (−102) = 192 dB.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="circ">
+  <div class="secno">Step 2</div>
+  <h2>The circulator: a one-way roundabout made from a magnetised ferrite</h2>
+  <div class="know"><h4>You already know</h4><p>Ordinary passive parts made of metal, dielectric and resistors are <b>reciprocal</b>: S<sub>21</sub> = S<sub>12</sub>. Power goes from port 1 to port 2 exactly as easily as from 2 to 1. To steer power by direction you need a material that breaks this symmetry.</p></div>
+  <div class="col">
+    <p><b>Ferrite</b> is a magnetic ceramic (for example yttrium-iron garnet, YIG, or nickel or lithium ferrites). It is an electrical insulator, so microwaves pass into it, and it is full of electron spins that act like tiny gyroscopes. A permanent magnet applies a steady field that lines the spins up. If anything tips a spin, it does not just swing back; it <b>precesses</b>, wobbling around the field like a spinning top, always in the same sense (say clockwise seen along the field). The natural wobble rate is the Larmor frequency, about 28 GHz per tesla of internal field.</p>
+    <p>Now send in a microwave whose magnetic field rotates. If it rotates in the same sense as the precession, it keeps pushing the spins in step and interacts strongly with them: the ferrite looks like a material of one permeability, μ<sub>+</sub>. If it rotates the other way, it fights the precession and barely interacts: permeability μ<sub>−</sub>. Reverse the direction of travel and the rotation sense, seen from the field, flips. So the wave sees a different material going forward from going backward. That is <b>non-reciprocity</b>, and it comes from the fixed spin sense set by the magnet.</p>
+    <p>A <b>junction circulator</b> puts a ferrite disc at the centre of a Y-shaped junction of three lines. A signal entering port 1 sets up a standing-wave pattern in the disc, made of two counter-rotating waves. Without the magnet they are equal and the pattern is symmetric: power splits between ports 2 and 3. With the magnet, μ<sub>+</sub> ≠ μ<sub>−</sub>, the two waves see different electrical lengths, and the pattern twists by 30°. The magnet strength is chosen so the twist puts a null exactly at port 3: all power leaves at port 2. By symmetry, port 2 feeds port 3 and port 3 feeds port 1. Put the transmitter on port 1, the antenna on port 2 and the receiver on port 3.</p>
+  </div>
+  <div class="eq">Ideal S-matrix: S<sub>21</sub> = S<sub>32</sub> = S<sub>13</sub> = 1, all others 0. &nbsp; Isolation = −20·log<sub>10</sub>|S<sub>31</sub>| &nbsp; IL = −20·log<sub>10</sub>|S<sub>21</sub>|<small>The null at port 3 is a cancellation of two waves, so it is deep only at the design frequency and degrades toward the band edges. Datasheets quote the worst isolation across the band.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Isolator:</b> a circulator with port 3 terminated in a matched load. Power flows 1 → 2; anything reflected back from port 2 is absorbed. Used to protect a PA from antenna mismatch.</p>
+    <p><b>Bias field:</b> the steady magnetic field from the permanent magnet. Its value sets the operating point; temperature changes the ferrite's magnetisation and shifts the band.</p>
+  </div>
+  <h3>Worked example</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Isolation 20 dB at band edge, 10 kW in</td><td>10 kW × 10<sup>−20/10</sup></td><td class="n">100 W (+50 dBm) at port 3</td></tr>
+    <tr><td>Still above LNA damage (+20 dBm) by</td><td>50 − 20</td><td class="n">30 dB: limiter needed</td></tr>
+    <tr><td>IL 0.2 dB, 10 kW peak</td><td>10 kW × (1 − 10<sup>−0.02</sup>)</td><td class="n">450 W peak lost as heat</td></tr>
+    <tr><td>At 10 % duty</td><td>450 W × 0.1</td><td class="n">45 W average: the circulator needs a heat sink</td></tr>
+    <tr><td>Same 0.2 dB on receive</td><td>loss before the LNA adds 1:1 to NF</td><td class="n">+0.2 dB system NF</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: a reciprocal splitter instead of a circulator</h3>
+  <div class="col"><p>A lossless, matched, reciprocal three-port cannot exist, so a reciprocal part must use a resistor. Use a Wilkinson divider with the PA and receiver on the two isolated arms and the antenna on the common port. The PA and the receiver are isolated from each other by about 20 dB, but half of the transmit power is burned in the resistor (5 kW of a 10 kW pulse), and half of every echo is burned too: 3 dB of loss in front of the LNA, so +3 dB system NF and about −16 % radar range. A circulator gives the same 20 dB with 0.2 dB loss each way.</p></div>
+  <h3>Methods side by side: 10 kW transmitter, one antenna</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Part</th><th>Isolation</th><th>Transmit loss</th><th>Receive loss (NF cost)</th></tr>
+    <tr><td>Wilkinson divider (reciprocal)</td><td class="n">20 dB</td><td class="n">3 dB (5 kW in the resistor)</td><td class="n">3 dB</td></tr><tr><td>Stripline junction circulator</td><td class="n">20 dB over 20 % band</td><td class="n">0.3 dB</td><td class="n">0.3 dB</td></tr><tr><td>Waveguide junction circulator, high power</td><td class="n">25 dB, narrower band</td><td class="n">0.2 dB (450 W peak heat)</td><td class="n">0.2 dB</td></tr><tr><td>Two circulators in cascade</td><td class="n">40 dB</td><td class="n">0.4 dB</td><td class="n">0.4 dB</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Choose the bandwidth just wider than the radar's frequency range, because isolation falls to about 20 dB at the band edges whatever its centre value. Specify isolation as the worst value across band and temperature. Choose the construction (stripline or waveguide, ferrite type, cooling) from peak and average power: insertion loss times average power is the heat the part must dump. Every 0.1 dB of loss also costs 0.1 dB of system NF.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Isolation</td><td>Ferrite material and disc size, matching transformers on each port, bias magnet uniformity</td><td>≥ 20 dB over band (25–30 dB narrowband)</td><td>10 kW → 100 W at the receiver port; limiter must handle it</td></tr>
+    <tr><td>Insertion loss</td><td>Ferrite loss tangent and linewidth, conductor loss</td><td>0.2–0.5 dB</td><td>Transmit: power lost as heat (450 W peak at 0.2 dB, 10 kW). Receive: +0.2 dB NF, about −1.1 % range</td></tr>
+    <tr><td>Bandwidth</td><td>Matching network order; stripline vs waveguide junction</td><td>e.g. 20 % (octave parts exist with lower isolation)</td><td>Radar agility range; outside it isolation collapses</td></tr>
+    <tr><td>Power handling</td><td>Ferrite thermal path, gap spacing (breakdown), spin-wave threshold</td><td>e.g. 25 kW peak, 1 kW average</td><td>Limits peak and duty of the transmitter</td></tr>
+    <tr><td>Temperature range</td><td>Ferrite with low change of magnetisation with temperature; magnet compensation</td><td>Specs held over −40 to +85 °C</td><td>Isolation may drop at temperature extremes: re-check the limiter margin there</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cCi" width="640" height="320" aria-label="Circulator isolation and insertion loss against frequency, and power at each port"></canvas>
+    <div class="ctrl">
+      <label for="ciI"><span>Isolation at band centre</span> <b id="ciIv"></b></label><input id="ciI" type="range" min="15" max="40" step="0.5" value="30">
+      <label for="ciB"><span>Design bandwidth</span> <b id="ciBv"></b></label><input id="ciB" type="range" min="5" max="40" step="1" value="20">
+      <label for="ciF"><span>Operating frequency offset</span> <b id="ciFv"></b></label><input id="ciF" type="range" min="-30" max="30" step="0.5" value="0">
+      <label for="ciP"><span>Transmit power at port 1</span> <b id="ciPv"></b></label><input id="ciP" type="range" min="40" max="80" step="0.5" value="70">
+      <div class="readout" id="ciOut"></div>
+    </div>
+    <p class="cap">Left: isolation (teal, top) and insertion loss (violet, bottom) across frequency, as a percentage offset from the design centre; the grey band is the design bandwidth and the dot is the operating frequency. Right: where the transmit power goes at that frequency. Illustrative model: isolation falls to about 20 dB at the band edges whatever its centre value; insertion loss rises from 0.15 dB at centre.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>At band centre the isolation is 30 dB; move the offset to ±10 % (the band edge) and it falls to 19.6 dB: about 110 W instead of 10 W at the receiver port.</li>
+    <li>Move the offset to +25 %, outside the 20 % band: isolation falls to about 12 dB and the loss rises to 1.7 dB.</li>
+    <li>Widen the design bandwidth from 20 % to 40 %: the band edges move out, so a given offset keeps more isolation.</li>
+    <li>Heat: at 10 kW and 0.15 dB the readout shows 339 W peak; compare with the 450 W for 0.2 dB in the worked example.</li>
+  </ul>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li>Circulator isolation is the first number a front-end protection budget starts from. Measure it at the band edges and temperature extremes, not just centre.</li>
+    <li>High peak power can excite spin waves in the ferrite (a nonlinear threshold) and raise the loss suddenly. High-power parts use ferrites with wide linewidth to raise this threshold.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does reversing the magnet reverse the circulation?</summary><p>The spin precession sense flips, so the wave that was strongly interacting becomes the weak one, and the pattern twists −30° instead of +30°: 1 → 3 → 2.</p></details>
+    <details><summary>Isolation is 25 dB, transmit is 5 kW. Power at the receiver port?</summary><p>5000 × 10<sup>−2.5</sup> = 15.8 W (+42 dBm), before any reflection from the antenna (next step).</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="vswr">
+  <div class="secno">Step 3</div>
+  <h2>Antenna mismatch: reflected transmit power goes straight into the receiver</h2>
+  <div class="know"><h4>You already know</h4><p>A mismatched load reflects part of the incident wave: reflection coefficient Γ, VSWR = (1 + |Γ|)/(1 − |Γ|), return loss = −20·log|Γ|.</p></div>
+  <div class="col">
+    <p>The circulator routes port 2 to port 3. That is what you want for an echo coming in from the antenna. It is also exactly what happens to transmit power that the antenna reflects: it enters port 2 travelling back and is sent, with only the small circulator loss, to the receiver. So the receiver port sees two waves: the direct leakage through the circulator (set by isolation) and the antenna reflection (set by antenna VSWR). They add as voltages, with a phase that depends on line lengths and frequency. The worst case is in phase.</p>
+    <p>An antenna VSWR of 1.5 means |Γ| = 0.2, a return loss of 14 dB. That reflection is larger than the leakage through a 20 dB circulator. A damaged radome, ice, or a broken waveguide joint can push VSWR much higher, and an open circuit reflects everything: then the full transmit power reaches the receiver port. That is why the limiter's power handling is usually specified against total reflection, not against circulator isolation.</p>
+  </div>
+  <div class="eq">|Γ| = (VSWR − 1)/(VSWR + 1) &nbsp; P<sub>rx port</sub> = P<sub>tx</sub> · | √(10<sup>−Iso/10</sup>) + |Γ|·√(10<sup>−IL/10</sup>)·e<sup>jφ</sup> |²<small>φ: relative phase of the two paths. Worst case φ = 0 (amplitudes add); best case φ = 180° (they subtract).</small></div>
+  <h3>Worked example (10 kW, isolation 20 dB, circulator IL 0.2 dB)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Antenna VSWR</th><th>|Γ|, return loss</th><th>Reflected to receiver</th><th>Worst-case total at receiver port</th></tr>
+    <tr><td>1.2</td><td class="n">0.091, 20.8 dB</td><td class="n">79 W</td><td class="n">(√79 + √100)² = 356 W, +55.5 dBm</td></tr>
+    <tr><td>1.5</td><td class="n">0.200, 14.0 dB</td><td class="n">382 W</td><td class="n">(√382 + √100)² = 873 W, +59.4 dBm</td></tr>
+    <tr><td>2.0</td><td class="n">0.333, 9.5 dB</td><td class="n">1.06 kW</td><td class="n">(√1061 + √100)² = 1.81 kW, +62.6 dBm</td></tr>
+    <tr><td>Open circuit (∞)</td><td class="n">1, 0 dB</td><td class="n">9.5 kW</td><td class="n">(√9550 + √100)² ≈ 11.6 kW, +70.6 dBm</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: trust the circulator datasheet</h3>
+  <div class="col"><p>Take the circulator's 20 dB isolation and conclude the receiver port sees 100 W. That ignores the antenna. With an antenna VSWR of 1.5, the reflected 382 W arrives at the same port; in the worst phase the two add to 873 W (+59.4 dBm), nine times the datasheet-based estimate. A limiter sized for 100 W burns out.</p></div>
+  <h3>Methods side by side: 10 kW, worst-case phase</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Front end</th><th>Antenna VSWR</th><th>Circulator isolation</th><th>Worst-case power at receiver port</th></tr>
+    <tr><td>Baseline</td><td class="n">1.5</td><td class="n">20 dB</td><td class="n">873 W, +59.4 dBm</td></tr><tr><td>Better circulator</td><td class="n">1.5</td><td class="n">40 dB</td><td class="n">422 W, +56.3 dBm (only 3 dB better)</td></tr><tr><td>Better antenna</td><td class="n">1.2</td><td class="n">20 dB</td><td class="n">356 W, +55.5 dBm</td></tr><tr><td>Better antenna and circulator</td><td class="n">1.2</td><td class="n">30 dB</td><td class="n">145 W, +51.6 dBm</td></tr><tr><td>Antenna fault (open)</td><td class="n">∞</td><td class="n">20 dB</td><td class="n">11.6 kW, +70.6 dBm</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Improve whichever of the two paths is larger: once the antenna return loss is worse than the circulator isolation, a better circulator buys almost nothing. Size the limiter for the worst case you must survive: worst VSWR and worst phase in normal use, and full reflection if the system must survive an antenna or waveguide fault. A VSWR monitor that cuts the transmitter is the alternative to a limiter rated for full reflection.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Antenna VSWR</td><td>Element and feed matching, radome design, connector and waveguide joint quality</td><td>VSWR ≤ 1.5 over band (return loss ≥ 14 dB)</td><td>Up to 380 W reflected into the receiver path at 10 kW; worse than 20 dB circulator isolation</td></tr>
+    <tr><td>Effective isolation</td><td>Circulator plus antenna together; line lengths set φ</td><td>Not on either datasheet alone</td><td>Worst case 10.6 dB for VSWR 1.5 with a 20 dB circulator: limiter must handle ≈ 0.9 kW</td></tr>
+    <tr><td>Fault case</td><td>Limiter rating, arc detector, VSWR monitor that cuts the transmitter</td><td>Limiter "survives full reflection"</td><td>Without it, one broken radome or open waveguide destroys the receiver</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cVs" width="640" height="320" aria-label="Power at the receiver port against antenna VSWR"></canvas>
+    <div class="ctrl">
+      <label for="vsS"><span>Antenna VSWR</span> <b id="vsSv"></b></label><input id="vsS" type="range" min="1.01" max="3" step="0.01" value="1.5">
+      <label for="vsI"><span>Circulator isolation</span> <b id="vsIv"></b></label><input id="vsI" type="range" min="15" max="40" step="0.5" value="20">
+      <label for="vsPh"><span>Phase between paths φ</span> <b id="vsPhv"></b></label><input id="vsPh" type="range" min="0" max="355" step="5" value="0">
+      <label for="vsP"><span>Transmit power</span> <b id="vsPv"></b></label><input id="vsP" type="range" min="40" max="80" step="0.5" value="70">
+      <div class="readout" id="vsOut"></div>
+    </div>
+    <p class="cap">Power reaching the receiver port against antenna VSWR. Grey dashed: circulator leakage alone. Violet: antenna reflection alone. The shaded band runs from the best case (paths cancel) to the worst case (paths add); orange is the selected phase φ, and the dot is the selected VSWR. Circulator IL fixed at 0.2 dB.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>At VSWR 1.5, isolation 20 dB, φ = 0°: +59.4 dBm (873 W) and an effective isolation of 10.6 dB, as in the worked example.</li>
+    <li>Set φ to 180°: the two paths subtract and the total falls to about 91 W (+49.6 dBm). Real line lengths change with frequency, so design for the worst case.</li>
+    <li>At VSWR 1.5, raise isolation from 20 to 40 dB: the total falls only about 3 dB, because the reflection dominates.</li>
+    <li>Set VSWR to 1.01: the reflection vanishes and the total returns to the 100 W leakage alone.</li>
+  </ul>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li>Phased arrays have the same problem per element, and the element VSWR changes with scan angle ("active VSWR"), sometimes reaching 3:1 at wide scan. Each T/R module's limiter must cope with that.</li>
+    <li>Your PA sees the antenna mismatch too, through the reverse direction of an isolator; the PA module covers load-pull and VSWR protection (<a href="M03-power-amplifier.html">Power amplifier</a>, step on VSWR).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Circulator isolation is 30 dB but antenna return loss is 12 dB. Which one sets the receiver-port power?</summary><p>The antenna: 12 dB is 18 dB worse than the circulator. Improving the circulator beyond the antenna return loss gains almost nothing.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="duplex">
+  <div class="secno">Step 4</div>
+  <h2>The duplexer: separating transmit and receive by frequency</h2>
+  <div class="know"><h4>You already know</h4><p>A band-pass filter passes its band with low loss and rejects frequencies outside it; more resonators (higher order) give steeper skirts but more loss. Resonator unloaded Q (Q<sub>u</sub>) sets that loss.</p></div>
+  <div class="col">
+    <p>If the transmitter and receiver use different frequencies, two band-pass filters joined at the antenna do the job: the transmit filter passes the transmit band and blocks the receive band, and the receive filter does the opposite. This is a <b>duplexer</b> (frequency-division duplexing). It has no moving parts and no switching time, so it works for continuous-wave systems that transmit and receive at the same moment: FDD communications links, beacons, some data links, and FMCW radars with offset transmit and receive bands.</p>
+    <p>A duplexer must do two jobs. First, the <b>receive filter</b> must reject the transmit carrier so the LNA is not compressed. Second, the <b>transmit filter</b> must reject the PA's own noise and spurious output falling in the receive band: a PA with 40 dB gain and 10 dB NF puts out −174 + 40 + 10 = −124 dBm/Hz of broadband noise, 50 dB above the receiver's own floor. A pulsed radar transmits and receives on the same frequency, so a duplexer cannot separate them: pulsed radars use a circulator and a T/R switch (next step) instead. In radar texts the word "duplexer" is often used for the whole circulator, switch and limiter assembly; here it means the frequency-division filter pair.</p>
+  </div>
+  <div class="eq">Butterworth rejection: A(f) = 10·log<sub>10</sub>(1 + Ω<sup>2N</sup>), Ω = (f/f<sub>0</sub> − f<sub>0</sub>/f)/FBW &nbsp; IL<sub>centre</sub> ≈ 4.343 · Σg<sub>k</sub> / (FBW · Q<sub>u</sub>)<small>N: filter order. FBW: fractional bandwidth. g<sub>k</sub>: low-pass prototype values (Σg ≈ 6.47 for N = 5). The IL formula is Cohn's estimate for a filter of resonators with unloaded Q<sub>u</sub>.</small></div>
+  <h3>Worked example (receive 3.00 GHz, transmit 3.20 GHz, FBW 4 %, N = 5, Q<sub>u</sub> 1000)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Normalised offset of the transmit carrier from the receive filter</td><td>Ω = (3.2/3.0 − 3.0/3.2)/0.04</td><td class="n">3.23</td></tr>
+    <tr><td>Receive-filter rejection at transmit</td><td>10·log(1 + 3.23<sup>10</sup>)</td><td class="n">50.9 dB</td></tr>
+    <tr><td>Transmit carrier at LNA, +40 dBm transmit</td><td>40 − 50.9 − 0.7 (filter loss)</td><td class="n">−11.6 dBm: within 2 dB of the LNA's P1dB, too close</td></tr>
+    <tr><td>PA noise in receive band after transmit filter</td><td>−124 − 50.9 − 0.7 (by symmetry)</td><td class="n">−175.6 dBm/Hz: 1.3 dB noise rise on a 3 dB NF receiver</td></tr>
+    <tr><td>Receive filter loss</td><td>4.343 × 6.47 / (0.04 × 1000)</td><td class="n">0.70 dB → +0.70 dB system NF</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: one resonator per filter</h3>
+  <div class="col"><p>Use the simplest filter, a single resonator (N = 1), for each side. At the 200 MHz spacing of the worked example its rejection of the transmit carrier is only 10.6 dB, so a +40 dBm transmitter puts +29.2 dBm into the LNA: 9 dB above its damage level. The PA's broadband noise is also hardly filtered, so it raises the receiver noise floor by tens of dB.</p></div>
+  <h3>Methods side by side: receive 3.0 GHz, transmit 3.2 GHz, FBW 4 %, Q<sub>u</sub> 1000, +40 dBm transmit</h3>
+  <div class="col"><p>More resonators buy about 20 dB of rejection each, and cost receive loss in proportion to Σg. The duplexer is also one of three ways to share an antenna; the next table compares them.</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>Filter order N</th><th>Rejection at the other band</th><th>Transmit carrier at LNA</th><th>Receive loss (NF cost)</th></tr>
+    <tr><td>1</td><td class="n">10.6 dB</td><td class="n">+29.2 dBm: LNA destroyed</td><td class="n">0.22 dB</td></tr><tr><td>3</td><td class="n">30.6 dB</td><td class="n">+9.0 dBm: heavily compressed</td><td class="n">0.43 dB</td></tr><tr><td>5</td><td class="n">50.9 dB</td><td class="n">−11.6 dBm: near P1dB</td><td class="n">0.70 dB</td></tr><tr><td>7</td><td class="n">71.3 dB</td><td class="n">−32.2 dBm: linear</td><td class="n">0.98 dB</td></tr>
+  </table></div>
+  <h3>Duplexer against T/R switch and circulator</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Property</th><th>Duplexer (frequency)</th><th>T/R switch (time)</th><th>Circulator (direction)</th></tr>
+    <tr><td>Transmit and receive at once</td><td>Yes, on different frequencies</td><td>No</td><td>Yes, same frequency, limited by isolation and antenna VSWR</td></tr>
+    <tr><td>Typical isolation</td><td>50–120 dB (set by order and spacing)</td><td>30–80 dB</td><td>20–30 dB</td></tr>
+    <tr><td>Switching time</td><td>None</td><td>10 ns (PIN) to µs (ferrite)</td><td>None</td></tr>
+    <tr><td>Receive loss</td><td>0.3–2 dB</td><td>0.3–1 dB</td><td>0.2–0.5 dB</td></tr>
+    <tr><td>Used in</td><td>Comms, data links, FMCW with offset bands</td><td>Pulsed radar, T/R modules</td><td>Almost every pulsed radar, plus T/R modules</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>First choose N so that the transmit carrier at the LNA is at least 10 dB below its P1dB and the PA noise in the receive band is below the receiver's own floor. Wider transmit–receive spacing gives the same rejection with fewer resonators. Then choose the resonator type: Q<sub>u</sub> sets the loss for that N, and the loss goes straight into NF. Transmission zeros (elliptic or cross-coupled designs) give steeper skirts for the same N.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Rejection at the other band</td><td>Filter order, transmission zeros, band spacing</td><td>"Tx→Rx isolation ≥ 60 dB at Tx band"</td><td>Transmit carrier at LNA: +40 − 60 = −20 dBm, 10 dB below LNA P1dB</td></tr>
+    <tr><td>Tx noise rejection in Rx band</td><td>Transmit-filter order</td><td>"Tx filter rejection in Rx band ≥ 55 dB"</td><td>PA noise kept below −174 dBm/Hz, so no desensitisation</td></tr>
+    <tr><td>Receive IL</td><td>Resonator Q<sub>u</sub> (cavity vs printed), order</td><td>0.7 dB</td><td>+0.7 dB system NF, −4 % radar range</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cDx" width="640" height="320" aria-label="Transmit and receive filter responses of a duplexer against frequency"></canvas>
+    <div class="ctrl">
+      <label for="dxN"><span>Filter order N</span> <b id="dxNv"></b></label><input id="dxN" type="range" min="1" max="9" step="1" value="5">
+      <label for="dxS"><span>Transmit–receive spacing</span> <b id="dxSv"></b></label><input id="dxS" type="range" min="40" max="600" step="10" value="200">
+      <label for="dxB"><span>Filter bandwidth (FBW)</span> <b id="dxBv"></b></label><input id="dxB" type="range" min="1" max="10" step="0.1" value="4">
+      <label for="dxQ"><span>Resonator type (Q<sub>u</sub>)</span></label>
+      <select id="dxQ"><option value="200">Microstrip, Qu 200</option><option value="1000" selected>Coaxial combline, Qu 1000</option><option value="5000">Waveguide cavity, Qu 5000</option></select>
+      <label for="dxP"><span>Transmit power</span> <b id="dxPv"></b></label><input id="dxP" type="range" min="20" max="50" step="0.5" value="40">
+      <div class="readout" id="dxOut"></div>
+    </div>
+    <p class="cap">Transmission of the receive filter (teal, centred at 3.0 GHz) and the transmit filter (violet) in dB. The orange dot is the transmit carrier as seen through the receive filter (isolation); the violet dot is the receive frequency as seen through the transmit filter (how much PA noise is removed). Butterworth responses with Cohn's loss estimate; PA noise output −124 dBm/Hz; receiver NF 3 dB.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults match the worked example: 50.9 dB rejection, carrier −11.6 dBm (near P1dB), loss 0.70 dB.</li>
+    <li>Raise N from 5 to 7: rejection about 71 dB and carrier about −32 dBm, but loss rises to 0.98 dB, as in the side-by-side table.</li>
+    <li>Switch to microstrip (Q<sub>u</sub> 200): loss jumps to about 3.5 dB for the same N, which is +3.5 dB NF.</li>
+    <li>Raise transmit power to +50 dBm: the carrier at the LNA rises 10 dB and the LNA compresses.</li>
+    <li>Increase the spacing from 200 to 400 MHz: rejection rises steeply without any extra loss.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>You raise N from 5 to 7 to get more rejection. What does it cost?</summary><p>Σg rises from 6.47 to about 8.99, so receive loss rises by about 39 %: 0.70 → 0.98 dB with Q<sub>u</sub> 1000. That is +0.28 dB NF.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="switch">
+  <div class="secno">Step 5</div>
+  <h2>The T/R switch: separating transmit and receive by time</h2>
+  <div class="know"><h4>You already know</h4><p>A PIN diode is a p-type and an n-type region with a wide undoped "intrinsic" (I) region between them. Forward bias floods the I region with stored charge (electrons and holes): its RF resistance falls to about 1 Ω. Zero or reverse bias empties it: it looks like a small capacitance C<sub>j</sub>.</p></div>
+  <div class="col">
+    <p>A pulsed radar transmits for τ (say 1 µs) and then listens for the rest of the pulse repetition interval. A <b>T/R switch</b> connects the receiver only while it is listening. The usual radar layout puts it after the circulator, in front of the receiver: during the pulse the switch is "off" (isolating), adding its isolation to the circulator's; after the pulse it turns "on" (low loss).</p>
+    <p>A common switch uses PIN diodes in shunt across the line. Forward-biased, each diode is a low resistance R<sub>s</sub> that short-circuits the line and reflects the signal: isolation. Unbiased, each diode is a capacitance C<sub>j</sub> that loads the line slightly: insertion loss. Two or more diodes spaced a quarter wavelength apart add their isolation, plus about 6 dB for each extra diode, because the quarter-wave line transforms each short into an open at the previous diode. Switching time is how fast the driver can pull the stored charge out of the I region; carrier lifetime τ<sub>c</sub> sets how much charge there is. A long lifetime is needed for low distortion at low frequency and for high power, but it slows switching.</p>
+  </div>
+  <div class="eq">Isolation per shunt diode = 20·log<sub>10</sub>|1 + Z<sub>0</sub>/(2Z<sub>d</sub>)|, Z<sub>d</sub> = R<sub>s</sub> + jωL<sub>s</sub> &nbsp; IL per diode = 10·log<sub>10</sub>(1 + (πfC<sub>j</sub>Z<sub>0</sub>)²) &nbsp; t<sub>off</sub> ≈ t<sub>driver</sub> + τ<sub>c</sub>·ln(1 + I<sub>F</sub>/I<sub>R</sub>)<small>Z<sub>0</sub> = 50 Ω. L<sub>s</sub>: diode and package inductance (0.1 nH here), which makes isolation fall at high frequency. I<sub>F</sub>, I<sub>R</sub>: forward bias current and reverse current the driver pulls (20 mA and 100 mA here).</small></div>
+  <h3>Worked example (10 GHz, R<sub>s</sub> 1 Ω, C<sub>j</sub> 0.1 pF, L<sub>s</sub> 0.1 nH, two diodes)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Diode impedance when on</td><td>1 + j·2π·10<sup>10</sup>·10<sup>−10</sup></td><td class="n">1 + j6.3 Ω</td></tr>
+    <tr><td>Isolation, one diode</td><td>20·log|1 + 50/(2 + j12.6)|</td><td class="n">12.5 dB</td></tr>
+    <tr><td>Two diodes λ/4 apart</td><td>2 × 12.5 + 6</td><td class="n">30.9 dB</td></tr>
+    <tr><td>Insertion loss, two diodes off</td><td>2 × 10·log(1 + (π·10<sup>10</sup>·10<sup>−13</sup>·50)²) + line</td><td class="n">0.41 dB</td></tr>
+    <tr><td>Switching time, τ<sub>c</sub> = 100 ns</td><td>10 ns + 100 ns × ln(1.2)</td><td class="n">28 ns → 4.2 m of blind range</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: one shunt diode</h3>
+  <div class="col"><p>Use a single PIN diode across the line. At 10 GHz its package inductance limits it to 12.5 dB of isolation, so after a 20 dB circulator a 10 kW radar still delivers 5.6 W (+37.5 dBm) to the receiver, far above +20 dBm. Using a bigger diode to lower R<sub>s</sub> raises C<sub>j</sub>, so the loss on every echo goes up while the inductance still limits isolation.</p></div>
+  <h3>Methods side by side: 10 GHz, R<sub>s</sub> 1 Ω, C<sub>j</sub> 0.1 pF</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Switch</th><th>Isolation</th><th>Insertion loss</th><th>Switching time</th></tr>
+    <tr><td>1 PIN diode</td><td class="n">12.5 dB</td><td class="n">0.21 dB</td><td class="n">28 ns</td></tr><tr><td>2 PIN diodes, λ/4 apart</td><td class="n">30.9 dB</td><td class="n">0.41 dB</td><td class="n">28 ns</td></tr><tr><td>3 PIN diodes</td><td class="n">49.4 dB</td><td class="n">0.62 dB</td><td class="n">28 ns</td></tr><tr><td>4 PIN diodes</td><td class="n">67.6 dB (near the 80 dB leakage limit)</td><td class="n">0.82 dB</td><td class="n">28 ns</td></tr><tr><td>Ferrite latching switch</td><td class="n">20–30 dB</td><td class="n">0.3–0.5 dB</td><td class="n">1–10 µs</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Choose the number of diodes from the isolation the protection budget needs (step 1), remembering each diode adds about 0.2 dB of loss. Choose the diode from its R<sub>s</sub>·C<sub>j</sub> product (cut-off frequency) and a package with low inductance for high bands. Choose the carrier lifetime long enough for low distortion at the lowest frequency and for the power, but no longer: it sets the switching time and hence blind range.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Isolation</td><td>Number of diodes, R<sub>s</sub> (junction area, bias current), package inductance, shielding</td><td>≥ 30 dB at 10 GHz</td><td>Adds to circulator isolation while transmitting; less load on the limiter</td></tr>
+    <tr><td>Insertion loss</td><td>C<sub>j</sub> (smaller area, thicker I region), number of diodes</td><td>0.4 dB</td><td>+0.4 dB system NF, −2.3 % radar range</td></tr>
+    <tr><td>Switching time</td><td>Driver current, carrier lifetime</td><td>&lt; 30 ns, 10–90 % RF</td><td>Every 100 ns of switching adds 15 m of blind range</td></tr>
+    <tr><td>Power handling</td><td>I-region thickness (breakdown), thermal resistance, lifetime ≫ RF period</td><td>e.g. 100 W peak hot-switching</td><td>Whether the switch can stay in the line during transmit or must be protected by the circulator</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cSw" width="640" height="320" aria-label="PIN switch isolation and insertion loss against frequency"></canvas>
+    <div class="ctrl">
+      <label for="swN"><span>Shunt diodes (λ/4 apart)</span> <b id="swNv"></b></label><input id="swN" type="range" min="1" max="4" step="1" value="2">
+      <label for="swR"><span>On resistance R<sub>s</sub></span> <b id="swRv"></b></label><input id="swR" type="range" min="0.3" max="3" step="0.1" value="1">
+      <label for="swC"><span>Off capacitance C<sub>j</sub></span> <b id="swCv"></b></label><input id="swC" type="range" min="0.03" max="0.5" step="0.01" value="0.1">
+      <label for="swT"><span>Carrier lifetime τ<sub>c</sub></span> <b id="swTv"></b></label><input id="swT" type="range" min="1" max="3.5" step="0.05" value="2">
+      <label for="swF"><span>Operating frequency</span> <b id="swFv"></b></label><input id="swF" type="range" min="1" max="18" step="0.5" value="10">
+      <div class="readout" id="swOut"></div>
+    </div>
+    <p class="cap">Top: isolation when the diodes are on (teal) against frequency, 1–18 GHz; real switches stop near 80 dB because of leakage paths around the diodes (dashed). Bottom: insertion loss when off (violet). The dot marks the operating frequency. L<sub>s</sub> = 0.1 nH per diode, 0.1 dB line loss per section.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults match the worked example: 30.9 dB isolation, 0.41 dB loss, 28 ns switching time.</li>
+    <li>Go from 2 to 3 diodes: about +18.5 dB isolation for +0.21 dB loss, as in the side-by-side table.</li>
+    <li>Move the operating frequency from 10 to 18 GHz: isolation falls to about 22 dB because of the 0.1 nH inductance.</li>
+    <li>Raise the carrier lifetime to about 3 µs: switching time grows to about 590 ns, which is 88 m of blind range.</li>
+    <li>Raise C<sub>j</sub> from 0.1 to 0.5 pF: the loss rises sharply at high frequency.</li>
+  </ul>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li>Isolation and insertion loss trade against each other through the diode area: large area gives low R<sub>s</sub> (isolation) but high C<sub>j</sub> (loss). The R<sub>s</sub>·C<sub>j</sub> product is the figure of merit of a switching PIN diode.</li>
+    <li>Ferrite latching switches and older gas-discharge TR tubes do the same job at higher power, with switching times of microseconds.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does isolation fall at high frequency in the demo?</summary><p>The diode's series inductance: at 18 GHz, 0.1 nH is 11 Ω, so the "short" is no longer short.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="limiter">
+  <div class="secno">Step 6</div>
+  <h2>The limiter: flat leakage, spike leakage, power handling and recovery</h2>
+  <div class="know"><h4>You already know</h4><p>From step 3, the receiver port of a 10 kW radar can see close to 1 kW in the worst case, and the full transmit power if the antenna fails. The LNA survives +20 dBm. The part that closes this 40–50 dB gap, every pulse, without anyone switching it, is the limiter. The LNA module introduced the terms (<a href="M01-lna-noise.html">LNA and receiver noise</a>, step 7); this step builds them from the diode up.</p></div>
+  <div class="col">
+    <p>A <b>passive PIN limiter</b> is a PIN diode in shunt across the line with a DC return (a choke) and no bias supply. At low power the diode is unbiased: a small capacitance, so weak echoes pass with about 0.1–0.5 dB of loss. At high power the RF voltage itself drives the diode into conduction on every positive half-cycle. Charge builds up in the I region faster than it recombines, the RF resistance falls to about an ohm, and the diode reflects most of the power back toward the circulator (where it is absorbed in the load or the transmitter). Because no bias is needed, it protects the receiver even when the radar is switched off, which matters on a ship or airfield full of other people's radars.</p>
+    <p>The <b>I-region thickness</b> W is the main design choice. A thin I region (1–2 µm) turns on at a low power, so its <b>flat leakage</b> is low, but it cannot stand much power and it holds little charge, so it recovers fast. A thick I region (7–15 µm) withstands hundreds of watts to kilowatts, but turns on only at a higher power, lets more through, turns on more slowly and holds more charge, so it recovers slowly. No single diode does everything, so high-power limiters use two stages a quarter wavelength apart: a thick <b>coarse</b> diode that takes the power, followed by a thin <b>fine</b> diode that sets the low flat leakage. A Schottky detector diode can be added to drive the PIN diode harder and faster (lower threshold, shorter spike). A <b>driven</b> (active) limiter, or switch, is forward-biased by the radar's transmit trigger just before each pulse: it has no spike, but it protects nothing when the radar is off.</p>
+    <p>The <b>spike</b> exists because the diode needs time to fill with charge. During the first nanoseconds of a fast-rising pulse it is still a capacitor, and almost the full pulse goes through. Limiter datasheets give spike leakage as an energy, in <b>ergs</b> (1 erg = 10<sup>−7</sup> J = 100 mW for 1 µs), because a short spike damages a transistor by the heat it deposits in the gate, not by its peak power alone.</p>
+  </div>
+  <div class="eq">Threshold P<sub>th</sub> ∝ W² &nbsp; power handling ∝ W² &nbsp; carrier lifetime τ ∝ W² &nbsp; recovery t<sub>rec</sub> ≈ τ · ln(x<sub>0</sub>/0.122)<small>x<sub>0</sub> = 10<sup>A/20</sup> − 1, with A the attenuation (dB) while limiting; 0.122 is the value where the extra loss falls to 1 dB. A harder overload leaves more charge and recovers later. The W² scaling is the illustrative model used in the demo: threshold 7 + 20·log W dBm, handling 10·W² W peak, τ = 5·W² ns.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Threshold:</b> input power at which the loss has risen by 1 dB above its small-signal value.</p>
+    <p><b>Flat leakage:</b> the output power once the limiter is fully limiting, during the flat top of the pulse.</p>
+    <p><b>Spike leakage:</b> the extra energy passed during the first nanoseconds before the diode has turned on, in ergs.</p>
+    <p><b>Power handling:</b> the largest input (peak, for a stated pulse width and duty, and CW) the limiter survives. The diode absorbs part of the power and must conduct the heat away.</p>
+    <p><b>Recovery time:</b> time from the end of the overload until the small-signal loss is back within 1 dB (some datasheets use 3 dB) of normal.</p>
+  </div>
+  <h3>What goes wrong with the simplest approach: no limiter, or one diode</h3>
+  <div class="col"><p>With no limiter, the +59.4 dBm (873 W) worst case from step 3 reaches the LNA: 39 dB over its damage level. The simplest limiter, one thin (3 µm) PIN diode, has a low threshold but in this model handles only 90 W: it burns out on the first pulse. One thick (10 µm) diode survives 1 kW but lets +33 dBm (2 W) through. Worked number for a single diode: W = 2 µm gives a threshold of 7 + 20·log 2 = 13 dBm, handles 10·2² = 40 W and has τ = 5·2² = 20 ns.</p></div>
+  <h3>Methods side by side: +59.4 dBm (873 W) at the limiter, from step 3</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Limiter</th><th>Handles</th><th>Flat leakage</th><th>Spike</th><th>Recovery to 1 dB</th><th>Verdict</th></tr>
+    <tr><td>Single PIN, W = 3 µm</td><td class="n">90 W</td><td class="n">+23.8 dBm</td><td class="n">0.05 erg</td><td class="n">0.28 µs</td><td>Burns out: 873 W is far above 90 W</td></tr>
+    <tr><td>Single PIN, W = 10 µm</td><td class="n">1 kW</td><td class="n">+33.2 dBm (2.1 W)</td><td class="n">2.9 erg</td><td class="n">2.5 µs</td><td>Survives, but the LNA (+20 dBm) does not</td></tr>
+    <tr><td>Two-stage, 10 µm + 1 µm</td><td class="n">1 kW</td><td class="n">+12.6 dBm</td><td class="n">0.007 erg</td><td class="n">2.5 µs (379 m)</td><td>Safe; costs 0.69 dB loss</td></tr>
+    <tr><td>Driven PIN, 10 µm, 40 dB when biased</td><td class="n">2 kW</td><td class="n">+19.2 dBm</td><td class="n">none</td><td class="n">0.67 µs (100 m)</td><td>Only 0.8 dB margin, and no protection with the radar off</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Work from the worst-case input power (step 3, including faults if they must be survived). Choose the coarse stage's I-region thickness for power handling with margin. Choose the fine stage so its flat leakage sits at least 6 dB below the LNA damage level and its spike stays below the LNA's spike tolerance. Then check what that costs: the coarse diode's lifetime sets recovery and blind range (step 7), and the total loss is added to NF (step 8). A driven limiter trades protection with the radar off for shorter recovery and no spike.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Flat leakage</td><td>Fine-stage I-region thickness; Schottky assist</td><td>+13 dBm at 1 kW in</td><td>Must sit below LNA damage (+20 dBm) with margin, at the worst-case antenna VSWR</td></tr>
+    <tr><td>Spike leakage</td><td>Fine-stage turn-on speed, Schottky assist, input pulse rise time</td><td>&lt; 0.1 erg</td><td>Gate damage in the LNA from fast-rising pulses (own transmitter, nearby radars)</td></tr>
+    <tr><td>Power handling</td><td>Coarse I-region thickness, diode area, thermal resistance to the heat sink</td><td>1 kW peak, 1 µs, 1 % duty; 10 W CW</td><td>Survives antenna faults and nearby emitters</td></tr>
+    <tr><td>Recovery time</td><td>Carrier lifetime of the thickest diode, DC return path resistance</td><td>2.5 µs to 1 dB</td><td>Blind range 379 m (next step)</td></tr>
+    <tr><td>Insertion loss</td><td>Junction capacitance of both diodes, number of stages</td><td>0.7 dB</td><td>+0.7 dB system NF, −4 % radar range (step 8)</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cLm" width="640" height="320" aria-label="Limiter output in the first 40 nanoseconds of a pulse, and extra loss after the pulse ends"></canvas>
+    <div class="ctrl">
+      <label for="lmP"><span>Peak power in</span> <b id="lmPv"></b></label><input id="lmP" type="range" min="20" max="65" step="0.5" value="59.5">
+      <label for="lmW"><span>I-region thickness W (coarse)</span> <b id="lmWv"></b></label><input id="lmW" type="range" min="1" max="10" step="0.1" value="10">
+      <label for="lmA">Limiter type</label>
+      <select id="lmA"><option value="single">Single passive PIN</option><option value="two" selected>Two-stage: coarse + 1 µm fine</option><option value="schottky">PIN + Schottky detector</option><option value="active">Driven PIN (biased by Tx trigger)</option></select>
+      <div class="readout" id="lmOut"></div>
+    </div>
+    <p class="cap">Left: limiter output (orange) and input envelope (dashed) during the first 40 ns of a pulse with a 5 ns rise; the hump is the spike, the level it settles to is the flat leakage. Right: extra loss an echo would see after a 1 µs pulse ends; the green line marks recovery to 1 dB. Illustrative diode model scaled with W (see the equation above); LNA spike tolerance taken as 0.1 erg.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>With the two-stage default at +59.5 dBm: flat leakage +12.6 dBm, spike about 0.007 erg, recovery about 2.5 µs (379 m), as in the table.</li>
+    <li>Switch to a single passive PIN: flat leakage jumps to about +33 dBm and the LNA readout warns, as the table's second row predicts.</li>
+    <li>With a single PIN, reduce W to 3 µm: power handling drops to 90 W and the readout shows EXCEEDED.</li>
+    <li>Lower the input from +59.5 to +42.5 dBm: the recovery becomes much shorter than 2.5 µs, because less charge was stored.</li>
+    <li>Choose the driven PIN: no spike, flat leakage +19.2 dBm and recovery about 0.67 µs.</li>
+  </ul>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li>Thin diodes recover fast but cannot take power; thick diodes take power but recover slowly. Every limiter is a trade between flat leakage, power handling and recovery, with insertion loss paid on every echo.</li>
+    <li>A GaN LNA that survives +33 dBm or more can accept a single, faster, lower-loss limiter, or drop the fine stage. That loss saving goes straight into NF.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does the recovery time get longer when the input power is higher?</summary><p>More stored charge: the diode was driven further into conduction (larger A), so it takes more lifetimes for the charge to decay to the point where the loss is back within 1 dB.</p></details>
+    <details><summary>What is 0.1 erg in watts and nanoseconds?</summary><p>10<sup>−8</sup> J: for example 10 W for 1 ns, or 1 W for 10 ns.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="blind">
+  <div class="secno">Step 7</div>
+  <h2>The blind (minimum) range that protection creates</h2>
+  <div class="know"><h4>You already know</h4><p>Radio waves travel 300 m per microsecond. An echo from range R arrives 2R/c after the pulse starts: 6.7 µs per kilometre.</p></div>
+  <div class="col">
+    <p>The receiver cannot hear anything while its own transmitter is on, and it stays deaf until the T/R switch has switched and the limiter has recovered. Both start when the pulse ends, so the receiver is ready at τ + max(t<sub>sw</sub>, t<sub>rec</sub>). Any echo that arrives before then is lost or partly lost (<b>eclipsed</b>). That sets the radar's <b>minimum range</b>, also called the blind range. Long pulses used with pulse compression make it worse: a 50 µs pulse alone blinds the first 7.5 km, which is why such radars add a short "fill" pulse to cover close range.</p>
+  </div>
+  <div class="eq">R<sub>min</sub> = c · (τ + max(t<sub>sw</sub>, t<sub>rec</sub>)) / 2 &nbsp;&nbsp; (c/2 = 150 m per µs)<small>τ: pulse width. t<sub>sw</sub>: T/R switch switching time. t<sub>rec</sub>: limiter (and LNA) recovery time.</small></div>
+  <h3>What goes wrong with the simplest approach: assume the receiver is ready when the pulse ends</h3>
+  <div class="col"><p>The simplest estimate of minimum range is cτ/2: 150 m for a 1 µs pulse. It ignores the protection. With the two-stage limiter's 2.5 µs recovery, the receiver is actually ready at 3.5 µs, so the true minimum range is 525 m, 3.5 times larger. A target at 300 m that the simple estimate says is visible is completely lost.</p></div>
+  <h3>Methods side by side</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Case</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>τ 1 µs, switch 28 ns, limiter 2.5 µs (two-stage from step 6)</td><td>150 m/µs × (1 + 2.5)</td><td class="n">525 m</td></tr>
+    <tr><td>Same with a driven limiter, 0.67 µs</td><td>150 × (1 + 0.67)</td><td class="n">251 m</td></tr>
+    <tr><td>Target at 500 m with the two-stage limiter</td><td>echo 3.33–4.33 µs, ready at 3.5 µs</td><td class="n">83 % of the echo, −0.8 dB</td></tr>
+    <tr><td>Long pulse 50 µs</td><td>150 × (50 + 2.5)</td><td class="n">7.9 km</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Start from the shortest range the radar must see and convert it to time (6.7 µs per km). Subtract the pulse width: what is left is the budget for switch and limiter recovery together, with margin. If the limiter cannot meet it, use a driven limiter, a faster fine stage, or a shorter pulse. Radars with long compressed pulses add a short fill pulse to cover the near ranges.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Limiter recovery</td><td>Coarse diode lifetime; driven vs passive</td><td>2.5 µs → 0.67 µs</td><td>Minimum range 525 m → 251 m with a 1 µs pulse</td></tr>
+    <tr><td>Switching time</td><td>Driver current, diode lifetime</td><td>28 ns</td><td>Hidden behind the limiter recovery here; dominant if the limiter is fast</td></tr>
+    <tr><td>LNA overload recovery</td><td>Bias network time constants (LNA module, step 7)</td><td>&lt; 200 ns</td><td>Adds to t<sub>rec</sub> if the flat leakage drives the LNA into compression</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cBr" width="640" height="300" aria-label="Timing diagram of pulse, switch, limiter recovery and an echo"></canvas>
+    <div class="ctrl">
+      <label for="brT"><span>Pulse width τ</span> <b id="brTv"></b></label><input id="brT" type="range" min="-1" max="2" step="0.05" value="0">
+      <label for="brS"><span>T/R switching time</span> <b id="brSv"></b></label><input id="brS" type="range" min="1" max="3.3" step="0.05" value="1.45">
+      <label for="brR"><span>Limiter recovery time</span> <b id="brRv"></b></label><input id="brR" type="range" min="1" max="3.7" step="0.05" value="3.4">
+      <label for="brD"><span>Target range</span> <b id="brDv"></b></label><input id="brD" type="range" min="1.5" max="4.5" step="0.02" value="2.7">
+      <div class="readout" id="brOut"></div>
+    </div>
+    <p class="cap">Time runs left to right from the start of the transmit pulse. The receiver row turns green when both the switch and the limiter are ready. The echo row shows the returning pulse: red where it falls in the blind time, green where it is received. Sliders are logarithmic.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults: target at 500 m, 83 % of the echo received (−0.8 dB), minimum range 526 m, set by the limiter.</li>
+    <li>Reduce limiter recovery to about 220 ns: the receiver is ready at 1.2 µs and the 500 m echo is received in full.</li>
+    <li>Raise the pulse width to 100 µs: minimum range grows to about 15 km.</li>
+    <li>Set switching time to its maximum (2 µs) and limiter recovery to its minimum: now the switch sets the blind range (450 m).</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An airport radar must see aircraft at 250 m. Pulse 0.5 µs. What recovery is needed?</summary><p>250 m is 1.67 µs round trip. 1.67 − 0.5 = 1.17 µs for switch and limiter together, with margin: aim for &lt; 1 µs.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="loss">
+  <div class="secno">Step 8</div>
+  <h2>Every protection part sits in front of the LNA: its loss is noise figure</h2>
+  <div class="know"><h4>You already know</h4><p>A passive loss L at physical temperature T<sub>p</sub> has noise temperature (L − 1)·T<sub>p</sub>, and everything after it is multiplied by L when referred to the input. At 290 K, a loss in dB adds the same number of dB to the noise figure. Radar range scales as F<sup>−1/4</sup>, ESM range as F<sup>−1/2</sup> (LNA module, steps 3 and 10).</p></div>
+  <div class="col">
+    <p>Cable, circulator, switch or duplexer, and limiter all come before the LNA, so none of their loss is divided by any gain. A front end with 1.4 dB of protection loss and a 1.2 dB LNA has a 2.6 dB system NF. Shaving 0.1 dB off a limiter is worth as much as shaving 0.1 dB off the LNA, and is often easier. When the front end runs hot, the loss contributes more noise than at 290 K.</p>
+  </div>
+  <div class="eq">T<sub>e</sub> = Σ<sub>k</sub> (L<sub>k</sub> − 1)·T<sub>p</sub>·Π<sub>j&lt;k</sub> L<sub>j</sub> + L<sub>tot</sub>·T<sub>e,LNA</sub> &nbsp; NF = 10·log<sub>10</sub>(1 + T<sub>e</sub>/290)<small>L in linear units. The receiver after the LNA is ignored here (divided by the LNA gain).</small></div>
+  <h3>Worked example (cable 0.2, circulator 0.3, switch 0.5, limiter 0.4 dB; LNA 1.2 dB)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Total loss</td><td>0.2 + 0.3 + 0.5 + 0.4</td><td class="n">1.4 dB (×1.380)</td></tr>
+    <tr><td>System NF at 290 K</td><td>1.4 + 1.2</td><td class="n">2.60 dB</td></tr>
+    <tr><td>Radar range vs a bare LNA</td><td>10<sup>−1.4/40</sup></td><td class="n">0.923 (−7.7 %)</td></tr>
+    <tr><td>Transmit power to win it back</td><td>10<sup>1.4/10</sup></td><td class="n">×1.38</td></tr>
+    <tr><td>ESM range vs a bare LNA</td><td>10<sup>−1.4/20</sup></td><td class="n">0.851 (−15 %)</td></tr>
+    <tr><td>Same front end at +85 °C (358 K)</td><td>0.380 × 358 + 1.380 × 92.3 K</td><td class="n">263 K = 2.81 dB</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: use the LNA datasheet NF as the system NF</h3>
+  <div class="col"><p>Quote the LNA's 1.2 dB as the receiver noise figure. With 1.4 dB of cable, circulator, switch and limiter in front of it, the real system NF is 2.6 dB: the radar loses 7.7 % of its predicted range and the ESM 15 %. Recovering that with transmit power alone needs 38 % more power.</p></div>
+  <h3>Methods side by side: same 1.2 dB LNA at 290 K</h3>
+  <div class="col"><p>The last row assumes the GaN LNA also has 1.2 dB NF; in practice it may be a few tenths worse.</p></div>
+  <div class="tw wide"><table class="t">
+    <tr><th>Front end</th><th>Loss before LNA</th><th>System NF</th><th>Radar range ×</th></tr>
+    <tr><td>Cable 0.2 + circulator 0.3 + switch 0.5 + limiter 0.4</td><td class="n">1.4 dB</td><td class="n">2.60 dB</td><td class="n">0.923</td></tr><tr><td>LNA at the antenna (no cable)</td><td class="n">1.2 dB</td><td class="n">2.40 dB</td><td class="n">0.933</td></tr><tr><td>No switch, limiter only</td><td class="n">0.9 dB</td><td class="n">2.10 dB</td><td class="n">0.950</td></tr><tr><td>No switch, low-loss limiter 0.2 dB (GaN LNA tolerates more)</td><td class="n">0.7 dB</td><td class="n">1.90 dB</td><td class="n">0.960</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Budget the loss in front of the LNA as carefully as the LNA's NF: each 0.1 dB costs about 0.6 % of radar range. Remove parts where the protection budget allows (for example the switch, if the limiter and a higher-damage LNA cover it), put the LNA as close to the antenna as possible, and keep the front end cool.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Each protection IL</td><td>Ferrite loss, diode C<sub>j</sub>, resonator Q<sub>u</sub>, line length and type</td><td>0.3 / 0.5 / 0.4 dB</td><td>Adds 1:1 to NF: 1.4 dB → −7.7 % radar range, −15 % ESM range</td></tr>
+    <tr><td>Physical temperature</td><td>Mounting, cooling, placing the LNA at the antenna</td><td>IL specified over −40 to +85 °C</td><td>Hot loss is noisier: 2.60 → 2.81 dB NF at +85 °C</td></tr>
+    <tr><td>Placement</td><td>LNA at the antenna (T/R module) instead of after a long cable</td><td>—</td><td>Removes cable loss from the NF entirely</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cNf" width="640" height="320" aria-label="Noise temperature contribution of each front-end loss and of the LNA"></canvas>
+    <div class="ctrl">
+      <label for="nfX"><span>Cable and connectors</span> <b id="nfXv"></b></label><input id="nfX" type="range" min="0" max="1.5" step="0.05" value="0.2">
+      <label for="nfC"><span>Circulator IL</span> <b id="nfCv"></b></label><input id="nfC" type="range" min="0.1" max="1" step="0.05" value="0.3">
+      <label for="nfS"><span>Switch or duplexer IL</span> <b id="nfSv"></b></label><input id="nfS" type="range" min="0" max="2" step="0.05" value="0.5">
+      <label for="nfL"><span>Limiter IL</span> <b id="nfLv"></b></label><input id="nfL" type="range" min="0.1" max="1.5" step="0.05" value="0.4">
+      <label for="nfA"><span>LNA NF</span> <b id="nfAv"></b></label><input id="nfA" type="range" min="0.5" max="4" step="0.05" value="1.2">
+      <label for="nfT"><span>Front-end temperature</span> <b id="nfTv"></b></label><input id="nfT" type="range" min="-40" max="85" step="1" value="17">
+      <div class="readout" id="nfOut"></div>
+    </div>
+    <p class="cap">Each bar is one part's noise temperature referred to the antenna port, laid end to end; the orange bar is the total and the resulting system NF. The LNA's own noise is multiplied by the total loss in front of it ("LNA ×L"). Radar range and ESM range are relative to the same LNA with no loss in front of it.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults give 2.60 dB system NF and range × 0.923, matching the worked example.</li>
+    <li>Raise the temperature to +85 °C: NF rises to about 2.81 dB with the same losses.</li>
+    <li>Set the switch loss to 0: NF falls to 2.10 dB, the third row of the side-by-side table.</li>
+    <li>Improve the LNA from 1.2 to 0.5 dB: system NF falls to about 1.90 dB, still 1.4 dB above the LNA alone.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Is it better to remove a 0.5 dB switch or buy an LNA 0.5 dB better?</summary><p>At 290 K they are equal in NF. Removing the switch also removes its switching time and failure modes, but you lose its 30 dB of isolation, which the limiter must then make up.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="fmcw">
+  <div class="secno">Step 9</div>
+  <h2>FMCW: the transmitter never stops, so leakage cannot be timed out</h2>
+  <div class="know"><h4>You already know</h4><p>Phase noise L(f) is the noise power, relative to the carrier, in 1 Hz at offset f (dBc/Hz). The synthesiser module derives it and its effect on radar (<a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a>).</p></div>
+  <div class="col">
+    <p>A frequency-modulated continuous-wave (<b>FMCW</b>) radar transmits a continuous <b>chirp</b>: a frequency that sweeps linearly, here 150 MHz in 1 ms. The receiver mixes the echo with a copy of the transmit signal. An echo delayed by t<sub>d</sub> = 2R/c is at a slightly older frequency, so the mixer output is a tone, the <b>beat frequency</b> f<sub>b</sub> = slope × t<sub>d</sub>: 1 MHz for a target at 1 km. An FFT of the mixer output is a range profile.</p>
+    <p>There is no listening gap, so a T/R switch is useless and a limiter would only distort. Leakage from the transmitter (through the circulator, or between two antennas, plus the antenna reflection) arrives continuously. It hurts twice. First, its power can compress the LNA and mixer, and it uses up the ADC's range, reducing <b>dynamic range</b>. Second, it carries the transmitter's phase noise. Because the leakage path is short, its phase noise is almost the same as that of the copy it is mixed with, and most of it cancels: this <b>range correlation</b> leaves a residue 4·sin²(π f τ<sub>L</sub>) of the original, where τ<sub>L</sub> is the leakage delay. Short internal leakage (1 ns) cancels very well; an antenna reflection at the end of 2 m of cable (20 ns) cancels much less and can raise the noise floor where real targets sit.</p>
+  </div>
+  <div class="eq">N<sub>leak</sub>(f) = P<sub>leak</sub> + L(f) + 10·log<sub>10</sub>[4·sin²(π f τ<sub>L</sub>)] &nbsp; [dBm/Hz] &nbsp; f<sub>b</sub> = 2R·(B<sub>chirp</sub>/T<sub>chirp</sub>)/c<small>P<sub>leak</sub> = P<sub>tx</sub> − isolation. Thermal floor here −174 + 6 dB receiver NF = −168 dBm/Hz; FFT bin 1 kHz.</small></div>
+  <h3>What goes wrong with the simplest approach: copy the pulsed radar front end</h3>
+  <div class="col"><p>Use one antenna, a 25 dB circulator and a limiter, as a pulsed radar does. In FMCW the transmitter never stops, so +30 − 25 = +5 dBm of leakage sits on the LNA all the time: 15 dB above its −10 dBm P1dB. The limiter, if it acts at all, distorts the receive signal. The receiver is compressed for the whole sweep and cannot see weak targets.</p></div>
+  <h3>Methods side by side (P<sub>tx</sub> +30 dBm, L(100 kHz) = −90 dBc/Hz, target 1 km → f<sub>b</sub> = 1 MHz, L(1 MHz) = −110 dBc/Hz)</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Case</th><th>Leakage at Rx</th><th>Correlation residue at 1 MHz</th><th>Leakage noise at f<sub>b</sub></th><th>Effect</th></tr>
+    <tr><td>Two antennas, 60 dB isolation, τ<sub>L</sub> 1 ns</td><td class="n">−30 dBm</td><td class="n">4 sin²(π·10<sup>−3</sup>) → −44 dB</td><td class="n">−184 dBm/Hz</td><td>16 dB below thermal: no loss. Target −100 dBm, SNR 38 dB</td></tr>
+    <tr><td>One antenna, circulator 25 dB</td><td class="n">+5 dBm</td><td class="n">—</td><td class="n">—</td><td>LNA (P1dB −10 dBm) compressed: must cancel or use two antennas</td></tr>
+    <tr><td>30 dB isolation, reflection delay 20 ns</td><td class="n">0 dBm</td><td class="n">4 sin²(π·0.02) → −18 dB</td><td class="n">−128 dBm/Hz</td><td>40 dB above thermal: the 1 km target's SNR drops from 38 to −2 dB</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Choose the isolation so the leakage is at least 10 dB below the LNA's P1dB: for +30 dBm transmit and −10 dBm P1dB, at least 50 dB. That usually means two antennas, or a circulator with a reflected-power canceller. Keep the antenna match good and the feed short, because a long-delay reflection decorrelates and its phase noise raises the floor at real target beats. Then choose the transmit phase noise so the residual leakage noise stays below thermal noise at the beats that matter.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Tx → Rx isolation</td><td>Circulator vs two antennas, shielding, reflected-power canceller</td><td>25 dB (circulator) to 60–80 dB (two antennas)</td><td>Sets leakage power: LNA and ADC dynamic range</td></tr>
+    <tr><td>Antenna and feed match</td><td>VSWR, feed length (sets τ<sub>L</sub> of the reflection)</td><td>Return loss ≥ 14 dB</td><td>Long-delay reflection decorrelates and raises the floor at target beats</td></tr>
+    <tr><td>Transmit phase noise</td><td>Synthesiser and VCO design</td><td>−90 dBc/Hz at 100 kHz</td><td>Multiplies directly with leakage: 10 dB better phase noise lowers the leakage floor 10 dB</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cFm" width="640" height="320" aria-label="FMCW beat spectrum showing leakage, phase-noise floor, thermal floor and a target"></canvas>
+    <div class="ctrl">
+      <label for="fmP"><span>Transmit power</span> <b id="fmPv"></b></label><input id="fmP" type="range" min="0" max="40" step="0.5" value="30">
+      <label for="fmI"><span>Tx → Rx isolation</span> <b id="fmIv"></b></label><input id="fmI" type="range" min="20" max="80" step="0.5" value="60">
+      <label for="fmD"><span>Leakage path delay τ<sub>L</sub></span> <b id="fmDv"></b></label><input id="fmD" type="range" min="-1" max="1.7" step="0.02" value="0">
+      <label for="fmL"><span>Phase noise at 100 kHz</span> <b id="fmLv"></b></label><input id="fmL" type="range" min="-120" max="-70" step="1" value="-90">
+      <label for="fmR"><span>Target range</span> <b id="fmRv"></b></label><input id="fmR" type="range" min="1" max="3.5" step="0.02" value="3">
+      <div class="readout" id="fmOut"></div>
+    </div>
+    <p class="cap">Power in each 1 kHz FFT bin against beat frequency. Orange: the leakage itself (at S·τ<sub>L</sub>, usually near DC). Violet: leakage phase noise after range correlation; the deep notches are where sin(πfτ<sub>L</sub>) = 0. Grey dashed: thermal floor. Teal: total floor. Green: the target echo. Chirp 150 MHz in 1 ms; phase noise falls 20 dB/decade to a −160 dBc/Hz floor; target −60 dBm at 100 m for 1 W, falling as R<sup>−4</sup>.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults (60 dB isolation, 1 ns): leakage −30 dBm, residual −44 dB at 1 MHz, leak noise −184 dBm/Hz, SNR about 38 dB, as in the first row.</li>
+    <li>Lower isolation to 25 dB: leakage +5 dBm and the LNA state shows compressed (second row).</li>
+    <li>Raise the leakage delay from 1 to 20 ns: the residue at 1 MHz rises to −18 dB, leak noise to about −158 dBm/Hz, and the SNR falls by about 10 dB.</li>
+    <li>Improve phase noise from −90 to −120 dBc/Hz: the violet floor drops by 30 dB.</li>
+    <li>Move the target from 1 km to 100 m: the beat falls to 100 kHz and the echo rises 40 dB.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does a near target suffer less from leakage phase noise than a far one, in the demo?</summary><p>The correlation residue 4 sin²(π f τ<sub>L</sub>) grows as f², so it is smallest at low beat frequencies (near targets). Phase noise falls with offset but the residue grows faster for long τ<sub>L</sub>, and the target echo falls as R<sup>−4</sup>.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="esm">
+  <div class="secno">Step 10</div>
+  <h2>ESM front-end protection against a nearby high-power emitter (co-site)</h2>
+  <div class="know"><h4>You already know</h4><p>Free-space path loss is 20·log<sub>10</sub>(4πd/λ). An ESM (electronic support measures) receiver listens across a wide band for other people's radars, so it needs high sensitivity and has no transmitter of its own to time against.</p></div>
+  <div class="col">
+    <p>On a ship, aircraft or vehicle, the ESM antennas are metres away from the platform's own radar and jammer antennas. This is the <b>co-site</b> problem. The coupled power is the emitter power plus both antennas' gains toward each other, minus the path loss. Sidelobe-to-sidelobe coupling might total 0 dBi; when the radar's main beam sweeps past the ESM antenna it can be 30 dB more. An ESM receiver built for −65 dBm sensitivity then sees tens of dBm.</p>
+    <p>Four defences, often combined. A <b>limiter</b>, so the LNA survives; it leaves the receiver blind during and just after each pulse. <b>Blanking</b>: the radar sends its transmit trigger to the ESM, which gates its receiver off for the pulse plus a guard time, so the own radar is not reported as a threat and the LNA is not driven into compression. A <b>band-stop (notch) filter</b> at the own radar's frequency removes it continuously, at the cost of not seeing other emitters in that band. And <b>physical separation</b> and antenna placement, which is the only one that costs no sensitivity or time.</p>
+  </div>
+  <div class="eq">P<sub>ESM</sub> = P<sub>t</sub> + G<sub>t→r</sub> + G<sub>r→t</sub> − 20·log<sub>10</sub>(4πd/λ) &nbsp;&nbsp; blind fraction = (τ + t<sub>rec</sub>)/PRI<small>G<sub>t→r</sub>, G<sub>r→t</sub>: each antenna's gain in the direction of the other (sidelobe or main beam), summed in the demo as one coupling gain.</small></div>
+  <h3>Worked example (own radar 100 kW, +80 dBm, 10 GHz, 10 µs pulse, PRI 1 ms)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Path loss at 10 m</td><td>20·log(4π·10/0.03)</td><td class="n">72.4 dB</td></tr>
+    <tr><td>Sidelobe to sidelobe (0 dBi total)</td><td>80 + 0 − 72.4</td><td class="n">+7.6 dBm: compresses the LNA</td></tr>
+    <tr><td>Main beam sweeping past (+30 dBi)</td><td>80 + 30 − 72.4</td><td class="n">+37.6 dBm (5.8 W): destroys an unprotected LNA</td></tr>
+    <tr><td>At 3 m, main beam</td><td>80 + 30 − 62.0</td><td class="n">+48 dBm (63 W): near a 100 W limiter rating</td></tr>
+    <tr><td>Time blind with a limiter recovering in 1 µs</td><td>(10 + 1) µs / 1000 µs</td><td class="n">1.1 % of the time</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: an unprotected ESM receiver</h3>
+  <div class="col"><p>Put a sensitive wideband ESM LNA 10 m from the platform's own 100 kW radar with no protection. When the radar's main beam sweeps past, +37.6 dBm (5.8 W) arrives at the LNA: 17.6 dB above its damage level. Even in the sidelobes, +7.6 dBm compresses it on every own-radar pulse, and the own radar is reported as a threat.</p></div>
+  <h3>Methods side by side: main beam (+30 dBi), 10 m, 10 GHz, +80 dBm</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Protection</th><th>Into the LNA</th><th>LNA state</th><th>Cost</th></tr>
+    <tr><td>None</td><td class="n">+37.6 dBm</td><td>Destroyed</td><td>—</td></tr><tr><td>Limiter (+15 dBm flat, 100 W)</td><td class="n">+17.3 dBm</td><td>Compressed during each pulse</td><td>1.1 % blind time</td></tr><tr><td>Limiter + 30 dB blanking switch</td><td class="n">−12.7 dBm</td><td>Linear</td><td>1.05 % blind; own radar not reported; needs a trigger cable</td></tr><tr><td>Limiter + 40 dB notch</td><td class="n">−2.9 dBm</td><td>Compressed during each pulse</td><td>9.5–10.5 GHz never seen</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Start with separation and antenna placement, the only defence that costs nothing in sensitivity or time. Rate the limiter for the worst main-beam coupling at the closest antenna spacing. Use blanking when the own emitter can send its trigger; use a notch only for a band you can afford never to see. Choose a high-P1dB LNA so leakage between pulses does not create intermodulation products that look like emitters.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>ESM limiter power handling</td><td>Coarse diode thickness</td><td>100 W peak</td><td>Survives the own radar's main beam at ≥ 3 m (10 GHz, 100 kW)</td></tr>
+    <tr><td>Recovery time</td><td>Diode lifetime</td><td>1 µs</td><td>ESM blind 1.1 % of the time; misses short pulses from other emitters that arrive just after</td></tr>
+    <tr><td>Notch filter rejection and width</td><td>Filter order and Q</td><td>40 dB over ±5 %</td><td>No blind time, but 1 GHz of spectrum unseen at 10 GHz</td></tr>
+    <tr><td>Wide dynamic range LNA</td><td>High IP3, high P1dB</td><td>P1dB +10 dBm</td><td>Fewer intermodulation products from the own radar that look like false emitters</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cEs" width="640" height="320" aria-label="Power coupled into an ESM receiver against distance from a high-power emitter"></canvas>
+    <div class="ctrl">
+      <label for="esP"><span>Emitter peak power</span> <b id="esPv"></b></label><input id="esP" type="range" min="50" max="90" step="1" value="80">
+      <label for="esD"><span>Antenna separation</span> <b id="esDv"></b></label><input id="esD" type="range" min="0" max="3" step="0.02" value="1">
+      <label for="esG"><span>Coupling gains (sum)</span> <b id="esGv"></b></label><input id="esG" type="range" min="-30" max="40" step="1" value="0">
+      <label for="esF"><span>Frequency</span> <b id="esFv"></b></label><input id="esF" type="range" min="1" max="18" step="0.5" value="10">
+      <label for="esM">ESM front-end protection</label>
+      <select id="esM"><option value="none">None</option><option value="lim" selected>Limiter (+15 dBm flat, 100 W)</option><option value="blank">Limiter + 30 dB blanking switch (radar trigger)</option><option value="notch">Limiter + 40 dB notch at radar band</option></select>
+      <div class="readout" id="esOut"></div>
+    </div>
+    <p class="cap">Grey dashed: power arriving at the ESM antenna port against separation (log scale). Orange: what reaches the LNA after the chosen protection. Lines mark LNA damage (+20 dBm), LNA compression (−10 dBm), ESM sensitivity (−65 dBm) and the limiter's 100 W rating. Own radar: 10 µs pulse, 1 ms PRI; limiter recovery 1 µs; blanking switch 30 dB, opened for the pulse plus a 0.5 µs guard; notch removes ±5 % around the radar frequency.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults (sidelobes, 10 m, limiter): path loss 72.4 dB, coupled +7.6 dBm, 1.1 % blind time, as in the worked example.</li>
+    <li>Move the antennas from 10 m to 1 m: the path loss falls 20 dB and the coupled power rises 20 dB.</li>
+    <li>Set coupling gains to +30 dBi with no protection: +37.6 dBm and the LNA is destroyed (first row).</li>
+    <li>Choose blanking: the LNA becomes linear and the own radar is suppressed. Choose the notch: a 1 GHz band around the radar is lost.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Double the separation from 10 m to 20 m. What happens to the coupled power?</summary><p>Path loss rises by 20·log 2 = 6 dB, so the coupled power falls by 6 dB: +7.6 → +1.6 dBm.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="look">
+  <div class="secno">Step 11</div>
+  <h2>The jammer look-through problem</h2>
+  <div class="know"><h4>You already know</h4><p>A jammer transmits noise or false echoes at a threat radar. To aim it in frequency and time, it relies on its own ESM receiver, which must keep hearing the radar's pulses. The PA module covers how jammer power is generated (<a href="M03-power-amplifier.html">Power amplifier</a>).</p></div>
+  <div class="col">
+    <p><b>Look-through</b> means the jammer's receiver can still see the threat while the jammer is transmitting. The threat pulse arrives at the jammer at, say, −60 dBm. To detect it, the jammer's own transmission leaking into its receiver must be well below that, say 10 dB below. A 1 kW jammer (+60 dBm) therefore needs 60 − (−70) = 130 dB of isolation between its own transmit and receive antennas. On an aircraft or pod, antenna-to-antenna isolation is typically 50–80 dB. The 50–80 dB shortfall cannot be closed by a limiter (it only stops damage) or by a filter (jammer and threat share the same frequency).</p>
+    <p>The usual answer is <b>time-shared look-through</b>: stop jamming for a short look window every look period, listen, then resume. That costs jamming duty (the radar gets brief unjammed looks) and the window may miss the threat's pulses if it is shorter than the threat's PRI. The design is a trade between how often and how long to look. Simultaneous look-through is possible only with very high isolation: separate, well-separated antennas, cross polarisation, and active cancellation of the jammer's own signal.</p>
+  </div>
+  <div class="eq">Isolation needed = P<sub>j</sub> − (S<sub>threat</sub> − 10 dB) &nbsp; jamming duty = 1 − t<sub>look</sub>/T<sub>look</sub> &nbsp; P(catch per look) = min(1, t<sub>look</sub>/PRI)<small>S<sub>threat</sub> = −60 dBm here. Mean time to first catch ≈ T<sub>look</sub>/P(catch).</small></div>
+  <h3>Worked example (P<sub>j</sub> +60 dBm, isolation 60 dB, threat PRI 1 ms)</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Jamming at own receiver</td><td>60 − 60</td><td class="n">0 dBm: 60 dB above the threat</td></tr>
+    <tr><td>Isolation needed to listen while jamming</td><td>60 − (−70)</td><td class="n">130 dB: 70 dB short</td></tr>
+    <tr><td>Look 50 µs every 5 ms</td><td>1 − 50/5000</td><td class="n">99 % duty, −0.04 dB jamming power</td></tr>
+    <tr><td>Chance one look catches a pulse</td><td>50 µs / 1000 µs</td><td class="n">5 %: mean 100 ms to see a change</td></tr>
+    <tr><td>Look 1 ms every 5 ms</td><td>1 − 1/5; 1 ms ≥ PRI</td><td class="n">80 % duty (−0.97 dB), every look catches</td></tr>
+  </table></div>
+  <h3>What goes wrong with the simplest approach: jam and listen at the same time</h3>
+  <div class="col"><p>Transmit continuously and keep the ESM receiver on, with the 60 dB of antenna isolation a pod typically has. The jammer arrives at its own receiver at 0 dBm, 60 dB above the −60 dBm threat. The jammer never sees the threat again: it cannot tell if the radar has changed frequency, mode or switched off, so it may jam empty spectrum.</p></div>
+  <h3>Methods side by side: +60 dBm jammer, 60 dB isolation, threat PRI 1 ms</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Strategy</th><th>Jamming duty</th><th>Catch chance per look</th><th>Mean time to see a change</th></tr>
+    <tr><td>Continuous jamming (60 dB isolation)</td><td class="n">100 %</td><td class="n">0 %</td><td class="n">never</td></tr><tr><td>Look 50 µs every 5 ms</td><td class="n">99 % (−0.04 dB)</td><td class="n">5 %</td><td class="n">100 ms</td></tr><tr><td>Look 1 ms every 5 ms</td><td class="n">80 % (−0.97 dB)</td><td class="n">100 %</td><td class="n">5 ms</td></tr><tr><td>130 dB isolation (separation + cancellation)</td><td class="n">100 %</td><td class="n">100 %</td><td class="n">1 ms (every pulse)</td></tr>
+  </table></div>
+  <h3>How to choose the design parameters</h3>
+  <div class="col"><p>Choose the look window at least as long as the PRI of the threats that must be tracked, plus the receiver's recovery time. Choose the look period from how fast the jammer must react to a change. Every microsecond of look costs jamming duty, so improve isolation (antenna placement, polarisation, cancellation) and transmitter switch-off speed to shorten the window.</p></div>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Antenna-to-antenna isolation</td><td>Antenna placement, polarisation, absorber, cancellation loop</td><td>60 dB</td><td>70 dB short of simultaneous look-through: forces time sharing</td></tr>
+    <tr><td>Receiver protection and recovery</td><td>Limiter recovery, LNA recovery</td><td>&lt; 1 µs</td><td>The look window starts only after recovery: slow recovery wastes look time</td></tr>
+    <tr><td>Transmitter switch-off speed</td><td>PA gate or drain switching, modulator</td><td>&lt; 100 ns off</td><td>Jammer tail leaking into the window; shorter tails allow shorter windows and higher duty</td></tr>
+  </table></div>
+  <h3>Try it</h3>
+  <div class="bench">
+    <canvas id="cLt" width="640" height="300" aria-label="Jammer timeline with look-through windows and threat pulses, and isolation needed against available"></canvas>
+    <div class="ctrl">
+      <label for="ltP"><span>Jammer power</span> <b id="ltPv"></b></label><input id="ltP" type="range" min="40" max="70" step="0.5" value="60">
+      <label for="ltI"><span>Tx–Rx antenna isolation</span> <b id="ltIv"></b></label><input id="ltI" type="range" min="40" max="140" step="1" value="60">
+      <label for="ltW"><span>Look window</span> <b id="ltWv"></b></label><input id="ltW" type="range" min="0" max="3" step="0.05" value="1.7">
+      <label for="ltT"><span>Look period T</span> <b id="ltTv"></b></label><input id="ltT" type="range" min="-1" max="1.7" step="0.05" value="0.7">
+      <label for="ltR"><span>Threat PRI</span> <b id="ltRv"></b></label><input id="ltR" type="range" min="1.7" max="3.7" step="0.05" value="3">
+      <div class="readout" id="ltOut"></div>
+    </div>
+    <p class="cap">Three look periods. Orange: jammer transmitting. Green bands: look windows. Ticks: threat pulses; green ones fall inside a look window and are caught. Bottom: isolation available against isolation needed for simultaneous look-through (threat −60 dBm, 10 dB margin). If the isolation is enough, the jammer transmits continuously and sees every pulse. Sliders are logarithmic except power and isolation.</p>
+  </div>
+  <h3>Things to check</h3>
+  <ul class="tc">
+    <li>Defaults: J at own receiver 0 dBm, 130 dB needed, 99 % duty, 5 % catch per look, 100 ms mean time, as in the worked example.</li>
+    <li>Lengthen the look window from 50 µs to 1 ms: catch chance 100 %, duty 80 % (third row).</li>
+    <li>Raise isolation to 130 dB: the mode changes to simultaneous and every pulse is caught.</li>
+    <li>Shorten the threat PRI to 50 µs: the 50 µs window now catches every look.</li>
+    <li>Raise jammer power from +60 to +70 dBm: the isolation needed rises to 140 dB.</li>
+  </ul>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Isolation is raised from 60 to 130 dB. What changes?</summary><p>Jamming at the receiver falls to −70 dBm, 10 dB below the threat: the jammer can transmit continuously (100 % duty) and see every pulse.</p></details>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="summary">
+  <div class="secno">Step 12</div>
+  <h2>Summary: every protection parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by</th><th>System effect (example numbers)</th></tr>
+    <tr><td>Power gap</td><td>Transmit power, receiver bandwidth and NF</td><td>~180 dB; ≥ 50 dB of protection before a GaAs LNA</td></tr>
+    <tr><td>Circulator isolation</td><td>Ferrite, junction matching, bias magnet</td><td>20 dB: 10 kW → 100 W at the receiver port</td></tr>
+    <tr><td>Circulator insertion loss</td><td>Ferrite loss, conductor loss</td><td>0.2 dB: 450 W peak heat; +0.2 dB NF</td></tr>
+    <tr><td>Antenna VSWR</td><td>Antenna, radome, feed joints</td><td>1.5:1 reflects 380 W into the receiver: worse than the circulator</td></tr>
+    <tr><td>Duplexer rejection</td><td>Filter order, band spacing</td><td>51 dB at 200 MHz spacing (N = 5): Tx carrier −11.6 dBm at LNA</td></tr>
+    <tr><td>Duplexer loss</td><td>Resonator Q<sub>u</sub>, order</td><td>0.7 dB: +0.7 dB NF</td></tr>
+    <tr><td>T/R switch isolation</td><td>Diode R<sub>s</sub>, number of diodes, L<sub>s</sub></td><td>31 dB at 10 GHz with two diodes</td></tr>
+    <tr><td>T/R switch time</td><td>Driver, carrier lifetime</td><td>28 ns: 4 m of blind range</td></tr>
+    <tr><td>Limiter flat leakage</td><td>Fine-stage I-region thickness</td><td>+12.6 dBm: LNA (+20 dBm) safe</td></tr>
+    <tr><td>Limiter spike leakage</td><td>Turn-on speed, Schottky assist</td><td>0.007 erg two-stage vs 2.9 erg single thick stage</td></tr>
+    <tr><td>Limiter power handling</td><td>Coarse I-region thickness, heat sinking</td><td>1 kW peak: survives antenna faults</td></tr>
+    <tr><td>Limiter recovery</td><td>Coarse diode lifetime</td><td>2.5 µs: minimum range 525 m with a 1 µs pulse</td></tr>
+    <tr><td>Front-end loss</td><td>Sum of all parts in front of the LNA</td><td>1.4 dB: −7.7 % radar range, −15 % ESM range</td></tr>
+    <tr><td>FMCW leakage</td><td>Tx–Rx isolation, reflection delay, phase noise</td><td>20 ns reflection at 0 dBm: target SNR 38 → −2 dB</td></tr>
+    <tr><td>ESM co-site coupling</td><td>Separation, antenna gains, emitter power</td><td>+37.6 dBm at 10 m: limiter required; 1.1 % blind</td></tr>
+    <tr><td>Jammer look-through</td><td>Antenna isolation, look window and period</td><td>130 dB needed, 60 dB available: 99 % duty, 5 % catch per look</td></tr>
+  </table></div>
+  <p class="col">Related modules: <a href="M01-lna-noise.html">LNA and receiver noise</a> (loss before the LNA, overload recovery), <a href="M03-power-amplifier.html">Power amplifier</a> (transmit power, VSWR, jammer power), <a href="M02-synthesiser-phase-noise.html">Synthesiser and phase noise</a> (FMCW leakage noise), <a href="A0-antenna-fundamentals.html">Antenna fundamentals</a> (VSWR, gain, path loss).</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Blanking</dt><dd>Gating a receiver off during a known own transmission, using a trigger from the transmitter.</dd>
+    <dt>Blind (minimum) range</dt><dd>Range inside which echoes return before the receiver is ready: c·(τ + recovery)/2.</dd>
+    <dt>Beat frequency</dt><dd>In FMCW, the mixer output tone whose frequency is proportional to target range.</dd>
+    <dt>Carrier lifetime τ</dt><dd>Average time before an injected electron and hole recombine in a PIN diode; sets recovery and switching speed.</dd>
+    <dt>Chirp</dt><dd>A signal whose frequency sweeps linearly with time.</dd>
+    <dt>Circulator</dt><dd>Three-port ferrite device passing power 1 → 2 → 3 → 1 only.</dd>
+    <dt>Co-site</dt><dd>Interference between transmitters and receivers on the same platform.</dd>
+    <dt>Duplexer</dt><dd>Two filters joined at the antenna, separating transmit and receive by frequency. In radar texts sometimes the whole T/R protection assembly.</dd>
+    <dt>Duty cycle</dt><dd>Fraction of time a pulsed transmitter is on: τ/PRI.</dd>
+    <dt>Eclipsing</dt><dd>Loss of part of an echo because it arrives while the receiver is blind.</dd>
+    <dt>Erg</dt><dd>Unit of energy, 10<sup>−7</sup> J; used for limiter spike leakage.</dd>
+    <dt>ESM</dt><dd>Electronic support measures: receivers that detect and identify other emitters.</dd>
+    <dt>Ferrite</dt><dd>Insulating magnetic ceramic whose electron spins precess about an applied field, making it non-reciprocal at microwave frequencies.</dd>
+    <dt>Flat leakage</dt><dd>Limiter output power during the steady part of a high-power pulse.</dd>
+    <dt>FMCW</dt><dd>Frequency-modulated continuous-wave radar.</dd>
+    <dt>I region</dt><dd>The undoped middle layer of a PIN diode; its thickness W sets threshold, power handling and lifetime.</dd>
+    <dt>Insertion loss</dt><dd>Loss of the wanted signal passing through a part.</dd>
+    <dt>Isolation</dt><dd>Attenuation of an unwanted path, in dB.</dd>
+    <dt>Isolator</dt><dd>Circulator with one port terminated: a one-way device.</dd>
+    <dt>Larmor frequency</dt><dd>Natural precession rate of electron spins in a magnetic field, about 28 GHz per tesla.</dd>
+    <dt>Limiter</dt><dd>Part that passes low power with small loss and reflects high power.</dd>
+    <dt>Look-through</dt><dd>A jammer's ability to keep receiving the threat while (or between) transmitting.</dd>
+    <dt>Non-reciprocal</dt><dd>Behaves differently in the two directions: S<sub>21</sub> ≠ S<sub>12</sub>.</dd>
+    <dt>PIN diode</dt><dd>Diode with an intrinsic layer, used as a current-controlled RF resistor.</dd>
+    <dt>PRI</dt><dd>Pulse repetition interval: time between pulses.</dd>
+    <dt>Range correlation</dt><dd>Cancellation of transmit phase noise in a short-delay echo or leakage when it is mixed with the transmit signal.</dd>
+    <dt>Recovery time</dt><dd>Time after an overload until loss or gain is back within 1 dB of normal.</dd>
+    <dt>Return loss</dt><dd>−20·log|Γ|: how far below the incident power the reflection is.</dd>
+    <dt>Spike leakage</dt><dd>Energy a limiter passes before its diodes turn on.</dd>
+    <dt>T/R switch</dt><dd>Switch that connects the receiver only while the radar is listening.</dd>
+    <dt>Threshold (limiter)</dt><dd>Input power at which limiter loss has risen 1 dB.</dd>
+    <dt>VSWR</dt><dd>Voltage standing wave ratio, (1 + |Γ|)/(1 − |Γ|).</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Pozar, <i>Microwave Engineering</i>; Bahl, <i>Control Components Using Si, GaAs and GaN Technologies</i>; White, <i>Microwave Semiconductor Engineering</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>; Stimson, <i>Introduction to Airborne Radar</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+
+/* ---- page-specific helpers ---- */
+const Wd=d=>Math.pow(10,(d-30)/10);              /* dBm -> W */
+function fW(w){ if(!isFinite(w)) return 'n/a'; const a=Math.abs(w);
+  if(a>=1e6) return (w/1e6).toFixed(2)+' MW'; if(a>=1e3) return (w/1e3).toFixed(2)+' kW';
+  if(a>=1) return w.toFixed(a>=100?0:a>=10?1:2)+' W'; if(a>=1e-3) return (w*1e3).toFixed(a>=0.1?0:a>=0.01?1:2)+' mW';
+  if(a>=1e-6) return (w*1e6).toFixed(2)+' µW'; if(a>=1e-9) return (w*1e9).toFixed(2)+' nW';
+  if(a>=1e-12) return (w*1e12).toFixed(2)+' pW'; return (w*1e15).toFixed(2)+' fW'; }
+const sg=(x,d)=>(x<0?'−':'+')+Math.abs(x).toFixed(d??1);
+const fdbm=(x,d)=>isFinite(x)?sg(x,d)+' dBm':'n/a';
+const fdb=(x,d)=>isFinite(x)?(x<0?'−':'')+Math.abs(x).toFixed(d??1)+' dB':'n/a';
+const pct=(x,d)=>isFinite(x)?sg(x*100,d??1)+' %':'n/a';
+function curve(g,M,xs,ys,color,o){ o=o||{}; g.strokeStyle=color; g.lineWidth=o.w||1.8; g.setLineDash(o.dash||[]); g.beginPath(); let st=false;
+  for(let i=0;i<xs.length;i++){ if(!isFinite(ys[i])||!isFinite(xs[i])){ st=false; continue; } const px=M.X(xs[i]), py=M.Y(ys[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; }
+  g.stroke(); g.setLineDash([]); g.lineWidth=1; }
+function arrow(g,x,y1,y2,color){ g.strokeStyle=color; g.fillStyle=color; g.lineWidth=1.5; g.beginPath(); g.moveTo(x,y1); g.lineTo(x,y2); g.stroke();
+  [[y1,1],[y2,-1]].forEach(([y,s])=>{ const d=(y2>y1?1:-1)*s; g.beginPath(); g.moveTo(x,y); g.lineTo(x-4,y+6*d); g.lineTo(x+4,y+6*d); g.closePath(); g.fill(); }); g.lineWidth=1; }
+const lg=x=>Math.log10(x);
+const flog=u=>v=>fmt(Math.pow(10,v),u,0);
+function lbl(id,s){ $(id).textContent=s; }
+
+/* 1 power gap */
+function gpDraw(){
+  const P=+$('gpP').value, B=Math.pow(10,+$('gpB').value), NF=+$('gpN').value;
+  lbl('gpPv',fW(Math.pow(10,P))); lbl('gpBv',fmt(B,'Hz')); lbl('gpNv',NF.toFixed(1)+' dB');
+  const tx=10*P+30, fl=-174+db(B)+NF, ec=fl+13, dmg=20, p1=-10;
+  const c=$('cGp'), g=ctx(c), x0=56,y0=22,w=560,h=270;
+  const M=plot(g,x0,y0,w,h,0,1,-140,100,[],{ny:6,nx:1,fx:()=>'',yl:'dBm'});
+  const bars=[[tx,'transmit','--accent'],[dmg,'damage','--bad'],[p1,'P1dB','--trace2'],[ec,'echo','--trace'],[fl,'floor','--muted']];
+  bars.forEach((b,i)=>{ const x=x0+24+i*84, yv=M.Y(b[0]); g.fillStyle=css(b[2]); g.globalAlpha=.85; g.fillRect(x,yv,56,M.Y(-140)-yv); g.globalAlpha=1;
+    txt(g,fdbm(b[0],0),x,yv-6,css('--ink')); txt(g,b[1],x+28-g.measureText(b[1]).width/2,y0+h+16,css('--muted')); });
+  const xa=x0+w-110, xb=x0+w-34;
+  arrow(g,xa,M.Y(tx),M.Y(dmg),css('--bad')); txt(g,'protect',xa-58,(M.Y(tx)+M.Y(dmg))/2-4,css('--bad')); txt(g,'≥'+(tx-dmg).toFixed(0)+' dB',xa-58,(M.Y(tx)+M.Y(dmg))/2+10,css('--bad'));
+  arrow(g,xb,M.Y(tx),M.Y(fl),css('--accent')); txt(g,'gap',xb+6,(M.Y(tx)+M.Y(fl))/2-4,css('--accent')); txt(g,(tx-fl).toFixed(0),xb+6,(M.Y(tx)+M.Y(fl))/2+10,css('--accent'));
+  const gap=tx-fl;
+  ro($('gpOut'),[['transmit peak',fdbm(tx)],['noise floor',fdbm(fl)],['weakest echo',fdbm(ec)],['gap',gap.toFixed(1)+' dB'],['as a ratio','10^'+(gap/10).toFixed(1)],['protect to damage',(tx-dmg).toFixed(1)+' dB'],['protect to P1dB',(tx-p1).toFixed(1)+' dB']]);
+}
+bind(['gpP','gpB','gpN'],gpDraw);
+
+/* 2 circulator */
+function circ(off,I0,Bp){ const u=off/(Bp/2); const leak=Math.min(0.5,lin(-I0)+0.01*u*u); return {iso:-db(leak),il:Math.min(3,0.15+0.25*u*u)}; }
+function ciDraw(){
+  const I0=+$('ciI').value, Bp=+$('ciB').value, off=+$('ciF').value, P=+$('ciP').value;
+  lbl('ciIv',I0.toFixed(1)+' dB'); lbl('ciBv',Bp.toFixed(0)+' %'); lbl('ciFv',sg(off,1)+' %'); lbl('ciPv',fdbm(P)+' ('+fW(Wd(P))+')');
+  const c=$('cCi'), g=ctx(c); const xs=[],yi=[],yl=[]; for(let i=0;i<=240;i++){ const x=-30+60*i/240; const r=circ(x,I0,Bp); xs.push(x); yi.push(r.iso); yl.push(r.il); }
+  const x0=48,w=300;
+  let M=plot(g,x0,22,w,120,-30,30,0,45,[],{ny:3,nx:4,fx:v=>'',yl:'isolation, dB'});
+  g.fillStyle=css('--chip'); g.fillRect(M.X(-Bp/2),23,M.X(Bp/2)-M.X(-Bp/2),118); frame(g,x0,22,w,120,3);
+  curve(g,M,xs,yi,css('--trace')); const r=circ(off,I0,Bp); dot(g,M.X(off),M.Y(r.iso),css('--accent'));
+  let N=plot(g,x0,180,w,100,-30,30,0,2,[],{ny:2,nx:4,fx:v=>v.toFixed(0)+'%',fy:v=>v.toFixed(1),xl:'offset from centre',yl:'insertion loss, dB'});
+  g.fillStyle=css('--chip'); g.fillRect(N.X(-Bp/2),181,N.X(Bp/2)-N.X(-Bp/2),98); frame(g,x0,180,w,100,2);
+  curve(g,N,xs,yl,css('--trace2')); dot(g,N.X(off),N.Y(r.il),css('--accent'));
+  /* junction diagram */
+  const cx=510, cy=160, R=38; g.strokeStyle=css('--line'); g.fillStyle=css('--chip'); g.lineWidth=1.5; g.beginPath(); g.arc(cx,cy,R,0,TAU); g.fill(); g.stroke();
+  const p2=P-r.il, p3=P-r.iso, th=p=>clamp(1+(p-10)/10,1,8);
+  g.strokeStyle=css('--accent'); g.lineWidth=th(P); g.beginPath(); g.moveTo(cx-R-60,cy); g.lineTo(cx-R,cy); g.stroke();
+  g.lineWidth=th(p2); g.beginPath(); g.moveTo(cx,cy-R); g.lineTo(cx,cy-R-60); g.stroke();
+  g.strokeStyle=css('--bad'); g.lineWidth=th(p3); g.beginPath(); g.moveTo(cx,cy+R); g.lineTo(cx,cy+R+50); g.stroke(); g.lineWidth=1;
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.arc(cx,cy,R-12,Math.PI*0.9,Math.PI*1.6); g.stroke(); g.lineWidth=1;
+  txt(g,'1: PA',cx-R-64,cy-10); txt(g,fdbm(P,1),cx-R-64,cy+20,css('--muted'));
+  txt(g,'2: antenna',cx+8,cy-R-46); txt(g,fW(Wd(p2)),cx+8,cy-R-30,css('--muted'));
+  txt(g,'3: receiver',cx+8,cy+R+28); txt(g,fdbm(p3,1)+' = '+fW(Wd(p3)),cx+8,cy+R+44,css('--bad'));
+  const edge=circ(Bp/2,I0,Bp);
+  ro($('ciOut'),[['offset',sg(off,1)+' %'+(Math.abs(off)<=Bp/2?'':' (outside)')],['design band','±'+(Bp/2).toFixed(1)+' %'],['isolation here',r.iso.toFixed(1)+' dB'],['isolation at edge',edge.iso.toFixed(1)+' dB'],['insertion loss',r.il.toFixed(2)+' dB'],['to antenna',fW(Wd(p2))],['to receiver port',fdbm(p3)],['same in watts',fW(Wd(p3))],['heat (peak)',fW(Wd(P)*(1-lin(-r.il)))]]);
+}
+bind(['ciI','ciB','ciF','ciP'],ciDraw);
+
+/* 3 VSWR */
+function vsCalc(S,I,ph){ const G=(S-1)/(S+1), a=Math.sqrt(lin(-I)), b=G*Math.sqrt(lin(-0.2)); const re=a+b*Math.cos(ph*deg), im=b*Math.sin(ph*deg);
+  return {G,p:re*re+im*im,worst:(a+b)*(a+b),best:(a-b)*(a-b),refl:b*b,leak:a*a}; }
+function vsDraw(){
+  const S=+$('vsS').value, I=+$('vsI').value, ph=+$('vsPh').value, P=+$('vsP').value;
+  lbl('vsSv',S.toFixed(2)); lbl('vsIv',I.toFixed(1)+' dB'); lbl('vsPhv',ph.toFixed(0)+'°'); lbl('vsPv',fW(Wd(P)));
+  const c=$('cVs'), g=ctx(c), x0=60,y0=22,w=550,h=260, ya=P-50, yb=P+2;
+  const M=plot(g,x0,y0,w,h,1,3,ya,yb,[],{ny:6,nx:4,fx:v=>v.toFixed(1),fy:v=>v.toFixed(0),xl:'antenna VSWR',yl:'power at receiver port, dBm'});
+  const xs=[],wo=[],be=[],rf=[],lk=[],sel=[]; for(let i=0;i<=200;i++){ const s=1.001+1.999*i/200; const r=vsCalc(s,I,ph); xs.push(s); wo.push(P+db(r.worst)); be.push(P+db(Math.max(r.best,1e-12))); rf.push(P+db(Math.max(r.refl,1e-12))); lk.push(P+db(r.leak)); sel.push(P+db(Math.max(r.p,1e-12))); }
+  g.fillStyle=css('--accent'); g.globalAlpha=.12; g.beginPath(); xs.forEach((s,i)=>{ const px=M.X(s), py=M.Y(wo[i]); i?g.lineTo(px,py):g.moveTo(px,py); });
+  for(let i=xs.length-1;i>=0;i--) g.lineTo(M.X(xs[i]),M.Y(be[i])); g.closePath(); g.fill(); g.globalAlpha=1;
+  curve(g,M,xs,lk,css('--muted'),{dash:[5,4]}); curve(g,M,xs,rf,css('--trace2')); curve(g,M,xs,sel,css('--accent'),{w:2.2});
+  const r=vsCalc(S,I,ph), pt=P+db(Math.max(r.p,1e-12)); dot(g,M.X(S),M.Y(pt),css('--accent'));
+  hline(g,x0,w,M.Y(20),css('--bad')); txt(g,'LNA damage +20 dBm',x0+w-150,M.Y(20)-5,css('--bad'));
+  txt(g,'leakage only',x0+8,M.Y(P-I)-6,css('--muted')); txt(g,'reflection only',M.X(2.4),M.Y(P+db(vsCalc(2.4,I,0).refl))+16,css('--trace2'));
+  const RL=-20*Math.log10(r.G);
+  ro($('vsOut'),[['|Γ|',r.G.toFixed(3)],['return loss',RL.toFixed(1)+' dB'],['not radiated',fdb(-db(1-r.G*r.G),2)],['reflected to Rx',fW(Wd(P)*r.refl)],['leakage to Rx',fW(Wd(P)*r.leak)],['total at φ',fdbm(pt)],['total at φ, W',fW(Wd(pt))],['worst case',fdbm(P+db(r.worst))],['effective isolation',(P-pt).toFixed(1)+' dB']]);
+}
+bind(['vsS','vsI','vsPh','vsP'],vsDraw);
+
+/* 4 duplexer */
+function bwA(f,f0,FBW,N){ const O=(f/f0-f0/f)/FBW; return 10*Math.log10(1+Math.pow(Math.abs(O),2*N)); }
+function sgk(N){ let s=0; for(let k=1;k<=N;k++) s+=2*Math.sin((2*k-1)*Math.PI/(2*N)); return s; }
+function dxDraw(){
+  const N=+$('dxN').value, S=+$('dxS').value, Bp=+$('dxB').value, Qu=+$('dxQ').value, P=+$('dxP').value;
+  lbl('dxNv',N.toFixed(0)); lbl('dxSv',S.toFixed(0)+' MHz'); lbl('dxBv',Bp.toFixed(1)+' % ('+(Bp*30).toFixed(0)+' MHz)'); lbl('dxPv',fdbm(P,1));
+  const fR=3000, fT=3000+S, FBW=Bp/100, IL=4.343*sgk(N)/(FBW*Qu);
+  const xa=fR-0.7*S-60, xb=fT+0.7*S+60;
+  const c=$('cDx'), g=ctx(c), x0=56,y0=22,w=560,h=260;
+  const xs=[],yr=[],yt=[]; for(let i=0;i<=500;i++){ const f=xa+(xb-xa)*i/500; xs.push(f); yr.push(-bwA(f,fR,FBW,N)-IL); yt.push(-bwA(f,fT,FBW,N)-IL); }
+  const M=plot(g,x0,y0,w,h,xa,xb,-120,0,[{x:xs,y:yr,color:css('--trace'),w:2},{x:xs,y:yt,color:css('--trace2'),w:2}],{ny:6,nx:4,fx:v=>(v/1000).toFixed(2),xl:'frequency, GHz',yl:'transmission, dB'});
+  const rej=bwA(fT,fR,FBW,N), trej=bwA(fR,fT,FBW,N);
+  dot(g,M.X(fT),M.Y(-rej-IL),css('--accent')); dot(g,M.X(fR),M.Y(-trej-IL),css('--trace2')); txt(g,'carrier at LNA '+fdbm(P-rej-IL),x0+8,y0+h-10,css('--accent'));
+  vline(g,M.X(fT),y0,h,css('--accent')); txt(g,'Tx carrier',M.X(fT)+6,y0+14,css('--accent')); txt(g,'Rx filter',M.X(fR)-30,y0+30,css('--trace')); txt(g,'Tx filter',M.X(fT)+6,y0+48,css('--trace2'));
+  const atL=P-rej-IL, mg=-10-atL, Ntx=-124-trej-IL, fl=-171, rise=db(1+lin(Ntx-fl));
+  ro($('dxOut'),[['Rx filter at Tx',rej.toFixed(1)+' dB'],['Tx carrier at LNA',fdbm(atL)],['LNA state',mg>=10?'linear (≥10 dB below P1dB)':mg>=0?'near P1dB':'compressed'],['Tx filter at Rx',trej.toFixed(1)+' dB'],['PA noise at Rx',(Ntx<0?'−':'+')+Math.abs(Ntx).toFixed(1)+' dBm/Hz'],['Rx noise rise',rise.toFixed(2)+' dB'],['loss per filter',IL.toFixed(2)+' dB'],['NF cost (Rx)','+'+IL.toFixed(2)+' dB']]);
+}
+bind(['dxN','dxS','dxB','dxQ','dxP'],dxDraw);
+
+/* 5 PIN T/R switch */
+const Z0=50, LS=0.1e-9;
+function iso1(f,Rs){ const w=TAU*f, D=4*Rs*Rs+4*w*w*LS*LS; const r=1+Z0*2*Rs/D, i=-Z0*2*w*LS/D; return 20*Math.log10(Math.hypot(r,i)); }
+function swIso(f,Rs,N){ const t=N*iso1(f,Rs)+6*(N-1); return -db(lin(-t)+1e-8); }
+function swIL(f,Cj,N){ const x=Math.PI*f*Cj*Z0; return N*(db(1+x*x)+0.1); }
+function swDraw(){
+  const N=+$('swN').value, Rs=+$('swR').value, Cj=+$('swC').value*1e-12, tau=Math.pow(10,+$('swT').value)*1e-9, f=+$('swF').value*1e9;
+  lbl('swNv',N.toFixed(0)); lbl('swRv',Rs.toFixed(1)+' Ω'); lbl('swCv',(Cj*1e12).toFixed(2)+' pF'); lbl('swTv',fmt(tau,'s')); lbl('swFv',fmt(f,'Hz',1));
+  const xs=[],yi=[],yl=[],yr=[]; for(let i=0;i<=200;i++){ const F=1e9+17e9*i/200; xs.push(F/1e9); yi.push(swIso(F,Rs,N)); yr.push(N*iso1(F,Rs)+6*(N-1)); yl.push(swIL(F,Cj,N)); }
+  const c=$('cSw'), g=ctx(c), x0=56,w=560;
+  const M=plot(g,x0,22,w,150,1,18,0,100,[{x:xs,y:yr,color:css('--trace'),w:1.2,dash:[4,4]},{x:xs,y:yi,color:css('--trace'),w:2.2}],{ny:4,nx:4,fx:v=>'',yl:'isolation (diodes on), dB'});
+  const fi=f/1e9, I=swIso(f,Rs,N), L=swIL(f,Cj,N); dot(g,M.X(fi),M.Y(I),css('--accent'));
+  const Mb=plot(g,x0,205,w,80,1,18,0,3,[{x:xs,y:yl,color:css('--trace2'),w:2.2}],{ny:3,nx:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(1),xl:'frequency, GHz',yl:'insertion loss (diodes off), dB'});
+  dot(g,Mb.X(fi),Mb.Y(L),css('--accent'));
+  const tsw=10e-9+tau*Math.log(1.2), fc=1/(TAU*Rs*Cj), fmin=10/(TAU*tau);
+  txt(g,'switching time '+fmt(tsw,'s',1)+' (τc '+fmt(tau,'s',0)+')',x0+w-250,198,css('--accent'));
+  ro($('swOut'),[['isolation at f',I.toFixed(1)+' dB'],['insertion loss at f',L.toFixed(2)+' dB'],['NF cost','+'+L.toFixed(2)+' dB'],['cut-off fc',fmt(fc,'Hz',0)],['switching time',fmt(tsw,'s',1)],['blind range from it',fmt(c0*tsw/2,'m',1)],['low distortion above',fmt(fmin,'Hz',1)]]);
+}
+bind(['swN','swR','swC','swT','swF'],swDraw);
+
+/* 6 limiter */
+function stg(W){ return {pth:7+20*Math.log10(W), il:0.1+0.4/W, ph:40+20*Math.log10(W), tau:5*W*W, ton:0.05*W*W+0.3}; }
+function sFlat(s,p){ return Math.min(p-s.il, s.pth+3+0.1*(p-s.pth)); }
+function sOut(s,p,t){ const A=Math.max(0,(p-s.il)-sFlat(s,p)); return p-s.il-A*(1-Math.exp(-t/s.ton)); }
+function limModel(arch,W){
+  if(arch==='single'){ const s=stg(W); return {st:[s],il:s.il,ph:s.ph,pth:s.pth}; }
+  if(arch==='two'){ const a=stg(W), b=stg(1); return {st:[a,b],il:a.il+b.il+0.05,ph:a.ph,ph2:b.ph,pth:b.pth}; }
+  if(arch==='schottky'){ const s=stg(W); s.pth-=6; s.ton*=0.3; s.il+=0.1; return {st:[s],il:s.il,ph:s.ph,pth:s.pth}; }
+  const s=stg(W); return {st:[s],il:s.il+0.05,ph:s.ph+3,pth:NaN,active:true,tauA:0.2*s.tau};
+}
+const TR=5; /* RF pulse rise time, ns */
+function limOut(m,Pin,t){ const pe=Pin+10*Math.log10(Math.max(1e-4,Math.min(1,t/TR)));
+  if(m.active) return {o:pe-m.il-40,mid:NaN};
+  let p=pe, mid=NaN; m.st.forEach((s,k)=>{ p=sOut(s,p,t); if(k===0) mid=p; }); return {o:p,mid}; }
+function limExcess(m,Pin,t){ /* excess loss after the pulse, dB */
+  if(m.active){ const x0=Math.pow(10,40/20)-1; return 20*Math.log10(1+x0*Math.exp(-t/m.tauA)); }
+  let p=Pin, e=0; m.st.forEach(s=>{ const A=Math.max(0,(p-s.il)-sFlat(s,p)); const x0=Math.pow(10,A/20)-1; e+=20*Math.log10(1+x0*Math.exp(-t/s.tau)); p=sFlat(s,p); }); return e; }
+function lmDraw(){
+  const Pin=+$('lmP').value, W=+$('lmW').value, arch=$('lmA').value;
+  lbl('lmPv',fdbm(Pin,1)+' ('+fW(Wd(Pin))+')'); lbl('lmWv',W.toFixed(1)+' µm');
+  const m=limModel(arch,W);
+  const ts=[],yo=[],yi=[]; let pk=-1e9, E=0; const dt=0.02;
+  const ss=limOut(m,Pin,1000).o;
+  for(let t=0;t<=200;t+=dt){ const r=limOut(m,Pin,t); if(t<=40){ ts.push(t); yo.push(r.o); yi.push(Pin+10*Math.log10(Math.max(1e-4,Math.min(1,t/TR)))); } pk=Math.max(pk,r.o); E+=Math.max(0,Wd(r.o)-Wd(ss))*dt*1e-9; }
+  const erg=E*1e7;
+  const c=$('cLm'), g=ctx(c);
+  const M=plot(g,50,22,260,250,0,40,-10,75,[{x:ts,y:yi,color:css('--muted'),w:1.2,dash:[4,4]},{x:ts,y:yo,color:css('--accent'),w:2.2}],{ny:5,nx:4,fx:v=>v.toFixed(0),xl:'ns from pulse start',yl:'output, dBm'});
+  hline(g,50,260,M.Y(20),css('--bad')); txt(g,'LNA damage',56,M.Y(20)-5,css('--bad')); txt(g,'input',M.X(26),M.Y(Pin)+16,css('--muted'));
+  /* recovery panel */
+  let t1=0; for(let t=0;t<=50000;t+=Math.max(0.2,t*0.002)){ if(limExcess(m,Pin,t)<=1){ t1=t; break; } t1=t; }
+  const tmax=Math.max(50,t1*3), rs=[],ry=[]; for(let i=0;i<=300;i++){ const t=tmax*i/300; rs.push(t); ry.push(limExcess(m,Pin,t)); }
+  const N=plot(g,370,22,250,250,0,tmax,0,50,[{x:rs,y:ry,color:css('--trace2'),w:2.2}],{ny:5,nx:3,fx:v=>fmt(v*1e-9,'s',v<1000?0:1),xl:'time after pulse end',yl:'extra loss to an echo, dB'});
+  hline(g,370,250,N.Y(1),css('--good')); vline(g,N.X(t1),22,250,css('--good')); txt(g,'1 dB',N.X(t1)+5,N.Y(1)-6,css('--good'));
+  const phOK=Pin<=m.ph, ph2OK=m.ph2===undefined||limOut(m,Pin,1000).mid<=m.ph2;
+  const lnaS=ss>20?'flat leakage over damage':erg>0.1?'spike energy over 0.1 erg':'safe';
+  ro($('lmOut'),[['threshold',m.active?'n/a (driven)':fdbm(m.pth)],['small-signal loss',m.il.toFixed(2)+' dB'],['flat leakage',fdbm(ss)],['spike peak',fdbm(pk)],['spike energy',erg<0.01?erg.toExponential(1)+' erg':erg.toFixed(2)+' erg'],['power handling',fW(Wd(m.ph))+(phOK?' OK':' EXCEEDED')],['fine stage',m.ph2===undefined?'n/a':(ph2OK?'OK':'over-driven')],['LNA (+20 dBm)',lnaS],['recovery to 1 dB',fmt(t1*1e-9,'s',t1<1000?0:2)],['blind range',fmt(c0*t1*1e-9/2,'m',0)],['NF cost','+'+m.il.toFixed(2)+' dB']]);
+}
+bind(['lmP','lmW','lmA'],lmDraw);
+
+/* 7 blind range */
+function brDraw(){
+  const tp=Math.pow(10,+$('brT').value)*1e-6, ts=Math.pow(10,+$('brS').value)*1e-9, tr=Math.pow(10,+$('brR').value)*1e-9, R=Math.pow(10,+$('brD').value);
+  lbl('brTv',fmt(tp,'s')); lbl('brSv',fmt(ts,'s')); lbl('brRv',fmt(tr,'s')); lbl('brDv',fmt(R,'m',R<1000?0:2));
+  const deaf=tp+Math.max(ts,tr), te=2*R/c0, tend=Math.max(te+tp,deaf)*1.25;
+  const c=$('cBr'), g=ctx(c), x0=110,w=500,y0=20,h=250;
+  const M=plot(g,x0,y0,w,h,0,tend*1e6,0,5,[],{ny:5,nx:4,fx:v=>fmt(v*1e-6,'s',v<1?2:1),fy:()=>'',xl:'time since pulse start'});
+  const rowY=k=>M.Y(4.5-k)-12, X=t=>M.X(t*1e6);
+  const names=['transmit pulse','T/R switch','limiter','receiver','echo'];
+  names.forEach((n,k)=>txt(g,n,6,rowY(k)+16,css('--muted')));
+  const box=(a,b,k,col,al)=>{ g.fillStyle=css(col); g.globalAlpha=al||0.85; g.fillRect(X(a),rowY(k),Math.max(1.5,X(b)-X(a)),24); g.globalAlpha=1; };
+  box(0,tp,0,'--accent'); box(0,tp,1,'--trace2',0.35); box(tp,tp+ts,1,'--trace2'); box(tp,tp+tr,2,'--bad',0.7);
+  box(0,deaf,3,'--bad',0.25); box(deaf,tend,3,'--good',0.5);
+  const a=te, b=te+tp, okA=Math.max(a,deaf), frac=clamp((b-okA)/tp,0,1);
+  if(a<deaf) box(a,Math.min(b,deaf),4,'--bad'); if(b>deaf) box(okA,b,4,'--good');
+  vline(g,X(deaf),y0,h,css('--ink')); txt(g,'ready',X(deaf)+4,y0+12);
+  const Rmin=c0*deaf/2, loss=frac>0?-10*Math.log10(frac):Infinity;
+  ro($('brOut'),[['switch ready',fmt(tp+ts,'s')],['limiter ready',fmt(tp+tr,'s')],['blind time',fmt(deaf,'s')],['minimum range',fmt(Rmin,'m',Rmin<1000?0:2)],['set by',ts>tr?'switch':'limiter'],['echo arrives',fmt(te,'s')],['echo received',(frac*100).toFixed(0)+' %'],['energy loss',frac>0?loss.toFixed(1)+' dB':'echo lost'],['status',frac>=0.999?'detected normally':frac>0?'partly eclipsed':'inside blind range']]);
+}
+bind(['brT','brS','brR','brD'],brDraw);
+
+/* 8 loss in front of the LNA */
+function nfDraw(){
+  const Ls=[['cable',+$('nfX').value],['circulator',+$('nfC').value],['switch/duplexer',+$('nfS').value],['limiter',+$('nfL').value]];
+  const NFa=+$('nfA').value, Tc=+$('nfT').value, Tp=Tc+273.15;
+  lbl('nfXv',Ls[0][1].toFixed(2)+' dB'); lbl('nfCv',Ls[1][1].toFixed(2)+' dB'); lbl('nfSv',Ls[2][1].toFixed(2)+' dB'); lbl('nfLv',Ls[3][1].toFixed(2)+' dB'); lbl('nfAv',NFa.toFixed(2)+' dB'); lbl('nfTv',Tc.toFixed(0)+' °C ('+Tp.toFixed(0)+' K)');
+  let L=1, T=0; const parts=[]; Ls.forEach(([n,d])=>{ const k=lin(d); const ct=(k-1)*Tp*L; T+=ct; L*=k; parts.push([n,ct]); });
+  const Ta=Te(NFa), cl=L*Ta; T+=cl; parts.push(['LNA ×L',cl]);
+  const NF=NFof(T), dNF=NF-NFa, Fs=1+T/T0, Fa=1+Ta/T0;
+  const c=$('cNf'), g=ctx(c), x0=130,y0=22,w=480,h=250; const top=Math.max(100,T*1.15);
+  const M=plot(g,x0,y0,w,h,0,top,0,6,[],{ny:6,nx:4,fx:v=>v.toFixed(0),fy:()=>'',xl:'noise temperature referred to the antenna port, K'});
+  const cols=['--muted','--trace2','--trace2','--trace2','--trace']; let acc=0;
+  parts.forEach((p,k)=>{ const yy=M.Y(5.6-k)+4; txt(g,p[0],6,yy+14,css('--muted')); g.fillStyle=css(cols[k]); g.globalAlpha=.85; g.fillRect(M.X(acc),yy,Math.max(1,M.X(acc+p[1])-M.X(acc)),20); g.globalAlpha=1; txt(g,p[1].toFixed(1)+' K',M.X(acc+p[1])+5,yy+14); acc+=p[1]; });
+  const yy=M.Y(0.6)+4; txt(g,'total',6,yy+14,css('--ink')); g.fillStyle=css('--accent'); g.fillRect(M.X(0),yy,M.X(T)-M.X(0),20); txt(g,T.toFixed(0)+' K = '+NF.toFixed(2)+' dB',Math.min(M.X(T)+5,x0+w-120),yy-4);
+  ro($('nfOut'),[['total loss',db(L).toFixed(2)+' dB'],['T_e of chain',fmtK(T)],['system NF',NF.toFixed(2)+' dB'],['cost vs bare LNA','+'+dNF.toFixed(2)+' dB'],['radar range ×',Math.pow(Fa/Fs,0.25).toFixed(3)],['Tx power to recover','×'+lin(dNF).toFixed(2)],['ESM range ×',Math.pow(Fa/Fs,0.5).toFixed(3)]]);
+}
+bind(['nfX','nfC','nfS','nfL','nfA','nfT'],nfDraw);
+
+/* 9 FMCW leakage */
+const SL=150e6/1e-3; /* chirp slope, Hz/s */
+function pn(f,L100){ return Math.max(-160, L100+20*Math.log10(1e5/Math.max(f,1e3))); }
+function fmDraw(){
+  const P=+$('fmP').value, I=+$('fmI').value, tau=Math.pow(10,+$('fmD').value)*1e-9, L100=+$('fmL').value, R=Math.pow(10,+$('fmR').value);
+  lbl('fmPv',fdbm(P,1)); lbl('fmIv',I.toFixed(1)+' dB'); lbl('fmDv',fmt(tau,'s',2)); lbl('fmLv',L100.toFixed(0)+' dBc/Hz'); lbl('fmRv',fmt(R,'m'));
+  const Pl=P-I, th=-168, bin=30;
+  const dec=f=>db(Math.max(1e-20,4*Math.pow(Math.sin(Math.PI*f*tau),2)));
+  const Nl=f=>Pl+pn(f,L100)+dec(f);
+  const xs=[],yN=[],yT=[],yS=[]; for(let i=0;i<=500;i++){ const lf=3+4*i/500, f=Math.pow(10,lf); xs.push(lf); const n=Nl(f)+bin; yN.push(n); yT.push(th+bin); yS.push(db(lin(n)+lin(th+bin))); }
+  const c=$('cFm'), g=ctx(c), x0=56,y0=22,w=560,h=260;
+  const M=plot(g,x0,y0,w,h,3,7,-170,30,[{x:xs,y:yT,color:css('--muted'),w:1.2,dash:[5,4]},{x:xs,y:yN,color:css('--trace2'),w:1.4},{x:xs,y:yS,color:css('--trace'),w:2.2}],{ny:5,nx:4,fx:v=>fmt(Math.pow(10,v),'Hz',0),xl:'beat frequency (log)',yl:'power in a 1 kHz FFT bin, dBm'});
+  const fL=SL*tau, fb=2*R*SL/c0, Pe=(P-30)-60-40*Math.log10(R/100);
+  const xL=clamp(lg(fL),3,7); g.strokeStyle=css('--accent'); g.lineWidth=3; g.beginPath(); g.moveTo(M.X(xL),M.Y(-170)); g.lineTo(M.X(xL),M.Y(Pl)); g.stroke(); g.lineWidth=1;
+  txt(g,'leakage '+fdbm(Pl,0)+(fL<1e3?' (near DC)':''),M.X(xL)+6,M.Y(Pl)+12,css('--accent'));
+  g.strokeStyle=css('--good'); g.lineWidth=3; g.beginPath(); g.moveTo(M.X(lg(fb)),M.Y(-170)); g.lineTo(M.X(lg(fb)),M.Y(Pe)); g.stroke(); g.lineWidth=1; dot(g,M.X(lg(fb)),M.Y(Pe),css('--good'),3);
+  txt(g,'target',M.X(lg(fb))+5,M.Y(Pe)-6,css('--good')); hline(g,x0,w,M.Y(-10),css('--bad')); txt(g,'LNA P1dB',x0+w-70,M.Y(-10)-5,css('--bad'));
+  const nfb=Nl(fb), tot=db(lin(nfb)+lin(th)), snr=Pe-(tot+bin), snr0=Pe-(th+bin);
+  ro($('fmOut'),[['leakage at Rx',fdbm(Pl)],['LNA state',Pl>-10?'compressed':Pl>-20?'near P1dB':'linear'],['leakage beat',fmt(fL,'Hz',1)],['target beat',fmt(fb,'Hz',1)],['residue at target',fdb(dec(fb),1)],['leak noise',sg(nfb,1)+' dBm/Hz'],['thermal floor',sg(th,0)+' dBm/Hz'],['target SNR (bin)',snr.toFixed(1)+' dB'],['SNR lost',(snr0-snr).toFixed(1)+' dB']]);
+}
+bind(['fmP','fmI','fmD','fmL','fmR'],fmDraw);
+
+/* 10 ESM co-site */
+function esProt(p,mode){ let q=p; if(mode==='notch') q-=40; if(mode==='none') return q; q=q<15?q-0.5:15+0.1*(q-15); return mode==='blank'?q-30:q; }
+function esDraw(){
+  const Pt=+$('esP').value, d=Math.pow(10,+$('esD').value), Gs=+$('esG').value, f=+$('esF').value*1e9, mode=$('esM').value;
+  lbl('esPv',fdbm(Pt,0)+' ('+fW(Wd(Pt))+')'); lbl('esDv',fmt(d,'m',1)); lbl('esGv',sg(Gs,0)+' dBi'); lbl('esFv',fmt(f,'Hz',1));
+  const lam=c0/f, fs=x=>20*Math.log10(4*Math.PI*x/lam), Pin=x=>Pt+Gs-fs(x);
+  const xs=[],y1=[],y2=[]; for(let i=0;i<=200;i++){ const lx=3*i/200, x=Math.pow(10,lx); xs.push(lx); y1.push(Pin(x)); y2.push(esProt(Pin(x),mode)); }
+  const c=$('cEs'), g=ctx(c), x0=56,y0=22,w=560,h=260;
+  const M=plot(g,x0,y0,w,h,0,3,-80,90,[{x:xs,y:y1,color:css('--muted'),w:1.4,dash:[5,4]},{x:xs,y:y2,color:css('--accent'),w:2.2}],{ny:5,nx:3,fx:v=>fmt(Math.pow(10,v),'m',0),xl:'distance between antennas (log)',yl:'power into the ESM LNA, dBm'});
+  [[20,'LNA damage','--bad'],[-10,'LNA P1dB','--trace2'],[-65,'ESM sensitivity','--trace']].forEach(([v,n,col])=>{ hline(g,x0,w,M.Y(v),css(col)); txt(g,n,x0+w-120,M.Y(v)-5,css(col)); });
+  if(mode!=='none'){ hline(g,x0,w,M.Y(50),css('--muted'),[2,3]); txt(g,'limiter rating 100 W',x0+w-150,M.Y(50)-5,css('--muted')); }
+  const p=Pin(d), q=esProt(p,mode); dot(g,M.X(lg(d)),M.Y(p),css('--muted')); dot(g,M.X(lg(d)),M.Y(q),css('--accent'));
+  const pre=mode==='notch'?p-40:p, limOK=mode==='none'||pre<=50;
+  const lna=!limOK?'limiter burns out':q>20?'destroyed':q>-10?'compressed in pulse':'linear';
+  const tau=10, pri=1000; let blind=0; if(q>-10&&lna!=='destroyed'&&lna!=='limiter burns out') blind=mode==='blank'?(tau+0.5)/pri:(tau+1)/pri;
+  if(mode==='blank'&&p>-10) blind=(tau+0.5)/pri;
+  ro($('esOut'),[['path loss',fs(d).toFixed(1)+' dB'],['coupled power',fdbm(p)],['same in watts',fW(Wd(p))],['into LNA',fdbm(q)],['LNA',lna],['ESM blind time',(blind*100).toFixed(2)+' %'],['band lost',mode==='notch'?fmt(f*0.95,'Hz',2)+'–'+fmt(f*1.05,'Hz',2):'none'],['own radar',mode==='blank'?'suppressed':'reported']]);
+}
+bind(['esP','esD','esG','esF','esM'],esDraw);
+
+/* 11 look-through */
+function ltDraw(){
+  const Pj=+$('ltP').value, Iso=+$('ltI').value, T=Math.pow(10,+$('ltT').value)*1e-3, pri=Math.pow(10,+$('ltR').value)*1e-6;
+  const wl=Math.min(Math.pow(10,+$('ltW').value)*1e-6,0.5*T);
+  lbl('ltPv',fdbm(Pj,0)+' ('+fW(Wd(Pj))+')'); lbl('ltIv',Iso.toFixed(0)+' dB'); lbl('ltWv',fmt(wl,'s',1)+(wl<Math.pow(10,+$('ltW').value)*1e-6?' (capped at T/2)':'')); lbl('ltTv',fmt(T,'s',2)); lbl('ltRv',fmt(pri,'s',0));
+  const S=-60, need=Pj-(S-10), Jrx=Pj-Iso, sim=Iso>=need;
+  const span=3*T, c=$('cLt'), g=ctx(c), x0=96,y0=22,w=520,h=170;
+  const M=plot(g,x0,y0,w,h,0,span*1e3,0,3,[],{ny:3,nx:3,fx:v=>fmt(v*1e-3,'s',1),fy:()=>'',xl:'time'});
+  const X=t=>M.X(t*1e3);
+  txt(g,'jammer',6,M.Y(2.5)+4,css('--muted')); txt(g,'threat pulses',6,M.Y(1.5)+4,css('--muted')); txt(g,'caught',6,M.Y(0.5)+4,css('--muted'));
+  g.fillStyle=css('--accent'); g.globalAlpha=.8;
+  if(sim) g.fillRect(X(0),M.Y(2.5)-10,X(span)-X(0),20); else for(let n=0;n<3;n++){ g.fillRect(X(n*T),M.Y(2.5)-10,X((n+1)*T-wl)-X(n*T),20); }
+  g.globalAlpha=1;
+  if(!sim) for(let n=0;n<3;n++){ g.fillStyle=css('--good'); g.globalAlpha=.25; g.fillRect(X((n+1)*T-wl),y0,Math.max(1.5,X((n+1)*T)-X((n+1)*T-wl)),h); g.globalAlpha=1; }
+  let caught=0; const np=Math.floor((span-0.37*pri)/pri)+1;
+  for(let k=0;k<np;k++){ const t=k*pri+0.37*pri; const ph=t%T; const inW=sim||ph>=T-wl; const x=X(t);
+    g.strokeStyle=css(inW?'--good':'--muted'); g.lineWidth=inW?2:1; g.beginPath(); g.moveTo(x,M.Y(1.5)-9); g.lineTo(x,M.Y(1.5)+9); g.stroke();
+    if(inW){ caught++; g.beginPath(); g.moveTo(x,M.Y(0.5)-9); g.lineTo(x,M.Y(0.5)+9); g.stroke(); } }
+  g.lineWidth=1;
+  /* isolation bars */
+  const bx=x0, bw=w, sc=v=>bx+bw*clamp(v,0,170)/170;
+  txt(g,'isolation',6,250,css('--muted')); g.fillStyle=css('--trace'); g.fillRect(bx,240,sc(Iso)-bx,14); txt(g,'have '+Iso.toFixed(0)+' dB',sc(Iso)+5,251);
+  txt(g,'needed',6,280,css('--muted')); g.fillStyle=css('--bad'); g.fillRect(bx,270,sc(need)-bx,14); txt(g,'need '+need.toFixed(0)+' dB',Math.min(sc(need)+5,x0+w-80),281);
+  g.strokeStyle=css('--line'); g.strokeRect(bx,236,bw,52);
+  const duty=sim?1:1-wl/T, pc=sim?1:Math.min(1,wl/pri), mtt=sim?pri:T/pc;
+  ro($('ltOut'),[['J at own Rx',fdbm(Jrx)],['isolation needed',need.toFixed(0)+' dB'],['margin',sg(Iso-need,0)+' dB'],['mode',sim?'simultaneous':'time-shared'],['jamming duty',(duty*100).toFixed(2)+' %'],['jam power change',fdb(db(duty),2)],['catch per look',(pc*100).toFixed(1)+' %'],['time to catch',fmt(mtt,'s',1)],['pulses caught (3 T)',caught.toFixed(0)]]);
+}
+bind(['ltP','ltI','ltW','ltT','ltR'],ltDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

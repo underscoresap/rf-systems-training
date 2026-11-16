@@ -1,0 +1,1069 @@
+<title>LNA and Receiver Noise</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">LNA and Receiver Noise · RF Systems for Component Engineers</div>
+  <h1>The LNA and receiver noise, from kTB to detection range</h1>
+  <p class="lede">The low-noise amplifier is the first active part a received signal meets. Whatever noise it adds, and whatever loss sits in front of it, decides the weakest signal the whole receiver can ever see. This page builds that idea from the thermal noise of a resistor, through noise figure, cascades, noise matching, stability and linearity, to the two numbers a system engineer actually cares about: radar detection range and ESM sensitivity. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#why">0 Why the first stage</a><a href="#ktb">1 Thermal noise kTB</a><a href="#nf">2 Noise figure and temperature</a><a href="#friis">3 Friis cascade and loss</a><a href="#match">4 Noise match vs power match</a><a href="#stab">5 Stability K and μ</a><a href="#linear">6 Gain, P1dB, IP3, blocking</a><a href="#recovery">7 Overload and recovery</a><a href="#drift">8 Bias and temperature drift</a><a href="#sens">9 Sensitivity</a><a href="#system">10 Range, G/T and ESM</a><a href="#summary">11 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="why">
+  <div class="secno">Step 0</div>
+  <h2>Why the first amplifier sets the sensitivity of the whole receiver</h2>
+  <div class="know"><h4>You already know</h4><p>Every resistor, transistor and lossy line generates random noise. An amplifier multiplies whatever arrives at its input, signal and noise alike, by the same gain, and adds some noise of its own.</p></div>
+  <div class="col">
+    <p>A receiver is a chain: antenna, a protection limiter, a filter, the LNA, more filtering, a mixer, IF amplifiers and finally an analogue-to-digital converter (ADC). The signal coming from the antenna may be a millionth of a millionth of a milliwatt. Each block in the chain adds noise. The key question is: <b>which block's noise matters most?</b></p>
+    <p>The answer is the first block with gain. Once the signal and the noise have been amplified by, say, 100 times (20 dB), a later stage that adds the same amount of noise as the LNA adds only 1/100 as much in relative terms, because it is adding to a signal and noise that are already 100 times bigger. So the LNA's own noise, and any loss placed in front of it, are nearly the whole story. Everything after the LNA matters only to the extent that the LNA's gain is not large enough to hide it.</p>
+    <p>That is why a component engineer's LNA datasheet line "NF = 1.2 dB" ends up as a radar's detection range in kilometres or an ESM receiver's sensitivity in dBm. The rest of this page makes that connection exact, with numbers.</p>
+  </div>
+  <div class="diag" role="img" aria-label="Receive chain: antenna, limiter, preselector filter, LNA, image filter, mixer with local oscillator, IF amplifier, ADC. Noise added before the LNA gain is counted in full; noise after it is divided by the LNA gain.">
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg">
+      <g style="stroke:var(--line);stroke-width:1.5;fill:var(--chip)">
+        <rect x="70" y="50" width="80" height="44" rx="4"/><rect x="170" y="50" width="86" height="44" rx="4"/>
+        <polygon points="280,46 280,98 350,72" style="fill:var(--panel);stroke:var(--accent);stroke-width:2"/>
+        <rect x="372" y="50" width="80" height="44" rx="4"/><circle cx="500" cy="72" r="22"/><rect x="546" y="50" width="86" height="44" rx="4"/><rect x="654" y="50" width="70" height="44" rx="4"/>
+      </g>
+      <g style="stroke:var(--muted);stroke-width:1.5;fill:none">
+        <path d="M20 30 L40 72 L60 30 M40 72 L40 72"/><line x1="40" y1="72" x2="70" y2="72"/><line x1="150" y1="72" x2="170" y2="72"/><line x1="256" y1="72" x2="280" y2="72"/><line x1="350" y1="72" x2="372" y2="72"/><line x1="452" y1="72" x2="478" y2="72"/><line x1="522" y1="72" x2="546" y2="72"/><line x1="632" y1="72" x2="654" y2="72"/><line x1="724" y1="72" x2="760" y2="72"/>
+        <line x1="500" y1="94" x2="500" y2="122"/><path d="M486 58 L514 86 M514 58 L486 86"/>
+      </g>
+      <text x="110" y="76" text-anchor="middle">Limiter</text><text x="213" y="76" text-anchor="middle">Preselect</text><text x="306" y="76" text-anchor="middle">LNA</text>
+      <text x="412" y="76" text-anchor="middle">Filter</text><text x="589" y="76" text-anchor="middle">IF amp</text><text x="689" y="76" text-anchor="middle">ADC</text><text x="500" y="138" text-anchor="middle" class="mut">LO</text><text x="770" y="76">bits</text>
+      <text x="40" y="20" text-anchor="middle" class="mut">antenna</text>
+      <rect x="62" y="108" width="202" height="20" rx="3" style="fill:none;stroke:var(--bad);stroke-dasharray:4 3"/>
+      <text x="163" y="122" text-anchor="middle" class="mut">loss here adds noise 1:1</text>
+      <text x="306" y="122" text-anchor="middle" class="mut">sets NF</text>
+      <rect x="366" y="146" width="364" height="20" rx="3" style="fill:none;stroke:var(--trace);stroke-dasharray:4 3"/>
+      <text x="548" y="160" text-anchor="middle" class="mut">noise here is divided by the LNA gain</text>
+    </svg>
+  </div>
+  <div class="term"><h4>Terms used on this page</h4>
+    <p><b>dB, dBm:</b> dB is a power ratio, 10·log₁₀(P₁/P₂). dBm is power relative to 1 mW: 0 dBm = 1 mW, −30 dBm = 1 µW, −174 dBm = 4 × 10⁻²¹ W.</p>
+    <p><b>Bandwidth B:</b> the range of frequencies the receiver lets through to the detector, in Hz. Noise power grows in proportion to B.</p>
+    <p><b>SNR (signal-to-noise ratio):</b> signal power divided by noise power in the same bandwidth, usually in dB. Detection and measurement need a minimum SNR.</p>
+    <p><b>ESM (electronic support measures):</b> a receiver that listens for other people's radar and radio emissions to detect, identify and locate them.</p>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="ktb">
+  <div class="secno">Step 1</div>
+  <h2>Thermal noise kTB from first principles</h2>
+  <div class="know"><h4>You already know</h4><p>A 50 Ω resistor on the bench, unconnected, shows a tiny random voltage on a sensitive enough instrument. That is thermal (Johnson–Nyquist) noise: the random motion of electrons, which grows with temperature.</p></div>
+  <div class="col">
+    <p><b>Where kTB comes from.</b> Picture a resistor R connected by a lossless matched line to a second resistor R, both at temperature T. In thermal equilibrium each resistor must deliver exactly as much power to the other as it receives, otherwise one would warm up and the other cool down, which thermodynamics forbids. Statistical physics says each independent "mode" of the line carries an average energy kT (k is Boltzmann's constant). A line of bandwidth B supports B modes per second in each direction. So the power one resistor delivers to the other is</p>
+  </div>
+  <div class="eq">P<sub>n</sub> = k · T · B &nbsp;&nbsp; v<sub>n,open</sub> = √(4·k·T·R·B) &nbsp;&nbsp; v<sub>n,on matched load</sub> = √(k·T·B·R)<small>k = 1.380649 × 10⁻²³ J/K. P<sub>n</sub> is the <b>available</b> noise power: the power delivered into a matched load. It does not depend on R. At T<sub>0</sub> = 290 K (the standard "room temperature" reference): kT<sub>0</sub> = 4.00 × 10⁻²¹ W/Hz = −174.0 dBm/Hz.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Available power:</b> the maximum power a source can deliver, which it does into a conjugate-matched load.</p>
+    <p><b>Noise power spectral density:</b> noise power per hertz of bandwidth, in W/Hz or dBm/Hz. For thermal noise it is flat ("white") over all RF frequencies.</p>
+    <p><b>T<sub>0</sub> = 290 K:</b> the agreed reference temperature (17 °C) used in every noise figure definition. It is why "−174 dBm/Hz" appears everywhere.</p>
+  </div>
+  <h3>Worked example: noise power in common bandwidths at 290 K</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Bandwidth B</th><th>Calculation</th><th>Noise power kT₀B</th></tr>
+    <tr><td>1 Hz</td><td>10·log(1.380649e-23 × 290 × 1) + 30</td><td class="n">−174.0 dBm</td></tr>
+    <tr><td>1 MHz (a radar matched to a 1 µs pulse)</td><td>−174 + 10·log(10⁶) = −174 + 60</td><td class="n">−114.0 dBm</td></tr>
+    <tr><td>10 MHz</td><td>−174 + 70</td><td class="n">−104.0 dBm</td></tr>
+    <tr><td>500 MHz (a wide ESM channel)</td><td>−174 + 87.0</td><td class="n">−87.0 dBm</td></tr>
+    <tr><td>RMS voltage, 1 MHz, on 50 Ω</td><td>√(4.0e-15 W × 50 Ω)</td><td class="n">0.45 µV</td></tr>
+    <tr><td>Same resistor cooled to 77 K, 1 Hz</td><td>−174 + 10·log(77/290)</td><td class="n">−179.7 dBm/Hz</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cKt" width="640" height="320" aria-label="Thermal noise power against bandwidth for a chosen temperature"></canvas>
+    <div class="ctrl">
+      <label for="ktT"><span>Resistor temperature T</span> <b id="ktTv"></b></label><input id="ktT" type="range" min="4" max="1000" step="1" value="290">
+      <label for="ktB"><span>Bandwidth B</span> <b id="ktBv"></b></label><input id="ktB" type="range" min="3" max="10" step="0.05" value="6">
+      <div class="readout" id="ktOut"></div>
+    </div>
+    <p class="cap">Thermal noise power in dBm against bandwidth (log scale). Every factor of 10 in bandwidth adds 10 dB of noise. Cooling to 77 K (liquid nitrogen) lowers it by only 5.8 dB; the bandwidth you choose usually matters far more than the temperature.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every resistive part at the input</b> (bias resistors, stabilising resistors, lossy substrates) is a kTB noise source at its physical temperature. Your input network's loss turns directly into noise, as Step 2 shows.</li>
+    <li><b>Filters</b> set B. A preselector or IF filter twice as wide as needed doubles the noise power: 3 dB of sensitivity lost before the LNA has done anything.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>What is the thermal noise power in a 20 MHz bandwidth at 290 K?</summary><p>−174 + 10·log(2 × 10⁷) = −174 + 73.0 = −101.0 dBm.</p></details>
+    <details><summary>Does a 1 kΩ resistor deliver more noise power than a 50 Ω one?</summary><p>No. Its open-circuit noise voltage is larger (√(4kTRB) grows with R), but the available power into a matched load is kTB for any R.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="nf">
+  <div class="secno">Step 2</div>
+  <h2>Noise figure and noise temperature</h2>
+  <div class="know"><h4>You already know</h4><p>On a noise-figure meter an LNA reads, for example, NF = 1.0 dB and gain = 20 dB. You know a lower NF is better. Here is exactly what the number means.</p></div>
+  <div class="col">
+    <p>Connect a matched source at exactly 290 K to an amplifier of available gain G. The noise out is G·kT<sub>0</sub>B from the source, plus whatever the amplifier adds itself. A perfect noiseless amplifier would keep the SNR the same from input to output. A real one makes the output SNR worse. <b>Noise factor F</b> is that ratio, with the source held at 290 K:</p>
+  </div>
+  <div class="eq">F = SNR<sub>in</sub> / SNR<sub>out</sub> (source at 290 K) &nbsp;&nbsp; NF = 10·log₁₀(F) &nbsp;&nbsp; T<sub>e</sub> = T<sub>0</sub>·(F − 1) &nbsp;&nbsp; F = 1 + T<sub>e</sub>/T<sub>0</sub><small>T<sub>e</sub> is the <b>equivalent input noise temperature</b>: the amplifier's own noise, expressed as the temperature a resistor at the input would need to produce it. A passive loss L (as a ratio ≥ 1) at physical temperature T<sub>p</sub> has T<sub>e</sub> = (L − 1)·T<sub>p</sub>; at 290 K that is F = L, so NF in dB equals the loss in dB.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Noise factor F:</b> a linear ratio ≥ 1. <b>Noise figure NF:</b> the same in dB. Datasheets say "noise figure" and mean NF in dB.</p>
+    <p><b>Equivalent noise temperature T<sub>e</sub>:</b> the same information as F, in kelvin. Preferred when NF is below about 1 dB (where small dB differences are large in kelvin) and when the source is not at 290 K.</p>
+    <p><b>Antenna (source) temperature T<sub>A</sub>:</b> the noise temperature the antenna presents to the receiver. Looking at cold sky it may be 20–50 K; looking at the ground it is near 290 K (see the antenna module, Step 8).</p>
+  </div>
+  <h3>Worked example: what 1 dB of noise figure costs</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Noise factor for NF = 1.0 dB</td><td>10^(1.0/10)</td><td class="n">1.259</td></tr>
+    <tr><td>Equivalent noise temperature</td><td>290 × (1.259 − 1)</td><td class="n">75.1 K</td></tr>
+    <tr><td>NF = 0.5 dB / 3.0 dB</td><td>290 × (10^(NF/10) − 1)</td><td class="n">35.4 K / 288.6 K</td></tr>
+    <tr><td>SNR out with a 290 K source, SNR in = 20 dB</td><td>20 − 1.0</td><td class="n">19.0 dB</td></tr>
+    <tr><td>Same LNA, antenna at 50 K (cold sky)</td><td>degradation = 10·log(1 + 75.1/50)</td><td class="n">4.0 dB</td></tr>
+  </table></div>
+  <div class="col"><p>The last line is the important surprise: NF tells you the SNR loss only when the source is at 290 K. Against a cold 50 K sky, the same "1 dB" LNA costs 4 dB of SNR, because its 75 K of noise is now larger than the source's own 50 K.</p></div>
+  <div class="bench">
+    <canvas id="cNf" width="640" height="340" aria-label="SNR degradation against noise figure, and source versus amplifier noise temperature"></canvas>
+    <div class="ctrl">
+      <label for="nfN"><span>Amplifier NF</span> <b id="nfNv"></b></label><input id="nfN" type="range" min="0.1" max="10" step="0.05" value="1">
+      <label for="nfT"><span>Source temperature T<sub>A</sub></span> <b id="nfTv"></b></label><input id="nfT" type="range" min="10" max="1000" step="5" value="290">
+      <label for="nfS"><span>SNR at the input</span> <b id="nfSv"></b></label><input id="nfS" type="range" min="0" max="30" step="0.5" value="20">
+      <div class="readout" id="nfOut"></div>
+    </div>
+    <p class="cap">Top: SNR lost through the amplifier against its NF, for the chosen source temperature (solid) and for the 290 K reference (dashed, where loss = NF exactly). Bottom: the source noise and the amplifier's added noise side by side, in kelvin. Set T<sub>A</sub> to 30 K: the solid curve rises steeply, which is why satellite ground stations pay for 0.3 dB LNAs.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Noise figure</td><td>Device technology (GaAs pHEMT, GaN HEMT, SiGe HBT), gate width, input-match loss</td><td>NF = 1.0 dB (T<sub>e</sub> = 75 K)</td><td>Adds 75 K to T<sub>sys</sub>; with a 290 K antenna, 1 dB of SNR. Each 1 dB less NF ≈ 6 % more radar range (Step 10).</td></tr>
+    <tr><td>Input network loss</td><td>Line width, substrate tan δ, blocking capacitor Q</td><td>Included in the measured NF (0.2 dB of match loss = +0.2 dB NF)</td><td>Loss before the active device counts in full, dB for dB.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Below about 1 dB, think in kelvin.</b> 0.6 dB vs 0.8 dB looks trivial but is 43 K vs 59 K, a 37 % difference in added noise.</li>
+    <li><b>Measuring NF:</b> the Y-factor method uses a noise source with a known excess noise ratio (ENR). The answer is referred to 290 K; if the bench is at 300 K the error at low NF can be 0.05–0.1 dB.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An LNA has T<sub>e</sub> = 50 K. What is its NF?</summary><p>F = 1 + 50/290 = 1.172, NF = 0.69 dB.</p></details>
+    <details><summary>A 2 dB attenuator at room temperature: NF and T<sub>e</sub>?</summary><p>NF = 2 dB; L = 1.585, T<sub>e</sub> = 0.585 × 290 = 170 K. Cooled to 77 K it would add only 45 K.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="friis">
+  <div class="secno">Step 3</div>
+  <h2>The Friis cascade, including loss before the LNA</h2>
+  <div class="know"><h4>You already know</h4><p>Gains in dB add through a chain. Noise does not add that simply: a stage's noise matters less the more gain there is in front of it.</p></div>
+  <div class="col">
+    <p>Refer every stage's noise to the receiver input. Stage 2 adds T<sub>e2</sub> at its own input; seen from the chain input it looks like T<sub>e2</sub>/G<sub>1</sub>, because a signal at the chain input has been multiplied by G<sub>1</sub> by the time it gets there. This gives the <b>Friis formula</b>:</p>
+  </div>
+  <div class="eq">T<sub>e,total</sub> = T<sub>e1</sub> + T<sub>e2</sub>/G<sub>1</sub> + T<sub>e3</sub>/(G<sub>1</sub>G<sub>2</sub>) + … &nbsp;&nbsp; F<sub>total</sub> = F<sub>1</sub> + (F<sub>2</sub> − 1)/G<sub>1</sub> + (F<sub>3</sub> − 1)/(G<sub>1</sub>G<sub>2</sub>) + …<small>All gains and noise factors are linear ratios, not dB. A loss L in front of everything: F<sub>total</sub> = L · F<sub>rest</sub>, so its dB simply adds to the NF of the rest of the chain.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Available gain:</b> output available power divided by source available power. Friis uses available gains.</p>
+    <p><b>System noise figure:</b> the NF of the whole chain from antenna port to ADC, the number that sets sensitivity.</p>
+    <p><b>Loss before the LNA:</b> cable, connector, limiter, preselector filter, T/R switch, radome. All count dB for dB.</p>
+  </div>
+  <h3>Worked example: a typical X-band receive chain</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Stage</th><th>NF / gain</th><th>T<sub>e</sub> of stage</th><th>Gain in front</th><th>Referred to input</th></tr>
+    <tr><td>Limiter + cable</td><td>1.0 dB / −1.0 dB</td><td class="n">75.1 K</td><td class="n">1</td><td class="n">75.1 K</td></tr>
+    <tr><td>LNA</td><td>1.0 dB / +20 dB</td><td class="n">75.1 K</td><td class="n">0.794</td><td class="n">94.5 K</td></tr>
+    <tr><td>Mixer</td><td>10 dB / −7 dB</td><td class="n">2 610 K</td><td class="n">79.4</td><td class="n">32.9 K</td></tr>
+    <tr><td>IF amplifier</td><td>3 dB / +20 dB</td><td class="n">288.6 K</td><td class="n">15.8</td><td class="n">18.2 K</td></tr>
+    <tr class="sum"><td>Total</td><td></td><td></td><td></td><td class="n">220.7 K = NF 2.46 dB</td></tr>
+  </table></div>
+  <div class="col">
+    <p>Three things to notice. (1) Without the 1 dB limiter and cable the total is 115.7 K = 1.46 dB: the 1 dB of loss cost exactly 1 dB of system NF. (2) The LNA's own 75 K becomes 94.5 K because the loss in front of it divides the signal before the LNA sees it. (3) If the LNA gain were only 10 dB, the mixer would add 261 K instead of 26 K and the system NF would rise to 4.25 dB. LNA gain is there to hide the mixer.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cFr" width="640" height="320" aria-label="Noise contribution of each stage of the cascade, referred to the input"></canvas>
+    <div class="ctrl">
+      <label for="frL"><span>Loss before LNA</span> <b id="frLv"></b></label><input id="frL" type="range" min="0" max="4" step="0.05" value="1">
+      <label for="frN"><span>LNA NF</span> <b id="frNv"></b></label><input id="frN" type="range" min="0.3" max="5" step="0.05" value="1">
+      <label for="frG"><span>LNA gain</span> <b id="frGv"></b></label><input id="frG" type="range" min="0" max="35" step="0.5" value="20">
+      <label for="frS">What follows the LNA</label>
+      <select id="frS"><option value="mix" selected>Mixer (10 dB NF, −7 dB) + IF amp</option><option value="lna2">Second LNA (2 dB, +15 dB) + mixer</option><option value="adc">Direct-sampling ADC (NF 25 dB)</option></select>
+      <div class="readout" id="frOut"></div>
+    </div>
+    <p class="cap">Each bar is one stage's noise referred to the antenna port, in kelvin. The total sets the system NF. Raise the loss: two bars grow at once (the loss itself and the LNA behind it). Lower the LNA gain with a direct-sampling ADC behind it: the ADC bar dominates and the LNA NF hardly matters.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Loss before LNA</td><td>Limiter diode size, filter order and Q, cable length, LNA placed at the antenna</td><td>IL = 1.0 dB (limiter + cable)</td><td>+1.0 dB system NF (1.46 → 2.46 dB) ≈ −6 % radar range</td></tr>
+    <tr><td>LNA gain</td><td>Number of stages, device size, feedback</td><td>G = 20 dB</td><td>Mixer's 2 610 K is reduced to 33 K. At 10 dB gain it would be 261 K and NF 4.25 dB.</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Limiter and filter designers:</b> your insertion loss is a noise figure. 0.3 dB saved in front of the LNA is as good as a 0.3 dB better LNA, and usually cheaper.</li>
+    <li><b>LNA designers:</b> gain is not just "nice to have". It must be high enough that NF<sub>2</sub>/G<sub>1</sub> is small, but not so high that the mixer overloads (Step 6).</li>
+    <li><b>Mixer and ADC designers:</b> your NF matters through the LNA gain. A 25 dB NF ADC behind 30 dB of LNA gain adds only about 92 K.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 0.5 dB cable is moved from before the LNA to after it (LNA 1 dB NF, 25 dB gain). What happens?</summary><p>Before: NF ≈ 1.5 dB. After: the cable adds 35 K / 316 ≈ 0.1 K. System NF falls to about 1.0 dB. Moving the LNA to the antenna gains 0.5 dB.</p></details>
+    <details><summary>Why do phased-array T/R modules put the LNA right behind the circulator and limiter?</summary><p>Every dB of line between the element and the LNA is a dB of system NF, multiplied over thousands of elements. The module puts the LNA as close as possible to the element.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="match">
+  <div class="secno">Step 4</div>
+  <h2>Noise match (Γ<sub>opt</sub>) vs power match, and input/output VSWR</h2>
+  <div class="know"><h4>You already know</h4><p>A conjugate match (Γ<sub>s</sub> = S<sub>11</sub>*) gives maximum gain and zero reflection. You may also know that the best-noise source impedance of a transistor is not the same point. Here is why, and what the trade costs.</p></div>
+  <div class="col">
+    <p>A transistor has two internal noise sources: a noise voltage and a noise current, partly correlated. The source impedance it sees changes how these two add. For one particular source reflection coefficient, <b>Γ<sub>opt</sub></b>, they combine to give the lowest possible noise factor, <b>F<sub>min</sub></b>. Move away from Γ<sub>opt</sub> and F rises, quickly if the noise resistance R<sub>n</sub> is large. Γ<sub>opt</sub> is set by the device physics, S<sub>11</sub>* by its input impedance; they are generally different points on the Smith chart.</p>
+  </div>
+  <div class="eq">F = F<sub>min</sub> + (4·R<sub>n</sub>/Z<sub>0</sub>) · |Γ<sub>s</sub> − Γ<sub>opt</sub>|² / [ (1 − |Γ<sub>s</sub>|²) · |1 + Γ<sub>opt</sub>|² ]<small>F<sub>min</sub>, Γ<sub>opt</sub>, R<sub>n</sub> are the four <b>noise parameters</b> (Γ<sub>opt</sub> counts as two: magnitude and angle), given on good device datasheets. Lines of constant F are circles on the Smith chart: <b>noise circles</b>.</small></div>
+  <div class="eq">Input mismatch |Γ<sub>in,seen</sub>| = |S<sub>11</sub> − Γ<sub>s</sub>*| / |1 − S<sub>11</sub>Γ<sub>s</sub>| &nbsp;&nbsp; VSWR = (1 + |Γ|)/(1 − |Γ|) &nbsp;&nbsp; RL = −20·log|Γ|<small>This is the reflection seen at the 50 Ω input of a lossless matching network that presents Γ<sub>s</sub> to the device (unilateral approximation, S<sub>12</sub> ≈ 0). Zero when Γ<sub>s</sub> = S<sub>11</sub>*.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Γ<sub>s</sub>:</b> the reflection coefficient of the source as seen by the transistor gate, set by your input matching network.</p>
+    <p><b>Noise resistance R<sub>n</sub>:</b> how sensitive F is to leaving Γ<sub>opt</sub>. Small R<sub>n</sub> (large-gate-periphery devices) means a forgiving match.</p>
+    <p><b>VSWR, return loss:</b> two ways of stating |Γ|. VSWR 2:1 = |Γ| 0.33 = RL 9.5 dB.</p>
+    <p><b>Balanced amplifier:</b> two identical LNAs between two 90° hybrid couplers. Reflections from the two LNAs arrive at the input port 180° apart and cancel; they go to the hybrid's terminated port instead. You can noise-match each LNA and still get a good input VSWR.</p>
+  </div>
+  <h3>Worked example: an illustrative X-band pHEMT</h3>
+  <div class="col"><p>F<sub>min</sub> = 0.5 dB, Γ<sub>opt</sub> = 0.60∠50°, R<sub>n</sub> = 20 Ω, S<sub>11</sub> = 0.75∠−70°, |S<sub>21</sub>| = 13 dB, S<sub>22</sub> = 0.5∠−50°, output conjugate-matched.</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Input match</th><th>NF</th><th>Input VSWR</th><th>Return loss</th><th>Transducer gain</th></tr>
+    <tr><td>Noise match (Γ<sub>s</sub> = Γ<sub>opt</sub>)</td><td class="n">0.50 dB</td><td class="n">2.73</td><td class="n">6.7 dB</td><td class="n">16.8 dB</td></tr>
+    <tr><td>Halfway</td><td class="n">0.60 dB</td><td class="n">1.74</td><td class="n">11.4 dB</td><td class="n">17.5 dB</td></tr>
+    <tr><td>Power match (Γ<sub>s</sub> = S<sub>11</sub>*)</td><td class="n">0.98 dB</td><td class="n">1.00</td><td class="n">∞</td><td class="n">17.8 dB</td></tr>
+    <tr><td>Balanced pair, each noise-matched</td><td class="n">≈ 0.75 dB</td><td class="n">≈ 1.2</td><td class="n">≈ 20 dB</td><td class="n">≈ 16.3 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Noise match saves 0.48 dB of NF but leaves a 2.7:1 input VSWR. The halfway point gives most of the NF benefit with an acceptable VSWR. The balanced pair spends about 0.25 dB of hybrid loss to get both.</p></div>
+  <div class="bench">
+    <canvas id="cNm" width="640" height="340" aria-label="Smith chart with noise circles, and NF and VSWR against the input match position"></canvas>
+    <div class="ctrl">
+      <label for="nmT"><span>Match position: noise → power</span> <b id="nmTv"></b></label><input id="nmT" type="range" min="0" max="1" step="0.01" value="0">
+      <label for="nmF"><span>F<sub>min</sub> of device</span> <b id="nmFv"></b></label><input id="nmF" type="range" min="0.2" max="2" step="0.05" value="0.5">
+      <label for="nmR"><span>Noise resistance R<sub>n</sub></span> <b id="nmRv"></b></label><input id="nmR" type="range" min="2" max="50" step="1" value="20">
+      <label for="nmB">Topology</label>
+      <select id="nmB"><option value="se" selected>Single-ended</option><option value="bal">Balanced (two LNAs, 90° hybrids)</option></select>
+      <div class="readout" id="nmOut"></div>
+    </div>
+    <p class="cap">Left: source-plane Smith chart. Circles are constant NF (F<sub>min</sub> + 0.25, 0.5, 1, 2 dB). Γ<sub>opt</sub> is the best-noise point, S<sub>11</sub>* the power-match point; the dot is where your matching network puts Γ<sub>s</sub>. Right: NF and input VSWR as you slide between the two. Raise R<sub>n</sub>: the circles shrink and power match costs much more NF.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Γ<sub>s</sub> choice</td><td>Input network: series line length, shunt stub, source inductance (which pulls S<sub>11</sub>* toward Γ<sub>opt</sub>)</td><td>NF 0.50 dB with VSWR 2.7:1, or 0.98 dB with 1:1</td><td>0.48 dB of system NF ≈ 3 % radar range, ≈ 0.5 dB ESM sensitivity</td></tr>
+    <tr><td>Input VSWR</td><td>Same network, or balanced topology</td><td>VSWR ≤ 2:1 typical spec</td><td>Reflected wave interacts with antenna/filter mismatch: gain ripple across band (Step 6) and a changed source impedance for the filter in front, which can shift its response</td></tr>
+    <tr><td>Output VSWR</td><td>Output match, resistive loading</td><td>VSWR ≤ 2:1</td><td>Ripple with the next filter or mixer; affects stability with real loads (Step 5)</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Antenna mismatch moves Γ<sub>s</sub>.</b> The LNA was noise-matched to 50 Ω. A 2:1 antenna presents a different source, so the system NF is not the datasheet NF (the antenna module, Step 2, makes the same point).</li>
+    <li><b>Inductive source degeneration</b> moves the real part of S<sub>11</sub>* toward Re(Γ<sub>opt</sub>) with little NF cost. It is the standard trick to make noise and power match nearly coincide.</li>
+    <li><b>Isolators or balanced stages</b> fix VSWR, but the isolator's loss sits in front of the LNA and counts in full.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does a large R<sub>n</sub> make a design harder?</summary><p>F rises in proportion to R<sub>n</sub> for a given distance from Γ<sub>opt</sub>. Process variation and antenna mismatch then cost more NF; the noise circles are small.</p></details>
+    <details><summary>A balanced LNA loses one half. What happens?</summary><p>Gain drops by 6 dB (half the voltage reaches the output) but the receiver keeps working: a key reason radar front ends use balanced stages.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="stab">
+  <div class="secno">Step 5</div>
+  <h2>Stability: K and μ</h2>
+  <div class="know"><h4>You already know</h4><p>An amplifier with gain and some internal feedback (S<sub>12</sub> ≠ 0) can oscillate if the source or load presents the wrong impedance. LNAs have high gain at low frequencies, where the matching networks no longer match anything.</p></div>
+  <div class="col">
+    <p>With a source Γ<sub>s</sub> connected, the reflection looking back into the output is Γ<sub>out</sub> = S<sub>22</sub> + S<sub>12</sub>S<sub>21</sub>Γ<sub>s</sub>/(1 − S<sub>11</sub>Γ<sub>s</sub>). If |Γ<sub>out</sub>| &gt; 1 the output port reflects more than it receives: it has negative resistance, and with a suitable load it oscillates. The same is true at the input with Γ<sub>in</sub> and a load Γ<sub>L</sub>. An amplifier is <b>unconditionally stable</b> when no passive source or load (any |Γ| ≤ 1) can do this.</p>
+  </div>
+  <div class="eq">Δ = S<sub>11</sub>S<sub>22</sub> − S<sub>12</sub>S<sub>21</sub> &nbsp;&nbsp; K = (1 − |S<sub>11</sub>|² − |S<sub>22</sub>|² + |Δ|²) / (2·|S<sub>12</sub>S<sub>21</sub>|)<br>Unconditionally stable ⇔ K &gt; 1 and |Δ| &lt; 1 &nbsp;&nbsp; or, in one test: μ = (1 − |S<sub>11</sub>|²) / (|S<sub>22</sub> − Δ·S<sub>11</sub>*| + |S<sub>12</sub>S<sub>21</sub>|) &gt; 1<small>K is the Rollett factor; μ (Edwards–Sinsky) is the distance from the Smith chart centre to the nearest unstable source point. Check them at every frequency where the device has gain, typically from 100 MHz to well above the band.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Stability circle:</b> the boundary on the Smith chart between Γ values that are safe and those that make the other port negative-resistance.</p>
+    <p><b>Potentially unstable:</b> K &lt; 1. Some passive terminations oscillate; others are safe. You can still design with it if you control the terminations at every frequency, which is risky.</p>
+    <p><b>Resistive stabilisation:</b> a series resistor at the gate, or a shunt resistor (with a series capacitor so it acts only at low frequency) at the drain. It lowers gain and reflection where the device is unstable.</p>
+  </div>
+  <h3>Worked example: the same device at 2 GHz, far below its band</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Case</th><th>|S<sub>11</sub>|, |S<sub>22</sub>|, |S<sub>21</sub>|</th><th>K</th><th>|Δ|</th><th>μ</th></tr>
+    <tr><td>Bare device (|S<sub>12</sub>| = −24.4 dB)</td><td>0.90, 0.75, 18 dB</td><td class="n">0.38</td><td class="n">0.86</td><td class="n">0.21</td></tr>
+    <tr><td>Series gate resistor</td><td>0.63, 0.75, 16 dB</td><td class="n">0.58</td><td class="n">0.63</td><td class="n">0.69</td></tr>
+    <tr><td>Shunt RC at drain</td><td>0.90, 0.34, 15 dB</td><td class="n">0.44</td><td class="n">0.47</td><td class="n">0.30</td></tr>
+    <tr class="sum"><td>Both</td><td>0.63, 0.34, 13 dB</td><td class="n">1.15</td><td class="n">0.36</td><td class="n">1.15</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSt" width="640" height="350" aria-label="Source and load plane Smith charts with unstable regions shaded"></canvas>
+    <div class="ctrl">
+      <label for="stA"><span>|S<sub>21</sub>| (gain)</span> <b id="stAv"></b></label><input id="stA" type="range" min="5" max="30" step="0.5" value="18">
+      <label for="stR"><span>|S<sub>12</sub>| (reverse)</span> <b id="stRv"></b></label><input id="stR" type="range" min="-45" max="-10" step="0.5" value="-24.4">
+      <label for="stI"><span>|S<sub>11</sub>|</span> <b id="stIv"></b></label><input id="stI" type="range" min="0.3" max="0.98" step="0.01" value="0.9">
+      <label for="stO"><span>|S<sub>22</sub>|</span> <b id="stOv"></b></label><input id="stO" type="range" min="0.3" max="0.98" step="0.01" value="0.75">
+      <label for="stS">Stabilisation</label>
+      <select id="stS"><option value="none" selected>None</option><option value="in">Series gate resistor</option><option value="out">Shunt RC at drain</option><option value="both">Both</option></select>
+      <div class="readout" id="stOut"></div>
+    </div>
+    <p class="cap">Red regions are terminations that would make the other port oscillate. Left: source Γ<sub>s</sub> values that make |Γ<sub>out</sub>| &gt; 1. Right: load Γ<sub>L</sub> values that make |Γ<sub>in</sub>| &gt; 1. When K &gt; 1 and |Δ| &lt; 1 both charts are clear. Phases are fixed (S<sub>11</sub>∠−40°, S<sub>21</sub>∠140°, S<sub>12</sub>∠60°, S<sub>22</sub>∠−25°); the stabilisation effects are illustrative.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>K, μ</td><td>Gate and drain resistors, source inductance, bias-line decoupling, enclosure (lid resonances)</td><td>"Unconditionally stable, 0.1–26 GHz" (K &gt; 1, μ &gt; 1)</td><td>An oscillating LNA blinds the receiver at its own frequency and radiates through the antenna: an ESM receiver becomes a beacon</td></tr>
+    <tr><td>Stabilisation loss</td><td>Series gate R in-band vs frequency-selective RC</td><td>+0.1 to +0.4 dB NF</td><td>Directly adds to system NF; prefer networks that act only out of band</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filters and limiters in front of the LNA</b> are reactive out of band: they present |Γ| ≈ 1 at some phase. That is exactly the termination that makes a potentially unstable LNA oscillate.</li>
+    <li><b>Cascaded stages:</b> each stage's output is the next stage's source. Check stability of the whole chain, and with the package and lid in place.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>K = 1.3 but |Δ| = 1.2. Is the amplifier stable?</summary><p>No. Both conditions are needed. μ &gt; 1 checks it in one number.</p></details>
+    <details><summary>Why is low-frequency stability a problem for an X-band LNA?</summary><p>Device gain rises at low frequency (about 6 dB/octave) and the X-band matching networks are near-reactive there, so |Γ| ≈ 1 terminations are likely.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="linear">
+  <div class="secno">Step 6</div>
+  <h2>Gain and flatness, P1dB, IIP3/OIP3 and blocking</h2>
+  <div class="know"><h4>You already know</h4><p>An amplifier is linear only for small signals. Its output compresses for large signals, and two tones mix to make intermodulation products. You measure P1dB with a power sweep and OIP3 with a two-tone test.</p></div>
+  <div class="col">
+    <p>Noise sets the <b>weakest</b> signal the receiver can see. Linearity sets the <b>strongest</b> signal it can handle while still seeing the weak one. The range between them is the dynamic range. The LNA sits where every signal in the preselector band arrives at once, including your own transmitter's leakage, nearby radars and jammers, so its linearity matters as much as its noise.</p>
+  </div>
+  <div class="eq">IIP3 = OIP3 − G &nbsp;&nbsp; P<sub>IM3,out</sub> = 3·P<sub>out</sub> − 2·OIP3 &nbsp;&nbsp; OP1dB ≈ OIP3 − 10 dB (rule of thumb)<br>SFDR = (2/3)·(IIP3 − N<sub>in</sub>), N<sub>in</sub> = −174 + NF + 10·log B &nbsp;&nbsp; 1/IIP3<sub>total</sub> = 1/IIP3<sub>1</sub> + G<sub>1</sub>/IIP3<sub>2</sub> + …<small>All in dBm except the cascade, which uses linear milliwatts and gains. IM3 rises 3 dB for every 1 dB of input: the reason IP3 is an intercept (where the two lines would cross), not a power you can actually reach.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>P1dB:</b> the power at which the gain has dropped 1 dB below its small-signal value. Quoted at the output (OP1dB) or input (IP1dB = OP1dB − G + 1).</p>
+    <p><b>Third-order intercept (IP3):</b> the extrapolated point where the third-order intermodulation products (at 2f₁ − f₂ and 2f₂ − f₁) would equal the fundamentals.</p>
+    <p><b>SFDR (spurious-free dynamic range):</b> the range of two-tone input power over which IM3 stays below the noise floor.</p>
+    <p><b>Blocker:</b> a strong unwanted signal inside the preselector band but outside the channel you want. <b>Desensitisation:</b> loss of sensitivity to weak signals caused by a blocker.</p>
+    <p><b>Gain flatness:</b> peak-to-peak gain variation across the band (dB p-p), and ripple (fast variation from mismatch standing waves).</p>
+  </div>
+  <h3>Worked example: LNA G = 20 dB, OIP3 = +30 dBm, NF = 1 dB, B = 10 MHz</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>IIP3</td><td>30 − 20</td><td class="n">+10 dBm</td></tr>
+    <tr><td>OP1dB, IP1dB</td><td>30 − 10; 20 − 20 + 1</td><td class="n">+20 dBm, +1 dBm</td></tr>
+    <tr><td>IM3 for two −30 dBm tones</td><td>out: 3 × (−10) − 2 × 30</td><td class="n">−90 dBm out (−110 dBm in)</td></tr>
+    <tr><td>Input noise floor</td><td>−174 + 1 + 70</td><td class="n">−103 dBm</td></tr>
+    <tr><td>SFDR</td><td>(2/3) × (10 + 103)</td><td class="n">75.3 dB</td></tr>
+    <tr><td>Cascade IIP3 with a +15 dBm mixer</td><td>1/(1/10 mW + 100/31.6 mW)</td><td class="n">−5.1 dBm</td></tr>
+    <tr><td>Same with only 10 dB LNA gain</td><td>1/(1/10 mW + 10/31.6 mW)</td><td class="n">+3.8 dBm</td></tr>
+  </table></div>
+  <div class="col"><p>The last two lines are the central trade-off of receiver design. 10 dB more LNA gain improved the system NF from 4.25 to 1.46 dB in Step 3, but makes the system IIP3 8.9 dB worse, because the mixer now sees signals 10 dB bigger. The gain you choose for the LNA trades sensitivity against overload.</p></div>
+  <div class="bench">
+    <canvas id="cLi" width="640" height="340" aria-label="Output power against input power: fundamental, third-order intermodulation and noise floor"></canvas>
+    <div class="ctrl">
+      <label for="liG"><span>Gain</span> <b id="liGv"></b></label><input id="liG" type="range" min="5" max="35" step="0.5" value="20">
+      <label for="liO"><span>OIP3</span> <b id="liOv"></b></label><input id="liO" type="range" min="0" max="45" step="0.5" value="30">
+      <label for="liP"><span>Each tone at input</span> <b id="liPv"></b></label><input id="liP" type="range" min="-80" max="10" step="0.5" value="-30">
+      <label for="liN"><span>NF</span> <b id="liNv"></b></label><input id="liN" type="range" min="0.5" max="10" step="0.1" value="1">
+      <label for="liB">Bandwidth</label>
+      <select id="liB"><option value="6">1 MHz</option><option value="7" selected>10 MHz</option><option value="8">100 MHz</option><option value="9">1 GHz</option></select>
+      <div class="readout" id="liOut"></div>
+    </div>
+    <p class="cap">Output power against input power, all in dBm. Solid: the fundamental, compressing near OP1dB. Dashed: its linear extension and the IM3 line (slope 3), crossing at OIP3. Horizontal: output noise floor in the chosen bandwidth. The SFDR is the input range between the noise floor and the point where IM3 reaches it.</p>
+  </div>
+  <h3>Blocking: what a strong signal does to a weak one</h3>
+  <div class="col"><p>A strong blocker drives the LNA toward compression. The small-signal gain for everything else drops, so the noise of the mixer and IF stages behind it, which the LNA gain was hiding, comes back. With a third-order model the gain for a weak signal falls by a factor of about 1/(1 + 2·P<sub>B</sub>/P<sub>IIP3</sub>) in amplitude. A preselector filter that rejects the blocker before the LNA is the main defence; it costs insertion loss, which is noise (Step 3).</p></div>
+  <div class="bench">
+    <canvas id="cBl" width="640" height="300" aria-label="Sensitivity loss against blocker power"></canvas>
+    <div class="ctrl">
+      <label for="blP"><span>Blocker at antenna</span> <b id="blPv"></b></label><input id="blP" type="range" min="-60" max="20" step="0.5" value="-10">
+      <label for="blF"><span>Preselector rejection of blocker</span> <b id="blFv"></b></label><input id="blF" type="range" min="0" max="60" step="1" value="0">
+      <label for="blI"><span>LNA IP1dB</span> <b id="blIv"></b></label><input id="blI" type="range" min="-25" max="10" step="0.5" value="-10">
+      <div class="readout" id="blOut"></div>
+    </div>
+    <p class="cap">Sensitivity loss for a weak wanted signal against blocker power at the antenna (LNA 20 dB gain, 1 dB NF; mixer and IF behind it 3 000 K; IIP3 = IP1dB + 9.6 dB). Raising the rejection shifts the curve to the right, dB for dB. Real LNAs also add noise when compressed and the blocker's phase noise mixes into the channel (synthesiser module), so real desensitisation is usually worse.</p>
+  </div>
+  <h3>Gain flatness and ripple</h3>
+  <div class="col"><p>A gain that varies across the band does not lose sensitivity, but it corrupts measurements. Two worked numbers:</p></div>
+  <div class="tw"><table class="t">
+    <tr><th>Use</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Radar pulse compression: 0.5 dB p-p sinusoidal ripple across the chirp</td><td>a = (10^(0.5/20) − 1)/(10^(0.5/20) + 1) = 0.029; paired echo = 20·log(a/2)</td><td class="n">−36.8 dB range sidelobes</td></tr>
+    <tr><td>ESM amplitude-comparison direction finding, four antennas, 0.27 dB/° slope at crossover</td><td>1 dB channel-to-channel gain mismatch / 0.27 dB per degree</td><td class="n">≈ 3.7° bearing error</td></tr>
+    <tr><td>Ripple from mismatch: LNA input RL 10 dB, filter RL 14 dB, 10 cm of line</td><td>|Γ₁||Γ₂| = 0.316 × 0.200 = 0.063; ripple = 20·log(1 ± 0.063) ≈ ±0.55 dB, period v<sub>line</sub>/(2 × 0.1 m)</td><td class="n">1.1 dB p-p every ≈ 1 GHz</td></tr>
+  </table></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Gain</td><td>Stages, device size, feedback</td><td>20 dB</td><td>Hides mixer noise (system NF 1.46 dB) but lowers system IIP3 (−5.1 dBm)</td></tr>
+    <tr><td>Gain flatness</td><td>Match bandwidth, feedback, equaliser</td><td>±0.5 dB over band</td><td>Pulse-compression sidelobes near −37 dB; ESM amplitude DF error ≈ 2–4°; must be calibrated out</td></tr>
+    <tr><td>P1dB</td><td>Drain current and voltage, device periphery</td><td>OP1dB +20 dBm</td><td>Largest echo or emitter handled without distortion; sets where desense starts</td></tr>
+    <tr><td>IIP3 / OIP3</td><td>Bias point (class A current), device linearity, feedback</td><td>OIP3 +30 dBm</td><td>SFDR 75 dB in 10 MHz; false targets / false emitters from IM3 of two strong signals</td></tr>
+    <tr><td>Blocking</td><td>P1dB plus preselector rejection</td><td>"1 dB desense at −10 dBm blocker"</td><td>A nearby radar or jammer makes the receiver deaf to weak targets</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Bias current buys linearity.</b> OIP3 rises with drain current; NF is usually best at lower current. LNA datasheets often show both curves against I<sub>D</sub>.</li>
+    <li><b>Preselector designers:</b> your out-of-band rejection is the LNA's blocking specification. Each dB of rejection moves the blocking curve one dB to the right.</li>
+    <li><b>ESM receivers</b> are wide open (often 2–18 GHz in one go). Every emitter in the band is a blocker, so ESM LNAs are chosen for IP3 as much as for NF.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two −40 dBm tones enter an LNA with IIP3 = 0 dBm. Where are the IM3 products, referred to the input?</summary><p>3 × (−40) − 2 × 0 = −120 dBm: 80 dB below the tones.</p></details>
+    <details><summary>Why not simply put 40 dB of gain in the LNA?</summary><p>System NF hardly improves beyond about 25 dB (the mixer is already hidden), but system IIP3 gets 15 dB worse and the mixer overloads on strong signals.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="recovery">
+  <div class="secno">Step 7</div>
+  <h2>Recovery from overload</h2>
+  <div class="know"><h4>You already know</h4><p>A transistor driven far into compression takes time to come back: charge is trapped, bias networks shift, and decoupling capacitors recharge. A radar receiver sees its own transmitter leak through the circulator every pulse.</p></div>
+  <div class="col">
+    <p>When a radar transmits, some kilowatts pass the circulator, and a fraction (circulator isolation is only 20–25 dB) leaks toward the receiver. A <b>limiter</b>, usually PIN diodes shunting the line, turns on when the power is high and reflects most of it. What still passes is the <b>flat leakage</b>. After the pulse, the diodes take time to turn off (stored charge), and the LNA takes time to recover its gain. Until both have recovered, the receiver is partly deaf. Targets at ranges whose echoes return in that interval are missed: a <b>blind range</b>.</p>
+  </div>
+  <div class="eq">Blind range ≈ c · t<sub>recovery</sub> / 2 &nbsp;&nbsp; (c = 3 × 10⁸ m/s; 1 µs ≈ 150 m)<small>t<sub>recovery</sub>: time from the end of the overload until the gain is back within 1 dB (or 3 dB, read the datasheet definition) of normal.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Limiter threshold:</b> the input power at which the limiter starts to limit (insertion loss rises by 1 dB).</p>
+    <p><b>Flat leakage:</b> the output power of the limiter when it is fully limiting. It must be below the LNA's damage level.</p>
+    <p><b>Recovery time:</b> how long after the overload the insertion loss (limiter) or gain (LNA) returns to within 1 dB of its normal value.</p>
+    <p><b>Spike leakage:</b> the brief energy that passes during the first nanoseconds before the diodes turn on. A Schottky pre-limiter reduces it.</p>
+  </div>
+  <h3>Worked example</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Blind range for 200 ns recovery</td><td>3e8 × 200e-9 / 2</td><td class="n">30 m</td></tr>
+    <tr><td>Blind range for 1 µs recovery</td><td>3e8 × 1e-6 / 2</td><td class="n">150 m</td></tr>
+    <tr><td>Limiter insertion loss 0.5 dB</td><td>adds 0.5 dB to system NF; range ∝ 10^(−0.5/40)</td><td class="n">−2.8 % radar range</td></tr>
+    <tr><td>ESM: a strong pulse at a 100 kHz repetition rate, 2 µs recovery</td><td>deaf 2 µs out of every 10 µs</td><td class="n">20 % of the time blind to weak emitters</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cRc" width="640" height="300" aria-label="Gain deficit against time after an overload pulse"></canvas>
+    <div class="ctrl">
+      <label for="rcP"><span>Overload at antenna port</span> <b id="rcPv"></b></label><input id="rcP" type="range" min="-10" max="60" step="0.5" value="40">
+      <label for="rcL">Protection</label>
+      <select id="rcL"><option value="none">None</option><option value="pin" selected>Single-stage PIN limiter</option><option value="two">PIN + Schottky pre-limiter</option></select>
+      <label for="rcT"><span>LNA recovery time constant</span> <b id="rcTv"></b></label><input id="rcT" type="range" min="1" max="3.5" step="0.05" value="2">
+      <div class="readout" id="rcOut"></div>
+    </div>
+    <p class="cap">Gain lost after the overload ends, in dB, against time. Teal: the LNA's own recovery; violet: the limiter's insertion loss returning to normal; orange: the total. The dashed line is the 1 dB recovery point. Illustrative models: LNA IP1dB −5 dBm, damage +20 dBm; PIN limiter threshold +15 dBm, 0.4 dB loss, 150 ns; two-stage limiter threshold +5 dBm, 0.7 dB loss, 250 ns.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Limiter flat leakage</td><td>Diode I-region thickness, number of stages, Schottky detector</td><td>+15 dBm flat leakage, 100 W peak</td><td>Must be below LNA damage level, or the LNA dies on the first jammer or own-transmitter fault</td></tr>
+    <tr><td>Limiter loss</td><td>Diode capacitance, junction area</td><td>0.4 dB IL</td><td>+0.4 dB system NF, −2.3 % radar range</td></tr>
+    <tr><td>Recovery time</td><td>Diode carrier lifetime (limiter); bias network time constants, gate charge (LNA)</td><td>Recovery &lt; 200 ns to 1 dB</td><td>Blind range 30 m; ESM missed pulses after strong ones</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Bias decoupling:</b> a large capacitor on the gate line gives clean bias but a long recovery if overload shifts the gate voltage. Datasheets rarely show this; ask for or measure pulsed recovery.</li>
+    <li><b>GaN LNAs</b> survive several watts at the input and can often drop the limiter, saving its loss: a direct NF gain at system level.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar has 500 ns total recovery. What is the minimum range?</summary><p>3e8 × 500e-9 / 2 = 75 m, plus the pulse length itself (a 1 µs pulse adds another 150 m).</p></details>
+    <details><summary>Why can a two-stage limiter make NF worse but the system better?</summary><p>It costs more insertion loss (NF) but lowers flat leakage so the LNA overloads less deeply and recovers faster.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="drift">
+  <div class="secno">Step 8</div>
+  <h2>Bias and temperature drift</h2>
+  <div class="know"><h4>You already know</h4><p>Transistor gain falls as temperature rises (lower carrier mobility, lower transconductance). Threshold voltage shifts with temperature and from wafer to wafer, so a fixed gate voltage gives a different drain current on every part.</p></div>
+  <div class="col">
+    <p>A receiver specified from −40 °C to +85 °C sees its LNA gain and NF change across that range. Gain change matters because the receiver's calibration (amplitude measurement, AGC thresholds, monopulse and DF channel matching) assumes a gain. NF change matters because sensitivity follows it directly. A device's noise temperature is roughly proportional to its physical temperature: hot parts are noisier, which is also why cryogenic LNAs exist.</p>
+  </div>
+  <div class="eq">ΔG ≈ (dG/dT) · ΔT · N<sub>stages</sub> &nbsp;&nbsp; T<sub>e</sub>(T) ≈ T<sub>e</sub>(25 °C) · (T + 273)/(298) &nbsp;&nbsp; Δ sensitivity = ΔNF<small>Typical GaAs pHEMT: −0.006 to −0.012 dB/°C per stage with a fixed gate voltage; about half that with constant-current (active) bias. Values on this page are illustrative.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Self-bias / fixed bias:</b> gate voltage set by a resistor divider or source resistor. Simple, but drain current, and so gain, drift with temperature and from part to part.</p>
+    <p><b>Active bias:</b> a control loop that measures drain current and adjusts the gate voltage to hold it constant.</p>
+    <p><b>Temperature-compensating attenuator:</b> a thick-film attenuator whose loss falls with temperature, cancelling the gain drop of the amplifier.</p>
+    <p><b>Bias sequencing:</b> depletion-mode GaAs and GaN devices need the gate negative before drain voltage is applied, or they draw destructive current.</p>
+  </div>
+  <h3>Worked example: two-stage LNA, NF 1.0 dB at 25 °C, fixed bias −0.012 dB/°C per stage</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Gain change at +85 °C</td><td>−0.012 × 60 × 2</td><td class="n">−1.44 dB</td></tr>
+    <tr><td>T<sub>e</sub> at +85 °C</td><td>75.1 × 358/298</td><td class="n">90.2 K → NF 1.18 dB</td></tr>
+    <tr><td>Sensitivity change</td><td>ΔNF</td><td class="n">0.18 dB worse</td></tr>
+    <tr><td>T<sub>e</sub> at −40 °C</td><td>75.1 × 233/298</td><td class="n">58.7 K → NF 0.80 dB</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cDr" width="640" height="340" aria-label="Gain change and noise figure against temperature for three bias schemes"></canvas>
+    <div class="ctrl">
+      <label for="drT"><span>Temperature</span> <b id="drTv"></b></label><input id="drT" type="range" min="-55" max="125" step="1" value="85">
+      <label for="drB">Bias scheme</label>
+      <select id="drB"><option value="fix" selected>Fixed gate voltage</option><option value="act">Active (constant current) bias</option><option value="cmp">Active bias + temperature-compensating attenuator</option></select>
+      <label for="drS"><span>Number of gain stages</span> <b id="drSv"></b></label><input id="drS" type="range" min="1" max="3" step="1" value="2">
+      <label for="drN"><span>NF at 25 °C</span> <b id="drNv"></b></label><input id="drN" type="range" min="0.5" max="4" step="0.05" value="1">
+      <div class="readout" id="drOut"></div>
+    </div>
+    <p class="cap">Top: gain change from its 25 °C value for the three bias schemes (selected one bold). Bottom: NF against temperature. The compensating attenuator flattens gain but sits after the first stage, so it does not fix NF; nothing but a cooler device does.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Gain vs temperature</td><td>Fixed vs active bias, compensating attenuator</td><td>−0.024 dB/°C (2 stages, fixed)</td><td>1.4 dB gain error hot: AGC thresholds and ESM amplitude/DF calibration off unless re-calibrated over temperature</td></tr>
+    <tr><td>NF vs temperature</td><td>Device choice, heat sinking, current density</td><td>NF 1.0 dB at 25 °C, 1.18 dB at 85 °C</td><td>Sensitivity 0.18 dB worse hot; radar range −1 %</td></tr>
+    <tr><td>Bias stability</td><td>Bias network, sequencing circuit</td><td>I<sub>D</sub> ± 5 % over temperature</td><td>Gain, NF and IP3 all follow I<sub>D</sub>; part-to-part repeatability across array channels</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Phased arrays</b> need all channels to track each other in gain and phase over temperature. Active bias reduces the spread more than it reduces the average drift.</li>
+    <li><b>Heat sinking:</b> the junction is hotter than the case. A 20 °C rise from case to channel is 20 °C of NF drift your datasheet table may not show.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 3-stage LNA with fixed bias drifts −0.01 dB/°C per stage. Gain change from −40 to +85 °C?</summary><p>−0.01 × 125 × 3 = −3.75 dB across the range.</p></details>
+    <details><summary>Does a temperature-compensating attenuator after stage 1 change the NF drift?</summary><p>Barely. NF is set by stage 1, before the attenuator.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="sens">
+  <div class="secno">Step 9</div>
+  <h2>Sensitivity: −174 dBm/Hz + NF + 10·log B + SNR<sub>min</sub></h2>
+  <div class="know"><h4>You already know</h4><p>Every piece is in place: kT<sub>0</sub> = −174 dBm/Hz (Step 1), NF from the cascade (Steps 2–3), bandwidth B from your filters, and a minimum SNR that detection or measurement needs.</p></div>
+  <div class="col">
+    <p>The receiver's noise referred to its input is kT<sub>0</sub>·B·F. A signal can be detected when it is SNR<sub>min</sub> above that. In dB, the multiplications become additions, which is why receiver engineers can do sensitivity in their heads.</p>
+  </div>
+  <div class="eq">S<sub>min</sub> (dBm) = −174 + NF<sub>sys</sub> + 10·log₁₀(B) + SNR<sub>min</sub><small>Assumes the source (antenna) is at 290 K. For another antenna temperature use −174 + 10·log(T<sub>sys</sub>/290) + 10·log B + SNR<sub>min</sub>, with T<sub>sys</sub> = T<sub>A</sub> + T<sub>e,sys</sub>. With SNR<sub>min</sub> = 0 dB the result is called the minimum detectable signal (MDS) or noise floor.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>SNR<sub>min</sub>:</b> the signal-to-noise ratio needed at the detector for the job. A radar needs about 13 dB for 90 % detection probability with a false alarm once in a million looks (R3 covers where this comes from). An ESM receiver measuring pulse parameters typically needs 12–18 dB.</p>
+    <p><b>Sensitivity:</b> the weakest input signal that achieves SNR<sub>min</sub>. More negative dBm is better.</p>
+  </div>
+  <h3>Worked examples</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Receiver</th><th>NF / B / SNR<sub>min</sub></th><th>Calculation</th><th>Sensitivity</th></tr>
+    <tr><td>Radar, 1 µs pulse</td><td>2.5 dB / 1 MHz / 13 dB</td><td>−174 + 2.5 + 60 + 13</td><td class="n">−98.5 dBm</td></tr>
+    <tr><td>ESM channelised, narrow channel</td><td>4 dB / 10 MHz / 15 dB</td><td>−174 + 4 + 70 + 15</td><td class="n">−85 dBm</td></tr>
+    <tr><td>ESM wide channel</td><td>4 dB / 500 MHz / 15 dB</td><td>−174 + 4 + 87 + 15</td><td class="n">−68 dBm</td></tr>
+    <tr><td>Communications, 25 kHz</td><td>6 dB / 25 kHz / 10 dB</td><td>−174 + 6 + 44 + 10</td><td class="n">−114 dBm</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSe" width="640" height="320" aria-label="Sensitivity budget as a waterfall from minus 174 dBm per hertz"></canvas>
+    <div class="ctrl">
+      <label for="seN"><span>System NF</span> <b id="seNv"></b></label><input id="seN" type="range" min="0.5" max="15" step="0.1" value="2.5">
+      <label for="seB"><span>Bandwidth B</span> <b id="seBv"></b></label><input id="seB" type="range" min="3" max="9.5" step="0.05" value="6">
+      <label for="seS">Required SNR</label>
+      <select id="seS"><option value="0">0 dB (MDS, noise floor)</option><option value="10">10 dB (comms, simple modulation)</option><option value="13" selected>13 dB (radar, Pd 0.9, Pfa 10⁻⁶)</option><option value="15">15 dB (ESM pulse measurement)</option><option value="20">20 dB (fine parameter measurement)</option></select>
+      <div class="readout" id="seOut"></div>
+    </div>
+    <p class="cap">The sensitivity budget as a waterfall: start at −174 dBm/Hz, add NF, add 10·log B, add the required SNR. The NF bar is the only one the LNA designer controls; the bandwidth bar is usually much larger, which is why narrow filtering and long integration matter so much at system level.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA and everything in front of it:</b> the NF bar.</li>
+    <li><b>IF and channel filters, digital filters:</b> the B bar. A filter with a noise bandwidth 1.2 times its 3 dB bandwidth costs 0.8 dB.</li>
+    <li><b>Signal processing:</b> integration over many pulses lowers the SNR<sub>min</sub> needed per pulse; that is outside the LNA but often worth more dB than the LNA itself.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM receiver: 2–18 GHz, NF 10 dB, 2 GHz-wide channel, 15 dB SNR. Sensitivity?</summary><p>−174 + 10 + 93 + 15 = −56 dBm. Wide-open receivers are insensitive; channelising to 20 MHz would gain 20 dB.</p></details>
+    <details><summary>Which gives more sensitivity: halving B, or cutting NF from 3 dB to 1 dB?</summary><p>Halving B gives 3 dB; the NF change gives 2 dB. Halving B wins, if the signal still fits in it.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="system">
+  <div class="secno">Step 10</div>
+  <h2>From noise to radar range, G/T and ESM sensitivity</h2>
+  <div class="know"><h4>You already know</h4><p>The radar equation (R1) gives the received echo power falling as 1/R⁴. An ESM receiver hears the radar one way, so its received power falls only as 1/R². The antenna module (Step 8) defines G/T and T<sub>sys</sub>.</p></div>
+  <div class="col">
+    <p>A radar detects a target at range R when the echo power equals the sensitivity. Echo power ∝ 1/R⁴, sensitivity ∝ T<sub>sys</sub> (or F, with a 290 K antenna). So the maximum range is proportional to the fourth root of 1/T<sub>sys</sub>. An ESM receiver's signal falls as 1/R², so its detection range is proportional to the square root of 1/T<sub>sys</sub>: ESM gains twice as much range per dB of NF as radar.</p>
+  </div>
+  <div class="eq">Radar: R<sub>max</sub> ∝ (1/(k·T<sub>sys</sub>·B·SNR<sub>min</sub>))<sup>1/4</sup> → with T<sub>A</sub> = 290 K: R ∝ F<sup>−1/4</sup> &nbsp;&nbsp; ESM: R<sub>max</sub> ∝ T<sub>sys</sub><sup>−1/2</sup><br>T<sub>sys</sub> = T<sub>A</sub> + (L − 1)·290 + L·T<sub>e,rx</sub> &nbsp;&nbsp; G/T (dB/K) = G (dBi) − 10·log₁₀(T<sub>sys</sub>)<small>L is the loss ratio in front of the LNA, T<sub>e,rx</sub> the receiver (LNA plus following stages) noise temperature. The same NF improvement is worth more when T<sub>A</sub> is small.</small></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>System noise temperature T<sub>sys</sub>:</b> all the noise, antenna included, referred to the antenna port.</p>
+    <p><b>G/T:</b> the receive figure of merit: received SNR is proportional to G/T for a given incoming power density.</p>
+    <p><b>Equivalent transmit power:</b> the transmitter power increase that would give the same range gain as an NF improvement. In the radar equation, power and 1/T<sub>sys</sub> are interchangeable dB for dB.</p>
+  </div>
+  <h3>Worked example: improve the LNA from NF 3 dB to 1 dB</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Quantity</th><th>Calculation</th><th>Result</th></tr>
+    <tr><td>Radar range factor (T<sub>A</sub> = 290 K)</td><td>(1.995/1.259)<sup>1/4</sup></td><td class="n">× 1.122 (+12.2 %)</td></tr>
+    <tr><td>Same range by more transmitter power</td><td>10^(2/10)</td><td class="n">× 1.58 power (+2 dB)</td></tr>
+    <tr><td>ESM sensitivity</td><td>2 dB lower NF</td><td class="n">2 dB better</td></tr>
+    <tr><td>ESM detection range factor</td><td>10^(2/20)</td><td class="n">× 1.26 (+26 %)</td></tr>
+    <tr><td>G/T, 30 dBi antenna, T<sub>A</sub> = 290 K</td><td>30 − 10·log(290 + 289) → 30 − 10·log(290 + 75)</td><td class="n">2.4 → 4.4 dB/K</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSy" width="640" height="320" aria-label="Radar and ESM range against LNA noise figure relative to a baseline"></canvas>
+    <div class="ctrl">
+      <label for="syN"><span>LNA NF</span> <b id="syNv"></b></label><input id="syN" type="range" min="0.3" max="6" step="0.05" value="1">
+      <label for="syL"><span>Loss before LNA</span> <b id="syLv"></b></label><input id="syL" type="range" min="0" max="4" step="0.05" value="0.5">
+      <label for="syA">Antenna looks at</label>
+      <select id="syA"><option value="290" selected>Ground / horizon (290 K)</option><option value="150">Half sky, half ground (150 K)</option><option value="50">Sky at moderate elevation (50 K)</option><option value="20">Cold sky near zenith (20 K)</option></select>
+      <label for="syR"><span>Baseline LNA NF for comparison</span> <b id="syRv"></b></label><input id="syR" type="range" min="0.3" max="6" step="0.05" value="3">
+      <label for="syG"><span>Antenna gain</span> <b id="syGv"></b></label><input id="syG" type="range" min="0" max="45" step="0.5" value="30">
+      <div class="readout" id="syOut"></div>
+    </div>
+    <p class="cap">Detection range relative to the baseline NF (same loss, same antenna), against LNA NF. Teal: radar (fourth root). Violet: ESM (square root). Stages after the LNA add 20 K referred to the LNA input. ESM sensitivity is for B = 10 MHz and SNR<sub>min</sub> = 15 dB. Pick "cold sky": every tenth of a dB of NF is now worth much more.</p>
+  </div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>LNA NF</td><td>Device, noise match, input loss</td><td>1.0 dB instead of 3.0 dB</td><td>Radar +12 % range (= +2 dB transmit power); ESM +26 % range; G/T +2.0 dB</td></tr>
+    <tr><td>Loss before LNA</td><td>Limiter, filter, cable</td><td>0.5 dB</td><td>Adds 35 K and multiplies the LNA noise by 1.12; ≈ −3 % radar range at T<sub>A</sub> 290 K</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Radar (R1, R3):</b> NF enters the range equation as F<sup>−1/4</sup>. A 1 dB NF improvement ≈ 6 % range ≈ 1.26× transmit power, usually the cheapest dB in the system.</li>
+    <li><b>ESM (Part 4):</b> NF enters as F<sup>−1/2</sup>, twice as strongly, and the ESM receiver must also survive strong emitters (Steps 6–7). Expect a fight between NF, IP3 and limiter loss.</li>
+    <li><b>Satcom and space-looking radar:</b> T<sub>A</sub> is small, so G/T is dominated by the LNA and the loss in front of it.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar's range is 100 km with a 4 dB NF receiver. A 2 dB NF LNA is fitted. New range?</summary><p>100 × (10^(0.4)/10^(0.2))^(1/4) = 100 × 10^(0.05) = 112 km.</p></details>
+    <details><summary>Why does an ESM receiver gain twice as much range per dB as a radar?</summary><p>The ESM signal travels one way (1/R²), the radar echo two ways (1/R⁴). Range is the square root vs the fourth root of the sensitivity.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="summary">
+  <div class="secno">Step 11</div>
+  <h2>Summary: every LNA parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (your design)</th><th>System effect (illustrative numbers)</th></tr>
+    <tr><td>Noise figure / T<sub>e</sub></td><td>Device technology and size, noise match to Γ<sub>opt</sub>, input network loss, bias current, temperature</td><td>Sensitivity dB for dB (with 290 K antenna). 3 → 1 dB: radar +12 % range, ESM +26 % range, G/T +2 dB</td></tr>
+    <tr><td>Loss before LNA</td><td>Limiter, preselector, switch, cable, radome; placing the LNA at the antenna</td><td>Adds dB for dB to system NF. 1 dB costs ≈ 6 % radar range</td></tr>
+    <tr><td>Gain</td><td>Number of stages, device size, feedback</td><td>Hides later-stage noise (Friis): 20 dB reduces a 10 dB NF mixer's 2 610 K to 26 K, but lowers system IIP3 (−5.1 dBm vs +3.8 dBm at 10 dB gain)</td></tr>
+    <tr><td>Γ<sub>s</sub> (noise vs power match)</td><td>Input matching network, source degeneration, balanced topology</td><td>Noise match: lowest NF but VSWR ≈ 2.7:1. Power match: VSWR 1:1 but +0.5 dB NF</td></tr>
+    <tr><td>Input / output VSWR</td><td>Matching networks, balanced stages, isolators</td><td>Gain ripple with neighbours (1.1 dB p-p for RL 10 dB facing RL 14 dB); filter response pulling</td></tr>
+    <tr><td>Stability (K, μ)</td><td>Resistive loading, source inductance, decoupling, enclosure</td><td>If K &lt; 1 anywhere with gain: possible oscillation, a deaf receiver that radiates</td></tr>
+    <tr><td>Gain flatness</td><td>Match bandwidth, feedback, equalisers</td><td>Pulse-compression sidelobes (0.5 dB p-p ripple → −37 dB), ESM amplitude DF errors (≈ 3–4° per dB)</td></tr>
+    <tr><td>P1dB</td><td>Drain current and voltage, device periphery</td><td>Largest signal handled; onset of blocking</td></tr>
+    <tr><td>IIP3 / OIP3</td><td>Bias current, device linearity, feedback</td><td>SFDR ≈ (2/3)(IIP3 − noise floor): 75 dB in 10 MHz for IIP3 +10 dBm, NF 1 dB; false targets from IM3</td></tr>
+    <tr><td>Blocking / desense</td><td>P1dB plus preselector rejection</td><td>Weak signals lost near strong emitters or jammers</td></tr>
+    <tr><td>Overload recovery</td><td>Limiter diode lifetime, bias network time constants</td><td>Blind range c·t/2: 200 ns → 30 m; ESM pulses missed after strong ones</td></tr>
+    <tr><td>Flat leakage / damage level</td><td>Limiter stages, device technology (GaN survives more)</td><td>Survival against own transmitter, nearby emitters and jammers</td></tr>
+    <tr><td>Gain and NF vs temperature</td><td>Bias scheme (fixed, active, compensated), heat sinking</td><td>Calibration drift (1.4 dB over 60 °C, fixed bias, 2 stages); sensitivity 0.2 dB worse hot</td></tr>
+    <tr><td>Bandwidth (with filters)</td><td>LNA match bandwidth, preselector, IF filters</td><td>10·log B in the sensitivity: often the largest single term</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: the <a href="A0-antenna-fundamentals.html">Antenna fundamentals</a> module (antenna temperature, G/T, matching); the radar pages R1 (radar equation) and R3 (detection and the 13 dB SNR); Part 4 (receivers and ESM) for how these numbers combine in a full ESM receiver.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>Active bias</dt><dd>A control loop that holds the transistor's drain current constant by adjusting its gate voltage.</dd>
+    <dt>Antenna temperature T<sub>A</sub></dt><dd>The noise temperature an antenna presents to the receiver, set by what it looks at (sky, ground) and its own loss.</dd>
+    <dt>Available gain</dt><dd>Output available power divided by source available power; the gain used in Friis' formula.</dd>
+    <dt>Available power</dt><dd>The maximum power a source can deliver, into a conjugate-matched load.</dd>
+    <dt>Balanced amplifier</dt><dd>Two identical amplifiers between 90° hybrids; reflections cancel at the input, giving good VSWR with a noise match.</dd>
+    <dt>Blind range</dt><dd>Ranges at which a radar cannot detect because its receiver is still recovering from the transmit pulse: c·t/2.</dd>
+    <dt>Blocker</dt><dd>A strong unwanted signal inside the receiver's front-end band but outside the wanted channel.</dd>
+    <dt>Boltzmann's constant k</dt><dd>1.380649 × 10⁻²³ J/K; links temperature to noise energy per hertz.</dd>
+    <dt>Desensitisation</dt><dd>Loss of sensitivity to weak signals caused by a strong blocker compressing the front end.</dd>
+    <dt>ESM</dt><dd>Electronic support measures: receivers that detect, identify and locate other emitters.</dd>
+    <dt>Flat leakage</dt><dd>The power a limiter passes while fully limiting.</dd>
+    <dt>F<sub>min</sub></dt><dd>The lowest noise factor a device can achieve, reached when the source is Γ<sub>opt</sub>.</dd>
+    <dt>Friis formula</dt><dd>F = F₁ + (F₂ − 1)/G₁ + …: how the noise of each stage in a chain adds, referred to the input.</dd>
+    <dt>G/T</dt><dd>Antenna gain divided by system noise temperature, in dB/K; the receive figure of merit.</dd>
+    <dt>Gain flatness</dt><dd>Peak-to-peak variation of gain across the band.</dd>
+    <dt>Γ<sub>opt</sub></dt><dd>The source reflection coefficient that gives minimum noise figure.</dd>
+    <dt>Γ<sub>s</sub>, Γ<sub>L</sub></dt><dd>Source and load reflection coefficients presented to the transistor by the matching networks.</dd>
+    <dt>IIP3 / OIP3</dt><dd>Input- and output-referred third-order intercept points; OIP3 = IIP3 + G.</dd>
+    <dt>IM3</dt><dd>Third-order intermodulation products at 2f₁ − f₂ and 2f₂ − f₁, rising 3 dB per dB of input.</dd>
+    <dt>K (Rollett factor)</dt><dd>Stability factor; with |Δ| &lt; 1, K &gt; 1 means unconditionally stable.</dd>
+    <dt>kTB</dt><dd>Thermal noise power available from a matched source at temperature T in bandwidth B; −174 dBm/Hz at 290 K.</dd>
+    <dt>Limiter</dt><dd>A diode circuit before the LNA that passes small signals and reflects large ones to protect the LNA.</dd>
+    <dt>MDS</dt><dd>Minimum detectable signal: the noise floor, −174 + NF + 10·log B dBm.</dd>
+    <dt>μ (Edwards–Sinsky)</dt><dd>Single-number stability test; μ &gt; 1 means unconditionally stable.</dd>
+    <dt>Noise circle</dt><dd>A circle on the Smith chart of source impedances giving the same noise figure.</dd>
+    <dt>Noise factor F / noise figure NF</dt><dd>SNR<sub>in</sub>/SNR<sub>out</sub> with a 290 K source, linear (F) or in dB (NF).</dd>
+    <dt>Noise resistance R<sub>n</sub></dt><dd>How quickly the noise factor rises as Γ<sub>s</sub> moves away from Γ<sub>opt</sub>.</dd>
+    <dt>Noise temperature T<sub>e</sub></dt><dd>A component's added noise expressed as the input resistor temperature that would produce it: T<sub>e</sub> = 290(F − 1).</dd>
+    <dt>P1dB</dt><dd>The power at which gain has fallen 1 dB below its small-signal value.</dd>
+    <dt>Paired echo</dt><dd>A false copy of a compressed radar pulse caused by gain or phase ripple across the band.</dd>
+    <dt>Preselector</dt><dd>The band-pass filter before (or just after) the LNA that rejects out-of-band signals.</dd>
+    <dt>Recovery time</dt><dd>Time after an overload until gain (or limiter loss) is back within 1 dB of normal.</dd>
+    <dt>Return loss</dt><dd>−20·log|Γ|; how far below the incident wave the reflected wave is.</dd>
+    <dt>Sensitivity</dt><dd>The weakest signal that achieves the required SNR: −174 + NF + 10·log B + SNR<sub>min</sub> dBm.</dd>
+    <dt>SFDR</dt><dd>Spurious-free dynamic range: input range over which IM3 stays below the noise floor.</dd>
+    <dt>SNR<sub>min</sub></dt><dd>The signal-to-noise ratio needed at the detector for detection or measurement.</dd>
+    <dt>Stability circle</dt><dd>The Smith-chart boundary between terminations that are safe and those that cause oscillation.</dd>
+    <dt>System noise temperature T<sub>sys</sub></dt><dd>Antenna temperature plus all receiver noise, referred to the antenna port.</dd>
+    <dt>T<sub>0</sub></dt><dd>290 K, the reference temperature for noise figure.</dd>
+    <dt>Transducer gain</dt><dd>Power delivered to the load divided by the power available from the source; includes mismatch loss.</dd>
+    <dt>VSWR</dt><dd>Voltage standing-wave ratio, (1 + |Γ|)/(1 − |Γ|).</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Pozar, <i>Microwave Engineering</i>; Gonzalez, <i>Microwave Transistor Amplifiers: Analysis and Design</i>; Razavi, <i>RF Microelectronics</i>; Skolnik, <i>Introduction to Radar Systems</i>; Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+const kB=1.380649e-23, T0=290;
+const dBm=w=>10*Math.log10(w)+30;
+const Te=nf=>T0*(lin(nf)-1), NFof=te=>db(1+te/T0);
+function fmtV(v){ if(!isFinite(v)) return 'n/a'; if(v<1e-6) return (v*1e9).toFixed(1)+' nV'; if(v<1e-3) return (v*1e6).toFixed(2)+' µV'; return (v*1e3).toFixed(2)+' mV'; }
+function fmtK(t){ return isFinite(t)?(t>=1000?t.toFixed(0):t.toFixed(1))+' K':'n/a'; }
+
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+
+/* complex numbers */
+const Cx=(r,i)=>({r,i}), Pol=(m,a)=>Cx(m*Math.cos(a*deg),m*Math.sin(a*deg));
+const cadd=(a,b)=>Cx(a.r+b.r,a.i+b.i), csub=(a,b)=>Cx(a.r-b.r,a.i-b.i), cmul=(a,b)=>Cx(a.r*b.r-a.i*b.i,a.r*b.i+a.i*b.r);
+const cabs=a=>Math.hypot(a.r,a.i), cconj=a=>Cx(a.r,-a.i), cang=a=>Math.atan2(a.i,a.r)/deg, cscale=(a,s)=>Cx(a.r*s,a.i*s);
+function cdiv(a,b){ const d=b.r*b.r+b.i*b.i; return Cx((a.r*b.r+a.i*b.i)/d,(a.i*b.r-a.r*b.i)/d); }
+const ONE=Cx(1,0);
+
+/* Smith chart grid */
+function smith(g,cx,cy,R){
+  g.save(); g.beginPath(); g.arc(cx,cy,R,0,TAU); g.clip();
+  g.strokeStyle=css('--grid'); g.lineWidth=1;
+  [0.2,0.5,1,2,5].forEach(r=>{ g.beginPath(); g.arc(cx+R*r/(1+r),cy,R/(1+r),0,TAU); g.stroke(); });
+  [0.2,0.5,1,2,5].forEach(x=>{ [1,-1].forEach(s=>{ g.beginPath(); g.arc(cx+R,cy-s*R/x,R/x,0,TAU); g.stroke(); }); });
+  g.beginPath(); g.moveTo(cx-R,cy); g.lineTo(cx+R,cy); g.stroke(); g.restore();
+  g.strokeStyle=css('--line'); g.lineWidth=1.2; g.beginPath(); g.arc(cx,cy,R,0,TAU); g.stroke(); g.lineWidth=1;
+}
+const gx=(cx,R,G)=>cx+R*G.r, gy=(cy,R,G)=>cy-R*G.i;
+
+/* ---------- Step 1: kTB ---------- */
+function ktDraw(){
+  const c=$('cKt'), g=ctx(c); const T=+$('ktT').value, lb=+$('ktB').value, B=Math.pow(10,lb);
+  $('ktTv').textContent=T.toFixed(0)+' K ('+(T-273.15).toFixed(0)+' °C)'; $('ktBv').textContent=fmt(B,'Hz',1);
+  const n0=dBm(kB*T), N=n0+10*lb, nref=dBm(kB*T0);
+  const xs=[], y1=[], y2=[]; for(let i=0;i<=140;i++){ const x=3+7*i/140; xs.push(x); y1.push(n0+10*x); y2.push(nref+10*x); }
+  const x0=58,y0=26,w=c.width-x0-18,h=c.height-y0-48;
+  const P=plot(g,x0,y0,w,h,3,10,-170,-60,[{x:xs,y:y2,color:css('--muted'),dash:[5,4],w:1.2},{x:xs,y:y1,color:css('--trace'),w:2.2}],{nx:7,ny:11,fx:v=>fmt(Math.pow(10,v),'Hz',0),yl:'noise power in B (dBm)',xl:'bandwidth B (log scale)'});
+  vline(g,P.X(lb),y0,h,css('--accent')); dot(g,P.X(lb),P.Y(N),css('--accent'));
+  txt(g,`T = ${T.toFixed(0)} K:  N = ${N.toFixed(1)} dBm in ${fmt(B,'Hz',1)}`,x0+10,y0+18);
+  txt(g,`dashed: 290 K reference (${nref.toFixed(1)} dBm/Hz)`,x0+10,y0+34,css('--muted'));
+  const v=Math.sqrt(kB*T*B*50);
+  ro($('ktOut'),[['kT',n0.toFixed(2)+' dBm/Hz'],['vs 290 K',sdb(n0-nref)],['10·log B',(10*lb).toFixed(1)+' dB'],['N = kTB',N.toFixed(1)+' dBm'],['N in watts',(kB*T*B).toExponential(2)+' W'],['rms on 50 Ω load',fmtV(v)]]);
+}
+bind(['ktT','ktB'],ktDraw);
+
+/* ---------- Step 2: NF and Te ---------- */
+function nfDraw(){
+  const c=$('cNf'), g=ctx(c); const NF=+$('nfN').value, Ta=+$('nfT').value, Si=+$('nfS').value;
+  $('nfNv').textContent=NF.toFixed(2)+' dB'; $('nfTv').textContent=Ta.toFixed(0)+' K'; $('nfSv').textContent=Si.toFixed(1)+' dB';
+  const F=lin(NF), te=T0*(F-1), dTa=db(1+te/Ta), d290=NF;
+  const xs=[], ya=[], yr=[]; for(let i=0;i<=200;i++){ const n=10*i/200; xs.push(n); ya.push(db(1+Te(n)/Ta)); yr.push(n); }
+  const x0=52,y0=24,w=c.width-x0-18,h=190;
+  const P=plot(g,x0,y0,w,h,0,10,0,25,[{x:xs,y:yr,color:css('--muted'),dash:[5,4],w:1.2},{x:xs,y:ya,color:css('--trace'),w:2.2}],{nx:10,ny:5,yl:'SNR lost through the amplifier (dB)',xl:'amplifier NF (dB)'});
+  vline(g,P.X(NF),y0,h,css('--accent')); dot(g,P.X(NF),P.Y(dTa),css('--accent')); dot(g,P.X(NF),P.Y(d290),css('--muted'),3);
+  txt(g,`T_A = ${Ta.toFixed(0)} K: loses ${dTa.toFixed(2)} dB; SNR ${Si.toFixed(1)} → ${(Si-dTa).toFixed(1)} dB`,x0+10,y0+18);
+  /* bar: source vs added noise */
+  const by=272, bh=22, bw=w, tot=Ta+te, wa=bw*Ta/tot;
+  txt(g,'noise at the input, kelvin:',x0,by-8,css('--muted'));
+  g.fillStyle=css('--trace'); g.fillRect(x0,by,wa,bh); g.fillStyle=css('--accent'); g.fillRect(x0+wa,by,bw-wa,bh);
+  txt(g,`source ${Ta.toFixed(0)} K`,x0,by+bh+15,css('--trace'));
+  const s2=`amplifier adds ${te.toFixed(1)} K`; txt(g,s2,x0+bw-g.measureText(s2).width,by+bh+15,css('--accent'));
+  ro($('nfOut'),[['F (linear)',F.toFixed(3)],['T_e',fmtK(te)],['SNR out, 290 K src',(Si-d290).toFixed(2)+' dB'],['SNR out, T_A src',(Si-dTa).toFixed(2)+' dB'],['loss at T_A',dTa.toFixed(2)+' dB'],['T_sys = T_A + T_e',fmtK(tot)]]);
+}
+bind(['nfN','nfT','nfS'],nfDraw);
+
+/* ---------- Step 3: Friis ---------- */
+const AFTER={mix:[{n:'Mixer',nf:10,g:-7},{n:'IF amp',nf:3,g:20}], lna2:[{n:'2nd LNA',nf:2,g:15},{n:'Mixer',nf:10,g:-7}], adc:[{n:'ADC',nf:25,g:0}]};
+function friis(st){ let T=0,G=1; return st.map(s=>{ const t=s.te/G; T+=t; G*=s.G; return t; }).concat([T]); }
+function frDraw(){
+  const c=$('cFr'), g=ctx(c); const L=+$('frL').value, N=+$('frN').value, G=+$('frG').value, sel=$('frS').value;
+  $('frLv').textContent=L.toFixed(2)+' dB'; $('frNv').textContent=N.toFixed(2)+' dB'; $('frGv').textContent=G.toFixed(1)+' dB';
+  const st=[{n:'Loss',te:(lin(L)-1)*T0,G:1/lin(L)},{n:'LNA',te:Te(N),G:lin(G)}].concat(AFTER[sel].map(s=>({n:s.n,te:Te(s.nf),G:lin(s.g)})));
+  const r=friis(st), tot=r.pop(), nfs=NFof(tot);
+  const lnaOnly=friis(st.slice(1)).pop(), afterL=r.slice(2).reduce((a,b)=>a+b,0);
+  const x0=58,y0=30,w=c.width-x0-18,h=c.height-y0-52;
+  const need=Math.max(...r)*1.15, ymax=[50,100,200,500,1e3,2e3,5e3,1e4,2e4,5e4,1e5,2e5,5e5,1e6].find(v=>v>=need)||1e6;
+  frame(g,x0,y0,w,h,5); g.fillStyle=css('--muted');
+  for(let k=0;k<=5;k++){ const v=ymax*k/5, s=v.toFixed(0); g.fillText(s,x0-6-g.measureText(s).width,y0+h-h*k/5+4); }
+  txt(g,'noise referred to antenna port (K)',x0,y0-8,css('--muted'));
+  const n=r.length, bw=w/n*0.55, cols=[css('--bad'),css('--accent'),css('--trace'),css('--trace2')];
+  r.forEach((t,i)=>{ const bx=x0+w*(i+0.5)/n-bw/2, bh=h*Math.min(t,ymax)/ymax; g.fillStyle=cols[i%4]; g.fillRect(bx,y0+h-bh,bw,bh);
+    g.fillStyle=css('--ink'); const s=t.toFixed(1)+' K'; g.fillText(s,bx+bw/2-g.measureText(s).width/2,y0+h-bh-5);
+    g.fillStyle=css('--muted'); const lb=st[i].n; g.fillText(lb,bx+bw/2-g.measureText(lb).width/2,y0+h+15); });
+  txt(g,`total ${tot.toFixed(1)} K = system NF ${nfs.toFixed(2)} dB`,x0+10,y0+18);
+  txt(g,`chain: ${sel==='mix'?'loss, LNA, mixer, IF':sel==='lna2'?'loss, LNA, LNA, mixer':'loss, LNA, ADC'}`,x0+10,c.height-10,css('--muted'));
+  ro($('frOut'),[['T_e total',fmtK(tot)],['system NF',nfs.toFixed(2)+' dB'],['LNA NF alone',N.toFixed(2)+' dB'],['penalty vs LNA',sdb(nfs-N)],['chain without loss',NFof(lnaOnly).toFixed(2)+' dB'],['after-LNA share',(100*afterL/tot).toFixed(1)+' %']]);
+}
+bind(['frL','frN','frG','frS'],frDraw);
+
+/* ---------- Step 4: noise match vs power match ---------- */
+const NM={Go:Pol(0.6,50), S11:Pol(0.75,-70), S21m:Math.pow(10,13/20), S22:Pol(0.5,-50)};
+function nfAt(Gs,Fmin,rn){ const d=cabs(csub(Gs,NM.Go))**2; return db(Fmin+4*rn*d/((1-cabs(Gs)**2)*cabs(cadd(ONE,NM.Go))**2)); }
+function mmAt(Gs){ return cabs(csub(NM.S11,cconj(Gs)))/cabs(csub(ONE,cmul(NM.S11,Gs))); }
+function gtAt(Gs){ return db((1-cabs(Gs)**2)/cabs(csub(ONE,cmul(NM.S11,Gs)))**2*NM.S21m**2/(1-cabs(NM.S22)**2)); }
+const gsAt=t=>{ const a=NM.Go, b=cconj(NM.S11); return Cx(a.r+(b.r-a.r)*t,a.i+(b.i-a.i)*t); };
+function nmDraw(){
+  const c=$('cNm'), g=ctx(c); const t=+$('nmT').value, Fd=+$('nmF').value, Rn=+$('nmR').value, bal=$('nmB').value==='bal';
+  $('nmTv').textContent=(t*100).toFixed(0)+' %'; $('nmFv').textContent=Fd.toFixed(2)+' dB'; $('nmRv').textContent=Rn.toFixed(0)+' Ω';
+  const Fmin=lin(Fd), rn=Rn/50, hyb=bal?0.25:0;
+  const cx=170, cy=172, R=148; smith(g,cx,cy,R);
+  /* noise circles */
+  const go=NM.Go, k1=cabs(cadd(ONE,go))**2;
+  [0.25,0.5,1,2].forEach((dF,j)=>{ const Fi=lin(Fd+dF), N=(Fi-Fmin)/(4*rn)*k1; const ctr=cscale(go,1/(1+N)), rad=Math.sqrt(N*(N+1-cabs(go)**2))/(1+N);
+    g.save(); g.beginPath(); g.arc(cx,cy,R,0,TAU); g.clip(); g.strokeStyle=css('--trace'); g.globalAlpha=1-j*0.18; g.lineWidth=1.4;
+    g.beginPath(); g.arc(gx(cx,R,ctr),gy(cy,R,ctr),R*rad,0,TAU); g.stroke(); g.restore();
+    const lx=gx(cx,R,ctr)+R*rad+3, ly=gy(cy,R,ctr)+4; if((lx-cx)**2+(ly-cy)**2<R*R){ g.fillStyle=css('--trace'); g.fillText('+'+dF,lx,ly); } });
+  const pm=cconj(NM.S11), gs=gsAt(t);
+  g.strokeStyle=css('--muted'); g.setLineDash([3,3]); g.beginPath(); g.moveTo(gx(cx,R,go),gy(cy,R,go)); g.lineTo(gx(cx,R,pm),gy(cy,R,pm)); g.stroke(); g.setLineDash([]);
+  dot(g,gx(cx,R,go),gy(cy,R,go),css('--trace'),4); txt(g,'Γopt',gx(cx,R,go)-34,gy(cy,R,go)+4,css('--trace'));
+  dot(g,gx(cx,R,pm),gy(cy,R,pm),css('--trace2'),4); txt(g,'S11*',gx(cx,R,pm)-36,gy(cy,R,pm)+4,css('--trace2'));
+  dot(g,gx(cx,R,gs),gy(cy,R,gs),css('--accent'),6);
+  txt(g,'source plane (Γs)',cx-R,14,css('--muted'));
+  /* right: NF and VSWR vs t */
+  const ts=[],nfs=[],vs=[]; for(let i=0;i<=100;i++){ const tt=i/100, G=gsAt(tt); ts.push(tt); nfs.push(nfAt(G,Fmin,rn)+hyb); const m=bal?0.05+0.1*mmAt(G):mmAt(G); vs.push((1+m)/(1-m)); }
+  const nfNow=nfAt(gs,Fmin,rn)+hyb, mRaw=mmAt(gs), m=bal?0.05+0.1*mRaw:mRaw, vNow=(1+m)/(1-m), gt=gtAt(gs)-(bal?0.5:0);
+  const x0=372,w=250; const nfTop=Math.max(2,Math.ceil(Math.max(...nfs)+0.3));
+  let P=plot(g,x0,24,w,112,0,1,0,nfTop,[{x:ts,y:nfs,color:css('--trace'),w:2}],{nx:2,ny:4,fx:v=>v===0?'noise':v===1?'power':'mid',fy:v=>v.toFixed(1),yl:'NF (dB)'});
+  dot(g,P.X(t),P.Y(nfNow),css('--accent'));
+  P=plot(g,x0,190,w,108,0,1,1,4,[{x:ts,y:vs,color:css('--trace2'),w:2}],{nx:2,ny:3,fx:v=>v===0?'noise':v===1?'power':'mid',fy:v=>v.toFixed(0),yl:'input VSWR',xl:'match position'});
+  dot(g,P.X(t),P.Y(vNow),css('--accent'));
+  ro($('nmOut'),[['Γs',cabs(gs).toFixed(2)+' ∠'+cang(gs).toFixed(0)+'°'],['NF',nfNow.toFixed(2)+' dB'],['NF at power match',(nfAt(pm,Fmin,rn)+hyb).toFixed(2)+' dB'],['input VSWR',vNow.toFixed(2)],['return loss',m>1e-4?(-20*Math.log10(m)).toFixed(1)+' dB':'> 80 dB'],['transducer gain',gt.toFixed(2)+' dB'],['mismatch loss',(m<1?db(1-m*m):0).toFixed(2)+' dB']]);
+}
+bind(['nmT','nmF','nmR','nmB'],nmDraw);
+
+/* ---------- Step 5: stability ---------- */
+const STAB={none:{i:1,o:1,g:0,nf:0}, in:{i:0.7,o:1,g:-2,nf:0.3}, out:{i:1,o:0.45,g:-3,nf:0.05}, both:{i:0.7,o:0.45,g:-5,nf:0.35}};
+function hexrgb(h){ h=h.replace('#',''); if(h.length===3) h=h.split('').map(x=>x+x).join(''); const n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function stDraw(){
+  const c=$('cSt'), g=ctx(c); const A=+$('stA').value, Rv=+$('stR').value, I=+$('stI').value, O=+$('stO').value, S=STAB[$('stS').value];
+  $('stAv').textContent=A.toFixed(1)+' dB'; $('stRv').textContent=Rv.toFixed(1)+' dB'; $('stIv').textContent=I.toFixed(2); $('stOv').textContent=O.toFixed(2);
+  const s11=Pol(I*S.i,-40), s22=Pol(O*S.o,-25), s21=Pol(Math.pow(10,(A+S.g)/20),140), s12=Pol(Math.pow(10,Rv/20),60);
+  const p=cmul(s12,s21), D=csub(cmul(s11,s22),p), aD=cabs(D);
+  const K=(1-cabs(s11)**2-cabs(s22)**2+aD**2)/(2*cabs(p));
+  const mu=(1-cabs(s11)**2)/(cabs(csub(s22,cmul(D,cconj(s11))))+cabs(p));
+  const mu2=(1-cabs(s22)**2)/(cabs(csub(s11,cmul(D,cconj(s22))))+cabs(p));
+  const stable=K>1&&aD<1;
+  const R=132, cy=172, cxs=[160,480]; const bad=hexrgb(css('--bad')||'#b91c1c');
+  const img=g.getImageData(0,0,c.width,c.height), d=img.data; let cnt=[0,0];
+  for(let k=0;k<2;k++){ const cx=cxs[k];
+    for(let py=cy-R;py<=cy+R;py++) for(let px=cx-R;px<=cx+R;px++){ const G=Cx((px-cx)/R,-(py-cy)/R); if(G.r*G.r+G.i*G.i>=1) continue;
+      const q=k===0? cadd(s22,cdiv(cmul(p,G),csub(ONE,cmul(s11,G)))) : cadd(s11,cdiv(cmul(p,G),csub(ONE,cmul(s22,G))));
+      if(cabs(q)>1){ const o=(py*c.width+px)*4; d[o]=bad[0]; d[o+1]=bad[1]; d[o+2]=bad[2]; d[o+3]=95; cnt[k]++; } } }
+  g.putImageData(img,0,0);
+  cxs.forEach((cx,k)=>{ smith(g,cx,cy,R); txt(g,k===0?'source plane: Γs → |Γout| > 1':'load plane: ΓL → |Γin| > 1',cx-R,22,css('--muted'));
+    const pct=100*cnt[k]/(Math.PI*R*R); txt(g,`unstable: ${pct.toFixed(1)} % of chart`,cx-R,cy+R+20,cnt[k]?css('--bad'):css('--good')); });
+  txt(g,stable?'UNCONDITIONALLY STABLE (K > 1, |Δ| < 1)':'POTENTIALLY UNSTABLE',c.width/2-(stable?150:80),c.height-6,stable?css('--good'):css('--bad'));
+  const MAG=Math.pow(10,(A+S.g)/20)/Math.pow(10,Rv/20);
+  const gmax=stable?db(MAG*(K-Math.sqrt(K*K-1))):db(MAG);
+  ro($('stOut'),[['K',K.toFixed(3)],['|Δ|',aD.toFixed(3)],['μ (source)',mu.toFixed(3)],['μ′ (load)',mu2.toFixed(3)],['verdict',stable?'stable':'unstable'],[stable?'MAG':'MSG',gmax.toFixed(1)+' dB'],['in-band NF cost',sdb(S.nf)]]);
+}
+$('cSt').getContext('2d',{willReadFrequently:true});
+bind(['stA','stR','stI','stO','stS'],stDraw);
+
+/* ---------- Step 6a: linearity ---------- */
+function liDraw(){
+  const c=$('cLi'), g=ctx(c); const G=+$('liG').value, O3=+$('liO').value, Pt=+$('liP').value, NF=+$('liN').value, lb=+$('liB').value;
+  $('liGv').textContent=G.toFixed(1)+' dB'; $('liOv').textContent=O3.toFixed(1)+' dBm'; $('liPv').textContent=Pt.toFixed(1)+' dBm'; $('liNv').textContent=NF.toFixed(1)+' dB';
+  const OP1=O3-10, Psat=OP1+2.164, I3=O3-G, IP1=OP1-G+1, Nin=-174+NF+10*lb, Nout=Nin+G;
+  const fund=pi=>pi+G-5*Math.log10(1+Math.pow(10,(pi+G-Psat)/5));
+  const xs=[],yf=[],yl=[],y3=[]; for(let i=0;i<=200;i++){ const pi=-80+100*i/200; xs.push(pi); yf.push(fund(pi)); yl.push(pi+G); y3.push(3*(pi+G)-2*O3); }
+  const x0=52,y0=24,w=c.width-x0-18,h=c.height-y0-48;
+  const P=plot(g,x0,y0,w,h,-80,20,-130,50,[{x:xs,y:yl,color:css('--muted'),dash:[5,4],w:1.1},{x:xs,y:y3,color:css('--trace2'),dash:[6,3],w:1.6},{x:xs,y:yf,color:css('--trace'),w:2.2}],{nx:5,ny:9,yl:'output power (dBm)',xl:'input power per tone (dBm)'});
+  hline(g,x0,w,P.Y(Nout),css('--bad'),[2,3]); txt(g,`noise floor out ${Nout.toFixed(1)} dBm`,x0+6,P.Y(Nout)-5,css('--bad'));
+  if(I3>=-80&&I3<=20){ dot(g,P.X(I3),P.Y(O3),css('--muted'),3); txt(g,'IP3',P.X(I3)+6,P.Y(O3)+4,css('--muted')); }
+  if(IP1>=-80&&IP1<=20){ vline(g,P.X(IP1),y0,h,css('--muted'),[2,4]); txt(g,'P1dB',P.X(IP1)+4,y0+h-6,css('--muted')); }
+  const fo=fund(Pt), im=3*(Pt+G)-2*O3;
+  dot(g,P.X(Pt),P.Y(fo),css('--accent')); dot(g,P.X(Pt),P.Y(im),css('--accent'),3);
+  txt(g,`tone ${Pt.toFixed(1)} dBm → out ${fo.toFixed(1)} dBm, IM3 ${im.toFixed(1)} dBm`,x0+10,y0+16);
+  const sfdr=2/3*(I3-Nin);
+  ro($('liOut'),[['IIP3',I3.toFixed(1)+' dBm'],['OP1dB',OP1.toFixed(1)+' dBm'],['IP1dB',IP1.toFixed(1)+' dBm'],['fund. out',fo.toFixed(1)+' dBm'],['compression',(Pt+G-fo).toFixed(2)+' dB'],['IM3 out',im.toFixed(1)+' dBm'],['IM3 below tone',(fo-im).toFixed(1)+' dB'],['input noise floor',Nin.toFixed(1)+' dBm'],['SFDR',sfdr.toFixed(1)+' dB']]);
+}
+bind(['liG','liO','liP','liN','liB'],liDraw);
+
+/* ---------- Step 6b: blocking ---------- */
+const BL={G:20, NF:1, Trest:3000};
+function desense(pb,ip1){ const r=lin(pb)/lin(ip1+9.6), a=1/(1+2*r), te=Te(BL.NF), t0=T0+te+BL.Trest/lin(BL.G), t1=T0+te+BL.Trest/(lin(BL.G)*a*a); return {gain:-20*Math.log10(a), loss:db(t1/t0), nf:NFof(t1-T0)}; }
+function blDraw(){
+  const c=$('cBl'), g=ctx(c); const Pb=+$('blP').value, Rj=+$('blF').value, I1=+$('blI').value;
+  $('blPv').textContent=Pb.toFixed(1)+' dBm'; $('blFv').textContent=Rj.toFixed(0)+' dB'; $('blIv').textContent=I1.toFixed(1)+' dBm';
+  const xs=[],ys=[]; for(let i=0;i<=200;i++){ const p=-60+80*i/200; xs.push(p); ys.push(desense(p-Rj,I1).loss); }
+  const x0=52,y0=24,w=c.width-x0-18,h=c.height-y0-48;
+  const P=plot(g,x0,y0,w,h,-60,20,0,30,[{x:xs,y:ys,color:css('--trace'),w:2.2}],{nx:8,ny:6,yl:'sensitivity loss (dB)',xl:'blocker power at antenna (dBm)'});
+  const thr=I1+Rj; if(thr>=-60&&thr<=20){ vline(g,P.X(thr),y0,h,css('--muted'),[3,4]); txt(g,'IP1dB at LNA',P.X(thr)+4,y0+h-8,css('--muted')); }
+  hline(g,x0,w,P.Y(1),css('--bad'),[2,3]); txt(g,'1 dB desense',x0+w-92,P.Y(1)-5,css('--bad'));
+  const r=desense(Pb-Rj,I1); dot(g,P.X(Pb),P.Y(r.loss),css('--accent'));
+  txt(g,`blocker ${Pb.toFixed(1)} dBm, ${Rj.toFixed(0)} dB rejected: loss ${r.loss.toFixed(2)} dB`,x0+10,y0+16);
+  let p1=NaN; for(let p=-60;p<=60;p+=0.1){ if(desense(p-Rj,I1).loss>=1){ p1=p; break; } }
+  ro($('blOut'),[['blocker at LNA',(Pb-Rj).toFixed(1)+' dBm'],['LNA IIP3',(I1+9.6).toFixed(1)+' dBm'],['LNA gain drop',r.gain.toFixed(2)+' dB'],['system NF',r.nf.toFixed(2)+' dB'],['sensitivity loss',r.loss.toFixed(2)+' dB'],['1 dB desense at',isFinite(p1)?p1.toFixed(1)+' dBm':'> +60 dBm']]);
+}
+bind(['blP','blF','blI'],blDraw);
+
+/* ---------- Step 7: overload recovery ---------- */
+const LIM={none:{n:'none',th:Infinity,il:0,tr:1e-12,k:1}, pin:{n:'PIN',th:15,il:0.4,tr:150e-9,k:0.1}, two:{n:'PIN + Schottky',th:5,il:0.7,tr:250e-9,k:0.05}};
+function rcDraw(){
+  const c=$('cRc'), g=ctx(c); const P=+$('rcP').value, L=LIM[$('rcL').value], tau=Math.pow(10,+$('rcT').value)*1e-9;
+  $('rcPv').textContent=(P>=0?'+':'')+P.toFixed(1)+' dBm'; $('rcTv').textContent=fmt(tau,'s');
+  const plna=(P<=L.th?P:L.th+L.k*(P-L.th))-L.il;
+  const Lpk=P>L.th?Math.min(25,(P-L.th)*(1-L.k)):0, od=plna-(-5), D=od>0?Math.min(30,od):0;
+  const def=t=>Lpk*Math.exp(-t/L.tr)+D*Math.exp(-t/tau);
+  let t1=0; if(def(0)>1){ let a=0,b=1e-9; while(def(b)>1&&b<1e-3) b*=2; for(let i=0;i<60;i++){ const m=(a+b)/2; def(m)>1?a=m:b=m; } t1=b; }
+  const xmax=[2e-7,5e-7,1e-6,2e-6,5e-6,1e-5,2e-5,5e-5].find(v=>v>=2.5*t1)||5e-5;
+  const xs=[],yt=[],yl=[],yn=[]; for(let i=0;i<=240;i++){ const t=xmax*i/240; xs.push(t*1e6); yt.push(def(t)); yl.push(Lpk*Math.exp(-t/L.tr)); yn.push(D*Math.exp(-t/tau)); }
+  const ymax=[5,10,20,30,40,60].find(v=>v>=Lpk+D)||60;
+  const x0=52,y0=58,w=c.width-x0-18,h=c.height-y0-46;
+  const Pp=plot(g,x0,y0,w,h,0,xmax*1e6,0,ymax,[{x:xs,y:yl,color:css('--trace2'),w:1.6},{x:xs,y:yn,color:css('--trace'),w:1.6},{x:xs,y:yt,color:css('--accent'),w:2.4}],{nx:5,ny:5,fx:v=>v.toFixed(xmax<=5e-7?2:xmax<=5e-6?1:0),yl:'gain deficit (dB)',xl:'time after overload (µs)'});
+  hline(g,x0,w,Pp.Y(1),css('--muted'),[4,4]);
+  if(t1>0){ vline(g,Pp.X(t1*1e6),y0,h,css('--accent'),[2,3]); }
+  txt(g,`pulse ${P.toFixed(1)} dBm, ${L.n} → ${plna.toFixed(1)} dBm at LNA; τ = ${fmt(tau,'s')}`,x0+10,14);
+  const surv=plna<=20;
+  txt(g,surv?'LNA survives':'LNA DAMAGE LIKELY (> +20 dBm)',x0+10,30,surv?css('--good'):css('--bad'));
+  ro($('rcOut'),[['power at LNA',plna.toFixed(1)+' dBm'],['LNA overdrive',D.toFixed(1)+' dB'],['limiter excess loss',Lpk.toFixed(1)+' dB'],['recovery to 1 dB',t1>0?fmt(t1,'s'):'none needed'],['blind range',t1>0?fmt(c0*t1/2,'m'):'0 m'],['limiter NF cost',sdb(L.il)],['radar range cost',(100*(Math.pow(10,-L.il/40)-1)).toFixed(1)+' %']]);
+}
+bind(['rcP','rcL','rcT'],rcDraw);
+
+/* ---------- Step 8: temperature drift ---------- */
+const BIAS={fix:{n:'fixed',s:-0.012,nf:1}, act:{n:'active',s:-0.006,nf:1}, cmp:{n:'active + comp.',s:-0.006,c:0.0055,nf:1}};
+function dG(b,T,n){ const B=BIAS[b]; return (B.s*n+(B.c?B.c*n:0))*(T-25); }
+function nfT(N25,b,T){ const te=Te(N25)*(T+273.15)/298.15*Math.pow(BIAS[b].nf,T-25); return NFof(te); }
+function drDraw(){
+  const c=$('cDr'), g=ctx(c); const T=+$('drT').value, b=$('drB').value, n=+$('drS').value, N=+$('drN').value;
+  $('drTv').textContent=T.toFixed(0)+' °C'; $('drSv').textContent=n.toFixed(0); $('drNv').textContent=N.toFixed(2)+' dB';
+  const xs=[]; for(let i=0;i<=180;i++) xs.push(-55+i);
+  const cols={fix:css('--bad'),act:css('--trace2'),cmp:css('--trace')};
+  const curves=Object.keys(BIAS).map(k=>({x:xs,y:xs.map(t=>dG(k,t,n)),color:cols[k],w:k===b?2.6:1,dash:k===b?[]:[4,3]}));
+  const x0=52,w=c.width-x0-18;
+  let P=plot(g,x0,24,w,128,-55,125,-4,4,curves,{nx:6,ny:4,yl:'gain change from 25 °C (dB)'});
+  const gNow=dG(b,T,n); vline(g,P.X(T),24,128,css('--accent')); dot(g,P.X(T),P.Y(gNow),css('--accent'));
+  txt(g,`${BIAS[b].n} bias, ${n} stage${n>1?'s':''}: ${sdb(gNow)} at ${T} °C`,x0+10,40);
+  const yn=xs.map(t=>nfT(N,b,t)); const lo=Math.floor(Math.min(...yn)*2)/2, hi=Math.ceil(Math.max(...yn)*2)/2;
+  P=plot(g,x0,196,w,108,-55,125,lo,Math.max(hi,lo+0.5),[{x:xs,y:yn,color:css('--trace'),w:2.2}],{nx:6,ny:4,fy:v=>v.toFixed(2),yl:'NF (dB)',xl:'temperature (°C)'});
+  const nNow=nfT(N,b,T); vline(g,P.X(T),196,108,css('--accent')); dot(g,P.X(T),P.Y(nNow),css('--accent'));
+  ro($('drOut'),[['gain change',sdb(gNow)],['slope',(gNow/(T-25||1)).toFixed(4)+' dB/°C'],['NF at T',nNow.toFixed(2)+' dB'],['T_e at T',fmtK(Te(nNow))],['sensitivity shift',sdb(nNow-N)],['range change',(100*(Math.pow(10,-(nNow-N)/40)-1)).toFixed(2)+' %']]);
+}
+bind(['drT','drB','drS','drN'],drDraw);
+
+/* ---------- Step 9: sensitivity waterfall ---------- */
+function seDraw(){
+  const c=$('cSe'), g=ctx(c); const NF=+$('seN').value, lb=+$('seB').value, S=+$('seS').value, B=Math.pow(10,lb);
+  $('seNv').textContent=NF.toFixed(1)+' dB'; $('seBv').textContent=fmt(B,'Hz',1);
+  const steps=[['kT₀',-174,-174],['+ NF',-174,-174+NF],['+ 10·log B',-174+NF,-174+NF+10*lb],['+ SNR_min',-174+NF+10*lb,-174+NF+10*lb+S]];
+  const sens=steps[3][2];
+  const x0=58,y0=26,w=c.width-x0-18,h=c.height-y0-48, ya=-180, yb=-30;
+  frame(g,x0,y0,w,h,6); const Y=v=>y0+h*(yb-v)/(yb-ya);
+  g.fillStyle=css('--muted'); for(let k=0;k<=6;k++){ const v=ya+(yb-ya)*k/6, s=v.toFixed(0); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  txt(g,'dBm',x0,y0-8,css('--muted'));
+  const cols=[css('--muted'),css('--accent'),css('--trace2'),css('--trace')], n=5, bw=w/n*0.6;
+  steps.forEach((s,i)=>{ const bx=x0+w*(i+0.5)/n-bw/2; const top=Y(Math.max(s[1],s[2])), bot=Y(Math.min(s[1],s[2]));
+    g.fillStyle=cols[i]; g.fillRect(bx,i===0?Y(-174)-3:top,bw,i===0?6:Math.max(2,bot-top));
+    const v=i===0?'−174':'+'+(s[2]-s[1]).toFixed(1); g.fillStyle=css('--ink'); g.fillText(v,bx+bw/2-g.measureText(v).width/2,(i===0?Y(-174):top)-7);
+    g.fillStyle=css('--muted'); g.fillText(s[0],bx+bw/2-g.measureText(s[0]).width/2,y0+h+15); });
+  const bx=x0+w*4.5/n-bw/2; g.fillStyle=css('--ink'); g.fillRect(bx,Y(sens)-2,bw,4);
+  const sl=sens.toFixed(1)+' dBm'; g.fillText(sl,bx+bw/2-g.measureText(sl).width/2,Y(sens)-8); g.fillStyle=css('--muted'); g.fillText('= S_min',bx+bw/2-g.measureText('= S_min').width/2,y0+h+15);
+  hline(g,x0,w,Y(sens),css('--ink'),[2,4]);
+  const mds=-174+NF+10*lb;
+  ro($('seOut'),[['noise density',(-174+NF).toFixed(1)+' dBm/Hz'],['10·log B',(10*lb).toFixed(1)+' dB'],['noise floor (MDS)',mds.toFixed(1)+' dBm'],['required SNR',S.toFixed(0)+' dB'],['sensitivity',sens.toFixed(1)+' dBm'],['in dBW',(sens-30).toFixed(1)+' dBW'],['rms on 50 Ω',fmtV(Math.sqrt(Math.pow(10,(sens-30)/10)*50))]]);
+}
+bind(['seN','seB','seS'],seDraw);
+
+/* ---------- Step 10: system links ---------- */
+const TREST=20;
+function tsys(nf,L,Ta){ const l=lin(L); return Ta+(l-1)*T0+l*(Te(nf)+TREST); }
+function syDraw(){
+  const c=$('cSy'), g=ctx(c); const N=+$('syN').value, L=+$('syL').value, Ta=+$('syA').value, Nr=+$('syR').value, G=+$('syG').value;
+  $('syNv').textContent=N.toFixed(2)+' dB'; $('syLv').textContent=L.toFixed(2)+' dB'; $('syRv').textContent=Nr.toFixed(2)+' dB'; $('syGv').textContent=G.toFixed(1)+' dBi';
+  const T=tsys(N,L,Ta), Tr=tsys(Nr,L,Ta);
+  const xs=[],yr=[],ye=[]; for(let i=0;i<=200;i++){ const n=0.3+5.7*i/200; xs.push(n); const t=tsys(n,L,Ta); yr.push(Math.pow(Tr/t,0.25)); ye.push(Math.pow(Tr/t,0.5)); }
+  const lo=Math.min(...ye), hi=Math.max(...ye); const ya=Math.floor(lo*10)/10, yb=Math.ceil(hi*10)/10;
+  const x0=52,y0=58,w=c.width-x0-18,h=c.height-y0-46;
+  const P=plot(g,x0,y0,w,h,0.3,6.3,ya,Math.max(yb,ya+0.2),[{x:xs,y:yr,color:css('--trace'),w:2.2},{x:xs,y:ye,color:css('--trace2'),w:2.2}],{nx:6,ny:5,fx:v=>v.toFixed(1),fy:v=>'×'+v.toFixed(2),yl:'range relative to baseline',xl:'LNA NF (dB)'});
+  vline(g,P.X(N),y0,h,css('--accent')); vline(g,P.X(Nr),y0,h,css('--muted'),[2,3]);
+  const rr=Math.pow(Tr/T,0.25), re=Math.pow(Tr/T,0.5);
+  dot(g,P.X(N),P.Y(rr),css('--trace')); dot(g,P.X(N),P.Y(re),css('--trace2'));
+  txt(g,`T_A ${Ta} K, loss ${L.toFixed(2)} dB: T_sys ${T.toFixed(0)} K (baseline ${Tr.toFixed(0)} K)`,x0+10,14);
+  txt(g,`G/T = ${(G-db(T)).toFixed(1)} dB/K with ${G.toFixed(1)} dBi`,x0+10,30,css('--muted'));
+  txt(g,'radar',x0+w-48,P.Y(yr[200])-6,css('--trace')); txt(g,'ESM',x0+w-36,P.Y(ye[200])+14,css('--trace2'));
+  const esm=-174+db(T/T0)+70+15;
+  ro($('syOut'),[['T_sys',fmtK(T)],['system NF',NFof(T-Ta).toFixed(2)+' dB'],['G/T',(G-db(T)).toFixed(1)+' dB/K'],['radar range ×',rr.toFixed(3)],['same by Tx power',sdb(db(Tr/T))],['ESM sensitivity',esm.toFixed(1)+' dBm'],['ESM range ×',re.toFixed(3)]]);
+}
+bind(['syN','syL','syA','syR','syG'],syDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

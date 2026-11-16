@@ -1,0 +1,1234 @@
+<meta charset="utf-8">
+<title>Power Amplifiers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series (style block from R2). Each step: "you already know" → explanation → worked example → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.grp{display:flex;flex-direction:column;gap:9px}
+.grp[hidden]{display:none}
+#tcOut{font-size:12.5px}
+.readout span.sep{grid-column:1/-1;text-align:left!important;color:var(--accent)!important;margin-top:4px;border-top:1px solid var(--line);padding-top:3px}
+</style>
+
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Power Amplifiers · RF Systems for Component Engineers</div>
+  <h1>Power amplifiers, from the transistor to the system</h1>
+  <p class="lede">The power amplifier (PA) is the last active stage before the antenna. Every watt the system radiates, every watt of heat it must remove and most of the spectral junk it sprays into other people's bands start here. This page opens the PA from first principles: what compression, efficiency, AM-PM and back-off really mean, how pulses, heat and a bad antenna match load the device, how GaN, GaAs and TWTs differ, and how each datasheet number ends up as EIRP, radar range, Doppler performance, spectral purity and jammer effectiveness. Every term is explained before it is used. Every step has worked numbers and, where it helps, a demo you can change.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#role">1 What a PA does</a><a href="#comp">2 Psat, P1dB, compression</a><a href="#eff">3 Efficiency, PAE, heat</a><a href="#ampm">4 AM-AM and AM-PM</a><a href="#papr">5 PAPR and back-off</a><a href="#spur">6 Harmonics and regrowth</a><a href="#pulse">7 Pulsed operation</a><a href="#therm">8 Duty cycle and thermal limits</a><a href="#vswr">9 Load VSWR</a><a href="#tech">10 GaN, GaAs, TWT</a><a href="#comb">11 Combining</a><a href="#sys">12 EIRP, range, J/S</a><a href="#summary">13 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 1 -->
+<section id="role">
+  <div class="secno">Step 1</div>
+  <h2>What a PA does, and where its watts go</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A transistor is a controlled current source: a small voltage on the gate (or base) sets a large current in the drain (or collector). Put a load resistor in the drain and the changing current becomes a changing voltage, so a small input signal becomes a large output signal. A small-signal amplifier (an LNA, a gain block) does this with tiny swings, far from any limit. A power amplifier does the same thing with the largest swing the device can survive: the drain voltage swings from almost zero up to nearly twice the supply, and the drain current from almost zero to the device's maximum. All of the interesting PA behaviour comes from working right at those limits.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>dBm</b>: power relative to 1 mW, P(dBm) = 10·log₁₀(P / 1 mW). 1 W = 30 dBm, 100 W = 50 dBm. <b>dBW</b>: power relative to 1 W, so dBW = dBm − 30. <b>Gain</b>: Pout / Pin, in dB the difference Pout(dBm) − Pin(dBm).</p>
+    <p><b>EIRP</b> (effective isotropic radiated power): the power an ideal isotropic antenna would need to radiate to produce the same field strength on boresight. EIRP = P at the antenna port × antenna gain; in dB, EIRP(dBW) = P(dBW) − losses(dB) + G(dBi).</p>
+    <p><b>Drain supply V<sub>DD</sub></b>: the DC voltage feeding the output transistor (28 V or 50 V for GaN, 5–10 V for GaAs). <b>DC power P<sub>DC</sub></b>: V<sub>DD</sub> × average drain current. Every watt of P<sub>DC</sub> that does not leave as RF becomes heat in the device.</p>
+  </div>
+  <div class="col">
+    <p><b>The PA is a power converter.</b> It takes DC power from the supply and turns part of it into RF power at the carrier frequency, under the control of a small RF input. Three things leave the device: the wanted RF output, heat, and unwanted RF (harmonics and distortion products). The datasheet tells you how the split falls, and the rest of this page shows what each part costs the system.</p>
+    <p><b>Where it sits.</b> In a transmitter, a low-level waveform from the exciter (a DAC, a DDS or a synthesiser with a modulator) is raised by one or more driver stages to a few watts, and the PA raises it to the final level. After the PA come passive parts that only lose power: an isolator to protect the PA from reflections (step 9), a harmonic filter (step 6), the duplexer or circulator that shares the antenna with the receiver, and the cable or waveguide. Then the antenna adds gain in the wanted direction.</p>
+  </div>
+  <div class="diag"><svg viewBox="0 0 860 190" role="img" aria-label="Transmit chain from exciter through driver, PA, isolator, harmonic filter and circulator to the antenna, with power levels">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" style="fill:var(--muted)"/></marker></defs>
+    <g style="font-family:var(--f-mono);font-size:12px">
+      <g style="fill:var(--panel);stroke:var(--line)">
+        <rect x="10" y="50" width="96" height="50" rx="4"/><rect x="132" y="50" width="96" height="50" rx="4"/>
+        <rect x="254" y="50" width="96" height="50" rx="4" style="stroke:var(--accent);stroke-width:2"/>
+        <rect x="376" y="50" width="96" height="50" rx="4"/><rect x="498" y="50" width="96" height="50" rx="4"/><rect x="620" y="50" width="96" height="50" rx="4"/>
+      </g>
+      <path d="M800,40 L780,110 L820,110 Z" style="fill:var(--panel);stroke:var(--trace);stroke-width:1.5"/>
+      <g style="stroke:var(--muted);stroke-width:1.4" marker-end="url(#ar)"><line x1="106" y1="75" x2="130" y2="75"/><line x1="228" y1="75" x2="252" y2="75"/><line x1="350" y1="75" x2="374" y2="75"/><line x1="472" y1="75" x2="496" y2="75"/><line x1="594" y1="75" x2="618" y2="75"/><line x1="716" y1="75" x2="778" y2="75"/></g>
+      <g style="fill:var(--ink)" text-anchor="middle">
+        <text x="58" y="72">Exciter</text><text x="58" y="88" style="fill:var(--muted)">waveform</text>
+        <text x="180" y="72">Driver</text><text x="180" y="88" style="fill:var(--muted)">+25 dB</text>
+        <text x="302" y="72" style="fill:var(--accent)">PA</text><text x="302" y="88" style="fill:var(--muted)">+12 dB</text>
+        <text x="424" y="72">Isolator</text><text x="424" y="88" style="fill:var(--muted)">−0.3 dB</text>
+        <text x="546" y="72">Harm. filter</text><text x="546" y="88" style="fill:var(--muted)">−0.4 dB</text>
+        <text x="668" y="72">Circulator</text><text x="668" y="88" style="fill:var(--muted)">−0.4 dB</text>
+        <text x="748" y="66" style="fill:var(--muted)">cable</text><text x="748" y="96" style="fill:var(--muted)">−0.4 dB</text>
+        <text x="800" y="130">33 dBi</text>
+      </g>
+      <g style="fill:var(--trace)" text-anchor="middle">
+        <text x="118" y="36">+13 dBm</text><text x="240" y="36">+38 dBm</text><text x="362" y="36">+50 dBm</text><text x="484" y="36">49.7</text><text x="606" y="36">49.3</text><text x="740" y="36">48.9 → 48.5 dBm</text>
+      </g>
+      <g style="fill:var(--muted)"><text x="254" y="128">DC in: 50 V × 3.6 A = 182 W</text><text x="254" y="146">RF out 100 W, heat ≈ 88 W (incl. 6 W drive)</text><text x="560" y="150" style="fill:var(--accent)">EIRP = 48.5 dBm + 33 dBi = 81.5 dBm = 51.5 dBW ≈ 141 kW</text></g>
+      <text x="254" y="176" style="fill:var(--muted)">Supply → (PA) → RF + heat + harmonics/distortion</text>
+    </g></svg></div>
+  <div class="col">
+    <h3>Worked example: one PA, one EIRP</h3>
+    <p>The PA delivers 100 W = 50 dBm at its output flange. The isolator, filter, circulator and cable lose 0.3 + 0.4 + 0.4 + 0.4 = 1.5 dB, so 48.5 dBm (70.8 W) reaches the antenna. With a 33 dBi antenna, EIRP = 48.5 + 33 = 81.5 dBm = 51.5 dBW, about 141 kW "isotropic". Two lessons follow at once:</p>
+    <ul>
+      <li><b>Every dB after the PA costs 21 % of the PA's power.</b> To win back 1 dB of post-PA loss you need a PA with 26 % more output, which also needs 26 % more DC and makes 26 % more heat.</li>
+      <li><b>The PA power enters the system weakly or strongly, depending on the system.</b> A radar's detection range grows only as the fourth root of power (R ∝ P<sub>t</sub><sup>¼</sup>, step 12): doubling the PA buys 19 % more range. A jammer's jamming-to-signal ratio grows in direct proportion to its power: doubling the PA buys 3 dB of J/S.</li>
+    </ul>
+    <p>Note also the DC figure: the PA draws 182 W to make 100 W of RF. The other 82 W (plus the 6 W of drive) is heat in a die a few millimetres across. Steps 3 and 8 are about where that heat goes.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Isolator, filter, circulator, cable designers:</b> your insertion loss is subtracted directly from EIRP, and it is paid for in PA watts, DC power and heat. 0.1 dB at 100 W is 2.3 W of PA output.</li>
+    <li><b>Power-supply designers:</b> the PA's DC current is large (3.6 A here, tens of amps in a pulsed radar), and every ripple or droop on V<sub>DD</sub> becomes amplitude and phase modulation of the RF (steps 4 and 7).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 200 W PA feeds a 35 dBi antenna through 2 dB of loss. What is the EIRP in dBW?</summary><p>200 W = 23.0 dBW. 23.0 − 2 + 35 = 56.0 dBW (about 400 kW).</p></details>
+    <details><summary>Which is cheaper: 0.5 dB less loss after the PA, or a PA with 0.5 dB more output?</summary><p>They give the same EIRP. The loss reduction costs no DC power and makes no extra heat; the bigger PA needs 12 % more DC and gets 12 % hotter. Low-loss passives after the PA are almost always the cheaper watts.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="comp">
+  <div class="secno">Step 2</div>
+  <h2>Psat, P1dB and gain compression</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An amplifier's output cannot exceed what its supply and its device allow. In a transistor the drain voltage cannot swing below the knee voltage V<sub>k</sub> (where the device leaves saturation and becomes a resistor) or above breakdown, and the current cannot exceed I<sub>max</sub>. As the input grows, the output first follows it in proportion, then follows less and less, then stops growing at all. You have seen this on every gain block you have measured with a power sweep.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Small-signal gain G</b>: Pout/Pin when the drive is so low that the output is far from any limit. <b>Gain compression</b>: the drop of the actual gain below G as the drive rises, in dB.</p>
+    <p><b>P1dB</b>: the output power at which the gain has fallen by 1 dB from G (some datasheets give the input power at that point instead; read the axis label). <b>P3dB</b>: the same at 3 dB compression. <b>Psat</b>: saturated output power, the level the output approaches when the input is pushed hard. Datasheets often quote Psat at a stated drive, or at a stated compression such as P3dB.</p>
+    <p><b>Back-off</b>: how far below a reference level the PA is operated. Output back-off (OBO) = Psat − Pout in dB. Input back-off (IBO) is the same measured at the input.</p>
+    <p><b>Rapp model</b>: a simple description of the compression curve, Pout = G·Pin / (1 + (G·Pin/Psat)<sup>p</sup>)<sup>1/p</sup>. The single number p is the "smoothness" of the knee: p ≈ 1 is a soft, gradual compression (class A GaAs at low drive), p ≈ 2–3 is typical of GaN class AB, and p ≥ 5 is a hard limiter.</p>
+  </div>
+  <div class="col">
+    <p><b>Why the curve bends.</b> At low drive the RF drain current and voltage swing are small, so the device is a linear current source. As drive rises, the voltage swing reaches the knee on one side; the current waveform starts to clip; the fundamental component of the current stops growing in proportion. The output power approaches Psat ≈ (V<sub>DD</sub> − V<sub>k</sub>)² / (2·R<sub>L</sub>), where R<sub>L</sub> is the load resistance presented to the transistor. This is why designers choose the load (by load-pull, step 9): R<sub>L</sub> sets Psat.</p>
+    <p><b>How sharp is the bend?</b> The difference Psat − P1dB tells you. With the Rapp model you can compute it exactly: at 1 dB compression, (1 + x<sup>p</sup>)<sup>1/p</sup> = 1.259, where x = G·Pin/Psat.</p>
+  </div>
+  <div class="eq">x₁ = (1.259<sup>p</sup> − 1)<sup>1/p</sup>,   P1dB = Psat · x₁ / 1.259
+    <small>p = 1: P1dB = Psat − 6.9 dB (very soft). p = 2: Psat − 2.2 dB. p = 3: Psat − 1.0 dB. p = 6: Psat − 0.2 dB (hard limiter). A GaN datasheet with P1dB = 44.8 dBm and Psat = 47 dBm is a p ≈ 2 device.</small></div>
+  <div class="col">
+    <h3>Worked example</h3>
+    <p>A PA has G = 12 dB, Psat = 47 dBm (50 W) and p = 2. Then P1dB = 47 − 2.16 = 44.8 dBm (30.4 W). The input at that point is 44.8 + 1 − 12 = 33.8 dBm. P3dB is at 46.4 dBm (43.2 W), only 0.6 dB below Psat, reached with 35.4 dBm in. Pushing the input another 3 dB above the P3dB drive raises the output by only 0.4 dB: the extra drive power becomes gate current and heat, and the device is stressed for almost nothing.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Load resistance R<sub>L</sub> from load-pull, V<sub>DD</sub>, device periphery (gate width)</td><td>Psat 47 dBm, P1dB 44.8 dBm</td><td>EIRP ceiling: 50 W at the flange → 51.5 dBW with the step 1 chain</td></tr>
+    <tr><td>Bias class, harmonic terminations (they set the knee shape p)</td><td>Psat − P1dB = 2.2 dB</td><td>How far below Psat a linear signal must sit (step 5); a soft knee makes AM-AM distortion appear 5–7 dB below Psat</td></tr>
+    <tr><td>Number of stages, device size</td><td>G = 12 dB small signal</td><td>Driver power needed: 33.8 dBm (2.4 W) at P1dB, and its own DC and heat (step 3, PAE)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cCp" width="640" height="360" aria-label="Output power and gain versus input power for a compressing amplifier"></canvas>
+    <div class="ctrl">
+      <label for="cpG">Small-signal gain G <b id="cpGv"></b></label><input id="cpG" type="range" min="6" max="30" step="0.5" value="12">
+      <label for="cpS">Psat <b id="cpSv"></b></label><input id="cpS" type="range" min="30" max="60" step="0.5" value="47">
+      <label for="cpP">Knee smoothness p <b id="cpPv"></b></label><input id="cpP" type="range" min="0.8" max="6" step="0.1" value="2">
+      <label for="cpI">Drive, relative to P1dB input <b id="cpIv"></b></label><input id="cpI" type="range" min="-20" max="10" step="0.5" value="0">
+      <div class="readout" id="cpOut"></div>
+    </div>
+    <p class="cap">Top: output power against input power. Dashed: the straight line G·Pin the amplifier would follow if it never compressed. Solid: the Rapp curve. Horizontal accent line: Psat. Dots: P1dB (hollow) and your operating point. Bottom: the actual gain, falling away from G. Move the drive above P1dB and watch how little output you buy with each extra dB of input. Raise p and the knee sharpens, so P1dB moves up towards Psat.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Driver amplifier:</b> its own P1dB must sit comfortably above the PA's required input (here 33.8 dBm + margin), or the driver compresses first and adds its own distortion.</li>
+    <li><b>Exciter and attenuators:</b> the drive level sets where the PA works on this curve. A 1 dB drift in drive at saturation changes the output by only 0.1–0.2 dB, but changes the phase (step 4) and the heat.</li>
+    <li><b>Test engineers:</b> P1dB and Psat depend on pulse width and temperature (a hot device has lower Psat). Ask for the conditions behind the number.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Datasheet: Psat 50 dBm, P1dB 49 dBm. Is this PA soft or hard?</summary><p>Psat − P1dB = 1 dB, which corresponds to p ≈ 3. It is a fairly hard knee: good for efficiency close to saturation, but distortion rises abruptly once the envelope reaches the knee.</p></details>
+    <details><summary>Why is "Psat" alone not enough to compare two PAs?</summary><p>Because the drive and conditions at which it is quoted differ. One vendor quotes Psat at 3 dB compression, another at a fixed high drive where the device may be at 5 dB compression. Always compare P1dB, P3dB and the drive used.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="eff">
+  <div class="secno">Step 3</div>
+  <h2>Drain efficiency, PAE and the heat they leave behind</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>Energy is conserved. Whatever DC and RF power goes into a device and does not come out as RF output becomes heat. A linear voltage regulator dropping 5 V at 2 A makes 10 W of heat, and you size its heat sink from that. A PA is no different: its "efficiency" is just the fraction of input power that leaves as wanted RF.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Drain efficiency η<sub>D</sub></b> = Pout / P<sub>DC</sub>. <b>Power-added efficiency PAE</b> = (Pout − Pin) / P<sub>DC</sub>: it charges the PA for the drive power it needs. PAE ≈ η<sub>D</sub>·(1 − 1/G). At high gain they are almost equal; at low gain (wideband or high-frequency PAs) PAE is much lower.</p>
+    <p><b>Dissipated power P<sub>diss</sub></b> = P<sub>DC</sub> + Pin − Pout: the heat in the device. <b>Thermal resistance R<sub>th</sub></b> (°C/W): temperature rise per watt of heat from the junction (the hot channel of the transistor) to a reference surface such as the flange or base plate. <b>Junction temperature T<sub>j</sub></b> = T<sub>base</sub> + P<sub>diss</sub>·R<sub>th</sub>.</p>
+    <p><b>Amplifier class</b>: the bias point and conduction angle. <b>Class A</b>: the device conducts all of the cycle, the DC current is constant, η<sub>max</sub> = 50 %. <b>Class B</b>: biased at pinch-off, conducts half the cycle, the DC current rises with the signal, η<sub>max</sub> = π/4 = 78.5 %. <b>Class AB</b>: in between, used by most real PAs. <b>Doherty</b>: two amplifiers whose load is actively modulated so efficiency stays high over 6 dB of back-off.</p>
+  </div>
+  <div class="col">
+    <p><b>Why class matters at back-off.</b> At full swing, class B wastes less because its DC current follows the signal. When you back off the output (to keep a signal linear, step 5), efficiency falls, and how fast depends on class. Let x = √(Pout/Pmax) be the relative voltage swing. For ideal devices:</p>
+  </div>
+  <div class="eq">Class A: η = 0.5·x²     Class B: η = (π/4)·x     Doherty: η = (π/2)·x  (x ≤ ½),  (π/2)·x² / (3x − 1)  (x &gt; ½)
+    <small>6 dB back-off is x = 0.5: class A falls to 12.5 %, class B to 39 %, an ideal Doherty stays at 78.5 %. Real devices lose a further 10–20 points to the knee voltage, the output match loss and the bias current. The "typical GaN class AB" curve in the demo is an illustrative fit, η ≈ 68 %·x<sup>1.2</sup>.</small></div>
+  <div class="col">
+    <h3>Worked example: efficiency is temperature</h3>
+    <p>A GaN PA delivers 50 W with G = 12 dB, so it needs Pin = 3.15 W. At η<sub>D</sub> = 55 %: P<sub>DC</sub> = 50/0.55 = 90.9 W, PAE = (50 − 3.15)/90.9 = 51.5 %, and P<sub>diss</sub> = 90.9 + 3.15 − 50 = 44.1 W. With R<sub>th</sub> = 1.2 °C/W on a 70 °C base plate, T<sub>j</sub> = 70 + 44.1 × 1.2 = 123 °C.</p>
+    <p>Now run the same 50 W at η<sub>D</sub> = 40 % (a worse match, a different band edge, or 3 dB of back-off): P<sub>DC</sub> = 125 W, P<sub>diss</sub> = 78 W, T<sub>j</sub> = 164 °C. Fifteen points of efficiency raised the junction by 41 °C. For a typical semiconductor wear-out activation energy (about 1.7 eV), every 10 °C at these temperatures cuts the life by a factor of 2 to 3 (step 8). That is why a PA's efficiency is a reliability spec, not only a power-bill spec.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Class (bias), harmonic tuning (class F, J), output match loss</td><td>η<sub>D</sub> 55 % at Psat</td><td>Prime power 91 W per 50 W RF; supply and battery size; heat 44 W per PA</td></tr>
+    <tr><td>Number of stages and their gain</td><td>PAE 51.5 % (G = 12 dB)</td><td>Driver DC and heat; total transmitter efficiency</td></tr>
+    <tr><td>Die attach (AuSn, silver sinter), substrate (SiC, diamond), flange</td><td>R<sub>th</sub> 1.2 °C/W</td><td>T<sub>j</sub> 123 °C at 70 °C base; cooling system size; MTTF; allowed duty cycle</td></tr>
+    <tr><td>Doherty or envelope tracking</td><td>η at 6 dB back-off</td><td>Efficiency on multi-tone and noise jamming, where the PA spends its time backed off (step 5)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cEf" width="640" height="360" aria-label="Drain efficiency versus output back-off for four amplifier classes, and the power balance"></canvas>
+    <div class="ctrl">
+      <label for="efC">Amplifier class</label>
+      <select id="efC"><option value="A">Class A (ideal)</option><option value="AB" selected>Typical GaN class AB (fit)</option><option value="B">Class B (ideal)</option><option value="DH">Doherty (ideal)</option></select>
+      <label for="efS">Psat <b id="efSv"></b></label><input id="efS" type="range" min="10" max="500" step="5" value="100">
+      <label for="efB">Output back-off <b id="efBv"></b></label><input id="efB" type="range" min="0" max="12" step="0.5" value="0">
+      <label for="efG">Gain <b id="efGv"></b></label><input id="efG" type="range" min="6" max="20" step="0.5" value="12">
+      <label for="efR"><span>R<sub>th</sub> junction to base</span> <b id="efRv"></b></label><input id="efR" type="range" min="0.2" max="4" step="0.05" value="1">
+      <label for="efT">Base-plate temperature <b id="efTv"></b></label><input id="efT" type="range" min="25" max="100" step="1" value="70">
+      <div class="readout" id="efOut"></div>
+    </div>
+    <p class="cap">Top: drain efficiency against output back-off for the four classes (the selected one bold, its operating point marked). Bottom: the power balance at that point. DC in plus RF drive in equals RF out plus heat. Back off a class-A PA by 6 dB and three quarters of its DC becomes heat, even though the RF output fell. Gain matters for PAE: drop it to 6 dB and the drive power becomes a quarter of the output.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Output matching network:</b> 0.3 dB of loss in the match at 50 W is 3.4 W of heat right next to the die, and it lowers η<sub>D</sub> by about 4 points.</li>
+    <li><b>Bias and sequencing circuits:</b> the quiescent current sets where class AB sits between A and B. Drift of the gate voltage with temperature moves the quiescent current and with it efficiency, gain and AM-PM.</li>
+    <li><b>Mechanical and thermal engineers:</b> R<sub>th</sub> of the die is fixed by the vendor; the rest of the thermal path (flange, TIM, cold plate) is yours, and it adds directly to T<sub>j</sub>.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 10 W PA with 8 dB gain has η<sub>D</sub> = 50 %. What is its PAE and its heat?</summary><p>Pin = 10/6.31 = 1.58 W. P<sub>DC</sub> = 20 W. PAE = (10 − 1.58)/20 = 42 %. Heat = 20 + 1.58 − 10 = 11.6 W.</p></details>
+    <details><summary>Why does an ideal class-A PA get hotter when you turn the RF drive off?</summary><p>Its DC current is constant. With RF on, part of P<sub>DC</sub> leaves as RF; with RF off, all of P<sub>DC</sub> is heat. Class AB and B draw less current at low drive, so they cool down instead.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="ampm">
+  <div class="secno">Step 4</div>
+  <h2>AM-AM and AM-PM: amplitude and phase depend on the drive</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A transistor's capacitances (C<sub>gs</sub>, C<sub>gd</sub>, C<sub>ds</sub>) are not fixed; they change with the voltages across them. In a varactor you use this deliberately. In a PA, the large RF swing moves these capacitances through a whole cycle, so their average value, and with it the phase shift through the amplifier, depends on how hard it is driven.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>AM-AM</b>: the change of output amplitude with input amplitude, i.e. the compression curve of step 2 seen as a distortion. Often given as gain compression (dB) or as a slope in dB/dB (1 when linear, 0 at hard saturation).</p>
+    <p><b>AM-PM</b>: the change of insertion phase with input amplitude, in degrees per dB of input change (°/dB), or as the total phase change from small signal to a stated compression. Typical solid-state PAs show 2–10° of total phase change up to 3 dB compression, concentrated near the knee.</p>
+    <p><b>Envelope</b>: the slowly varying amplitude of an RF signal, |x(t)|. A constant-envelope signal (CW, a pulse's flat top, a chirp) has one envelope value; two tones, multi-tone and noise have a varying envelope. <b>Phase pushing</b>: change of phase with supply voltage, in °/V. <b>Stability (dBc)</b>: the variation, expressed as a power ratio to the carrier, e.g. a phase error of σ radians gives 20·log₁₀(σ) dBc.</p>
+  </div>
+  <div class="col">
+    <p><b>Why AM-PM matters even for "constant-envelope" radar.</b> A chirp or a pulse looks like a constant envelope, so you might think AM-PM is irrelevant. But the drive level is never perfectly constant: the exciter level drifts with temperature, the driver droops along the pulse (step 7), the supply ripples. Each of these is a small amplitude change at the PA input, and AM-PM turns it into a phase change at the output. Radar processing (Doppler filters, MTI, pulse compression, SAR) measures phase. A phase wobble looks exactly like a moving target or a smeared image.</p>
+    <p><b>Model used here.</b> AM-AM is the Rapp curve of step 2. AM-PM is a Saleh-type curve: φ = 2φ₁·x² / (1 + x²), with x the drive relative to the saturation input and φ₁ the phase change at x = 1. Phase changes little at low drive, fastest around the knee, and levels off in saturation.</p>
+  </div>
+  <div class="eq">Δφ_out ≈ (dφ/dP<sub>in</sub>) · ΔP<sub>in</sub>      phase stability = 20·log₁₀(Δφ<sub>rms</sub> in rad) dBc
+    <small>Example: AM-PM slope 4 °/dB near P1dB. A 0.05 dB rms pulse-to-pulse variation of drive gives 0.2° rms of phase: 20·log₁₀(0.2·π/180) = −49 dBc. Step 7 shows that a −49 dBc stability limits clutter cancellation to about 49 dB.</small></div>
+  <div class="col">
+    <h3>Worked example</h3>
+    <p>A GaN PA with p = 2 shows 8° of phase change at the saturation input. Feed it a drive that varies by 0.05 dB rms (demo defaults). <b>At P1dB</b> the phase has moved 5.9° from small signal, the AM-PM slope is 1.7 °/dB and the AM-AM slope 0.63 dB/dB: the output varies by 0.032 dB and 0.086° rms, a stability of −48 dBc. <b>6 dB harder</b> the phase curve has levelled off (0.65 °/dB) and the output barely follows the drive (0.10 dB/dB): −62 dBc. <b>10 dB below P1dB</b> the phase is quiet (0.04 °/dB) but the amplitude follows the drive one-for-one: −45 dBc. A saturated PA cleans up drive amplitude noise; a backed-off one passes it straight through. The best point depends on where the noise comes from, which is why both AM-AM and AM-PM curves belong on the datasheet.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Device technology (C<sub>gs</sub>(V) nonlinearity), bias point, harmonic terminations</td><td>AM-PM 8° at Psat input, 1.7 °/dB at P1dB</td><td>Phase noise added by drive ripple; EVM of comms links; pulse-compression range sidelobes</td></tr>
+    <tr><td>Operating drive (saturated or backed off)</td><td>AM-AM slope 0.63 dB/dB at P1dB, 0.10 dB/dB 6 dB harder</td><td>How much drive amplitude noise reaches the antenna as amplitude noise</td></tr>
+    <tr><td>Drain supply regulation</td><td>Phase pushing e.g. 1 °/V</td><td>Pulse-to-pulse phase stability set by the modulator (step 7)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cAm" width="640" height="360" aria-label="AM-AM and AM-PM curves versus drive, with the operating point"></canvas>
+    <div class="ctrl">
+      <label for="amP">Knee smoothness p <b id="amPv"></b></label><input id="amP" type="range" min="0.8" max="6" step="0.1" value="2">
+      <label for="amF">Phase change at saturation input <b id="amFv"></b></label><input id="amF" type="range" min="0" max="30" step="0.5" value="8">
+      <label for="amD">Drive, relative to P1dB input <b id="amDv"></b></label><input id="amD" type="range" min="-20" max="10" step="0.5" value="0">
+      <label for="amR">Drive variation (rms) <b id="amRv"></b></label><input id="amR" type="range" min="0" max="0.5" step="0.01" value="0.05">
+      <div class="readout" id="amOut"></div>
+    </div>
+    <p class="cap">Top: AM-AM, output power relative to Psat against drive. Bottom: AM-PM, insertion phase change against drive. The dot is your operating point and the short accent segments show the slopes there. The readout turns a small drive variation (from the exciter, driver droop or supply ripple) into output amplitude and phase variation and the equivalent stability in dBc. Try the drive at −10 dB, 0 dB and +6 dB.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Exciter and driver:</b> your amplitude stability (pulse-to-pulse, over temperature) is multiplied by the PA's AM-PM slope. A driver that is itself in compression helps amplitude but adds its own AM-PM.</li>
+    <li><b>Predistortion and linearisation:</b> AM-AM and AM-PM tables measured on the PA are what a digital predistorter inverts. The tables must be measured at the real pulse width and temperature.</li>
+    <li><b>Power-supply designers:</b> phase pushing (°/V) multiplied by supply ripple is a phase modulation of every pulse.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>AM-PM slope 5 °/dB, drive varies by 0.02 dB rms. What phase stability results?</summary><p>0.1° rms = 1.75 mrad, 20·log₁₀(0.00175) = −55 dBc.</p></details>
+    <details><summary>Why can a deeply saturated PA still have poor phase stability?</summary><p>AM-AM is flat in saturation, so amplitude is stable, but phase can still move with drive and strongly with supply voltage (phase pushing) and temperature. Saturation stabilises amplitude, not phase.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="papr">
+  <div class="secno">Step 5</div>
+  <h2>PAPR and back-off: chirps, pulses and multi-tone jamming</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>Add two sine waves of slightly different frequency and you get beats: the sum swings between twice the amplitude (when they are in phase) and zero (when they are out of phase). Add many sine waves with random phases and the sum looks like noise, with occasional large peaks. The PA has to pass the peaks; the system is paid by the average.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>PAPR</b> (peak-to-average power ratio): peak envelope power divided by average power, in dB. CW, a pulse's flat top and a linear FM chirp have PAPR = 0 dB. Two equal tones: 3.0 dB. N equal tones all in phase: 10·log₁₀(N) dB. Gaussian noise has no strict peak; its PAPR is quoted at a probability, about 9.6 dB at 0.01 % of the time. (The demo's short 1024-sample noise record peaks at about 7.7 dB; a longer record would reach the rarer, higher peaks.)</p>
+    <p><b>PEP</b> (peak envelope power): the power of the envelope at its highest point. A PA must handle the PEP without excessive compression. <b>CCDF</b> (complementary cumulative distribution function): the fraction of time the envelope power exceeds a given level above the average. <b>Signal-to-distortion ratio (SDR)</b>: power of the wanted (linearly scaled) signal at the output divided by the power of everything else the PA added.</p>
+    <p><b>Multi-tone jamming</b>: one jammer transmitting several CW tones at once, for example one on each channel of a frequency-hopping radio or a spot on each of several radars. <b>Noise jamming</b>: transmitting band-limited noise to raise the noise floor of a victim receiver.</p>
+  </div>
+  <div class="col">
+    <p><b>The rule.</b> To pass a signal with little distortion, its peaks must stay below the PA's compression. So its average must sit PAPR dB below that, and the average output power is lower than the PA's rating by roughly the PAPR. Constant-envelope radar waveforms (pulses, chirps, phase codes) are exactly why most radar PAs can be run in saturation at full efficiency. Jammers and multi-channel transmitters are not so lucky.</p>
+    <p><b>What happens if you do not back off.</b> The peaks are clipped. Clipping does three bad things: (1) it removes energy from the peaks and turns it into distortion products, which land in the gaps between the tones and in the adjacent channels (step 6); (2) the wanted signal's power falls compared with a linear PA; (3) for multi-tone, it creates intermodulation tones that waste power on frequencies nobody wanted. You can see all three in the demo through the signal-to-distortion readout.</p>
+  </div>
+  <div class="eq">P<sub>avg,max</sub> ≈ P<sub>compression</sub> − PAPR      per-tone power (N equal tones) = P<sub>avg</sub> − 10·log₁₀(N)
+    <small>Two tones in a 100 W PEP-rated amplifier: average 50 W, 25 W per tone. Eight tones all in phase: PEP is 8 × average, so average 12.5 W and 1.6 W per tone, each tone 18 dB below a single 100 W CW. With random or optimised (Newman) phases the PAPR of eight tones is only about 2.5–5 dB, so phasing the tones buys back 4–6 dB.</small></div>
+  <div class="col">
+    <h3>Worked example: one PA, three waveforms</h3>
+    <p>A 100 W (Psat) GaN PA with p = 2. <b>Radar chirp:</b> PAPR 0 dB, run it at Psat: 100 W average, efficiency at its best, almost no distortion from AM-AM (phase still matters, step 4). <b>Two-tone test or two channels:</b> 3 dB PAPR; at 6 dB average back-off (about 23 W) the peaks sit 3 dB below Psat and the SDR is about 35 dB. <b>Eight tones in phase:</b> at the same back-off the 9 dB peaks are crushed and SDR falls to 17 dB. <b>Noise jamming:</b> at 6 dB back-off the noise peaks still reach saturation and SDR is about 24 dB; for 30 dB SDR it must back off about 8.5 dB, to 14 W average, where an ideal class-B PA runs at 34 % efficiency instead of 66 % on the saturated chirp. The demo gives exact numbers for any case.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Waveform (system choice): chirp, phase code, multi-tone, noise</td><td>PAPR 0 / 3 / 10·log N / ≈ 10 dB</td><td>Average power the same PA can deliver: 100 / 50 / 12.5 / ≈ 10 W for 100 W Psat</td></tr>
+    <tr><td>Knee shape p, linearisation (predistortion)</td><td>IM3 / ACPR at stated back-off (step 6)</td><td>Back-off needed for a given SDR or spectral mask: 3–5 dB less with a hard knee plus predistortion</td></tr>
+    <tr><td>Doherty, envelope tracking</td><td>Efficiency at 6–10 dB back-off</td><td>Prime power and heat of a noise or multi-tone jammer</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cPp" width="640" height="380" aria-label="Envelope power of the chosen waveform against Psat, and its CCDF"></canvas>
+    <div class="ctrl">
+      <label for="ppS">Waveform</label>
+      <select id="ppS"><option value="chirp">LFM chirp or pulse (constant envelope)</option><option value="two">Two equal tones</option><option value="neq" selected>N tones, all in phase</option><option value="nrand">N tones, random phases</option><option value="nnew">N tones, Newman phases</option><option value="noise">Band-limited noise</option></select>
+      <label for="ppN">Number of tones N <b id="ppNv"></b></label><input id="ppN" type="range" min="2" max="64" step="1" value="8">
+      <label for="ppB">Average output back-off from Psat <b id="ppBv"></b></label><input id="ppB" type="range" min="0" max="15" step="0.5" value="6">
+      <label for="ppP">Knee smoothness p <b id="ppPv"></b></label><input id="ppP" type="range" min="0.8" max="6" step="0.1" value="2">
+      <div class="readout" id="ppOut"></div>
+    </div>
+    <p class="cap">Top: envelope power over one period of the waveform, relative to Psat (accent line at 0 dB). Dashed: what a perfect linear amplifier would deliver; solid: the PA output, flattened wherever the envelope reaches the knee. Bottom: CCDF, the fraction of time the envelope power exceeds the level on the x-axis above its average (input dashed, output solid). The number of tones applies to the three "N tones" waveforms. Efficiency in the readout assumes an ideal class-B device, whose DC current follows the envelope.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>DAC and exciter designers:</b> the tone phases you choose set the PAPR. Newman or Schroeder phases on a multi-tone jammer are worth several dB of jammer power for free.</li>
+    <li><b>PA designers:</b> a PA rated "100 W" is a 100 W CW or pulsed PA. On a 10 dB PAPR signal it is a 10 W PA. Quote the signal it was rated for.</li>
+    <li><b>Power-supply designers:</b> a backed-off class AB PA on a noise waveform draws a fluctuating current; the supply's transient response appears as extra distortion.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Sixteen equal tones, all in phase, through a 200 W PA. How much power per tone if the PEP must stay at 200 W?</summary><p>PAPR = 10·log₁₀(16) = 12 dB. Average 200/16 = 12.5 W, per tone 12.5/16 = 0.78 W, i.e. 24 dB below a single 200 W tone.</p></details>
+    <details><summary>Why can a chirp radar PA run in saturation when a noise jammer PA cannot?</summary><p>The chirp's envelope is constant, so saturation does not distort its shape and the phase information in the chirp survives (apart from AM-PM on any residual drive variation). Noise has peaks well above its average; saturation clips them and turns them into distortion spread over the band and beyond.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="spur">
+  <div class="secno">Step 6</div>
+  <h2>Harmonics and spectral regrowth: the PA's unwanted output</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>Any nonlinear transfer curve, written as a power series y = a₁x + a₂x² + a₃x³ + …, turns a sine at f₀ into sines at 2f₀, 3f₀ and so on (harmonics), and turns two sines at f₁ and f₂ into products at 2f₁ − f₂, 2f₂ − f₁ and other combinations (intermodulation). The x² term makes even-order products, the x³ term odd-order ones. A PA run near its limits is a strongly nonlinear device, so it makes both.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>dBc</b>: dB relative to the carrier (the wanted output). −60 dBc is one millionth of the carrier power. <b>Harmonic</b>: an output at an integer multiple n·f₀ of the carrier. <b>IM3</b>: third-order intermodulation products at 2f₁ − f₂ and 2f₂ − f₁, right next to the two tones and impossible to filter. <b>IM5</b>: fifth-order products, one tone spacing further out.</p>
+    <p><b>OIP3</b> (output third-order intercept point): the fictitious output power per tone at which the extrapolated IM3 line (slope 3) would meet the extrapolated fundamental line (slope 1). Below compression, IM3 (dBc) = −2·(OIP3 − P<sub>tone</sub>). <b>Spectral regrowth</b>: the skirts of distortion that grow on both sides of a modulated signal after a nonlinear PA. <b>ACPR</b> (adjacent channel power ratio): power falling in the neighbouring channel, relative to the power in the wanted channel, in dBc.</p>
+  </div>
+  <div class="col">
+    <p><b>Harmonics.</b> A PA that clips symmetrically (both half-cycles flattened equally) makes mostly odd harmonics; any asymmetry (class AB bias, knee on one side and pinch-off on the other) adds even ones. Unfiltered, broadband GaN PAs show second harmonics around −15 to −25 dBc and third harmonics around −20 to −30 dBc. Narrowband PAs with harmonic terminations (class F, class J) reflect the harmonics back into the device on purpose to shape the waveforms, which improves efficiency and reduces harmonic output, but a harmonic filter is still needed to reach the −60 dBc that spectrum rules and co-site receivers usually ask for.</p>
+    <p><b>Spectral regrowth.</b> Harmonics are far away and can be filtered. Intermodulation of a modulated signal lands right next to it: a two-tone test grows IM3 at one tone spacing outside each tone; a wideband signal grows skirts that spill into the adjacent channel. No filter can remove them without removing the signal. Only back-off, a better knee, or linearisation (predistortion) reduces them. AM-PM makes regrowth worse, because a phase that depends on the envelope is another form of nonlinearity.</p>
+  </div>
+  <div class="eq">IM3 (dBc) = −2·(OIP3 − P<sub>tone</sub>)      each 1 dB of back-off improves IM3 by 2 dB (below compression)
+    <small>Two tones at 40 dBm each, OIP3 = 55 dBm: IM3 = −2 × 15 = −30 dBc (10 dBm). Back off 3 dB to 37 dBm per tone: −36 dBc. Near and above P1dB the rule fails: IM3 stops improving with drive and IM5, IM7 rise. The demo uses the full Rapp curve, so you can see where the 2:1 rule holds and where it breaks.</small></div>
+  <div class="col">
+    <h3>Worked example: harmonics through a filter</h3>
+    <p>A 100 W PA at P1dB makes a second harmonic at −20 dBc (1 W) and a third at −15 dBc (3.2 W). The system needs −60 dBc. The filter must therefore reject 40 dB at 2f₀ and 45 dB at 3f₀, while losing only 0.3–0.5 dB at f₀ (every 0.1 dB is 2.3 W, step 1). The filter must also absorb or reflect up to 4 W of harmonic power; if it reflects it, the PA sees a harmonic load it was not designed for, which changes its efficiency and waveform (step 9).</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Harmonic terminations, bias symmetry, push-pull or balanced topology</td><td>H2 −20 dBc, H3 −15 dBc unfiltered</td><td>Harmonic filter rejection needed: 40–45 dB; co-site interference to own ESM and comms</td></tr>
+    <tr><td>Device linearity, knee p, back-off</td><td>OIP3 55 dBm; IM3 −30 dBc at 40 dBm/tone</td><td>Adjacent channel interference; multi-tone jammer wastes power in IM products; false targets in multi-channel systems</td></tr>
+    <tr><td>AM-PM, memory effects (bias network, thermal)</td><td>ACPR at stated back-off</td><td>Spectral mask compliance; linearisation needed or not</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cHm" width="640" height="360" aria-label="Clipped output waveform and harmonic levels before and after filtering"></canvas>
+    <div class="ctrl">
+      <label for="hmD">Drive, relative to saturation <b id="hmDv"></b></label><input id="hmD" type="range" min="-20" max="10" step="0.5" value="0">
+      <label for="hmP">Knee smoothness p <b id="hmPv"></b></label><input id="hmP" type="range" min="0.8" max="6" step="0.1" value="2">
+      <label for="hmA">Clipping asymmetry <b id="hmAv"></b></label><input id="hmA" type="range" min="0" max="30" step="1" value="10">
+      <label for="hmF">Filter rejection at 2f₀ <b id="hmFv"></b></label><input id="hmF" type="range" min="0" max="60" step="1" value="40">
+      <div class="readout" id="hmOut"></div>
+    </div>
+    <p class="cap">Top: one and a half cycles of the RF voltage at the device output (dashed: undistorted, solid: with the Rapp limit and the chosen asymmetry between the two half-cycles). Bottom: harmonics H2 to H7 in dBc, before the filter (pale) and after it (solid). The filter model is illustrative: the stated rejection at 2f₀ and 12 dB more for each harmonic above. Set asymmetry to 0 % and the even harmonics vanish.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cRg" width="640" height="360" aria-label="Output spectrum of a two-tone or modulated signal after the PA, showing intermodulation and spectral regrowth"></canvas>
+    <div class="ctrl">
+      <label for="rgS">Signal</label>
+      <select id="rgS"><option value="two" selected>Two-tone test</option><option value="m16">16 tones, random phases</option><option value="noise">Noise-like (81 tones)</option></select>
+      <label for="rgB">Average output back-off <b id="rgBv"></b></label><input id="rgB" type="range" min="0" max="20" step="0.5" value="6">
+      <label for="rgP">Knee smoothness p <b id="rgPv"></b></label><input id="rgP" type="range" min="0.8" max="6" step="0.1" value="2">
+      <label for="rgF">AM-PM at saturation input <b id="rgFv"></b></label><input id="rgF" type="range" min="0" max="30" step="0.5" value="0">
+      <div class="readout" id="rgOut"></div>
+    </div>
+    <p class="cap">Output spectrum after the PA, computed by FFT of the distorted envelope, relative to the strongest wanted line. The x-axis is the offset from the carrier in units of the tone spacing (two-tone) or of the signal bandwidth (the others). Dashed: the input. For the two-tone test, IM3 and IM5 are marked; for the wideband signals the shaded zones are the adjacent channels used for ACPR. Back off 1 dB at a time from 10 dB and watch IM3 fall by about 2 dB per dB, then add AM-PM and watch the products rise again.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Filter designers:</b> the harmonic filter's rejection, its pass-band loss and what it does with the rejected power (reflect or absorb) are all PA specs in disguise.</li>
+    <li><b>ESM and receiver designers on the same platform:</b> the PA's harmonics and regrowth are interference in your band. 100 W at −60 dBc is still 100 µW, 50 dB above the sensitivity of a typical ESM channel.</li>
+    <li><b>Exciter and DSP designers:</b> digital predistortion uses the measured AM-AM and AM-PM (step 4) to cancel regrowth by 10–20 dB, but only if the PA has little memory (its distortion depends only on the present envelope, not on its recent history).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two tones at 9.400 and 9.410 GHz. Where are IM3 and IM5?</summary><p>IM3 at 2·9.400 − 9.410 = 9.390 GHz and 9.420 GHz. IM5 at 3·9.400 − 2·9.410 = 9.380 GHz and 9.430 GHz. Each order steps out by one tone spacing.</p></details>
+    <details><summary>IM3 is −30 dBc at 40 dBm per tone. What is OIP3?</summary><p>OIP3 = P<sub>tone</sub> + |IM3|/2 = 40 + 15 = 55 dBm.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="pulse">
+  <div class="secno">Step 7</div>
+  <h2>Pulsed operation: droop, rise time and pulse-to-pulse stability</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A capacitor supplying a load current I for a time Δt loses voltage ΔV = I·Δt / C. A pulsed radar PA draws a large current only during the pulse, so its supply is usually a capacitor bank recharged between pulses. During each pulse that bank sags, and the PA's gain, power and phase all follow the supply. On top of this, the device heats up during the pulse (it cools between pulses), so its gain and phase change along the pulse too.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Pulse width τ</b>, <b>PRI</b> (pulse repetition interval) and <b>PRF</b> = 1/PRI. <b>Duty cycle</b> = τ/PRI. <b>Rise time / fall time</b>: time for the RF envelope to go from 10 % to 90 % of its final amplitude (or back). <b>Droop</b>: the fall of output power from the start to the end of the pulse, in dB. <b>Pulse-to-pulse stability</b>: the variation of amplitude and phase between successive pulses, measured at the same point in each pulse, as an rms value or in dBc.</p>
+    <p><b>Clutter</b>: echoes from ground, sea or rain, much stronger than the target and nearly stationary (zero Doppler). <b>MTI / Doppler processing</b>: comparing successive pulses (or taking an FFT across them, a CPI of N pulses) so that stationary clutter cancels and moving targets remain. <b>CNR</b>: clutter-to-noise ratio of a single pulse. <b>Improvement factor I</b>: how much the processor suppresses clutter relative to targets. Transmitter instability sets a hard ceiling on I.</p>
+  </div>
+  <div class="col">
+    <p><b>Why pulse-to-pulse stability is a PA spec.</b> A Doppler processor sees clutter as a strong, steady echo. If every pulse is identical, the clutter echo is identical from pulse to pulse and lands in the zero-Doppler bin where it can be rejected. If the transmitted pulses differ randomly by a small amplitude ε and phase δφ, the clutter echo inherits the same variation. That random part is not at zero Doppler; it spreads evenly over all Doppler bins as a new noise floor, CNR + S dB above thermal noise, where S is the stability in dBc. A moving target that would have been clearly visible against thermal noise may now sit below the clutter residue.</p>
+  </div>
+  <div class="eq">S = 10·log₁₀(σ<sub>φ</sub>² + σ<sub>a</sub>²) dBc     (σ<sub>φ</sub> in rad, σ<sub>a</sub> = relative amplitude error = σ<sub>dB</sub>·ln10/20)      I<sub>max</sub> ≈ −S
+    <small>σ<sub>φ</sub> = 0.1° rms = 1.75 mrad → −55.2 dBc. σ<sub>a</sub> = 0.01 dB rms = 1.15·10⁻³ → −58.8 dBc. Together S = −53.6 dBc. With 60 dB CNR the clutter residue is 6.4 dB above thermal noise, and every target loses about 7.3 dB of SNR. The same PA with 40 dB CNR (lighter clutter) loses only 0.1 dB.</small></div>
+  <div class="col">
+    <p><b>Droop and rise time.</b> Droop does not change from pulse to pulse, so it does not limit MTI on its own, but it lowers pulse energy, and through AM-PM and phase pushing (step 4) it becomes a phase slope or curve along the pulse. In a chirp, a phase error along the pulse raises the range sidelobes after pulse compression. Rise and fall times set the spectral width of the pulse edges: the edge occupies roughly 0.35/t<sub>r</sub> of bandwidth, so a 20 ns rise time spreads energy over ±17 MHz, which the spectrum mask and nearby receivers see.</p>
+    <h3>Worked example: sizing the capacitor bank</h3>
+    <p>A PA draws 10 A from 50 V during a 100 µs pulse. To keep droop small, the bank must hold ΔV small: with C = 1000 µF, ΔV = 10 × 100·10⁻⁶ / 10⁻³ = 1 V, 2 % of V<sub>DD</sub>. Saturated output scales roughly as V<sub>DD</sub>², so power droops 4 % (0.18 dB). If the PA's phase pushing is 1 °/V, the phase walks 1° along the pulse. If the charger does not recharge the bank to exactly the same voltage before every pulse (for example ±10 mV rms because of the charger's regulation and the PRF pattern), that is a pulse-to-pulse phase error of 0.01° and an amplitude error of 0.02 % rms. Both are well below the budget above, so here the supply is not the limit; the exciter and the PA's thermal transients usually are.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Drain modulator, capacitor bank size, charger regulation</td><td>Droop 0.18 dB over 100 µs; phase pushing 1 °/V</td><td>Pulse energy; phase slope along the pulse → range sidelobes after pulse compression</td></tr>
+    <tr><td>Gate pulsing vs drain pulsing, driver bandwidth, matching network Q</td><td>Rise / fall time 20–50 ns</td><td>Spectral width of edges (≈ 0.35/t<sub>r</sub>); minimum usable pulse width; blind range</td></tr>
+    <tr><td>Thermal design, bias stability, exciter stability</td><td>Pulse-to-pulse 0.1° and 0.01 dB rms (−53.6 dBc)</td><td>Clutter cancellation limit ≈ 54 dB; target SNR loss in strong clutter (7.3 dB at 60 dB CNR)</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cPl" width="640" height="460" aria-label="Overlaid pulse envelopes, a zoom of the flat top, and the Doppler spectrum with the clutter residue floor"></canvas>
+    <div class="ctrl">
+      <label for="plW">Pulse width τ <b id="plWv"></b></label><input id="plW" type="range" min="1" max="200" step="1" value="20">
+      <label for="plR">Rise / fall time (10–90 %) <b id="plRv"></b></label><input id="plR" type="range" min="5" max="1000" step="5" value="50">
+      <label for="plD">Droop over the pulse <b id="plDv"></b></label><input id="plD" type="range" min="0" max="1.5" step="0.01" value="0.2">
+      <label for="plA">Pulse-to-pulse amplitude σ <b id="plAv"></b></label><input id="plA" type="range" min="0" max="0.1" step="0.001" value="0.01">
+      <label for="plF">Pulse-to-pulse phase σ <b id="plFv"></b></label><input id="plF" type="range" min="0" max="2" step="0.01" value="0.1">
+      <label for="plC">Clutter-to-noise ratio, one pulse <b id="plCv"></b></label><input id="plC" type="range" min="20" max="80" step="1" value="60">
+      <label for="plN">Pulses per CPI</label>
+      <select id="plN"><option value="16">16</option><option value="64" selected>64</option><option value="256">256</option></select>
+      <div class="readout" id="plOut"></div>
+    </div>
+    <p class="cap">Top: eight successive pulses overlaid (relative amplitude against time). Middle: zoom on the flat top in dB, where droop and the pulse-to-pulse spread become visible; the spread is drawn at its true size. Bottom: Doppler spectrum after an FFT over the CPI (Hann window). Thermal noise is at 0 dB. The clutter peak sits at zero Doppler, the instability residue raises the floor everywhere, and a moving target (single-pulse SNR 0 dB) sits at 0.3 PRF. Raise the phase σ to 1° and the target disappears into the floor.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Power-supply and modulator designers:</b> bank capacitance, charger regulation and any ripple synchronous with the PRF are direct inputs to pulse-to-pulse stability.</li>
+    <li><b>Synthesiser and exciter designers:</b> your phase noise and your pulse-to-pulse amplitude stability add to the PA's in the same budget (module 02 covers phase noise).</li>
+    <li><b>PA designers:</b> the device heats by tens of degrees during a long pulse. If the PRF or pulse width changes (staggered PRF, mode changes), the thermal history changes and so does the phase of the next pulse. Measure stability with the real pulse pattern, not a single repeating pulse.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A system needs 60 dB of clutter cancellation. What pulse-to-pulse phase stability does the transmitter need, if amplitude is perfect?</summary><p>S ≤ −60 dBc, so σ<sub>φ</sub> ≤ 10⁻³ rad = 0.057° rms. The PA can have only a fraction of this, because the exciter, the LO and the receiver share the same budget.</p></details>
+    <details><summary>Why does droop matter less for MTI than pulse-to-pulse variation?</summary><p>Droop is the same in every pulse, so the clutter echoes are still identical from pulse to pulse and still cancel. Only the part that changes between pulses spreads clutter into the Doppler bins.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="therm">
+  <div class="secno">Step 8</div>
+  <h2>Duty cycle and thermal limits</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>An RC circuit driven by a pulse train charges during each pulse and discharges between pulses. If the pulses are short compared with the time constant, the capacitor voltage barely ripples and settles at the average. If the pulses are long, it nearly reaches the full value each time. Heat flow behaves the same way: thermal resistance is the R, the heat capacity of the die, attach and flange is the C, and temperature is the voltage.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Thermal impedance Z<sub>th</sub>(τ, D)</b>: the peak temperature rise per watt of peak dissipation for pulses of width τ at duty cycle D. For very short pulses Z<sub>th</sub> → D·R<sub>th</sub> (only the average heat counts); for CW Z<sub>th</sub> = R<sub>th</sub>. Datasheets give it as a family of curves.</p>
+    <p><b>Thermal time constant</b>: how fast each layer heats. Roughly: the die channel in tens of µs, the die and attach in hundreds of µs, the flange in milliseconds, the heat sink in seconds. The demo uses an illustrative three-layer model: 20 % of R<sub>th</sub> with 20 µs, 30 % with 400 µs and 50 % with 8 ms.</p>
+    <p><b>T<sub>j,max</sub></b>: the maximum junction (channel) temperature allowed. GaN devices are often rated to 225 °C absolute and derated to 150–200 °C for long life; GaAs to 150–175 °C. <b>MTTF</b>: mean time to failure. It falls exponentially with T<sub>j</sub> (Arrhenius law): MTTF ∝ exp(E<sub>a</sub> / kT<sub>j</sub>). With an activation energy E<sub>a</sub> ≈ 1.7 eV, 10 °C hotter at about 200 °C cuts life by a factor of about 2.4.</p>
+  </div>
+  <div class="col">
+    <p><b>Average heat is not the whole story.</b> A pulsed PA at 10 % duty dissipates on average one tenth of its peak dissipation. If the pulses were very short the junction would see only that average. But real pulses (tens to hundreds of µs) are longer than the die's own time constants, so the junction heats up during each pulse and the peak temperature is well above what the average suggests. The peak is what ages the device.</p>
+  </div>
+  <div class="eq">ΔT<sub>peak</sub> = Σ<sub>i</sub> P<sub>pk</sub>·R<sub>i</sub>·(1 − e<sup>−τ/τᵢ</sup>) / (1 − e<sup>−PRI/τᵢ</sup>)      T<sub>j,peak</sub> = T<sub>base</sub> + ΔT<sub>peak</sub>
+    <small>Each layer i (thermal resistance R<sub>i</sub>, time constant τ<sub>i</sub>) reaches a periodic steady state. Duty 100 % gives ΔT = P·R<sub>th</sub> (CW). τ ≪ τ<sub>i</sub> gives ΔT → D·P·R<sub>i</sub> (the average).</small></div>
+  <div class="col">
+    <h3>Worked example</h3>
+    <p>A GaN PA delivers 200 W peak at η<sub>D</sub> = 50 %, so it dissipates 200 W during each pulse. R<sub>th</sub> = 0.8 °C/W, base 70 °C, duty 10 %. <b>Average-only estimate:</b> 20 W × 0.8 = 16 °C, T<sub>j</sub> = 86 °C. <b>With 100 µs pulses:</b> the three-layer model gives ΔT<sub>peak</sub> = 52 °C, T<sub>j</sub> = 122 °C. <b>With 1 ms pulses at the same 10 % duty:</b> 89 °C rise, T<sub>j</sub> = 159 °C. <b>CW:</b> 160 °C rise, T<sub>j</sub> = 230 °C, beyond any rating. Same average power, same device: the pulse width alone moves the junction by 37 °C, which with E<sub>a</sub> = 1.7 eV is a factor of about 75 in life. This is why a "10 % duty" rating is meaningless without the pulse width, and why long-pulse modes (for energy on target) are thermally the hardest.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Substrate (SiC, diamond), die thickness, attach, flange material</td><td>R<sub>th</sub> 0.8 °C/W; Z<sub>th</sub> curves</td><td>Allowed duty and pulse width at a given T<sub>j</sub>; radar energy per CPI (detection, step 12)</td></tr>
+    <tr><td>Efficiency (step 3)</td><td>P<sub>diss</sub> = P<sub>out</sub>(1/η − 1)</td><td>Every efficiency point lowers T<sub>j</sub>, raises allowed duty</td></tr>
+    <tr><td>Derating policy, cooling (cold plate temperature)</td><td>T<sub>j,max</sub> 150–225 °C</td><td>MTTF; maximum ambient; whether long-pulse or CW jamming modes are allowed</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cTh" width="640" height="380" aria-label="Junction temperature over three pulse periods, and peak junction temperature versus duty cycle"></canvas>
+    <div class="ctrl">
+      <label for="thP">Peak RF output <b id="thPv"></b></label><input id="thP" type="range" min="10" max="500" step="5" value="200">
+      <label for="thE">Drain efficiency <b id="thEv"></b></label><input id="thE" type="range" min="20" max="75" step="1" value="50">
+      <label for="thW">Pulse width <b id="thWv"></b></label><input id="thW" type="range" min="0" max="4" step="0.05" value="2">
+      <label for="thD">Duty cycle <b id="thDv"></b></label><input id="thD" type="range" min="1" max="100" step="1" value="10">
+      <label for="thR"><span>R<sub>th</sub> junction to base</span> <b id="thRv"></b></label><input id="thR" type="range" min="0.2" max="3" step="0.05" value="0.8">
+      <label for="thT">Base temperature <b id="thTv"></b></label><input id="thT" type="range" min="25" max="100" step="1" value="70">
+      <label for="thL"><span>Derated T<sub>j</sub> limit</span></label>
+      <select id="thL"><option value="150">150 °C</option><option value="175" selected>175 °C</option><option value="200">200 °C</option><option value="225">225 °C</option></select>
+      <div class="readout" id="thOut"></div>
+    </div>
+    <p class="cap">Top: junction temperature over three pulse periods (in periodic steady state). Dashed lines: the average-only estimate, the CW temperature and the derated limit (accent). Bottom: peak junction temperature against duty cycle for this pulse width (solid) and for the average-only estimate (dashed), with your point. Pulse width runs from 1 µs to 10 ms on a log scale. Short pulses: the curve follows the average. Long pulses: it jumps towards CW even at low duty.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Mechanical and cooling designers:</b> base-plate temperature adds one-for-one to T<sub>j</sub>. 10 °C cooler cold plate is worth as much life as 10 °C less device heating.</li>
+    <li><b>Radar system and waveform designers:</b> the PA's Z<sub>th</sub> curves are the real limit on pulse width and duty, i.e. on energy per pulse and per dwell. Ask for them.</li>
+    <li><b>Firmware designers:</b> duty-cycle limiters and over-temperature protection belong to the PA's safe operating area; their thresholds come from these curves.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A PA is rated "10 % duty". Why ask for the pulse width?</summary><p>At 10 % duty, a 10 µs pulse heats the junction close to the average, but a 1 ms pulse heats it most of the way to the CW value. The rating is only meaningful as Z<sub>th</sub> at a stated pulse width.</p></details>
+    <details><summary>Efficiency rises from 45 % to 55 % at 200 W peak. How much less peak dissipation?</summary><p>200·(1/0.45 − 1) = 244 W versus 200·(1/0.55 − 1) = 164 W: 80 W (33 %) less heat, and the peak temperature rise falls by the same fraction.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="vswr">
+  <div class="secno">Step 9</div>
+  <h2>Load VSWR tolerance: what a bad antenna match does to the PA</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A wave on a line that meets a load other than Z₀ is partly reflected, with reflection coefficient Γ = (Z<sub>L</sub> − Z₀)/(Z<sub>L</sub> + Z₀). Forward and reflected waves add to a standing wave with peaks of (1 + |Γ|) and troughs of (1 − |Γ|) times the forward amplitude. Where along the line the PA sits relative to those peaks depends on the line length, i.e. on the phase of Γ. A small-signal amplifier tolerates this quietly. A PA, already at its voltage and current limits, does not.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>VSWR</b> = (1 + |Γ|)/(1 − |Γ|). <b>Return loss</b> RL = −20·log₁₀|Γ|. <b>Mismatch loss</b> = −10·log₁₀(1 − |Γ|²): power that never reaches the load. <b>Load-pull</b>: measuring a device's output power, efficiency and so on while a tuner moves its load impedance over the Smith chart; the result is a set of contours around the optimum load Z<sub>opt</sub>.</p>
+    <p><b>Isolator</b>: a ferrite three-port circulator with one port terminated in a load. Forward power passes with 0.2–0.5 dB loss; reflected power is steered into the load, attenuated by the isolation (20–30 dB) on its way back. <b>Load VSWR tolerance (ruggedness)</b>: the datasheet statement that the device survives, e.g., 10:1 VSWR at all phases at a stated power and supply, without damage. Survival is not performance: output power, efficiency and spectrum can all be far off spec while it survives.</p>
+    <p><b>Current-source model</b> used in the demo: the transistor delivers a fundamental current up to I₁ and a voltage swing up to V<sub>DD</sub> − V<sub>k</sub>, whichever limit it hits first. At the optimum load R<sub>opt</sub> both limits are reached together; that is how R<sub>opt</sub> is chosen.</p>
+  </div>
+  <div class="col">
+    <p><b>Two ways a mismatch hurts.</b> If the load seen by the transistor rises above R<sub>opt</sub> (high |Z|), the voltage limit is hit first: the output clips earlier, power drops, harmonics rise and the drain voltage peak sits at its limit for longer, which is where breakdown and gate-drain stress happen. If the load falls below R<sub>opt</sub> (low |Z|), the current limit is hit first: power drops, but DC current stays high, so dissipation rises and the device runs hotter. Which of the two you get depends only on the phase of the reflection, i.e. on the cable length between the PA and the antenna. That is why ruggedness is always specified "at all phases".</p>
+    <p><b>The isolator's job.</b> With an isolator, the PA sees the isolator's own good input match plus the antenna reflection attenuated by the isolation. A VSWR 3 antenna (|Γ| = 0.5) behind a 20 dB isolator looks to the PA like |Γ| ≈ 0.5 × 0.1 + 0.05 = 0.10 (VSWR 1.22) at worst. The reflected power is not gone: it is in the isolator's load, which must be rated for it (up to the full PA power if the antenna is disconnected or a radome is iced).</p>
+  </div>
+  <div class="eq">|Γ| = (VSWR − 1)/(VSWR + 1)     P<sub>refl</sub> = |Γ|²·P<sub>fwd</sub>     V<sub>peak,line</sub> = (1 + |Γ|)·V<sub>fwd</sub>
+    <small>VSWR 2: |Γ| = 0.333, RL 9.5 dB, 11 % reflected, mismatch loss 0.51 dB. VSWR 3: |Γ| = 0.5, RL 6.0 dB, 25 % reflected, 1.25 dB. Peak line voltage 1.5 × forward: a 100 W PA on a 50 Ω line (100 V peak forward) puts 150 V peaks on the connectors and filter, which matters for high-power breakdown and multipaction.</small></div>
+  <div class="col">
+    <h3>Worked example</h3>
+    <p>A 100 W GaN PA (V<sub>DD</sub> = 50 V, V<sub>k</sub> = 5 V, so R<sub>opt</sub> = 45²/200 = 10.1 Ω) drives an antenna with VSWR 3 and no isolator. Matched, the simple current-source model gives 100 W out and 41.5 W of heat (η<sub>D</sub> 71 %). At VSWR 3, over all cable phases, the output swings between 33 W and 60 W, and at the low-impedance phases the heat rises to 108 W, 2.6 times the matched value; on R<sub>th</sub> = 0.8 °C/W the junction runs 53 °C hotter. With a 20 dB isolator the PA sees VSWR 1.22: it delivers 82–98 W, the heat rises to at most 60 W (+15 °C), and 25 W goes into the isolator load. Real devices differ in detail (load-pull contours are not this symmetric), but the size of the effect is typical.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Device breakdown voltage (GaN ≈ 150–200 V vs GaAs ≈ 15–25 V), gate-drain field plates</td><td>Survives 10:1 VSWR all phases at rated P</td><td>No PA loss when an antenna element fails, a cable is cut or a radome ices</td></tr>
+    <tr><td>Isolator / circulator with load, its isolation and load rating</td><td>PA sees VSWR ≤ 1.25 for antenna VSWR 3</td><td>Output power and spectrum stay in spec over scan angle (active-array mutual coupling changes element VSWR with scan)</td></tr>
+    <tr><td>Load-pull choice of Z<sub>opt</sub> (power vs efficiency vs linearity)</td><td>Pout and η contours</td><td>How fast power and efficiency fall as the antenna match moves</td></tr>
+    <tr><td>Reflected-power detector and foldback in firmware</td><td>Protection threshold</td><td>Transmitter survives open or shorted antenna; graceful reduction instead of failure</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cVs" width="640" height="370" aria-label="Reflection coefficient circles on a polar chart, and PA output and dissipation versus reflection phase"></canvas>
+    <div class="ctrl">
+      <label for="vsV">Antenna VSWR <b id="vsVv"></b></label><input id="vsV" type="range" min="1" max="6" step="0.05" value="3">
+      <label for="vsI">Protection between PA and antenna</label>
+      <select id="vsI"><option value="0" selected>None</option><option value="20">Isolator, 20 dB</option><option value="30">Isolator, 30 dB (two-junction)</option></select>
+      <label for="vsP">PA rated output (matched) <b id="vsPv"></b></label><input id="vsP" type="range" min="10" max="500" step="5" value="100">
+      <label for="vsR"><span>R<sub>th</sub> junction to base</span> <b id="vsRv"></b></label><input id="vsR" type="range" min="0.2" max="3" step="0.05" value="0.8">
+      <div class="readout" id="vsOut"></div>
+    </div>
+    <p class="cap">Left: the reflection coefficient plane (outer circle |Γ| = 1, the centre is a perfect match). Dashed circle: the antenna's |Γ| at all cable phases; solid circle: what the transistor sees after the protection. Right: PA output power and dissipation, as the phase of the reflection goes once round the circle, from the current-source model with V<sub>DD</sub> = 50 V and V<sub>k</sub> = 5 V. Shaded: phases where the voltage limit is reached first (high |Z|, breakdown stress).</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Antenna and radome designers:</b> the antenna VSWR over band and scan angle is the PA's load. A 2:1 spec that becomes 3:1 at the scan edge is a PA power and heat spec at the scan edge.</li>
+    <li><b>Circulator and isolator designers:</b> your isolation and your load's power rating decide whether the PA sees the antenna at all. The load must survive full reflected power for as long as the protection takes to react.</li>
+    <li><b>Cable and connector designers:</b> the standing wave puts (1 + |Γ|) times the forward voltage on your parts. At high power, voltage breakdown and multipaction margins must be checked at that peak, not at the matched voltage.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An antenna has 10 dB return loss. What fraction of power is reflected and what is the VSWR?</summary><p>|Γ| = 10<sup>−10/20</sup> = 0.316, |Γ|² = 10 %, VSWR = 1.316/0.684 = 1.92.</p></details>
+    <details><summary>Why is "survives 10:1 VSWR" not the same as "works at 10:1 VSWR"?</summary><p>Survival only means no damage. At 10:1 (|Γ| = 0.82) two thirds of the power is reflected, the output and efficiency are far off nominal, and harmonics and spurious outputs can be well above the spec.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="tech">
+  <div class="secno">Step 10</div>
+  <h2>GaN, GaAs and TWT: three ways to make RF power</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>Power is voltage times current. A device that can stand a higher voltage can deliver the same power at a lower current, into a higher (easier to match) impedance. A material that conducts heat well lets you pack more power into a small die. These two facts, breakdown field and thermal conductivity, decide most of the differences between PA technologies.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>GaAs pHEMT</b>: gallium arsenide high-electron-mobility transistor, low breakdown (drain supply 5–10 V), power density about 0.5–1 W/mm of gate width, excellent at high frequency and low noise. <b>GaN HEMT</b>: gallium nitride on silicon carbide, high breakdown (28–50 V supply), power density 4–8 W/mm, SiC substrate conducts heat about 3× better than GaAs. <b>TWT</b> (travelling-wave tube): a vacuum tube in which an electron beam travels along a slow-wave helix and gives energy to the RF wave travelling with it; kilovolt supplies, very high power and very wide bandwidth from one device.</p>
+    <p><b>SSPA</b>: solid-state power amplifier, many transistors combined (step 11). <b>EPC</b>: the electronic power conditioner, the high-voltage supply of a TWT. <b>MDC</b>: multi-stage depressed collector, which recovers energy from the spent electron beam and gives TWTs their high overall efficiency. <b>Graceful degradation</b>: the property of a combined SSPA that losing one device lowers power a little instead of losing the transmitter.</p>
+  </div>
+  <div class="col">
+    <p><b>Why GaN replaced GaAs for power.</b> With 5–10× the breakdown voltage, a GaN device delivers its power at higher voltage and lower current, so its optimum load is several ohms instead of a fraction of an ohm, the matching network is lower in loss and wider in bandwidth, and fewer devices are needed for a given power. The SiC substrate removes the heat. GaAs remains strong at low power, very high frequency, in low-noise roles, and where its lower supply voltage is convenient (T/R modules in some arrays).</p>
+    <p><b>Why TWTs are still built.</b> One tube gives hundreds of watts to kilowatts over an octave or more, with overall efficiency (with a depressed collector) of 50–60 %, high enough to compete with or beat SSPAs at high power. The costs are a kilovolt power supply, warm-up time, a finite cathode life, a single point of failure, a little more noise and spurious output from the HV supply, and different behaviour in saturation (sharper knee, larger AM-PM, typically 30–50° from small signal to saturation).</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Property (typical, illustrative)</th><th>GaAs pHEMT</th><th>GaN HEMT on SiC</th><th>TWT (helix)</th></tr>
+    <tr><td>Supply voltage</td><td class="n">5–10 V</td><td class="n">28–50 V</td><td class="n">3–10 kV</td></tr>
+    <tr><td>Power per device at X-band</td><td class="n">10–20 W</td><td class="n">40–100 W</td><td class="n">0.2–1 kW+</td></tr>
+    <tr><td>PAE / overall efficiency at X-band</td><td class="n">30–40 %</td><td class="n">35–50 %</td><td class="n">45–60 % (with MDC)</td></tr>
+    <tr><td>Instantaneous bandwidth</td><td>octave (MMIC)</td><td>octave or more</td><td>octave to 2–18 GHz</td></tr>
+    <tr><td>T<sub>j</sub> or temperature limit</td><td class="n">150–175 °C</td><td class="n">200–225 °C</td><td>cathode life, collector cooling</td></tr>
+    <tr><td>Ruggedness (load VSWR)</td><td>moderate; isolator needed</td><td>high (often 10:1)</td><td>reflected power limits; isolator or arc protection</td></tr>
+    <tr><td>AM-PM to saturation</td><td class="n">5–15°</td><td class="n">5–15°</td><td class="n">30–50°</td></tr>
+    <tr><td>Failure mode</td><td>graceful (combined)</td><td>graceful (combined)</td><td>single point; finite cathode life</td></tr>
+    <tr><td>Start-up</td><td>instant</td><td>instant</td><td>warm-up (tens of seconds to minutes)</td></tr>
+  </table></div>
+  <div class="col">
+    <h3>Worked example</h3>
+    <p>400 W is needed at the antenna port at X-band. <b>GaAs:</b> 15 W devices backed off 1 dB give 11.9 W each; a 64-way combiner (6 stages × 0.25 dB = 1.5 dB loss) gives 64 × 11.9 × 0.71 × 0.93 (output network) ≈ 500 W, enough. <b>GaN:</b> 60 W devices give 47.7 W each; 16-way (1.0 dB loss) gives about 560 W, enough with 4× fewer, smaller combiners. <b>TWT:</b> one 1 kW tube does it alone. The demo turns this into DC power and heat for any band, power and duty.</p>
+  </div>
+  <div class="bench">
+    <canvas id="cTc" width="640" height="340" aria-label="Number of devices, prime power and heat for GaAs, GaN and TWT transmitters meeting the same output"></canvas>
+    <div class="ctrl">
+      <label for="tcP">Power needed at the antenna port <b id="tcPv"></b></label><input id="tcP" type="range" min="1" max="4" step="0.05" value="2.6">
+      <label for="tcB">Band</label>
+      <select id="tcB"><option value="S">S-band (≈ 3 GHz)</option><option value="X" selected>X-band (≈ 10 GHz)</option><option value="Ku">Ku-band (≈ 15 GHz)</option></select>
+      <label for="tcD">Duty cycle <b id="tcDv"></b></label><input id="tcD" type="range" min="1" max="100" step="1" value="10">
+      <div class="readout" id="tcOut"></div>
+    </div>
+    <p class="cap">For each technology: how many devices (a binary combining tree for GaAs and GaN, one or two tubes for the TWT), and the average prime (DC) power and heat at the chosen duty cycle. Device powers and efficiencies are illustrative mid-range values, not any vendor's product. Solid-state devices are run 1 dB below Psat; each binary combining stage loses 0.25 dB, the output network 0.3 dB. TWT figures include the EPC and a 40 W standby (heater and control) load. Values beyond 4096 devices are shown as impractical.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Combiner and filter designers:</b> GaAs at high power means deep combining trees, and the tree's loss (yours) can eat the whole advantage of a cheaper device.</li>
+    <li><b>Power-supply designers:</b> GaN needs 28–50 V at tens of amps with fast pulse response; TWTs need kilovolts with very low ripple, because ripple on the helix voltage is phase modulation (TWT phase pushing is tens of degrees per percent of voltage change).</li>
+    <li><b>Reliability engineers:</b> SSPAs degrade gracefully (step 11); a TWT is a single wear-out item with a known cathode life.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Why does a higher supply voltage make a PA easier to match?</summary><p>R<sub>opt</sub> ≈ (V<sub>DD</sub> − V<sub>k</sub>)²/(2P). For 50 W, a 50 V GaN device needs about 20 Ω; an 8 V GaAs device about 0.5 Ω. Transforming 0.5 Ω to 50 Ω is a 100:1 ratio, with higher loss and narrower bandwidth.</p></details>
+    <details><summary>Name two reasons an airborne jammer might still choose a TWT.</summary><p>Very wide instantaneous bandwidth from one device (for example 6–18 GHz) and high power per kilogram and per litre at high efficiency. The costs are the HV supply, warm-up and a single point of failure.</p></details>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="comb">
+  <div class="secno">Step 11</div>
+  <h2>Combining: many devices into one output</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>A Wilkinson divider used backwards is a combiner: two equal, in-phase inputs add their power at the output, and anything that is not equal and in phase is dumped into the isolation resistor. That resistor is what lets the combiner tolerate a failed input, and it is also where imbalance turns into heat.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Binary (corporate) combiner</b>: a tree of 2-way combiners, k stages for N = 2<sup>k</sup> inputs. <b>Spatial or radial combiner</b>: N inputs combined in one step in a waveguide or radial line, lower loss for large N. <b>Combining efficiency η<sub>c</sub></b> = output power / sum of input powers. <b>Amplitude and phase imbalance</b>: the spread (rms) of the device outputs' amplitude (dB) and insertion phase (°) about their mean.</p>
+  </div>
+  <div class="col">
+    <p><b>Three losses.</b> (1) Dissipative loss of the combiner itself, about 0.15–0.3 dB per 2-way stage in microstrip or stripline at X-band, lower in waveguide or spatial combiners. For a binary tree it grows as k × loss per stage, so deep trees cost real power. (2) Imbalance: the outputs do not add perfectly in phase. For random errors with σ<sub>φ</sub> (rad) and σ<sub>a</sub> (natural-log amplitude), the expected combining efficiency is close to 1/N + (1 − 1/N)·e<sup>−σφ²</sup>·e<sup>−σa²</sup>. (3) Failures: if f of N devices fail (and present their matched off-state to the combiner), the output is ((N − f)/N)² of nominal: losing 1 of 8 costs 1.2 dB, not 0.6 dB, because the dead input's share of the live devices' power goes into the isolation resistors.</p>
+  </div>
+  <div class="eq">P<sub>out</sub> = N·P<sub>dev</sub> · 10<sup>−k·L/10</sup> · η<sub>imb</sub> · ((N − f)/N)²     η<sub>imb</sub> ≈ 1/N + (1 − 1/N)·e<sup>−σφ²</sup>·e<sup>−(σdB·ln10/20)²</sup>
+    <small>8 × 50 W, 3 stages × 0.2 dB: 400 W × 0.871 = 348 W. σ<sub>φ</sub> = 5° rms adds only 0.03 dB. One device failed: 348 × 0.766 = 267 W. The array version of this formula (with spatial combining in free space) is in module 10, T/R modules.</small></div>
+  <div class="col">
+    <h3>Worked example: when doubling stops paying</h3>
+    <p>With 0.25 dB per stage, going from 64 to 128 devices doubles the device power (+3 dB) but adds a stage (−0.25 dB): +2.75 dB net. Going from 1 to 128 devices gives 21.07 dB of device power but loses 1.75 dB in the tree. With 0.5 dB per stage (long lines at Ku-band) the tree loses 3.5 dB, more than one whole doubling. This is why large solid-state transmitters use low-loss spatial combiners or, in active arrays, combine in free space after the antenna element.</p>
+  </div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Combiner type (binary, radial, spatial), medium (microstrip, stripline, waveguide)</td><td>Loss 0.2 dB per stage</td><td>0.6 dB at 8-way, 1.4 dB at 128-way, paid in DC power and heat</td></tr>
+    <tr><td>Device matching (binning by phase and gain), line length tolerance</td><td>Phase σ 5°, amplitude σ 0.5 dB</td><td>Combining efficiency 99 %; imbalance power into isolation loads</td></tr>
+    <tr><td>Isolated combiner, rated isolation resistors</td><td>Graceful degradation: −1.2 dB at 1 of 8 failed</td><td>Transmitter keeps working with failed devices; mission continues at reduced EIRP</td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cCb" width="640" height="390" aria-label="Combined output power and combining efficiency versus number of devices"></canvas>
+    <div class="ctrl">
+      <label for="cbP">Power per device <b id="cbPv"></b></label><input id="cbP" type="range" min="5" max="200" step="1" value="50">
+      <label for="cbK"><span>Combining stages k (N = 2<sup>k</sup>)</span> <b id="cbKv"></b></label><input id="cbK" type="range" min="0" max="7" step="1" value="3">
+      <label for="cbL">Loss per 2-way stage <b id="cbLv"></b></label><input id="cbL" type="range" min="0" max="0.6" step="0.01" value="0.2">
+      <label for="cbA">Amplitude imbalance σ <b id="cbAv"></b></label><input id="cbA" type="range" min="0" max="2" step="0.05" value="0.5">
+      <label for="cbF">Phase imbalance σ <b id="cbFv"></b></label><input id="cbF" type="range" min="0" max="30" step="0.5" value="5">
+      <label for="cbX">Failed devices <b id="cbXv"></b></label><input id="cbX" type="range" min="0" max="50" step="1" value="0">
+      <div class="readout" id="cbOut"></div>
+    </div>
+    <p class="cap">Top: combined output power against the number of devices on a log scale. Dashed: ideal N × P<sub>dev</sub>; solid: with combiner loss and imbalance; the dot is your configuration including failed devices. Bottom: combining efficiency (without failures) against N. The failed-devices slider is a percentage of N, rounded to whole devices.</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Combiner designers:</b> your loss per stage multiplies by the number of stages; your isolation resistors must carry the imbalance and failure power continuously.</li>
+    <li><b>PA module designers:</b> unit-to-unit phase spread (from device lots, bias settings, temperature differences across a cold plate) is the imbalance term. 20° rms costs 0.5 dB.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Four devices of 100 W, two stages of 0.3 dB, perfect balance. Output?</summary><p>400 W × 10<sup>−0.06</sup> = 348 W.</p></details>
+    <details><summary>Two of 16 devices fail. How much power is lost?</summary><p>(14/16)² = 0.766, i.e. −1.16 dB (23 % of the power) for 12.5 % of the devices.</p></details>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="sys">
+  <div class="secno">Step 12</div>
+  <h2>From PA watts to EIRP, radar range and J/S</h2>
+  <div class="know"><h4>You already know</h4>
+    <p>From step 1: EIRP = P<sub>PA</sub> − losses + G. From the radar pages: a radar's echo falls as 1/R⁴ (out and back, each 1/R²), so the received echo power is proportional to P<sub>t</sub>/R⁴. A jammer's signal at the radar falls only as 1/R² (one way). These two powers of R are why the PA matters so differently in a radar and in a jammer.</p>
+  </div>
+  <div class="term"><h4>Terms used in this step</h4>
+    <p><b>Radar equation</b> (detection range): R<sub>max</sub>⁴ = P<sub>t</sub>·τ·N·G²·λ²·σ / ((4π)³·k·T₀·F·(S/N)<sub>min</sub>·L). P<sub>t</sub> peak power, τ pulse width, N pulses integrated coherently, G antenna gain, λ wavelength, σ target RCS (radar cross-section, m²), k Boltzmann's constant, T₀ = 290 K, F receiver noise figure, L losses. <b>Energy on target</b> P<sub>t</sub>·τ·N is what really counts, which is why pulse width and duty (step 8) matter as much as peak power.</p>
+    <p><b>J/S</b> (jamming-to-signal ratio): jammer power divided by target echo power inside the radar receiver. For a self-protection jammer on the target: J/S = (EIRP<sub>j</sub> / EIRP<sub>r</sub>) · (4π R² / σ) · (B<sub>r</sub> / B<sub>j</sub>). <b>B<sub>j</sub>/B<sub>r</sub></b>: jammer bandwidth over radar receiver bandwidth; noise spread over a wider band than the radar listens to is wasted. <b>Burn-through range</b>: the range at which the echo has grown enough that J/S falls to the value the jammer needs; inside it the radar detects the target despite the jamming.</p>
+  </div>
+  <div class="col">
+    <p><b>Radar: R ∝ P<sub>t</sub><sup>¼</sup>.</b> Double the PA power and detection range grows by 2<sup>¼</sup> = 1.19. A 1 dB loss after the PA costs 5.6 % of range. To double the range you need 16 × the power (12 dB). This weak dependence is why radar designers also buy range with antenna gain (G² in the equation), pulse width, integration and receiver noise figure.</p>
+    <p><b>Jammer: J/S ∝ P<sub>j</sub>.</b> J/S rises dB for dB with jammer power, and only falls as R² as the target closes (the echo rises as 1/R⁴, the jamming as 1/R²). Every dB of jammer PA power, every dB of post-PA loss saved, every dB of jammer antenna gain, and every dB of bandwidth not wasted (matching B<sub>j</sub> to B<sub>r</sub>) is a dB of J/S, and moves burn-through inward by a factor 10<sup>−1/20</sup> = 0.89 per dB.</p>
+  </div>
+  <div class="eq">ΔR/R = 10<sup>ΔP(dB)/40</sup> − 1      ΔJ/S (dB) = ΔP<sub>j</sub> (dB)      R<sub>bt</sub> = R · 10<sup>(J/S − J/S<sub>req</sub>)/(−20)</sup>
+    <small>Radar at 10 GHz, G = 35 dBi, σ = 1 m², τ = 10 µs, N = 16, F = 4 dB, L = 6 dB, (S/N)<sub>min</sub> = 13 dB: 1 kW gives 30.9 km; 2 kW gives 36.7 km. Jammer: EIRP 30 dBW (100 W, 10 dBi) against a radar EIRP of 85 dBW, σ = 10 m², R = 50 km, B<sub>j</sub>/B<sub>r</sub> = 20 dB: J/S = 30 − 85 + 95.0 − 20 ≈ 20 dB. Needing 10 dB, burn-through is at 50 × 10<sup>−10/20</sup> = 15.9 km.</small></div>
+  <div class="tw"><table class="t">
+    <tr><th>Design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>PA technology and size, combining (steps 10–11)</td><td>Psat 1 kW</td><td>Radar: 30.9 km on 1 m²; +3 dB → +19 % range</td></tr>
+    <tr><td>Waveform and back-off (step 5)</td><td>Average output on noise / multi-tone 6–10 dB below Psat</td><td>Jammer: J/S 6–10 dB lower than a CW figure suggests</td></tr>
+    <tr><td>Post-PA passives (step 1)</td><td>Loss 1.5 dB</td><td>Radar −8.3 % range; jammer −1.5 dB J/S and burn-through 19 % further out</td></tr>
+    <tr><td>Pulse width and duty limit (step 8)</td><td>Z<sub>th</sub> at τ, D</td><td>Energy on target P<sub>t</sub>τN; range ∝ (τN)<sup>¼</sup> as well as P<sub>t</sub><sup>¼</sup></td></tr>
+  </table></div>
+  <div class="bench">
+    <canvas id="cSy" width="640" height="340" aria-label="Radar detection range versus transmitter power, or jammer J/S versus range with burn-through"></canvas>
+    <div class="ctrl">
+      <label for="syM">Use of the PA</label>
+      <select id="syM"><option value="radar" selected>Radar transmitter</option><option value="jam">Self-protection jammer</option></select>
+      <label for="syP">PA output power <b id="syPv"></b></label><input id="syP" type="range" min="0" max="5" step="0.05" value="3">
+      <label for="syL">Loss PA to antenna <b id="syLv"></b></label><input id="syL" type="range" min="0" max="4" step="0.1" value="1.5">
+      <label for="syG">Antenna gain <b id="syGv"></b></label><input id="syG" type="range" min="0" max="45" step="0.5" value="35">
+      <label for="syS">Target RCS σ <b id="sySv"></b></label><input id="syS" type="range" min="-2" max="2" step="0.05" value="0">
+      <div class="grp" id="syJ" hidden>
+        <label for="syE">Victim radar EIRP <b id="syEv"></b></label><input id="syE" type="range" min="60" max="100" step="0.5" value="85">
+        <label for="syR">Range to radar <b id="syRv"></b></label><input id="syR" type="range" min="1" max="200" step="1" value="50">
+        <label for="syB"><span>B<sub>j</sub> / B<sub>r</sub></span> <b id="syBv"></b></label><input id="syB" type="range" min="0" max="30" step="0.5" value="20">
+        <label for="syQ">J/S required <b id="syQv"></b></label><input id="syQ" type="range" min="0" max="20" step="0.5" value="10">
+      </div>
+      <div class="readout" id="syOut"></div>
+    </div>
+    <p class="cap">Radar mode: detection range against PA output power (log scale), with the fixed radar parameters given above and your loss, gain and RCS; the slope is ¼ decade of range per decade of power. Jammer mode: J/S against range (log scale); the dashed accent line is the J/S required and the crossing is burn-through. PA power runs from 1 W to 100 kW, RCS from 0.01 to 100 m². Switching the mode loads the worked-example values for that use (radar: 1 kW, 35 dBi, 1 m²; jammer: 100 W, no loss, 10 dBi, 10 m²).</p>
+  </div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Everyone in the transmit chain:</b> in a jammer, your 0.1 dB is 0.1 dB of J/S; in a radar it is 0.6 % of range. The same component is far more valuable, per dB, in a jammer.</li>
+    <li><b>PA designers:</b> for a jammer, the average power on the actual jamming waveform (step 5), not Psat, is the number to quote.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A radar needs 26 % more range. How much more PA power, everything else unchanged?</summary><p>1.26⁴ = 2.52, so 4.0 dB (2.5 × the power).</p></details>
+    <details><summary>A jammer has 20 dB J/S at 50 km and needs 10 dB. The target closes to 25 km. Is it still jamming effectively?</summary><p>J/S falls 6 dB per halving of range: 14 dB at 25 km, still above 10 dB. Burn-through is at 15.9 km.</p></details>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="summary">
+  <div class="secno">Step 13</div>
+  <h2>Summary: each PA parameter, what sets it, and where it shows up</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by (design choices and components)</th><th>System effect</th></tr>
+    <tr><td>Psat</td><td>V<sub>DD</sub>, V<sub>k</sub>, load R<sub>opt</sub> from load-pull, device periphery, combining</td><td>EIRP ceiling; radar range (∝ P<sup>¼</sup>); J/S (∝ P)</td></tr>
+    <tr><td>P1dB, Psat − P1dB (knee)</td><td>Bias class, harmonic terminations, device technology</td><td>Back-off needed for linear signals; where AM-AM distortion starts</td></tr>
+    <tr><td>Gain</td><td>Number of stages, device size, frequency</td><td>Driver power, PAE, total transmitter efficiency</td></tr>
+    <tr><td>Drain efficiency, PAE</td><td>Class, harmonic tuning, match loss, gain; Doherty / envelope tracking at back-off</td><td>Prime power, supply size, heat, T<sub>j</sub>, MTTF, allowed duty</td></tr>
+    <tr><td>R<sub>th</sub>, Z<sub>th</sub>(τ, D)</td><td>Substrate, die attach, flange, cold plate</td><td>T<sub>j,peak</sub> → life; maximum pulse width and duty → energy on target</td></tr>
+    <tr><td>AM-AM, AM-PM, phase pushing</td><td>Device capacitance nonlinearity, bias, drive level, supply regulation</td><td>Phase noise from drive or supply ripple; EVM; range sidelobes; predistortion needs</td></tr>
+    <tr><td>PAPR handling / back-off</td><td>Waveform (system), knee p, linearisation</td><td>Average power on multi-tone and noise jamming (6–10 dB below Psat); efficiency at back-off</td></tr>
+    <tr><td>Harmonics</td><td>Harmonic terminations, symmetry, harmonic filter</td><td>Spectrum compliance; co-site interference to own ESM and comms</td></tr>
+    <tr><td>IM3, OIP3, ACPR (regrowth)</td><td>Linearity, back-off, AM-PM, memory effects, predistortion</td><td>Adjacent-channel interference; wasted jammer power; spurious lines</td></tr>
+    <tr><td>Droop, rise / fall time</td><td>Modulator, capacitor bank, gate or drain pulsing, match Q</td><td>Pulse energy; phase slope → range sidelobes; spectral width of edges</td></tr>
+    <tr><td>Pulse-to-pulse amplitude and phase stability</td><td>Supply and charger regulation, thermal transients, exciter</td><td>MTI / Doppler clutter cancellation limit (≈ −S dB); target SNR loss in clutter</td></tr>
+    <tr><td>Load VSWR tolerance</td><td>Breakdown voltage, isolator / circulator, protection firmware</td><td>Power and heat over scan and band; survival with failed antenna or cable</td></tr>
+    <tr><td>Technology (GaN, GaAs, TWT)</td><td>Breakdown field, thermal conductivity, vacuum vs solid state</td><td>Device count, bandwidth, prime power, warm-up, graceful degradation</td></tr>
+    <tr><td>Combining loss and imbalance</td><td>Combiner type and medium, stages, device phase matching</td><td>Lost EIRP (0.2 dB per stage); graceful degradation on failures</td></tr>
+    <tr><td>Post-PA loss</td><td>Isolator, filter, circulator, cable</td><td>EIRP dB for dB; radar range −5.6 % per dB; jammer J/S −1 dB per dB</td></tr>
+  </table></div>
+</section>
+
+<section id="gloss">
+  <div class="secno">Reference</div>
+  <h2>Glossary</h2>
+  <dl class="gl">
+    <dt>ACPR</dt><dd>Adjacent channel power ratio: power in the neighbouring channel relative to the wanted channel, dBc.</dd>
+    <dt>AM-AM</dt><dd>Change of output amplitude with input amplitude (the compression curve treated as distortion).</dd>
+    <dt>AM-PM</dt><dd>Change of insertion phase with input amplitude, °/dB or total degrees to a stated compression.</dd>
+    <dt>Back-off (IBO, OBO)</dt><dd>How far below saturation (or P1dB) the PA is operated, at the input or the output, in dB.</dd>
+    <dt>Burn-through range</dt><dd>Range at which a radar's echo overcomes the jamming, i.e. J/S falls to the required value.</dd>
+    <dt>CCDF</dt><dd>Fraction of time the envelope power exceeds a given level above its average.</dd>
+    <dt>Class A / AB / B</dt><dd>Bias classes: conduction over the full cycle, a bit more than half, or exactly half. Maximum ideal efficiency 50 %, between, 78.5 %.</dd>
+    <dt>Clutter</dt><dd>Unwanted echoes from ground, sea, rain; strong and near zero Doppler.</dd>
+    <dt>CNR</dt><dd>Clutter-to-noise ratio of a single pulse.</dd>
+    <dt>Combining efficiency</dt><dd>Combined output power divided by the sum of the device output powers.</dd>
+    <dt>CPI</dt><dd>Coherent processing interval: the group of pulses processed together in a Doppler FFT.</dd>
+    <dt>dBc, dBm, dBW</dt><dd>dB relative to the carrier, to 1 mW, to 1 W.</dd>
+    <dt>Doherty amplifier</dt><dd>Main and peaking amplifiers with load modulation; high efficiency over about 6 dB of back-off.</dd>
+    <dt>Drain efficiency η<sub>D</sub></dt><dd>RF output power divided by DC input power.</dd>
+    <dt>Droop</dt><dd>Fall of output power along a pulse, in dB, mostly from supply sag and heating.</dd>
+    <dt>Duty cycle</dt><dd>Pulse width divided by pulse repetition interval.</dd>
+    <dt>EIRP</dt><dd>Effective isotropic radiated power: power at the antenna port times antenna gain.</dd>
+    <dt>Envelope</dt><dd>Instantaneous amplitude of the RF signal, |x(t)|.</dd>
+    <dt>EPC</dt><dd>Electronic power conditioner: the high-voltage supply of a TWT.</dd>
+    <dt>GaAs pHEMT</dt><dd>Gallium arsenide pseudomorphic high-electron-mobility transistor: low voltage, very high frequency.</dd>
+    <dt>GaN HEMT</dt><dd>Gallium nitride HEMT, usually on SiC: high breakdown voltage and power density.</dd>
+    <dt>Harmonic</dt><dd>Output at an integer multiple of the carrier frequency.</dd>
+    <dt>IM3, IM5</dt><dd>Third- and fifth-order intermodulation products of two tones, at 2f₁ − f₂ and 3f₁ − 2f₂.</dd>
+    <dt>Improvement factor</dt><dd>Clutter suppression of an MTI / Doppler processor relative to targets; limited by transmitter stability.</dd>
+    <dt>Isolator</dt><dd>Ferrite device that passes power forward and diverts reflected power into a load.</dd>
+    <dt>J/S</dt><dd>Jamming-to-signal ratio inside the victim receiver.</dd>
+    <dt>Knee voltage V<sub>k</sub></dt><dd>Drain voltage below which the transistor stops acting as a current source.</dd>
+    <dt>Load-pull</dt><dd>Measurement of PA performance while the load impedance is moved over the Smith chart.</dd>
+    <dt>MDC</dt><dd>Multi-stage depressed collector: recovers energy from a TWT's spent electron beam.</dd>
+    <dt>MTI</dt><dd>Moving target indication: cancelling stationary clutter by comparing pulses.</dd>
+    <dt>MTTF</dt><dd>Mean time to failure; falls exponentially with junction temperature.</dd>
+    <dt>OIP3</dt><dd>Output third-order intercept: where extrapolated IM3 and fundamental lines would meet.</dd>
+    <dt>P1dB, P3dB</dt><dd>Output power at 1 dB and 3 dB gain compression.</dd>
+    <dt>PAE</dt><dd>Power-added efficiency: (Pout − Pin)/P<sub>DC</sub>.</dd>
+    <dt>PAPR</dt><dd>Peak-to-average power ratio of the signal envelope.</dd>
+    <dt>PEP</dt><dd>Peak envelope power.</dd>
+    <dt>Phase pushing</dt><dd>Change of PA phase with supply voltage, °/V.</dd>
+    <dt>PRF, PRI</dt><dd>Pulse repetition frequency and interval.</dd>
+    <dt>Psat</dt><dd>Saturated output power: the level the output approaches under heavy drive.</dd>
+    <dt>Pulse-to-pulse stability</dt><dd>Random variation of amplitude and phase between pulses, rms or dBc.</dd>
+    <dt>Rapp model</dt><dd>Pout = G·Pin / (1 + (G·Pin/Psat)<sup>p</sup>)<sup>1/p</sup>; p sets the sharpness of the knee.</dd>
+    <dt>RCS σ</dt><dd>Radar cross-section of a target, m².</dd>
+    <dt>R<sub>opt</sub></dt><dd>Load resistance at which the transistor reaches its voltage and current limits together.</dd>
+    <dt>R<sub>th</sub>, Z<sub>th</sub></dt><dd>Thermal resistance (°C/W, steady state) and thermal impedance (peak rise per watt for a given pulse width and duty).</dd>
+    <dt>Rise / fall time</dt><dd>10 % to 90 % time of the RF envelope at the start and end of a pulse.</dd>
+    <dt>SDR</dt><dd>Signal-to-distortion ratio: wanted output power over the power of everything the PA added.</dd>
+    <dt>Spectral regrowth</dt><dd>Distortion skirts that grow beside a modulated signal after a nonlinear PA.</dd>
+    <dt>SSPA</dt><dd>Solid-state power amplifier, usually many combined transistors.</dd>
+    <dt>T<sub>j</sub></dt><dd>Junction (channel) temperature of the transistor.</dd>
+    <dt>TWT</dt><dd>Travelling-wave tube: vacuum amplifier with an electron beam and a slow-wave helix.</dd>
+    <dt>VSWR, Γ, return loss</dt><dd>Measures of mismatch: (1 + |Γ|)/(1 − |Γ|), reflection coefficient, −20·log₁₀|Γ|.</dd>
+    <dt>Wilkinson combiner</dt><dd>Isolated in-phase power combiner; imbalance and failed-input power go to its resistor.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Cripps, <i>RF Power Amplifiers for Wireless Communications</i>; Pozar, <i>Microwave Engineering</i>; Skolnik, <i>Introduction to Radar Systems</i> and <i>Radar Handbook</i>; Gilmour, <i>Klystrons, Traveling Wave Tubes, Magnetrons, Crossed-Field Amplifiers, and Gyrotrons</i>; Schleher, <i>Electronic Warfare in the Information Age</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const deg=Math.PI/180, TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+const Wof=d=>Math.pow(10,d/10)/1000, dBm=w=>10*Math.log10(w*1000);
+function fmt(x,u,d){ if(!isFinite(x)) return '—'; const a=Math.abs(x);
+  if(u==='s'){ if(a<0.9995e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<0.9995e-3) return (x*1e6).toFixed(d??1)+' µs'; if(a<0.9995) return (x*1e3).toFixed(d??2)+' ms'; return x.toFixed(d??2)+' s'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??1)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??1)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function fW(w,d){ if(!isFinite(w)) return '—'; const a=Math.abs(w);
+  if(a>=1e6) return (w/1e6).toFixed(d??2)+' MW'; if(a>=1e3) return (w/1e3).toFixed(d??2)+' kW'; if(a>=1) return w.toFixed(d??1)+' W'; if(a>=1e-3) return (w*1e3).toFixed(d??1)+' mW'; return (w*1e6).toFixed(d??1)+' µW'; }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>p[0]===null?`<span class="sep">${p[1]}</span><span style="display:none"></span>`:`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,hollow){ g.beginPath(); g.arc(x,y,4,0,TAU); if(hollow){ g.strokeStyle=color; g.lineWidth=1.6; g.stroke(); g.lineWidth=1; } else { g.fillStyle=color; g.fill(); } }
+function label(g,s,x,y,color){ g.fillStyle=color||css('--muted'); g.fillText(s,x,y); }
+const dB20=x=>20*Math.log10(Math.max(Math.abs(x),1e-15));
+const range=(a,b,n)=>Array.from({length:n},(_,i)=>a+(b-a)*i/(n-1));
+
+/* PA models */
+const rappP=(P,Ps,p)=>P/Math.pow(1+Math.pow(P/Ps,p),1/p);           // power in, power out (output-referred linear power)
+const rappA=(a,as,p)=>a/Math.pow(1+Math.pow(a/as,2*p),1/(2*p));      // amplitude form
+const p1x=p=>Math.pow(Math.pow(1.2589254,p)-1,1/p);                  // G·Pin/Psat at 1 dB compression
+const ampm=(x,f1)=>2*f1*x*x/(1+x*x);                                  // Saleh-type phase, x = G·Pin/Psat (power ratio)
+function rng(seed){ let s=seed>>>0; return ()=>{ s=(Math.imul(s,1664525)+1013904223)>>>0; return (s+0.5)/4294967296; }; }
+function gauss(r){ const u=r(), v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*v); }
+function fft(re,im){ const n=re.length;
+  for(let i=1,j=0;i<n;i++){ let bit=n>>1; for(;j&bit;bit>>=1) j^=bit; j^=bit; if(i<j){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+  for(let len=2;len<=n;len<<=1){ const a=-TAU/len, wr=Math.cos(a), wi=Math.sin(a), h=len>>1;
+    for(let i=0;i<n;i+=len){ let cr=1,ci=0; for(let k=0;k<h;k++){ const p=i+k, q=p+h; const vr=re[q]*cr-im[q]*ci, vi=re[q]*ci+im[q]*cr; re[q]=re[p]-vr; im[q]=im[p]-vi; re[p]+=vr; im[p]+=vi; const t=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=t; } } } }
+/* complex-envelope test signals, M samples, mean power 1 */
+function makeSig(type,N,M){
+  const re=new Float64Array(M), im=new Float64Array(M), r=rng(777);
+  const add=(k,amp,ph)=>{ for(let n=0;n<M;n++){ const a=TAU*k*n/M+ph; re[n]+=amp*Math.cos(a); im[n]+=amp*Math.sin(a); } };
+  if(type==='chirp'){ for(let n=0;n<M;n++){ const ph=Math.PI*80*(n-M/2)*(n-M/2)/(M*M); re[n]=Math.cos(ph); im[n]=Math.sin(ph); } }
+  else if(type==='two'){ add(-8,1,0); add(8,1,0); }
+  else if(type==='neq'){ for(let i=0;i<N;i++) add(2*i-N+1,1,0); }
+  else if(type==='nrand'){ for(let i=0;i<N;i++) add(2*i-N+1,1,TAU*r()); }
+  else if(type==='nnew'){ for(let i=0;i<N;i++) add(2*i-N+1,1,Math.PI*i*i/N); }
+  else if(type==='m16'){ for(let i=0;i<16;i++) add(-40+5*i+2,1,TAU*r()); }
+  else if(type==='noise'){ for(let k=-40;k<=40;k++) add(k,Math.sqrt(-Math.log(r())),TAU*r()); }
+  let s=0; for(let n=0;n<M;n++) s+=re[n]*re[n]+im[n]*im[n]; const k=Math.sqrt(M/s);
+  for(let n=0;n<M;n++){ re[n]*=k; im[n]*=k; }
+  return {re,im};
+}
+/* pass a signal (mean power 1) through the PA at average linear output power pav (relative to Psat = 1) */
+function paSig(sig,pav,p,f1){
+  const M=sig.re.length, s=Math.sqrt(pav), yr=new Float64Array(M), yi=new Float64Array(M), pin=new Float64Array(M), pout=new Float64Array(M);
+  for(let n=0;n<M;n++){ const xr=sig.re[n]*s, xi=sig.im[n]*s, a=Math.hypot(xr,xi); pin[n]=a*a;
+    let gr=1, gi=0; if(a>0){ const g=rappA(a,1,p)/a, ph=ampm(a*a,f1)*deg; gr=g*Math.cos(ph); gi=g*Math.sin(ph); }
+    yr[n]=xr*gr-xi*gi; yi[n]=xr*gi+xi*gr; pout[n]=yr[n]*yr[n]+yi[n]*yi[n]; }
+  // best linear fit α = Σ y x* / Σ |x|²
+  let ar=0, ai=0, xx=0; for(let n=0;n<M;n++){ const xr=sig.re[n]*s, xi=sig.im[n]*s; ar+=yr[n]*xr+yi[n]*xi; ai+=yi[n]*xr-yr[n]*xi; xx+=xr*xr+xi*xi; }
+  ar/=xx; ai/=xx; let ps=0, pe=0;
+  for(let n=0;n<M;n++){ const xr=sig.re[n]*s, xi=sig.im[n]*s, lr=ar*xr-ai*xi, li=ar*xi+ai*xr; ps+=lr*lr+li*li; pe+=(yr[n]-lr)*(yr[n]-lr)+(yi[n]-li)*(yi[n]-li); }
+  return {yr,yi,pin,pout,sdr:db(ps/Math.max(pe,1e-30))};
+}
+
+/* ---------- Step 2: compression ---------- */
+function cpDraw(){
+  const G=+$('cpG').value, Ps=+$('cpS').value, p=+$('cpP').value, drel=+$('cpI').value;
+  $('cpGv').textContent=G.toFixed(1)+' dB'; $('cpSv').textContent=Ps.toFixed(1)+' dBm ('+fW(Wof(Ps))+')'; $('cpPv').textContent=p.toFixed(1); $('cpIv').textContent=sdb(drel);
+  const x1=p1x(p), P1=Ps+db(x1/1.2589254), Pin1=P1+1-G;
+  const pout=pi=>Ps+db(rappP(lin(pi+G-Ps),1,p));
+  const xa=Pin1-25, xb=Pin1+12, xs=range(xa,xb,300);
+  const c=$('cCp'), g=ctx(c), L=64, W=c.width-L-16;
+  const top=plot(g,L,22,W,196,xa,xb,Ps-28,Ps+4,[
+    {x:xs,y:xs.map(v=>v+G),color:css('--muted'),dash:[5,4],w:1.2},
+    {x:xs,y:xs.map(pout),color:css('--trace'),w:2}],{ny:4,nx:6,fy:v=>v.toFixed(0),fx:v=>v.toFixed(0),yl:'Pout (dBm)'});
+  hline(g,L,W,top.Y(Ps),css('--accent'),[6,4]); label(g,'Psat '+Ps.toFixed(1)+' dBm',L+6,top.Y(Ps)-5,css('--accent'));
+  dot(g,top.X(Pin1),top.Y(P1),css('--ink'),true); label(g,'P1dB',top.X(Pin1)+8,top.Y(P1)+16,css('--ink'));
+  const pin=Pin1+drel, po=pout(pin), gn=po-pin, cmp=G-gn;
+  dot(g,top.X(pin),top.Y(po),css('--accent'));
+  const bot=plot(g,L,252,W,78,xa,xb,G-12,G+1,[{x:xs,y:xs.map(v=>pout(v)-v),color:css('--trace2'),w:2}],{ny:3,nx:6,fy:v=>v.toFixed(1),fx:v=>v.toFixed(0),xl:'Pin (dBm)',yl:'Gain (dB)'});
+  hline(g,L,W,bot.Y(G-1),css('--muted'),[3,3]); label(g,'G − 1 dB',L+W-70,bot.Y(G-1)-4);
+  dot(g,bot.X(pin),bot.Y(gn),css('--accent'));
+  const P3=Ps+db(Math.pow(Math.pow(1.9952623,p)-1,1/p)/1.9952623);
+  ro($('cpOut'),[['Pin',fmt(pin,'dBm',1)+' ('+fW(Wof(pin),2)+')'],['Pout',fmt(po,'dBm',2)+' ('+fW(Wof(po))+')'],['Gain',fmt(gn,'dB',2)],['Compression',fmt(cmp,'dB',2)],
+    ['P1dB (out)',fmt(P1,'dBm',2)],['P3dB (out)',fmt(P3,'dBm',2)],['Psat − P1dB',fmt(Ps-P1,'dB',2)],['Output back-off',fmt(Ps-po,'dB',2)]]);
+}
+bind(['cpG','cpS','cpP','cpI'],cpDraw);
+
+/* ---------- Step 3: efficiency ---------- */
+const ETA={A:x=>0.5*x*x, AB:x=>0.68*Math.pow(x,1.2), B:x=>Math.PI/4*x, DH:x=>x<=0.5?Math.PI/2*x:Math.PI/2*x*x/(3*x-1)};
+const ETAN={A:'Class A',AB:'GaN AB fit',B:'Class B',DH:'Doherty'};
+function efDraw(){
+  const cl=$('efC').value, Ps=+$('efS').value, B=+$('efB').value, G=+$('efG').value, R=+$('efR').value, Tb=+$('efT').value;
+  $('efSv').textContent=fW(Ps,0); $('efBv').textContent=B.toFixed(1)+' dB'; $('efGv').textContent=G.toFixed(1)+' dB'; $('efRv').textContent=R.toFixed(2)+' °C/W'; $('efTv').textContent=Tb.toFixed(0)+' °C';
+  const Po=Ps*lin(-B), x=Math.sqrt(Po/Ps), eta=ETA[cl](x), Pdc=Po/eta, Pin=Po/lin(G), pae=(Po-Pin)/Pdc, Pd=Pdc+Pin-Po, Tj=Tb+Pd*R;
+  const eta0=ETA[cl](1), Pd0=Ps/eta0+Ps/lin(G)-Ps;
+  const c=$('cEf'), g=ctx(c), L=56, W=c.width-L-16, bs=range(0,12,121);
+  const cols={A:css('--muted'),AB:css('--trace'),B:css('--trace2'),DH:css('--accent')};
+  const curves=Object.keys(ETA).map(k=>({x:bs,y:bs.map(b=>100*ETA[k](Math.sqrt(lin(-b)))),color:cols[k],w:k===cl?2.6:1.1,dash:k===cl?[]:[4,3]}));
+  const P=plot(g,L,22,W,200,0,12,0,90,curves,{ny:3,nx:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)+'%',xl:'output back-off (dB)',yl:'Drain efficiency'});
+  dot(g,P.X(B),P.Y(100*eta),cols[cl]);
+  let lx=L+W-112; Object.keys(ETA).forEach((k,i)=>{ g.fillStyle=cols[k]; g.fillRect(lx,30+i*15,10,3); label(g,ETAN[k],lx+14,35+i*15,k===cl?css('--ink'):css('--muted')); });
+  // power balance bar
+  const y=268, h=22, tot=Pdc+Pin, sc=W/tot;
+  label(g,'In:  DC '+fW(Pdc)+'  +  drive '+fW(Pin),L,y-8,css('--ink'));
+  g.fillStyle=css('--muted'); g.fillRect(L,y,Pdc*sc,h); g.fillStyle=css('--trace2'); g.fillRect(L+Pdc*sc,y,Pin*sc,h);
+  g.fillStyle=css('--trace'); g.fillRect(L,y+h+18,Po*sc,h); g.fillStyle=css('--bad'); g.fillRect(L+Po*sc,y+h+18,Pd*sc,h);
+  label(g,'Out: RF '+fW(Po)+'  +  heat '+fW(Pd),L,y+h+14+h+22,css('--ink'));
+  { const gx=L+10, gy=204, gw=150, tmax=250, f=clamp((Tj-0)/tmax,0,1); label(g,'T_j '+Tj.toFixed(0)+' °C ('+Tb.toFixed(0)+' + '+(Pd*R).toFixed(0)+')',gx,gy-4,Tj>200?css('--bad'):css('--ink')); g.strokeStyle=css('--line'); g.strokeRect(gx,gy,gw,8); g.fillStyle=Tj>200?css('--bad'):css('--accent'); g.fillRect(gx,gy,gw*f,8); }
+  ro($('efOut'),[['Pout',fW(Po)],['Drain efficiency',fmt(100*eta,'%',1)],['P_DC',fW(Pdc)],['Drive Pin',fW(Pin,2)],['PAE',fmt(100*pae,'%',1)],['Heat P_diss',fW(Pd)],['T_j',fmt(Tj,'°C',1)],['T_j at Psat',fmt(Tb+Pd0*R,'°C',1)]]);
+}
+bind(['efC','efS','efB','efG','efR','efT'],efDraw);
+
+/* ---------- Step 4: AM-AM, AM-PM ---------- */
+function amDraw(){
+  const p=+$('amP').value, f1=+$('amF').value, drel=+$('amD').value, rip=+$('amR').value;
+  $('amPv').textContent=p.toFixed(1); $('amFv').textContent=f1.toFixed(1)+'°'; $('amDv').textContent=sdb(drel); $('amRv').textContent=rip.toFixed(2)+' dB';
+  const x1=p1x(p), d1=db(x1); // drive in dB relative to saturation input at P1dB
+  const po=d=>db(rappP(lin(d),1,p)), ph=d=>ampm(lin(d),f1);
+  const xs=range(-20,10,301), c=$('cAm'), g=ctx(c), L=58, W=c.width-L-16;
+  const top=plot(g,L,22,W,150,-20,10,-25,2,[{x:xs,y:xs.map(v=>v+d1),color:css('--muted'),dash:[5,4],w:1.2},{x:xs,y:xs.map(v=>po(v+d1)),color:css('--trace'),w:2}],{ny:3,nx:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0),yl:'Pout − Psat (dB)  AM-AM'});
+  const fmax=Math.max(1,2*f1*1.05);
+  const bot=plot(g,L,206,W,110,-20,10,0,fmax,[{x:xs,y:xs.map(v=>ph(v+d1)),color:css('--trace2'),w:2}],{ny:3,nx:6,fx:v=>v.toFixed(0),fy:v=>v.toFixed(1)+'°',xl:'drive relative to P1dB input (dB)',yl:'Phase change  AM-PM'});
+  const d=drel+d1, h=0.05, sA=(po(d+h)-po(d-h))/(2*h), sP=(ph(d+h)-ph(d-h))/(2*h);
+  vline(g,top.X(0),22,150,css('--grid'),[2,3]); label(g,'P1dB',top.X(0)+4,34);
+  dot(g,top.X(drel),top.Y(po(d)),css('--accent')); dot(g,bot.X(drel),bot.Y(ph(d)),css('--accent'));
+  g.strokeStyle=css('--accent'); g.lineWidth=2.5; g.beginPath(); g.moveTo(top.X(drel-3),top.Y(po(d)-3*sA)); g.lineTo(top.X(drel+3),top.Y(po(d)+3*sA)); g.stroke();
+  g.beginPath(); g.moveTo(bot.X(drel-3),bot.Y(ph(d)-3*sP)); g.lineTo(bot.X(drel+3),bot.Y(ph(d)+3*sP)); g.stroke(); g.lineWidth=1;
+  const dA=sA*rip, dP=sP*rip, sa=dA*Math.LN10/20, sp=dP*deg, S=db(sa*sa+sp*sp);
+  label(g,'drive σ '+rip.toFixed(2)+' dB → out σ '+dA.toFixed(3)+' dB',L+W-250,top.Y(-25)-8,css('--accent')); label(g,'drive σ '+rip.toFixed(2)+' dB → out σ '+dP.toFixed(3)+'°',L+8,bot.Y(fmax)+14,css('--accent'));
+  ro($('amOut'),[['Output re Psat',sdb(po(d))],['Gain compression',fmt(d-po(d),'dB',2)],['Phase change',fmt(ph(d),'°',2)],['AM-AM slope',fmt(sA,'dB/dB',3)],['AM-PM slope',fmt(sP,'°/dB',2)],
+    ['Out amplitude σ',fmt(dA,'dB',4)],['Out phase σ',fmt(dP,'°',3)],['Stability',rip>0&&(sa+sp)>0?fmt(S,'dBc',1):'perfect (no variation)']]);
+}
+bind(['amP','amF','amD','amR'],amDraw);
+
+/* ---------- Step 5: PAPR and back-off ---------- */
+function ppDraw(){
+  const t=$('ppS').value, N=+$('ppN').value, B=+$('ppB').value, p=+$('ppP').value, M=1024;
+  const usesN=(t==='neq'||t==='nrand'||t==='nnew');
+  $('ppNv').textContent=usesN?String(N):(t==='two'?'2 (fixed)':'n/a'); $('ppBv').textContent=B.toFixed(1)+' dB'; $('ppPv').textContent=p.toFixed(1);
+  const sig=makeSig(t,N,M), r=paSig(sig,lin(-B),p,0);
+  let mx=0, mo=0, so=0, sdc=0, near=0; for(let n=0;n<M;n++){ mx=Math.max(mx,r.pin[n]); so+=r.pout[n]; sdc+=4/Math.PI*Math.sqrt(r.pout[n]); if(r.pout[n]>lin(-1)) near++; mo=Math.max(mo,r.pout[n]); }
+  const pav=so/M, papr=db(mx/lin(-B)), eta=so/sdc, sdrT=r.sdr>100?'> 100 dB (none)':fmt(r.sdr,'dB',1);
+  const c=$('cPp'), g=ctx(c), L=58, W=c.width-L-16, idx=Array.from({length:M},(_,i)=>i);
+  const top=plot(g,L,22,W,170,0,M-1,-30,12,[{x:idx,y:Array.from(r.pin,v=>db(Math.max(v,1e-6))),color:css('--trace2'),dash:[4,3],w:1.1},{x:idx,y:Array.from(r.pout,v=>db(Math.max(v,1e-6))),color:css('--trace'),w:1.6}],
+    {ny:6,nx:4,fx:v=>(v/M).toFixed(2),fy:v=>v.toFixed(0),xl:'time (fraction of one waveform period)',yl:'Envelope power re Psat (dB)'});
+  hline(g,L,W,top.Y(0),css('--accent'),[6,4]); label(g,'Psat',L+W-36,top.Y(0)-5,css('--accent'));
+  hline(g,L,W,top.Y(db(pav)),css('--muted'),[2,3]); label(g,'avg out',L+W-60,top.Y(db(pav))+14);
+  // CCDF
+  const ccdf=(arr,avg)=>{ const s=Array.from(arr).sort((a,b)=>b-a), xs=[], ys=[]; for(let i=0;i<s.length;i++){ const v=db(Math.max(s[i],1e-12)/avg); xs.push(v); ys.push(Math.log10((i+1)/s.length)); } return {xs,ys}; };
+  const ci=ccdf(r.pin,lin(-B)), co=ccdf(r.pout,pav);
+  const bot=plot(g,L,240,W,100,0,15,-3,0,[{x:ci.xs,y:ci.ys,color:css('--trace2'),dash:[4,3],w:1.3},{x:co.xs,y:co.ys,color:css('--trace'),w:2}],{ny:3,nx:5,fx:v=>v.toFixed(0),fy:v=>v===0?'1':'1e'+v.toFixed(0),xl:'dB above average power',yl:'CCDF: fraction of time above'});
+  ro($('ppOut'),[['PAPR (input)',fmt(papr,'dB',2)],['PAPR (output)',fmt(db(mo/pav),'dB',2)],['Average out',fmt(100*pav,'% of Psat',1)],['Actual OBO',fmt(-db(pav),'dB',2)],
+    ['Peak in re Psat',sdb(db(mx))],['Time within 1 dB of Psat',fmt(100*near/M,'%',1)],['Signal / distortion',sdrT],['Class-B avg efficiency',fmt(100*eta,'%',1)]]);
+}
+bind(['ppS','ppN','ppB','ppP'],ppDraw);
+
+/* ---------- Step 6a: harmonics ---------- */
+function hmDraw(){
+  const D=+$('hmD').value, p=+$('hmP').value, a=+$('hmA').value/100, F=+$('hmF').value, M=512;
+  $('hmDv').textContent=sdb(D); $('hmPv').textContent=p.toFixed(1); $('hmAv').textContent=(a*100).toFixed(0)+' %'; $('hmFv').textContent=F.toFixed(0)+' dB';
+  const A=Math.pow(10,D/20), f=v=>v>=0?rappA(v,1,p):-rappA(-v,1-a,p);
+  const out=new Float64Array(M); for(let n=0;n<M;n++) out[n]=f(A*Math.sin(TAU*n/M));
+  const H=[]; for(let k=1;k<=7;k++){ let s=0,cc=0; for(let n=0;n<M;n++){ s+=out[n]*Math.sin(TAU*k*n/M); cc+=out[n]*Math.cos(TAU*k*n/M); } H.push(2*Math.hypot(s,cc)/M); }
+  const hd=H.map(h=>dB20(h/H[0])), att=k=>k<2?0:F+12*(k-2), hf=hd.map((v,i)=>i===0?0:v-att(i+1));
+  const c=$('cHm'), g=ctx(c), L=58, W=c.width-L-16, ts=range(0,1.5,301);
+  const top=plot(g,L,22,W,130,0,1.5,-1.8,1.8,[{x:ts,y:ts.map(t=>A*Math.sin(TAU*t)),color:css('--trace2'),dash:[4,3],w:1.1},{x:ts,y:ts.map(t=>f(A*Math.sin(TAU*t))),color:css('--trace'),w:2}],{ny:4,nx:6,fx:v=>v.toFixed(2),fy:v=>v.toFixed(1),xl:'time (RF cycles)',yl:'RF voltage (re saturation)'});
+  hline(g,L,W,top.Y(1),css('--accent'),[5,4]); hline(g,L,W,top.Y(-(1-a)),css('--accent'),[5,4]);
+  const by=200, bh=120, bx=L, bw=W, ymin=-100, Yb=v=>by+bh*(-clamp(v,ymin,0))/(-ymin);
+  frame(g,bx,by,bw,bh,5); g.fillStyle=css('--muted'); for(let k=0;k<=5;k++){ const v=ymin*k/5, s=v.toFixed(0); g.fillText(s,bx-6-g.measureText(s).width,Yb(v)+4); }
+  label(g,'Harmonic level (dBc): before filter (pale), after filter (solid)',bx,by-6);
+  const slot=bw/6;
+  for(let k=2;k<=7;k++){ const cx=bx+slot*(k-2)+slot/2, v0=hd[k-1], v1=hf[k-1];
+    g.globalAlpha=0.35; g.fillStyle=css('--trace2'); g.fillRect(cx-22,Yb(v0),20,Yb(ymin)-Yb(v0)); g.globalAlpha=1;
+    g.fillStyle=css('--trace'); g.fillRect(cx+2,Yb(v1),20,Yb(ymin)-Yb(v1));
+    hline(g,bx,bw,Yb(-60),css('--accent'),[3,3]);
+    label(g,'H'+k,cx-8,by+bh+15); }
+  label(g,'−60 dBc',bx+bw-56,Yb(-60)-4,css('--accent'));
+  const worst=Math.max(...hf.slice(1));
+  const fmtH=v=>v<-150?'< −150 dBc':fmt(v,'dBc',1);
+  ro($('hmOut'),[['Fundamental re Psat',sdb(dB20(H[0]/1)*1)],['H2 unfiltered',fmtH(hd[1])],['H3 unfiltered',fmtH(hd[2])],['H4 unfiltered',fmtH(hd[3])],['H2 after filter',fmtH(hf[1])],['H3 after filter',fmtH(hf[2])],['Worst after filter',fmtH(worst)],['Meets −60 dBc?',worst<=-60?'yes':'no']]);
+}
+bind(['hmD','hmP','hmA','hmF'],hmDraw);
+
+/* ---------- Step 6b: spectral regrowth ---------- */
+function rgDraw(){
+  const t=$('rgS').value, B=+$('rgB').value, p=+$('rgP').value, f1=+$('rgF').value, M=1024;
+  $('rgBv').textContent=B.toFixed(1)+' dB'; $('rgPv').textContent=p.toFixed(1); $('rgFv').textContent=f1.toFixed(1)+'°';
+  const sig=makeSig(t,0,M), r=paSig(sig,lin(-B),p,f1);
+  const spec=(re0,im0)=>{ const re=Float64Array.from(re0), im=Float64Array.from(im0); fft(re,im); const s=new Float64Array(M); for(let k=0;k<M;k++) s[(k+M/2)%M]=(re[k]*re[k]+im[k]*im[k])/(M*M); return s; };
+  const so=spec(r.yr,r.yi), si=spec(sig.re,sig.im);
+  const two=t==='two', unit=two?16:81, bin=k=>so[k+M/2];
+  let ref=0; for(let k=0;k<M;k++) ref=Math.max(ref,so[k]); let refi=0; for(let k=0;k<M;k++) refi=Math.max(refi,si[k]);
+  const xs=[], yo=[], yi=[]; for(let k=-300;k<300;k++){ xs.push(k/unit); yo.push(db(Math.max(so[k+M/2],1e-30)/ref)); yi.push(db(Math.max(si[k+M/2],1e-30)/refi)); }
+  const c=$('cRg'), g=ctx(c), L=52, W=c.width-L-16, xr=two?4:2.5;
+  let im3=NaN, im5=NaN, acpr=NaN, mainP=0, adjP=0;
+  if(two){ im3=db(Math.max((bin(24)+bin(-24))/2,1e-30)/((bin(8)+bin(-8))/2)); im5=db(Math.max((bin(40)+bin(-40))/2,1e-30)/((bin(8)+bin(-8))/2)); }
+  else { for(let k=-40;k<=40;k++) mainP+=bin(k); for(let k=41;k<=121;k++) adjP+=(bin(k)+bin(-k))/2; acpr=db(Math.max(adjP,1e-30)/mainP); }
+  // shaded adjacent channels
+  const X0=x=>L+W*(x+xr)/(2*xr);
+  if(!two){ g.fillStyle=css('--chip'); g.fillRect(X0(-121.5/81),22,X0(-40.5/81)-X0(-121.5/81),260); g.fillRect(X0(40.5/81),22,X0(121.5/81)-X0(40.5/81),260); }
+  const P=plot(g,L,22,W,260,-xr,xr,-100,5,[{x:xs,y:yi,color:css('--trace2'),dash:[3,3],w:1},{x:xs,y:yo,color:css('--trace'),w:1.6}],{ny:5,nx:8,fx:v=>v.toFixed(1),fy:v=>v.toFixed(0),xl:two?'offset from carrier (tone spacings)':'offset from carrier (signal bandwidths)',yl:'Output spectrum (dB re strongest line)'});
+  if(two){ [[24,'IM3'],[40,'IM5']].forEach(([k,s])=>{ [-1,1].forEach(sg=>{ const x=sg*k/unit, y=db(Math.max(bin(sg*k),1e-30)/ref); if(y>-100){ dot(g,P.X(x),P.Y(y),css('--accent'),true); label(g,s,P.X(x)-12,P.Y(y)-8,css('--accent')); } }); }); }
+  else { label(g,'adjacent',X0(-1.5)-28,38); label(g,'adjacent',X0(1.5)-28,38); }
+  const fmD=v=>!isFinite(v)?'—':(v<-150?'< −150 dBc':fmt(v,'dBc',1));
+  const rows=two?[['IM3 (avg of both)',fmD(im3)],['IM5 (avg of both)',fmD(im5)],['Implied OIP3 − P_tone',isFinite(im3)&&im3>-150?fmt(-im3/2,'dB',1):'—']]:[['ACPR (avg of both)',fmD(acpr)]];
+  ro($('rgOut'),rows.concat([['Average out re Psat',sdb(db(Array.from(r.pout).reduce((a,b)=>a+b,0)/M))],['Signal / distortion',r.sdr>100?'> 100 dB (none)':fmt(r.sdr,'dB',1)]]));
+}
+bind(['rgS','rgB','rgP','rgF'],rgDraw);
+
+/* ---------- Step 7: pulses ---------- */
+function plDraw(){
+  const tw=+$('plW').value*1e-6, tr=+$('plR').value*1e-9, D=+$('plD').value, sA=+$('plA').value, sF=+$('plF').value, CNR=+$('plC').value, N=+$('plN').value;
+  $('plWv').textContent=fmt(tw,'s'); $('plRv').textContent=fmt(tr,'s'); $('plDv').textContent=D.toFixed(2)+' dB'; $('plAv').textContent=sA.toFixed(3)+' dB'; $('plFv').textContent=sF.toFixed(2)+'°'; $('plCv').textContent=CNR.toFixed(0)+' dB';
+  const tau=tr/2.197, env=(t,k)=>{ // relative amplitude
+    if(t<0) return 0; const up=1-Math.exp(-t/tau);
+    const dr=Math.pow(10,-D*Math.min(t,tw)/tw/20)*k;
+    if(t<=tw) return up*dr; const ue=1-Math.exp(-tw/tau); return ue*dr*Math.exp(-(t-tw)/tau); };
+  const r=rng(4242), ks=[]; for(let i=0;i<8;i++) ks.push(Math.pow(10,sA*gauss(r)/20));
+  const c=$('cPl'), g=ctx(c), L=58, W=c.width-L-16, T=tw*1.35+4*tr, t0=-0.08*T, ts=range(t0,T,400);
+  const curves=ks.map((k,i)=>({x:ts,y:ts.map(t=>env(t,k)),color:i?css('--trace'):css('--trace2'),w:1.1}));
+  plot(g,L,22,W,90,t0,T,0,1.1,curves,{ny:2,nx:4,fx:v=>fmt(v,'s',v===0?0:1),fy:v=>v.toFixed(2),yl:'Relative amplitude, 8 pulses'});
+  // zoom flat-top in dB
+  const ta=Math.min(5*tr,tw*0.5), tz=range(ta,tw,200), lo=-(D+4*sA+0.05), hi=4*sA+0.05;
+  const zc=ks.map((k,i)=>({x:tz,y:tz.map(t=>dB20(env(t,k))),color:i?css('--trace'):css('--trace2'),w:1.1}));
+  plot(g,L,162,W,68,ta,tw,lo,hi,zc,{ny:2,nx:4,fx:v=>fmt(v,'s',1),fy:v=>v.toFixed(2),yl:'Flat top zoom (dB)'});
+  // Doppler
+  const sa=sA*Math.LN10/20, sp=sF*deg, s2=sa*sa+sp*sp, S=s2>0?db(s2):-Infinity, Rres=CNR+(s2>0?S:-300), floor=1+lin(Rres);
+  const hann=n=>0.5-0.5*Math.cos(TAU*n/(N-1)); let w0=0, w2=0; for(let n=0;n<N;n++){ w0+=hann(n); w2+=hann(n)*hann(n); }
+  const W2=f=>{ let re=0,im=0; for(let n=0;n<N;n++){ const h=hann(n); re+=h*Math.cos(TAU*f*n); im-=h*Math.sin(TAU*f*n); } return (re*re+im*im); };
+  const fs=range(-0.5,0.5,321), ft=0.3, SNR1=0;
+  const ys=fs.map(f=>{ const noise=w2*floor, cl=lin(CNR)*W2(f), tg=lin(SNR1)*W2(f-ft); return db((noise+cl+tg)/w2); });
+  const yb=Math.max(CNR+db(N)+6,30);
+  const P=plot(g,L,284,W,136,-0.5,0.5,-10,yb,[{x:fs,y:ys,color:css('--trace'),w:1.6}],{ny:4,nx:4,fx:v=>v.toFixed(2),fy:v=>v.toFixed(0),xl:'Doppler (fraction of PRF)',yl:'Doppler spectrum (dB re thermal noise per bin)'});
+  hline(g,L,W,P.Y(0),css('--muted'),[3,3]); label(g,'thermal',L+W-60,P.Y(0)+14);
+  if(isFinite(Rres)&&Rres>-10){ hline(g,L,W,P.Y(db(floor)),css('--bad'),[6,3]); label(g,'instability residue',L+4,P.Y(db(floor))-4,css('--bad')); }
+  const tgt=SNR1+db(w0*w0/w2); dot(g,P.X(ft),P.Y(db(lin(tgt)+floor)),css('--accent')); label(g,'target',P.X(ft)+6,P.Y(db(lin(tgt)+floor))-6,css('--accent'));
+  let e=0, nE=200; for(let i=0;i<nE;i++){ const tt=tw*(i+0.5)/nE; const d=Math.pow(10,-D*tt/tw/20); e+=d*d; } e/=nE;
+  const loss=db(floor);
+  ro($('plOut'),[['Pulse energy loss (droop)',fmt(db(e),'dB',3)],['Energy per pulse at 1 kW peak',fmt(1000*tw*e*1e3,'mJ',tw<1e-5?4:3)],['Edge bandwidth ≈ 0.35/t_r',fmt(0.35/tr,'Hz')],['Stability S',s2>0?fmt(S,'dBc',1):'perfect'],['Clutter limit I_max',s2>0?fmt(-S,'dB',1):'∞ (no instability)'],
+    ['Residue re thermal',s2>0?sdb(Rres):'none'],['Target SNR, ideal',fmt(tgt,'dB',1)],['Target SNR, with residue',fmt(tgt-loss,'dB',1)],['SNR loss',fmt(loss,'dB',2)]]);
+}
+bind(['plW','plR','plD','plA','plF','plC','plN'],plDraw);
+
+/* ---------- Step 8: thermal ---------- */
+const TF=[0.2,0.3,0.5], TT=[20e-6,400e-6,8e-3];
+function thPeak(P,R,tp,d){ const T=tp/d; let s=0; for(let i=0;i<3;i++){ const ri=R*TF[i]; s+=P*ri*(d>=1?1:(1-Math.exp(-tp/TT[i]))/(1-Math.exp(-T/TT[i]))); } return s; }
+function thDraw(){
+  const Po=+$('thP').value, eta=+$('thE').value/100, tp=Math.pow(10,+$('thW').value)*1e-6, d=+$('thD').value/100, R=+$('thR').value, Tb=+$('thT').value, Tl=+$('thL').value;
+  $('thPv').textContent=fW(Po,0); $('thEv').textContent=(eta*100).toFixed(0)+' %'; $('thWv').textContent=fmt(tp,'s'); $('thDv').textContent=(d*100).toFixed(0)+' %'; $('thRv').textContent=R.toFixed(2)+' °C/W'; $('thTv').textContent=Tb.toFixed(0)+' °C';
+  const Pd=Po*(1/eta-1), T=tp/d, dTp=thPeak(Pd,R,tp,d), Tj=Tb+dTp, Tav=Tb+Pd*d*R, Tcw=Tb+Pd*R;
+  // time trace over 3 periods
+  const mx=TF.map((f,i)=>Pd*R*f*(d>=1?1:(1-Math.exp(-tp/TT[i]))/(1-Math.exp(-T/TT[i]))));
+  const mn=mx.map((m,i)=>d>=1?m:m*Math.exp(-(T-tp)/TT[i]));
+  const Tt=t=>{ const u=t%T; let s=Tb; for(let i=0;i<3;i++){ const pr=Pd*R*TF[i]; s+= (u<=tp)? pr+(mn[i]-pr)*Math.exp(-u/TT[i]) : mx[i]*Math.exp(-(u-tp)/TT[i]); } return s; };
+  const ts=range(0,3*T,600), c=$('cTh'), g=ctx(c), L=58, W=c.width-L-16;
+  const yt=Math.max(Tcw,Tl,Tj)+10, ya=Math.max(0,Tb-10);
+  const P=plot(g,L,22,W,160,0,3*T,ya,yt,[{x:ts,y:ts.map(Tt),color:css('--trace'),w:1.8}],{ny:4,nx:6,fx:v=>fmt(v,'s',v===0?0:1),fy:v=>v.toFixed(0),yl:'Junction temperature (°C), 3 periods'});
+  hline(g,L,W,P.Y(Tav),css('--muted'),[3,3]); label(g,'avg-only',L+W-64,P.Y(Tav)-4);
+  hline(g,L,W,P.Y(Tcw),css('--trace2'),[5,3]); label(g,'CW',L+W-24,P.Y(Tcw)-4,css('--trace2'));
+  hline(g,L,W,P.Y(Tl),css('--accent'),[6,4]); label(g,'limit '+Tl+' °C',L+4,P.Y(Tl)-4,css('--accent'));
+  const ds=range(0.01,1,100);
+  const B=plot(g,L,232,W,110,0,100,ya,yt,[{x:ds.map(v=>v*100),y:ds.map(v=>Tb+Pd*v*R),color:css('--muted'),dash:[4,3],w:1.2},{x:ds.map(v=>v*100),y:ds.map(v=>Tb+thPeak(Pd,R,tp,v)),color:css('--trace'),w:2}],{ny:3,nx:5,fx:v=>v.toFixed(0)+'%',fy:v=>v.toFixed(0),xl:'duty cycle',yl:'Peak T_j vs duty at this pulse width'});
+  hline(g,L,W,B.Y(Tl),css('--accent'),[6,4]); dot(g,B.X(d*100),B.Y(Tj),css('--accent'));
+  let dmax;
+  if(Tb+thPeak(Pd,R,tp,1)<=Tl) dmax='100 % (CW is within limit)';
+  else if(Tb+thPeak(Pd,R,tp,0.001)>Tl) dmax='below 0.1 %';
+  else { let a=0.001,b=1; for(let i=0;i<50;i++){ const m=(a+b)/2; (Tb+thPeak(Pd,R,tp,m)<=Tl)?a=m:b=m; } dmax=fmt(a*100,'%',1); }
+  const Ea=1.7/8.617e-5, life=Math.exp(Ea*(1/(Tj+273.15)-1/(150+273.15)));
+  ro($('thOut'),[['Peak dissipation',fW(Pd)],['Average dissipation',fW(Pd*d)],['PRI / PRF',fmt(T,'s')+' / '+fmt(1/T,'Hz')],['T_j peak',fmt(Tj,'°C',1)],['T_j avg-only estimate',fmt(Tav,'°C',1)],['T_j CW',fmt(Tcw,'°C',1)],['Z_th effective',fmt(dTp/Pd,'°C/W',3)],['Max duty at limit',dmax],['Life vs 150 °C (Ea 1.7 eV)',life>=1?fmt(life,'× longer',life>100?0:1):fmt(1/life,'× shorter',life<0.01?0:1)]]);
+}
+bind(['thP','thE','thW','thD','thR','thT','thL'],thDraw);
+
+/* ---------- Step 9: load VSWR ---------- */
+function vsDraw(){
+  const V=+$('vsV').value, iso=+$('vsI').value, P0=+$('vsP').value, R=+$('vsR').value;
+  $('vsVv').textContent=V.toFixed(2)+' : 1'; $('vsPv').textContent=fW(P0,0); $('vsRv').textContent=R.toFixed(2)+' °C/W';
+  const G=(V-1)/(V+1), Ge=iso>0?Math.min(0.99,0.05+G*Math.pow(10,-iso/20)):G;
+  const Vdd=50, Vk=5, Vs=Vdd-Vk, Ropt=Vs*Vs/(2*P0), I1=Vs/Ropt;
+  const pa=th=>{ const gr=Ge*Math.cos(th), gi=Ge*Math.sin(th), den=(1-gr)*(1-gr)+gi*gi;
+    const zr=Ropt*(1-gr*gr-gi*gi)/den, zi=Ropt*2*gi/den, zm=Math.hypot(zr,zi);
+    const vlim=I1*zm>Vs, I=vlim?Vs/zm:I1, Pdel=0.5*I*I*zr, Pdc=Vdd*2*I/Math.PI; return {Pdel,Pdiss:Pdc-Pdel,vlim}; };
+  const m0=pa(0), base={Pdel:P0,Pdiss:Vdd*2*I1/Math.PI-P0};
+  const ths=range(0,360,361), res=ths.map(t=>pa(t*deg));
+  const c=$('cVs'), g=ctx(c), cx=150, cy=170, rr=128;
+  g.strokeStyle=css('--line'); g.beginPath(); g.arc(cx,cy,rr,0,TAU); g.stroke();
+  g.strokeStyle=css('--grid'); g.beginPath(); g.moveTo(cx-rr,cy); g.lineTo(cx+rr,cy); g.stroke(); g.beginPath(); g.arc(cx+rr/2,cy,rr/2,0,TAU); g.stroke();
+  [0.2,0.5,0.8].forEach(v=>{ g.beginPath(); g.arc(cx,cy,rr*v,0,TAU); g.stroke(); });
+  g.strokeStyle=css('--trace2'); g.setLineDash([5,4]); g.lineWidth=1.6; g.beginPath(); g.arc(cx,cy,Math.max(rr*G,0.5),0,TAU); g.stroke(); g.setLineDash([]);
+  g.strokeStyle=css('--trace'); g.lineWidth=2.2; g.beginPath(); g.arc(cx,cy,Math.max(rr*Ge,0.5),0,TAU); g.stroke(); g.lineWidth=1;
+  dot(g,cx,cy,css('--muted'));
+  label(g,'Γ plane (|Γ| 0.2, 0.5, 0.8, 1)',cx-rr,cy-rr-12); label(g,'antenna |Γ| '+G.toFixed(3),cx-rr,cy+rr+18,css('--trace2')); label(g,'at PA |Γ| '+Ge.toFixed(3),cx-rr,cy+rr+32,css('--trace'));
+  label(g,'high Z',cx+rr-44,cy-6); label(g,'low Z',cx-rr+4,cy-6);
+  const L=350, W=c.width-L-12, ymax=Math.max(P0,...res.map(r=>r.Pdiss))*1.15;
+  // shade voltage-limited phases
+  const X=t=>L+W*t/360; g.fillStyle=css('--accent'); g.globalAlpha=0.12; res.forEach((r,i)=>{ if(r.vlim&&i<360) g.fillRect(X(ths[i]),22,X(ths[i+1])-X(ths[i])+0.5,250); }); g.globalAlpha=1;
+  const P=plot(g,L,22,W,250,0,360,0,ymax,[{x:ths,y:res.map(r=>r.Pdel),color:css('--trace'),w:2},{x:ths,y:res.map(r=>r.Pdiss),color:css('--bad'),w:2}],{ny:5,nx:4,fx:v=>v.toFixed(0)+'°',fy:v=>v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0),xl:'phase of Γ at PA',yl:'Watts'});
+  hline(g,L,W,P.Y(P0),css('--muted'),[3,3]);
+  label(g,'Pout',L+W-40,P.Y(res[0].Pdel)-6,css('--trace')); label(g,'P_diss',L+W-52,P.Y(res[180].Pdiss)-6,css('--bad'));
+  const pmin=Math.min(...res.map(r=>r.Pdel)), pmax=Math.max(...res.map(r=>r.Pdel)), dmax=Math.max(...res.map(r=>r.Pdiss));
+  const VSe=(1+Ge)/(1-Ge);
+  label(g,'worst ΔT_j +'+((dmax-base.Pdiss)*R).toFixed(1)+' °C (R_th '+R.toFixed(2)+' °C/W)',cx-rr,cy+rr+46,css('--bad'));
+  ro($('vsOut'),[['Antenna return loss',G>0?fmt(-dB20(G),'dB',1):'∞ (perfect)'],['Reflected at antenna',fmt(100*G*G,'%',1)],['Mismatch loss',fmt(-db(1-G*G),'dB',2)],['VSWR seen by PA',fmt(VSe,': 1',2)],
+    ['Pout range over phase',fW(pmin)+' – '+fW(pmax)],['P_diss matched',fW(base.Pdiss)],['P_diss worst',fW(dmax)],['ΔT_j worst',fmt((dmax-base.Pdiss)*R,'°C',1)],['Into isolator load',iso>0?fW(P0*G*G):'no isolator'],['Peak line voltage',fmt(1+G,'× forward',2)]]);
+}
+bind(['vsV','vsI','vsP','vsR'],vsDraw);
+
+/* ---------- Step 10: technology ---------- */
+const TECH={S:{GaAs:[30,0.40],GaN:[200,0.55],TWT:[2000,0.45]},X:{GaAs:[15,0.35],GaN:[60,0.42],TWT:[1000,0.45]},Ku:{GaAs:[8,0.30],GaN:[25,0.33],TWT:[500,0.40]}};
+function tcCalc(tech,band,Preq,d){
+  const [Pd,eff]=TECH[band][tech];
+  if(tech==='TWT'){ const use=Pd*lin(-0.5); let n=1, out=use*lin(-0.3); if(out<Preq){ n=2; out=2*use*lin(-0.3-0.3); } if(out<Preq) return {ok:false};
+    const rf=n*use, dc=rf*d/eff+40*n; return {ok:true,n,loss:n===1?0.3:0.6,out,dc,heat:dc-out*d}; }
+  const use=Pd*lin(-1); for(let k=0;k<=12;k++){ const n=1<<k, loss=0.25*k+0.3, out=n*use*lin(-loss); if(out>=Preq){ const dc=n*use*d/eff; return {ok:true,n,loss,out,dc,heat:dc-out*d}; } } return {ok:false};
+}
+function tcDraw(){
+  const Preq=Math.pow(10,+$('tcP').value), band=$('tcB').value, d=+$('tcD').value/100;
+  $('tcPv').textContent=fW(Preq,0); $('tcDv').textContent=(d*100).toFixed(0)+' %';
+  const T=['GaAs','GaN','TWT'], R=T.map(t=>tcCalc(t,band,Preq,d));
+  const c=$('cTc'), g=ctx(c), L=70, W=c.width-L-20, mx=Math.max(1,...R.map(r=>r.ok?r.dc:0))*1.1;
+  frame(g,L,30,W,270,1); label(g,'Average prime (DC) power, split into RF out and heat',L,20,css('--ink'));
+  const X=v=>L+W*v/mx;
+  for(let k=1;k<=4;k++){ const v=mx*k/4, s=fW(v,0); vline(g,X(v),30,270,css('--grid'),[2,3]); label(g,s,X(v)-g.measureText(s).width/2,316); }
+  T.forEach((t,i)=>{ const r=R[i], y=50+i*85; label(g,t,L-56,y+20,css('--ink'));
+    if(!r.ok){ label(g,'not practical (over 4096 devices or 2 tubes)',L+10,y+20,css('--bad')); return; }
+    const rf=r.out*d; g.fillStyle=css('--trace'); g.fillRect(L,y,X(rf)-L,30); g.fillStyle=css('--bad'); g.fillRect(X(rf),y,X(r.dc)-X(rf),30);
+    label(g,(t==='TWT'?r.n+' tube'+(r.n>1?'s':''):r.n+' device'+(r.n>1?'s':''))+',  combining loss '+r.loss.toFixed(2)+' dB,  delivers '+fW(r.out),L,y+48); });
+  const rows=[]; T.forEach((t,i)=>{ const r=R[i]; rows.push([null,t+' ('+TECH[band][t][0]+' W/device, '+(100*TECH[band][t][1]).toFixed(0)+' % eff.)']);
+    if(!r.ok){ rows.push(['Result','not practical']); return; }
+    rows.push([t==='TWT'?'Tubes':'Devices',String(r.n)],['Delivers (margin)',fW(r.out)+' (+'+db(r.out/Preq).toFixed(1)+' dB)'],['DC average',fW(r.dc)],['Heat average',fW(r.heat)]); });
+  ro($('tcOut'),rows);
+}
+bind(['tcP','tcB','tcD'],tcDraw);
+
+/* ---------- Step 11: combining ---------- */
+function cbEta(N,sa,sp){ const ka=sa*Math.LN10/20; return 1/N+(1-1/N)*Math.exp(-sp*sp)*Math.exp(-ka*ka); }
+function cbDraw(){
+  const Pd=+$('cbP').value, k=+$('cbK').value, L0=+$('cbL').value, sa=+$('cbA').value, sp=+$('cbF').value*deg, fp=+$('cbX').value;
+  const N=1<<k, f=Math.min(N-1,Math.round(N*fp/100));
+  $('cbPv').textContent=fW(Pd,0); $('cbKv').textContent=k+' (N = '+N+')'; $('cbLv').textContent=L0.toFixed(2)+' dB'; $('cbAv').textContent=sa.toFixed(2)+' dB'; $('cbFv').textContent=(sp/deg).toFixed(1)+'°'; $('cbXv').textContent=fp+' % ('+f+' of '+N+')';
+  const ideal=N*Pd, stl=lin(-k*L0), ei=cbEta(N,sa,sp), fl=Math.pow((N-f)/N,2), out=ideal*stl*ei*fl;
+  const ks=range(0,7,141), c=$('cCb'), g=ctx(c), L=62, W=c.width-L-16;
+  const yA=dBm(Pd)-3, yB=dBm(Pd*128)+3;
+  const P=plot(g,L,22,W,200,0,7,yA,yB,[{x:ks,y:ks.map(v=>dBm(Pd*Math.pow(2,v))),color:css('--muted'),dash:[5,4],w:1.2},{x:ks,y:ks.map(v=>{ const n=Math.pow(2,v); return dBm(Pd*n*lin(-v*L0)*cbEta(n,sa,sp)); }),color:css('--trace'),w:2}],{ny:4,nx:7,fx:v=>String(Math.round(Math.pow(2,v))),fy:v=>v.toFixed(0),yl:'Combined output (dBm)'});
+  dot(g,P.X(k),P.Y(dBm(out)),css('--accent'));
+  if(f>0){ dot(g,P.X(k),P.Y(dBm(ideal*stl*ei)),css('--trace'),true); }
+  const B=plot(g,L,268,W,80,0,7,50,100,[{x:ks,y:ks.map(v=>{ const n=Math.pow(2,v); return 100*lin(-v*L0)*cbEta(n,sa,sp); }),color:css('--trace2'),w:2}],{ny:2,nx:7,fx:v=>String(Math.round(Math.pow(2,v))),fy:v=>v.toFixed(0)+'%',xl:'number of devices N',yl:'Combining efficiency (no failures)'});
+  dot(g,B.X(k),B.Y(100*stl*ei),css('--accent'));
+  ro($('cbOut'),[['Ideal N × P_dev',fW(ideal)],['Combiner loss',fmt(k*L0,'dB',2)],['Imbalance loss',fmt(-db(ei),'dB',3)],['Failure loss',fmt(-db(fl),'dB',2)],['Output',fW(out)+' ('+fmt(dBm(out),'dBm',1)+')'],['Combining efficiency',fmt(100*out/ideal,'%',1)],['Lost in combiner + loads',fW(ideal*(N-f)/N-out)]]);
+}
+bind(['cbP','cbK','cbL','cbA','cbF','cbX'],cbDraw);
+
+/* ---------- Step 12: system ---------- */
+function radarR(Pt,Gdb,sig){ const k=1.380649e-23, lam=0.03, G=lin(Gdb); return Math.pow(Pt*10e-6*16*G*G*lam*lam*sig/(Math.pow(4*Math.PI,3)*k*290*lin(4)*lin(13)*lin(6)),0.25); }
+function syDraw(){
+  { const mm=$('syM').value; if(syDraw.last!==undefined&&mm!==syDraw.last){ const pr=mm==='jam'?{syP:2,syG:10,syS:1,syL:0}:{syP:3,syG:35,syS:0,syL:1.5}; for(const k in pr) $(k).value=pr[k]; } syDraw.last=mm; }
+  const m=$('syM').value, Pw=Math.pow(10,+$('syP').value), Ls=+$('syL').value, G=+$('syG').value, sig=Math.pow(10,+$('syS').value);
+  const E=+$('syE').value, Rk=+$('syR').value, Bj=+$('syB').value, Q=+$('syQ').value;
+  $('syJ').hidden=(m!=='jam');
+  $('syPv').textContent=fW(Pw,Pw<10?2:0); $('syLv').textContent=Ls.toFixed(1)+' dB'; $('syGv').textContent=G.toFixed(1)+' dBi'; $('sySv').textContent=(sig<1?sig.toFixed(2):sig.toFixed(sig<10?2:0))+' m²';
+  $('syEv').textContent=E.toFixed(1)+' dBW'; $('syRv').textContent=Rk.toFixed(0)+' km'; $('syBv').textContent=Bj.toFixed(1)+' dB'; $('syQv').textContent=Q.toFixed(1)+' dB';
+  const eirp=db(Pw)-Ls+G;
+  const c=$('cSy'), g=ctx(c), L=62, W=c.width-L-16;
+  if(m==='radar'){
+    const ps=range(0,5,201), Rf=e=>radarR(Math.pow(10,e)*lin(-Ls),G,sig)/1e3, R=Rf(+$('syP').value);
+    const ymax=Math.max(10,Rf(5)*1.1);
+    const P=plot(g,L,22,W,260,0,5,0,ymax,[{x:ps,y:ps.map(Rf),color:css('--trace'),w:2},{x:ps,y:ps.map(e=>radarR(Math.pow(10,e),G,sig)/1e3),color:css('--muted'),dash:[4,3],w:1.2}],{ny:5,nx:5,fx:v=>fW(Math.pow(10,v),0),fy:v=>v.toFixed(0),xl:'PA output power (log)',yl:'Detection range (km); dashed = no post-PA loss'});
+    dot(g,P.X(+$('syP').value),P.Y(R),css('--accent'));
+    const R2=radarR(2*Pw*lin(-Ls),G,sig)/1e3;
+    ro($('syOut'),[['Power at antenna',fW(Pw*lin(-Ls))],['EIRP',fmt(eirp,'dBW',1)+' ('+fW(lin(eirp))+')'],['Detection range',fmt(R,'km',1)],['Range with 2 × PA',fmt(R2,'km',1)+' (+'+(100*(R2/R-1)).toFixed(1)+' %)'],['Range lost to post-PA loss',fmt(100*(1-lin(-Ls/4)),'%',1)],['Power for 2 × range',fW(16*Pw)]]);
+  } else {
+    const JS=R=>eirp-E+db(4*Math.PI*R*R*1e6/sig)-Bj, js=JS(Rk), Rbt=Rk*Math.pow(10,(Q-js)/20);
+    const rs=range(0,Math.log10(200),201);
+    const ya=Math.min(-20,Math.floor(JS(1)/10)*10), yb=Math.max(40,Math.ceil(JS(200)/10)*10+5);
+    const P=plot(g,L,22,W,260,0,Math.log10(200),ya,yb,[{x:rs,y:rs.map(e=>JS(Math.pow(10,e))),color:css('--trace'),w:2}],{ny:5,nx:4,fx:v=>Math.pow(10,v).toFixed(v<1?1:0),fy:v=>v.toFixed(0),xl:'range to radar (km, log)',yl:'J/S (dB)'});
+    hline(g,L,W,P.Y(Q),css('--accent'),[6,4]); label(g,'J/S required',L+4,P.Y(Q)-5,css('--accent'));
+    dot(g,P.X(Math.log10(Rk)),P.Y(js),css('--accent'));
+    if(Rbt>=1&&Rbt<=200){ vline(g,P.X(Math.log10(Rbt)),22,260,css('--bad'),[4,3]); label(g,'burn-through',P.X(Math.log10(Rbt))+4,40,css('--bad')); }
+    ro($('syOut'),[['Jammer EIRP',fmt(eirp,'dBW',1)],['J/S at this range',fmt(js,'dB',1)],['Margin over required',sdb(js-Q)],['Burn-through range',fmt(Rbt,'km',1)],['J/S with 2 × PA',fmt(js+db(2),'dB',1)],['Burn-through with 2 × PA',fmt(Rbt/Math.sqrt(2),'km',1)],['Effective?',js>=Q?'yes, at this range':'no, inside burn-through']]);
+  }
+}
+bind(['syM','syP','syL','syG','syS','syE','syR','syB','syQ'],syDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>

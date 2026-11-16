@@ -1,0 +1,1325 @@
+<meta charset="utf-8">
+<title>Wideband ESM Receivers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same teaching column as the R-series. Each step: "you already know" → explanation → worked example → design-to-system chain → demo bench → component box → check-yourself. */
+:root{
+  --bg:#f3f5f6; --panel:#ffffff; --ink:#15202a; --muted:#56646f; --line:#d5dde2;
+  --accent:#c2410c; --trace:#0f766e; --trace2:#7c3aed; --grid:#e3e8eb; --chip:#eef2f4; --bad:#b91c1c; --good:#15803d; --know:#e8f3f1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151a; --panel:#161e25; --ink:#e4eaee; --muted:#93a2ad; --line:#2a3640;
+  --accent:#fb923c; --trace:#2dd4bf; --trace2:#a78bfa; --grid:#222d36; --chip:#1d2830; --bad:#f87171; --good:#4ade80; --know:#14302c; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+.col{max-width:720px}
+header.top{padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1.05;margin:8px 0 12px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:30px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:21px;margin:24px 0 6px}
+p{margin:0 0 12px}
+.lede{font-size:18px;color:var(--muted);max-width:700px}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+nav.toc a{font-family:var(--f-mono);font-size:12.5px;text-decoration:none;color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:4px 10px;border-radius:4px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent)}
+section{padding-block:44px 12px;border-bottom:1px solid var(--line)}
+.secno{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.know{background:var(--know);border-radius:6px;padding:12px 16px;margin:12px 0 16px;max-width:720px}
+.know h4,.check h4,.comp h4,.term h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.know h4{color:var(--trace)}
+.know p:last-child{margin-bottom:0}
+.term{border-left:3px solid var(--trace2);padding:4px 14px;margin:12px 0 16px;max-width:720px}
+.term h4{color:var(--trace2)}
+.term p{margin:0}
+.term p+p{margin-top:6px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin:16px 0;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px}
+@media (max-width:780px){.bench{grid-template-columns:minmax(0,1fr)}}
+.bench canvas{width:100%;height:auto;display:block;min-width:0}
+.bench .cap{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0}
+.ctrl{display:flex;flex-direction:column;gap:9px;min-width:0}
+.ctrl label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctrl label b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,button,input[type=number]{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+input[type=number]{font-family:var(--f-mono);width:100%;box-sizing:border-box}
+button{cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--panel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.readout{font-family:var(--f-mono);font-size:13px;background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:grid;grid-template-columns:auto auto;gap:2px 12px;font-variant-numeric:tabular-nums}
+.readout span:nth-child(even){text-align:right}
+.readout span:nth-child(odd){color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--chip);border-left:3px solid var(--trace);padding:9px 12px;margin:10px 0 14px;overflow-x:auto;white-space:nowrap;max-width:720px}
+.eq small{color:var(--muted);font-size:12.5px;white-space:normal;display:block;margin-top:3px}
+.tw{overflow-x:auto;max-width:720px;margin:10px 0 16px}
+.tw.wide{max-width:980px}
+table.t{border-collapse:collapse;font-size:14.5px;width:100%}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+table.t td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.sum td{font-weight:600;border-top:2px solid var(--ink)}
+table.chain td:first-child{font-weight:500}
+table.chain th:nth-child(2),table.chain th:nth-child(3),table.chain th:nth-child(4){color:var(--trace2)}
+.comp{border:1px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0;background:var(--panel);max-width:720px}
+.comp h4{color:var(--accent)}
+.comp ul{margin:0;padding-left:18px}
+.comp li{margin:4px 0}
+.check{background:var(--panel);border:1px dashed var(--line);border-radius:6px;padding:12px 16px;margin:16px 0 8px;max-width:720px}
+.check h4{color:var(--muted)}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:500}
+details p{margin:6px 0 4px 18px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+.legend{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+.diag{overflow-x:auto;max-width:860px;margin:12px 0}
+.diag svg{min-width:600px;width:100%;height:auto;display:block}
+.diag text{font-family:var(--f-mono);font-size:12px;fill:var(--ink)}
+.diag .mut{fill:var(--muted);font-size:11px}
+dl.gl{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:6px 16px;max-width:820px}
+dl.gl dt{font-family:var(--f-mono);font-size:14px;font-weight:500}
+dl.gl dd{margin:0;color:var(--muted);font-size:15px}
+@media (max-width:560px){dl.gl{grid-template-columns:minmax(0,1fr)} dl.gl dd{margin-bottom:8px}}
+footer{padding-top:24px;font-size:13px;color:var(--muted)}
+.things{border-left:3px solid var(--accent);padding:4px 14px;margin:8px 0 18px;max-width:720px}
+.things h4{margin:0 0 6px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.things ul{margin:0;padding-left:18px}
+.things li{margin:4px 0}
+h3.try{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Wideband ESM Receivers · RF Systems for Component Engineers</div>
+  <h1>Wideband ESM receivers: crystal video, superhet, IFM and channelisers</h1>
+  <p class="lede">A radar receiver knows the frequency, the pulse width and the timing of the echo it is waiting for, because it sent the pulse. An ESM receiver knows none of these. It must watch a band many gigahertz wide, catch pulses from emitters it has never met, and write down for every pulse when it arrived, how long it lasted, its frequency, its strength and its direction. This page builds the receiver architectures that do this, one at a time, starting from what has to be measured and why: the probability of catching an emitter at all, the crystal video receiver, the scanning superhet, the instantaneous frequency measurement (IFM) receiver, analogue and digital channelisers, and the compressive receiver. It then compares them on one example, shows the price paid for watching a wide band (the kTB penalty), what happens when a strong and a weak signal arrive together, and what each architecture hands on to signal identification. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#pdw">0 What ESM measures: the PDW</a><a href="#poi">1 Probability of intercept</a><a href="#cv">2 Crystal video</a><a href="#sh">3 Scanning superhet</a><a href="#ifm">4 IFM</a><a href="#chan">5 Channelisers</a><a href="#comp">6 Compressive</a><a href="#ktb">7 Sensitivity vs bandwidth</a><a href="#dr">8 Strong and weak together</a><a href="#id">9 Feeding identification</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
+  </nav>
+</header>
+
+<!-- 0 -->
+<section id="pdw">
+  <div class="secno">Step 0</div>
+  <h2>What an ESM receiver must measure: the pulse descriptor word</h2>
+  <div class="know"><h4>You already know</h4><p>A pulse radar transmits short bursts of RF (pulses) at a carrier frequency, repeated at a fixed or patterned interval. A receiver turns RF power into a voltage and compares it with a threshold to decide whether a signal is present. The noise floor of any receiver is kTB plus its noise figure: −174 dBm/Hz + NF + 10·log B (see the <a href="M01-lna-noise.html">LNA and receiver noise module</a>).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>ESM (electronic support measures):</b> passive listening equipment that detects, measures and identifies other people's radar and communication signals. It never transmits. The radar warning receiver (RWR) in an aircraft is a small, fast ESM; a ship or ground ESM is larger and more sensitive.</p>
+    <p><b>Emitter:</b> any transmitter the ESM hears, here usually a radar.</p>
+    <p><b>Pulse descriptor word (PDW):</b> the record the receiver writes for each detected pulse, a row of numbers. Every later stage works only from PDWs, never from the RF.</p>
+    <p><b>TOA (time of arrival):</b> the time the pulse's leading edge crossed the detection threshold, stamped by a clock, typically with 1 to 50 ns resolution.</p>
+    <p><b>PW (pulse width):</b> the time the pulse stayed above the threshold (or above half its peak).</p>
+    <p><b>RF (carrier frequency):</b> the frequency of the RF inside the pulse.</p>
+    <p><b>PA (pulse amplitude):</b> the received power of the pulse, in dBm.</p>
+    <p><b>AOA (angle of arrival):</b> the direction the pulse came from, measured by comparing amplitudes or phases between several antennas (this belongs to the antenna and DF pages; on this page AOA is just one more field the receiver must fill).</p>
+    <p><b>PRI (pulse repetition interval):</b> the time between successive pulses of one emitter; PRF = 1/PRI. PRI is not measured on one pulse: it is the difference of two TOAs.</p>
+    <p><b>Deinterleaving:</b> sorting the mixed stream of PDWs from all emitters back into one list per emitter. It is done by clustering PDWs with similar RF, PW and AOA, then checking that their TOAs form a repeating PRI.</p>
+  </div>
+  <div class="col">
+    <p>Picture a ship at sea. In the 2–18 GHz band there are perhaps twenty radars within range: navigation radars, air search radars, fire control radars, aircraft radars. Each sends 300 to 100 000 pulses per second, so the receiver may see a million pulses per second, all mixed together. A pulse is not labelled with its owner. The only way to know which radar sent it is to measure everything that can be measured about it, write it into a PDW, and let a processor sort the PDWs by similarity. That makes the receiver's job very specific: it is not to "hear" signals, it is to produce accurate PDWs, one per pulse, with no pulse lost, no pulse doubled and no pulse invented.</p>
+    <p>Each field exists because it separates emitters. Frequency is the strongest separator, because two radars a few tens of MHz apart almost never share AOA and PRI as well. Direction (AOA) is the second, because emitters on different bearings cannot be confused. PW separates a 0.2 µs fire-control pulse from a 1 µs search pulse. TOA does not separate anything on one pulse, but the differences of TOAs give the PRI, which is the fingerprint used later to name the radar. Amplitude tells range and the emitter's antenna scan (the pulses rise and fall as the beam sweeps past).</p>
+  </div>
+  <div class="eq">misassignment between two emitters = Q(Δf / 2σ<sub>f</sub>) &nbsp;&nbsp; σ<sub>PRI</sub> = √2 · σ<sub>TOA</sub> &nbsp;&nbsp; Q(x) = probability that a Gaussian exceeds x standard deviations<small>Δf is the spacing between two emitters, σ<sub>f</sub> the receiver's rms frequency error. A sorter that splits at the midpoint puts a pulse on the wrong side when its error exceeds Δf/2. A PRI is the difference of two TOAs, each with error σ<sub>TOA</sub>, so its error is √2 times larger.</small></div>
+  <h3>Worked example: the reference scenario used on every step</h3>
+  <div class="col">
+    <p>Throughout this page the receiver watches <b>2–18 GHz (a 16 GHz span)</b> with a front end of <b>noise figure 10 dB</b> and needs <b>15 dB signal-to-noise ratio</b> to detect a pulse reliably. Three radars are in the scene. <b>Radar A</b>: 9.40 GHz, PW 1 µs, PRI 1 ms, a rotating search radar whose main beam sweeps over the ESM for 20 ms every 4 s. <b>Radar B</b>: 15 MHz above A, PW 0.5 µs, PRI 370 µs. <b>Radar C</b>: 15 MHz above B, PW 0.2 µs, PRI about 250 µs with ±10 % jitter. If the receiver measures frequency with σ<sub>f</sub> = 3 MHz rms, A and B are 15/3 = 5 standard deviations apart and the midpoint split misassigns Q(2.5) = 0.62 % of pulses. With σ<sub>f</sub> = 6 MHz (a typical channelised receiver, Step 5) it is Q(1.25) = 10.6 %. For PRI: if two emitters on the same frequency have PRIs 0.5 µs apart and the TOA clock has σ<sub>TOA</sub> = 50 ns, σ<sub>PRI</sub> = 71 ns and Q(0.25/0.071) = Q(3.54) = 0.02 %.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive receiver detects pulses but does not measure frequency at all (Step 2 shows such a receiver). Its PDWs carry TOA, PW and amplitude only. Radars A, B and C then differ only in PW and PRI. A sorter working on TOA alone must try every pair of pulses as a candidate PRI: with 3 emitters and 5 000 pulses per second in total there are 12.5 million pulse pairs per second to test, and a jittered PRI like C's hardly shows up at all. Measuring frequency even coarsely, for example to ±10 MHz, splits the stream into piles before any PRI search, and the number of pairs drops by the square of the number of piles.</p></div>
+  <h3>Side by side on one example: how accurate must each field be?</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Field</th><th>Typical requirement</th><th>Why that number</th><th>Set mainly by</th></tr>
+    <tr><td>TOA</td><td class="n">10–50 ns</td><td>PRI error √2·σ<sub>TOA</sub> must be small against PRI differences of 0.5–1 µs between modes</td><td>Video bandwidth, threshold, clock</td></tr>
+    <tr><td>PW</td><td class="n">25–50 ns, from 50 ns pulses</td><td>Separate 0.2 µs from 0.5 µs pulses; see 50 ns pulses at all</td><td>Video bandwidth (rise time)</td></tr>
+    <tr><td>RF</td><td class="n">1–5 MHz rms</td><td>Emitters 15–30 MHz apart need Δf/2σ ≥ 2.3 for 1 % errors</td><td>Receiver architecture (Steps 2–6)</td></tr>
+    <tr><td>PA</td><td class="n">1–2 dB</td><td>Track the emitter's beam scan; compare AOA channels</td><td>Detector law, AGC, log video</td></tr>
+    <tr><td>AOA</td><td class="n">1–10°</td><td>Separate emitters on different bearings</td><td>Antennas and channel matching</td></tr>
+  </table></div>
+  <h3>How to choose the accuracy targets</h3>
+  <div class="col"><p>(1) Start from the closest emitter spacing you must resolve, Δf. For a 1 % sorting error you need Δf/(2σ<sub>f</sub>) ≥ 2.33, so σ<sub>f</sub> ≤ Δf/4.65; for 15 MHz spacing that is 3.2 MHz rms. (2) Do the same for PRI: the smallest PRI difference ΔPRI between modes you must separate gives σ<sub>TOA</sub> ≤ ΔPRI/(4.65·√2). For 0.5 µs, σ<sub>TOA</sub> ≤ 76 ns. (3) The shortest pulse you must report sets the video rise time, and so the video bandwidth (Step 2). (4) Every field must survive simultaneous pulses: a field measured perfectly on a lone pulse but corrupted when two pulses overlap is wrong exactly when the scene is dense (Steps 4, 8).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench shows two emitters' measured-frequency distributions (left) and measured-PRI distributions (right). The sorter splits at the midpoint (orange line); the red area is the fraction of pulses put on the wrong emitter. The four sliders are the quantities just defined: the receiver's rms frequency error σ<sub>f</sub>, the emitter spacing Δf, the TOA error σ<sub>TOA</sub> and the PRI difference ΔPRI.</p></div>
+  <div class="bench">
+    <canvas id="cPd" width="640" height="300" aria-label="Measured frequency and PRI distributions of two emitters and the fraction sorted to the wrong emitter"></canvas>
+    <div class="ctrl">
+      <label for="pdF"><span>Frequency error σ<sub>f</sub> (log)</span> <b id="pdFv"></b></label><input id="pdF" type="range" min="-1" max="1.477" step="0.001" value="0.477">
+      <label for="pdS"><span>Emitter spacing Δf</span> <b id="pdSv"></b></label><input id="pdS" type="range" min="1" max="50" step="1" value="15">
+      <label for="pdT"><span>TOA error σ<sub>TOA</sub></span> <b id="pdTv"></b></label><input id="pdT" type="range" min="5" max="500" step="5" value="50">
+      <label for="pdP"><span>PRI difference ΔPRI</span> <b id="pdPv"></b></label><input id="pdP" type="range" min="0.05" max="5" step="0.05" value="0.5">
+      <div class="readout" id="pdOut"></div>
+    </div>
+    <p class="cap">Gaussian measurement errors, sorter splitting at the midpoint between the two true values. Teal: emitter 1; violet: emitter 2. The PRI error is √2·σ<sub>TOA</sub> because a PRI is the difference of two TOAs.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (σ<sub>f</sub> 3 MHz, Δf 15 MHz): 5 standard deviations apart, 0.62 % wrongly sorted, as in the worked example.</li>
+    <li>Raise σ<sub>f</sub> to about 6 MHz: about 10 % wrongly sorted. That is a channelised receiver that reports only the channel centre (Step 5).</li>
+    <li>The readout "σ<sub>f</sub> for 1 % errors" at Δf 15 MHz is 3.22 MHz, the value in "How to choose" (1).</li>
+    <li>PRI side at defaults: σ<sub>PRI</sub> 71 ns, 0.02 % wrongly sorted; raise σ<sub>TOA</sub> to 200 ns and it becomes about 19 %.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Frequency accuracy</td><td>Architecture; delay-line phase matching (IFM); channel count and interpolation (channeliser)</td><td>3 MHz rms over 2–18 GHz</td><td>Emitters 15 MHz apart sorted with 0.6 % error instead of 11 % at 6 MHz</td></tr>
+    <tr><td>TOA resolution</td><td>Video bandwidth, comparator speed, clock rate</td><td>σ<sub>TOA</sub> ≤ 50 ns</td><td>PRI error 71 ns: PRI modes 0.5 µs apart separated with 0.02 % error</td></tr>
+    <tr><td>Minimum PW</td><td>Video bandwidth, detector video resistance and capacitance</td><td>PW ≥ 50 ns measured to ±25 ns</td><td>Short fire-control and altimeter pulses are seen and told apart from search pulses</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Detector and video amplifier designers:</b> your rise time is the TOA and PW accuracy of the whole ESM.</li>
+    <li><b>Delay line, filter and channel designers:</b> your phase and amplitude matching is the frequency accuracy, which is the main sorting key.</li>
+    <li><b>Clock and digital designers:</b> the TOA counter resolution and its stability over a long dwell set the PRI accuracy.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two radars are 8 MHz apart. What rms frequency error keeps sorting errors below 1 %?</summary><p>σ<sub>f</sub> ≤ Δf/4.65 = 8/4.65 = 1.7 MHz rms. A 20 MHz channelised receiver that reports only channel centres (5.8 MHz rms) cannot do this; an IFM or a digital channeliser with fine frequency can.</p></details>
+  </div>
+</section>
+
+<!-- 1 -->
+<section id="poi">
+  <div class="secno">Step 1</div>
+  <h2>Probability of intercept and scan strategy</h2>
+  <div class="know"><h4>You already know</h4><p>A receiver that is narrower than the band it must cover has to be retuned, step by step, to look at all of it. A narrower receiver has a lower noise floor: each halving of bandwidth gains 3 dB.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous bandwidth (IBW):</b> the part of the band the receiver can see at one moment.</p>
+    <p><b>Dwell time T<sub>d</sub>:</b> how long a scanning receiver stays on one frequency step.</p>
+    <p><b>Number of steps M:</b> how many dwells are needed to cover the band, M = ⌈span / IBW⌉ (⌈ ⌉ means round up).</p>
+    <p><b>Revisit time T<sub>r</sub>:</b> the time before the receiver comes back to the same step, T<sub>r</sub> = M·T<sub>d</sub>.</p>
+    <p><b>Illumination time T<sub>on</sub>:</b> how long the emitter's main beam points at the ESM on each antenna rotation. A search radar rotating every T<sub>s</sub> = 4 s with a 1.8° beam illuminates for T<sub>s</sub>·1.8/360 = 20 ms.</p>
+    <p><b>Probability of intercept (POI):</b> the probability that the receiver is looking at the emitter's frequency while the emitter's beam is on it, long enough to collect the pulses it needs.</p>
+    <p><b>Pulses needed N:</b> the number of pulses the receiver needs in one look to confirm a detection and measure the PRI; at least 2 (one PRI), usually more.</p>
+  </div>
+  <div class="col">
+    <p>Two windows have to overlap: the emitter's beam is on the ESM for T<sub>on</sub>, once every T<sub>s</sub>; the receiver is on the emitter's frequency for T<sub>d</sub>, once every T<sub>r</sub>. The overlap must be at least N·PRI long, or the receiver collects fewer than N pulses. If the two timings are not synchronised (they never are), the start of the illumination falls at a random point of the receiver's revisit cycle. The illumination start times that give enough overlap form a window of length T<sub>on</sub> + T<sub>d</sub> − 2·N·PRI. Its fraction of T<sub>r</sub> is the POI per emitter scan.</p>
+  </div>
+  <div class="eq">M = ⌈span / IBW⌉ &nbsp;&nbsp; T<sub>r</sub> = M · T<sub>d</sub> &nbsp;&nbsp; p = min(1, (T<sub>on</sub> + T<sub>d</sub> − 2·N·PRI) / T<sub>r</sub>) &nbsp;&nbsp; P<sub>cum</sub>(t) = 1 − (1 − p)<sup>⌊t/T<sub>s</sub>⌋</sup><small>Valid when N·PRI ≤ T<sub>d</sub> and N·PRI ≤ T<sub>on</sub>; otherwise p = 0 because no single look can collect N pulses. P<sub>cum</sub> assumes each emitter scan is an independent try, true when T<sub>r</sub> and T<sub>s</sub> are not in a simple ratio. A receiver with IBW ≥ span (M = 1) is always looking: p = 1 whenever T<sub>on</sub> ≥ N·PRI.</small></div>
+  <h3>Worked example: radar A, N = 2 pulses, dwell 4 ms</h3>
+  <div class="col"><p>A narrow superhet with a 20 MHz IBW needs M = 16 000/20 = 800 steps. With a 4 ms dwell the revisit time is 800 × 4 ms = 3.2 s. The capture window is 20 + 4 − 2 × 2 = 20 ms, so p = 20/3 200 = 0.63 % per emitter scan. Radar A scans every 4 s, so in 60 s there are 15 tries: P<sub>cum</sub> = 1 − (1 − 0.0063)<sup>15</sup> = 9 %. A receiver split into 8 bands of 2 GHz needs only 8 steps: T<sub>r</sub> = 32 ms, p = 20/32 = 63 %, and after 60 s P<sub>cum</sub> is 100 % to the shown precision.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design picks the narrowest, most sensitive receiver and scans it. It is excellent on paper (−76 dBm at 20 MHz against −47 dBm wide open) and catches radar A in only 9 % of one-minute watches. Worse, a dwell shorter than the PRI may contain no pulse at all: at a 0.5 ms dwell and a 1 ms PRI the receiver sees one pulse at most half the time, and with N = 2 it can never collect two. Short dwells do not help; they just stop the receiver seeing pulse trains.</p></div>
+  <h3>Side by side on one example: radar A (T<sub>on</sub> 20 ms every 4 s), N = 2, dwell 4 ms, 60 s watch</h3>
+  <div class="tw"><table class="t">
+    <tr><th>IBW</th><th>Steps M</th><th>Revisit</th><th>POI per scan</th><th>POI in 60 s</th><th>Sensitivity</th></tr>
+    <tr><td>20 MHz (narrow superhet)</td><td class="n">800</td><td class="n">3.2 s</td><td class="n">0.63 %</td><td class="n">9.0 %</td><td class="n">−76.0 dBm</td></tr>
+    <tr><td>50 MHz (YIG-tuned)</td><td class="n">320</td><td class="n">1.28 s</td><td class="n">1.56 %</td><td class="n">21 %</td><td class="n">−72.0 dBm</td></tr>
+    <tr><td>500 MHz (wide superhet or digital tuner)</td><td class="n">32</td><td class="n">128 ms</td><td class="n">15.6 %</td><td class="n">92 %</td><td class="n">−62.0 dBm</td></tr>
+    <tr><td>2 GHz (8 sub-bands)</td><td class="n">8</td><td class="n">32 ms</td><td class="n">62.5 %</td><td class="n">≈ 100 %</td><td class="n">−56.0 dBm</td></tr>
+    <tr><td>16 GHz (wide open)</td><td class="n">1</td><td class="n">continuous</td><td class="n">100 %</td><td class="n">100 %</td><td class="n">−47.0 dBm</td></tr>
+  </table></div>
+  <div class="col"><p>Sensitivity in the last column is −174 + NF + 10·log(IBW) + SNR with NF 10 dB and SNR 15 dB, for a receiver whose detection bandwidth equals its IBW. That is the dilemma of the whole subject: every row trades 3 dB of sensitivity per doubling of IBW for a shorter revisit. The rest of this page is about receivers that escape it by looking at a wide IBW while detecting in narrow cells (channelisers, compressive receivers) or by measuring frequency without filtering at all (IFM).</p></div>
+  <h3>How to choose the IBW, the dwell and the scan</h3>
+  <div class="col"><p>(1) The dwell must hold the pulses you need: T<sub>d</sub> ≥ N·PRI<sub>max</sub> for the longest PRI you care about; for 2 pulses of a 1 ms PRI, at least 2 ms, plus tuning and settling time. (2) The revisit must be short against the illumination: aim for T<sub>r</sub> ≤ T<sub>on</sub> + T<sub>d</sub> − 2N·PRI for 100 % POI per scan; with 20 ms beams and a 4 ms dwell, T<sub>r</sub> ≤ 20 ms means M ≤ 5 steps. (3) That M fixes the IBW: span/M. For 16 GHz and M = 5, IBW ≥ 3.2 GHz. (4) If the sensitivity at that IBW is not enough, you cannot fix it by scanning: you need a receiver with a wide IBW and narrow detection cells (Steps 5, 6). (5) Scan schedules in real systems are not uniform: they visit the bands where threat radars live more often, and they avoid scan periods that are simple multiples of known radar rotation periods.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The top strip shows one revisit cycle of the receiver: the violet block is the dwell at the emitter's frequency, the orange block is the set of illumination start times that give at least N pulses in one look; its fraction of the strip is the POI per scan. The lower plot is the cumulative POI against observation time. All six sliders are defined above: IBW, dwell T<sub>d</sub>, illumination T<sub>on</sub>, emitter scan period T<sub>s</sub>, pulses needed N (PRI is fixed at 1 ms) and the observation time.</p></div>
+  <div class="bench">
+    <canvas id="cPoi" width="640" height="330" aria-label="One receiver revisit cycle with the capture window, and cumulative probability of intercept against observation time"></canvas>
+    <div class="ctrl">
+      <label for="poB"><span>IBW (log)</span> <b id="poBv"></b></label><input id="poB" type="range" min="1" max="4.2042" step="0.0001" value="2.699">
+      <label for="poD"><span>Dwell T<sub>d</sub></span> <b id="poDv"></b></label><input id="poD" type="range" min="0.5" max="20" step="0.5" value="4">
+      <label for="poO"><span>Illumination T<sub>on</sub></span> <b id="poOv"></b></label><input id="poO" type="range" min="2" max="100" step="1" value="20">
+      <label for="poS"><span>Emitter scan period T<sub>s</sub></span> <b id="poSv"></b></label><input id="poS" type="range" min="1" max="10" step="0.5" value="4">
+      <label for="poN"><span>Pulses needed N</span> <b id="poNv"></b></label><input id="poN" type="range" min="1" max="10" step="1" value="2">
+      <label for="poT"><span>Observation time</span> <b id="poTv"></b></label><input id="poT" type="range" min="5" max="120" step="5" value="60">
+      <div class="readout" id="poOut"></div>
+    </div>
+    <p class="cap">Span 2–18 GHz, PRI 1 ms. Tuning time is ignored (add it to the dwell). Each emitter scan is treated as an independent try. The sensitivity line assumes the detection bandwidth equals the IBW.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (500 MHz, 4 ms, 20 ms, 4 s, N = 2, 60 s): 32 steps, revisit 128 ms, 15.6 % per scan, 92 % in 60 s, the table row.</li>
+    <li>IBW 20 MHz: 800 steps, 0.63 % per scan, 9 % in 60 s, the naive receiver.</li>
+    <li>IBW 2 GHz: 62.5 % per scan; IBW 16 GHz: 100 % at once, but sensitivity −47 dBm.</li>
+    <li>Dwell 1.5 ms with N = 2: POI 0 at every IBW above one step, because no look can hold two 1 ms PRIs.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Instantaneous bandwidth</td><td>Preselector, mixer and IF bandwidth, ADC rate</td><td>500 MHz IBW</td><td>32 steps over 2–18 GHz: 92 % POI in 60 s against radar A, sensitivity −62 dBm</td></tr>
+    <tr><td>Tuning and settling time</td><td>Synthesiser or YIG driver speed, filter settling</td><td>≤ 10 µs synthesiser; ≈ 1 ms/GHz YIG</td><td>Adds to every dwell: 32 × 1 ms extra lengthens the revisit from 128 to 160 ms</td></tr>
+    <tr><td>Flatness across the IBW</td><td>Gain slope of amplifiers, mixers, filters</td><td>±1.5 dB over 500 MHz</td><td>Sensitivity hole at band edges; amplitude (PA) errors per frequency</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> switching speed is directly POI. A 50 µs settling time on 800 steps is 40 ms per revisit of pure blindness (see the <a href="M02-synthesiser-phase-noise.html">synthesiser module</a>).</li>
+    <li><b>Filter designers:</b> the sub-band width and crossover of the preselector bank decide M (see the <a href="M04-filters.html">filters module</a>, Step 9).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An emitter illuminates the ESM for 5 ms every 2 s, PRI 0.5 ms, and you need N = 4 pulses. What is the largest number of 2.5 ms steps that still gives 100 % POI per scan?</summary><p>N·PRI = 2 ms, which fits in both T<sub>on</sub> and T<sub>d</sub>. The capture window is 5 + 2.5 − 4 = 3.5 ms. For p = 1 you need T<sub>r</sub> ≤ 3.5 ms, so M = 1: only a receiver that never leaves the band gets 100 %. With M = 2 (T<sub>r</sub> = 5 ms) p = 70 %.</p></details>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="cv">
+  <div class="secno">Step 2</div>
+  <h2>The crystal video receiver: tangential sensitivity and video bandwidth</h2>
+  <div class="know"><h4>You already know</h4><p>A Schottky or tunnel diode biased near zero is a square-law detector at low power: its output voltage is proportional to input power. An RC low-pass after it removes the RF and keeps the envelope (the "video"). A single-pole low-pass of bandwidth B has a 10–90 % rise time of 0.35/B.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Crystal video receiver:</b> a band-pass filter covering the whole band (or a few wide sub-bands), an optional RF amplifier, a detector diode, a video amplifier and a threshold comparator. "Crystal" is the old name for the detector diode. There is no mixer, no local oscillator and no frequency measurement.</p>
+    <p><b>Video bandwidth B<sub>v</sub>:</b> the bandwidth of the amplifier after the detector. It sets how fast the video follows the pulse edges and how much noise reaches the comparator.</p>
+    <p><b>RF bandwidth B<sub>R</sub>:</b> the bandwidth of the RF path before the detector, here 16 GHz.</p>
+    <p><b>Tangential sensitivity (TSS):</b> the input pulse power at which, on an oscilloscope, the bottom of the noise on top of the pulse is level with the top of the noise on the baseline: the pulse just "touches" the noise. It corresponds to a video signal-to-noise ratio of about 8 dB. It is the traditional figure of merit of a detector or crystal video receiver.</p>
+    <p><b>Detector-limited:</b> no (or little) RF gain before the diode, so the diode's own noise and the video amplifier noise dominate.</p>
+    <p><b>Noise-limited:</b> enough RF gain that amplified RF noise, beating with itself in the square-law diode, dominates.</p>
+  </div>
+  <div class="col">
+    <p>The crystal video receiver is the simplest wideband receiver and has 100 % POI in its band: it never tunes, so it never looks away. It measures TOA, PW and amplitude very well, because its video path can be fast. It does not measure frequency (except which sub-band the pulse came through), and when two pulses overlap it reports their sum as one pulse.</p>
+    <p>Its sensitivity has two regimes. Without an RF amplifier the detector limits: a good zero-bias Schottky gives about −52 dBm TSS at 2 MHz video bandwidth, worsening as √B<sub>v</sub> (5 dB per decade) because the output voltage is proportional to power. With RF gain in front, amplified noise takes over. In the square-law diode, noise beats with itself across the whole RF bandwidth and the video filter keeps only the part within B<sub>v</sub>. The result, in the form given by Tsui, depends on √(B<sub>R</sub>·B<sub>v</sub>), not on B<sub>R</sub>: a wide RF bandwidth costs only 5 dB per decade in a crystal video receiver, not 10.</p>
+  </div>
+  <div class="eq">TSS<sub>noise</sub> ≈ −114 + NF + 10·log(6.31·B<sub>v</sub> + 2.5·√(2·B<sub>R</sub>·B<sub>v</sub> − B<sub>v</sub>²)) dBm &nbsp;&nbsp; TSS<sub>det</sub> ≈ −52 + 5·log(B<sub>v</sub>/2) − G<sub>RF</sub> dBm &nbsp;&nbsp; t<sub>r</sub> = 0.35 / B<sub>v</sub><small>B in MHz; −114 dBm is kT in 1 MHz. The two terms are output noise voltages, so they combine as root sum of squares in linear power. Working sensitivity is taken here as TSS + 4 dB, a common rule for reliable detection (video SNR about 16 dB). A single-pole video filter reaches 1 − e<sup>−2π·B<sub>v</sub>·PW</sup> of the full pulse height.</small></div>
+  <h3>Worked example: 2–18 GHz, B<sub>v</sub> = 10 MHz</h3>
+  <div class="col"><p>Without a preamplifier: TSS<sub>det</sub> = −52 + 5·log 5 = −48.5 dBm. With a 30 dB, NF 10 dB preamplifier: TSS<sub>det</sub> drops to −78.5 dBm referred to the input and TSS<sub>noise</sub> = −114 + 10 + 10·log(63 + 2.5·√319 900) = −114 + 10 + 31.7 = −72.3 dBm; combined, −72.2 dBm, working sensitivity −68.2 dBm. Adding 10 dB more gain gains only 0.1 dB: the receiver is now noise-limited. The video rise time is 0.35/10 MHz = 35 ns, so a 1 µs pulse is measured cleanly, and a 50 ns pulse reaches only 1 − e<sup>−π</sup> = 96 % of its height.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive improvement is to narrow the video bandwidth for sensitivity. Going from 10 MHz to 1 MHz gains about 5 dB of TSS, but the rise time becomes 350 ns. A 100 ns pulse now reaches only 1 − e<sup>−0.63</sup> = 47 % of its height, which costs another 3.3 dB at the threshold (since the video is proportional to power), its measured PW comes out as about 0.17 µs instead of 0.1 µs, and its TOA is late by about 40 ns: the PW field can no longer tell a 0.1 µs pulse from a 0.15 µs one. The opposite naive choice, no preamplifier "to keep it simple", leaves the receiver 24 dB less sensitive, which is about 16 times less detection range.</p></div>
+  <h3>Side by side on one example: 2–18 GHz crystal video receivers</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Configuration</th><th>TSS</th><th>Working sensitivity</th><th>Rise time</th><th>Shortest pulse at ≥ 90 % height</th></tr>
+    <tr><td>No preamplifier, B<sub>v</sub> 10 MHz</td><td class="n">−48.5 dBm</td><td class="n">−44.5 dBm</td><td class="n">35 ns</td><td class="n">37 ns</td></tr>
+    <tr><td>30 dB preamplifier, B<sub>v</sub> 10 MHz</td><td class="n">−72.2 dBm</td><td class="n">−68.2 dBm</td><td class="n">35 ns</td><td class="n">37 ns</td></tr>
+    <tr><td>30 dB preamplifier, B<sub>v</sub> 2 MHz</td><td class="n">−75.8 dBm</td><td class="n">−71.8 dBm</td><td class="n">175 ns</td><td class="n">183 ns</td></tr>
+    <tr><td>30 dB preamplifier, B<sub>v</sub> 50 MHz</td><td class="n">−68.5 dBm</td><td class="n">−64.5 dBm</td><td class="n">7 ns</td><td class="n">7 ns</td></tr>
+  </table></div>
+  <div class="col"><p>Against the reference scenario the crystal video receiver gives: sensitivity about −68 dBm, POI 100 %, frequency accuracy none (only "somewhere in 2–18 GHz"), and simultaneous signals not separated. It is the classic radar warning receiver: cheap, fast, small, and it hands frequency measurement to something else (often an IFM, Step 4).</p></div>
+  <h3>How to choose the video bandwidth and the RF gain</h3>
+  <div class="col"><p>(1) Choose B<sub>v</sub> from the shortest pulse: for 90 % height, 2π·B<sub>v</sub>·PW ≥ 2.3, so B<sub>v</sub> ≥ 0.37/PW<sub>min</sub>; for 50 ns, about 7 MHz, and for good PW measurement roughly twice that. (2) Add RF gain until the receiver is noise-limited: past that point (about 30 dB here) more gain buys nothing and only reduces the largest signal the detector can take before it leaves square law. (3) If more sensitivity is needed, narrow B<sub>R</sub> by splitting the band (four 4 GHz sub-bands gain 3 dB, because the noise term goes as √B<sub>R</sub>), not B<sub>v</sub>. (4) Use a logarithmic video amplifier when the signal range is large: a square-law diode with linear video handles only about 30–40 dB before it compresses.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench draws the video output of one pulse with noise, in units of the video noise σ, with the 3σ comparator threshold. Sliders: RF gain before the detector (0 dB means no preamplifier), video bandwidth B<sub>v</sub>, input pulse power, and pulse width PW. RF bandwidth is fixed at 16 GHz and the preamplifier NF at 10 dB.</p></div>
+  <div class="bench">
+    <canvas id="cCv" width="640" height="320" aria-label="Video output of a crystal video receiver for one pulse with noise and threshold"></canvas>
+    <div class="ctrl">
+      <label for="cvG"><span>RF gain before detector</span> <b id="cvGv"></b></label><input id="cvG" type="range" min="0" max="40" step="1" value="30">
+      <label for="cvV"><span>Video bandwidth B<sub>v</sub> (log)</span> <b id="cvVv"></b></label><input id="cvV" type="range" min="-0.3" max="2" step="0.001" value="1">
+      <label for="cvP"><span>Input pulse power</span> <b id="cvPv"></b></label><input id="cvP" type="range" min="-90" max="-20" step="1" value="-65">
+      <label for="cvW"><span>Pulse width PW (log)</span> <b id="cvWv"></b></label><input id="cvW" type="range" min="-1.3" max="0.7" step="0.001" value="0">
+      <div class="readout" id="cvOut"></div>
+    </div>
+    <p class="cap">Square-law detector, single-pole video filter, the same noise sample every time so that changes come from the controls. Video SNR is the peak height over the noise σ in dB (8 dB at TSS). Measured PW is between the 50 % crossings of the noise-free video; TOA jitter is σ divided by the slope at the 50 % point.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (30 dB, 10 MHz, −65 dBm, 1 µs): TSS −72.2 dBm, working sensitivity −68.2 dBm, rise time 35 ns, the pulse clearly above the threshold.</li>
+    <li>Gain 0 dB: TSS −48.5 dBm and the −65 dBm pulse disappears into the noise; gain 40 dB: TSS −72.3 dBm, only 0.1 dB better than 30 dB.</li>
+    <li>B<sub>v</sub> 1 MHz with PW 0.1 µs: peak reached about 47 %, measured PW about 0.17 µs (+68 %), the naive case.</li>
+    <li>B<sub>v</sub> 50 MHz: TSS −68.5 dBm, rise time 7 ns: 3.7 dB worse sensitivity than 10 MHz for edges five times sharper.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Detector TSS</td><td>Diode type (zero-bias Schottky, tunnel), video load, matching</td><td>−52 dBm at 2 MHz video</td><td>Sets sensitivity without preamplifier: −48.5 dBm at 10 MHz video</td></tr>
+    <tr><td>Preamplifier gain and NF</td><td>LNA design over 2–18 GHz</td><td>G ≥ 30 dB, NF 10 dB</td><td>Receiver becomes noise-limited: −72.2 dBm TSS, 24 dB (16× range) better</td></tr>
+    <tr><td>Video bandwidth</td><td>Video amplifier, detector capacitance and load</td><td>10 MHz, rise 35 ns</td><td>50 ns pulses at 96 % height; PW error small; TOA jitter a few ns at strong signals</td></tr>
+    <tr><td>Detector dynamic range</td><td>Square-law range, log video amplifier</td><td>Log video 60 dB, ±1.5 dB</td><td>Amplitude (PA) accuracy from −70 to −10 dBm; no saturation of the comparator</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Detector diode designers:</b> TSS, video resistance and the square-law range are on your datasheet; the system uses all three directly.</li>
+    <li><b>Wideband LNA designers:</b> your gain flatness over 2–18 GHz is the crystal video receiver's sensitivity flatness, since there is nothing else in the chain to equalise it (see the <a href="M01-lna-noise.html">LNA module</a>).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A noise-limited crystal video receiver covers 2–18 GHz. You split it into four 4 GHz sub-bands, each with its own detector. Roughly how much sensitivity do you gain?</summary><p>The noise term goes as √(B<sub>R</sub>·B<sub>v</sub>) when B<sub>R</sub> ≫ B<sub>v</sub>, so quartering B<sub>R</sub> gains 10·log √4 = 3 dB. You also gain a coarse frequency measurement (which of four bands) and the ability to see two pulses in different bands at once.</p></details>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="sh">
+  <div class="secno">Step 3</div>
+  <h2>The scanning superheterodyne receiver</h2>
+  <div class="know"><h4>You already know</h4><p>A superhet mixes the input with a local oscillator (LO) to a fixed intermediate frequency (IF), where a fixed filter sets the bandwidth. Tuning the LO tunes the receiver. Mixers, images and LO spurs are covered in the <a href="M05-mixers-conversion.html">mixers module</a>, the IF chain in the <a href="M08-if-agc-dynamic-range.html">IF and AGC module</a>.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Scanning superhet:</b> a superhet whose LO is stepped or swept across the band, so the narrow IF window moves over the band in time.</p>
+    <p><b>IF bandwidth B:</b> the width of the IF filter; it is the receiver's IBW and its detection bandwidth.</p>
+    <p><b>Sweep time T<sub>sw</sub>:</b> the time to sweep the whole 16 GHz; the sweep rate is μ = span / T<sub>sw</sub> in Hz/s.</p>
+    <p><b>Time in pass band:</b> how long a fixed-frequency emitter stays inside the moving window, B/μ.</p>
+    <p><b>Filter response time:</b> a filter of bandwidth B needs about 1/B to build up its output. If the signal passes through the window faster than that, the output never reaches full height. The condition for the filter to keep up is B/μ ≥ 1/B, that is B²/μ ≥ 1.</p>
+  </div>
+  <div class="col">
+    <p>The superhet gives what the crystal video receiver lacks: sensitivity (a narrow detection bandwidth) and a frequency measurement (the LO setting tells you where the signal is, to within the IF bandwidth). It also rejects everything outside its window, so a strong signal elsewhere in the band does not disturb it. Its weakness is Step 1: it is looking at one narrow window at a time.</p>
+    <p>A swept superhet has a second trap. A pulsed emitter is not "on" all the time; it is on for 1 µs every 1 ms. When the window passes over the emitter's frequency in a time B/μ, the receiver catches a pulse only if one happens to fall inside that time. If B/μ is shorter than the PRI, it usually catches nothing.</p>
+  </div>
+  <div class="eq">μ = span / T<sub>sw</sub> &nbsp;&nbsp; T<sub>in</sub> = B / μ &nbsp;&nbsp; pulses per pass = T<sub>in</sub> / PRI &nbsp;&nbsp; S = −174 + NF + 10·log B + SNR &nbsp;&nbsp; σ<sub>f</sub> ≈ B / √12<small>B/√12 is the rms error when the receiver reports the window centre and the signal is anywhere in the window with equal probability. Losses are added when B²/μ &lt; 1 (sweep too fast, first-order loss 20·log(B²/μ)) and when PW·B &lt; 1 (the pulse is shorter than the filter's response time, loss 20·log(PW·B)).</small></div>
+  <h3>Worked example: 20 MHz IF, sweeping 2–18 GHz</h3>
+  <div class="col"><p>Sweep the 16 GHz in 100 ms: μ = 160 GHz/s, and radar A stays in the 20 MHz window for 20/160 000 s = 125 µs. With a 1 ms PRI that is 0.125 pulses per pass: the receiver sees a pulse on only 12.5 % of passes. Slow the sweep to 1.6 s: the window holds the emitter for 2 ms, two pulses per pass, but the band is revisited only every 1.6 s, so a 20 ms illumination is caught on (20 + 2)/1 600 = 1.4 % of scans. Sensitivity in both cases is −174 + 10 + 73.0 + 15 = −76.0 dBm and the frequency error is 20/√12 = 5.8 MHz rms.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design sweeps fast to keep the revisit short. At a 10 ms sweep (1 600 GHz/s), a 20 MHz window holds radar A for 12.5 µs: it catches a pulse on 1.25 % of passes. It also misses short pulses for a second reason: a 0.1 µs pulse through a 20 MHz IF has PW·B = 2, fine, but through a 1 MHz IF (chosen "for sensitivity") PW·B = 0.1 and the output is 20 dB down, more than the 13 dB the narrower filter gained.</p></div>
+  <h3>Side by side on one example: radar A (PRI 1 ms, PW 1 µs), 20 MHz IF</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Sweep time over 16 GHz</th><th>Time in window</th><th>Pulses per pass</th><th>P(≥ 1 pulse per pass)</th><th>POI per 20 ms beam ≈</th></tr>
+    <tr><td class="n">10 ms</td><td class="n">12.5 µs</td><td class="n">0.0125</td><td class="n">1.25 %</td><td class="n">1.25 %</td></tr>
+    <tr><td class="n">100 ms</td><td class="n">125 µs</td><td class="n">0.125</td><td class="n">12.5 %</td><td class="n">2.5 %</td></tr>
+    <tr><td class="n">1.6 s</td><td class="n">2 ms</td><td class="n">2</td><td class="n">100 %</td><td class="n">1.4 %</td></tr>
+    <tr><td class="n">10 s</td><td class="n">12.5 ms</td><td class="n">12.5</td><td class="n">100 %</td><td class="n">0.33 %</td></tr>
+  </table></div>
+  <div class="col"><p>No sweep speed works for radar A: fast sweeps miss its pulses, slow sweeps miss its beam. This is why scanning superhets in modern ESM are used in a different role: as a "look-through" or analysis receiver that is pointed at a frequency after a wide-open receiver (crystal video, IFM or channeliser) has found something. There it brings its strengths: −76 dBm sensitivity, rejection of everything else, and the ability to look inside the pulse.</p></div>
+  <h3>How to choose the IF bandwidth and the scan</h3>
+  <div class="col"><p>(1) Make B at least 2/PW<sub>min</sub> so short pulses are not lost in the filter: 20 MHz handles 0.1 µs. (2) Step, do not sweep, and dwell at least N·PRI<sub>max</sub> on each step (Step 1). (3) Keep B²/μ ≥ 1 if you sweep; at 20 MHz that allows up to 400 THz/s, far more than ever needed, but at 1 MHz only 1 THz/s, which is 16 ms for 16 GHz. (4) Use the superhet where it is strong: cued to a known frequency, as the fine-measurement receiver behind a wide-open one. (5) The front-end preselector must track the LO to reject the image (see the filters and mixers modules); the IF filter's shape factor sets how close a strong neighbour can be (Step 8).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench shows time across, frequency up. The teal band is the receiver's pass band moving through the emitter's frequency (the grey line). Pulses of radar A sit on that line; orange ones fall inside the pass band and are caught. Sliders: IF bandwidth B, sweep time over 16 GHz, the emitter's PRI and its PW.</p></div>
+  <div class="bench">
+    <canvas id="cSh" width="640" height="320" aria-label="Swept superhet pass band moving through an emitter's frequency, with caught and missed pulses"></canvas>
+    <div class="ctrl">
+      <label for="shB"><span>IF bandwidth B (log)</span> <b id="shBv"></b></label><input id="shB" type="range" min="0" max="2" step="0.001" value="1.301">
+      <label for="shT"><span>Sweep time over 16 GHz (log)</span> <b id="shTv"></b></label><input id="shT" type="range" min="-3" max="1" step="0.001" value="-1">
+      <label for="shP"><span>Emitter PRI</span> <b id="shPv"></b></label><input id="shP" type="range" min="0.1" max="10" step="0.1" value="1">
+      <label for="shW"><span>Emitter PW (log)</span> <b id="shWv"></b></label><input id="shW" type="range" min="-1.3" max="1" step="0.001" value="0">
+      <div class="readout" id="shOut"></div>
+    </div>
+    <p class="cap">Linear sweep over 2–18 GHz, NF 10 dB, SNR 15 dB. The window shown is centred on the moment the pass band passes the emitter. "POI per beam" (radar A's 20 ms beam) ≈ min(1, (20 ms + B/μ)/T<sub>sw</sub>) × P(≥ 1 pulse per pass): the chance the pass band reaches the emitter during radar A's illumination and catches a pulse. The inset shows one pulse through the IF filter: when PW·B &lt; 1 it never reaches full height.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (20 MHz, 100 ms, PRI 1 ms): 125 µs in the window, 0.125 pulses per pass, 12.5 % per pass and about 2.5 % per 20 ms beam, the table row.</li>
+    <li>Sweep time 1.6 s: 2 pulses per pass, P(≥ 1 pulse) 100 %, but POI per 20 ms beam only about 1.4 %.</li>
+    <li>IF 1 MHz with a 1 ms sweep: B²/μ = 0.0625, the sweep-speed loss is about 24 dB.</li>
+    <li>IF 1 MHz with PW 0.1 µs: the pulse loss is 20 dB, larger than the 13 dB the 1 MHz filter gained over 20 MHz.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>IF bandwidth</td><td>IF filter (see filters module)</td><td>20 MHz, shape factor 2.5</td><td>−76 dBm sensitivity; frequency to 5.8 MHz rms; 0.1 µs pulses pass</td></tr>
+    <tr><td>LO step and settling</td><td>Synthesiser architecture</td><td>20 MHz steps, ≤ 10 µs settling</td><td>Settling is lost time on each of 800 steps (8 ms per revisit)</td></tr>
+    <tr><td>Image and spur rejection</td><td>Tracking preselector, mixer balance</td><td>≥ 60 dB image rejection</td><td>No false emitters reported at the image frequency</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Synthesiser designers:</b> step size, settling time and spur level of the LO become dwell overhead and false signals.</li>
+    <li><b>Mixer and filter designers:</b> the superhet's selectivity against a strong neighbour is your IF filter's skirt and your mixer's spur table.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 5 MHz superhet must catch at least one pulse per pass from radars with PRIs up to 2 ms. What is the fastest sweep over 16 GHz?</summary><p>B/μ ≥ PRI → μ ≤ 5 MHz / 2 ms = 2.5 GHz/s, so T<sub>sw</sub> ≥ 16/2.5 = 6.4 s. Revisiting the band every 6.4 s misses most search-radar beams: this receiver is a cued analysis receiver, not a search receiver.</p></details>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="ifm">
+  <div class="secno">Step 4</div>
+  <h2>The IFM receiver: measuring frequency with a delay line</h2>
+  <div class="know"><h4>You already know</h4><p>A signal at frequency f delayed by τ is shifted in phase by φ = 2π·f·τ. A phase can be measured by multiplying two signals and low-pass filtering: the product of the signal and its delayed copy has a DC part proportional to cos φ. Phase is only known modulo 360°.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>IFM (instantaneous frequency measurement) receiver:</b> a wide-open receiver that measures the frequency of each pulse from the phase shift through a delay line, within a fraction of a microsecond, without any filter bank or tuning.</p>
+    <p><b>Delay-line discriminator (phase correlator):</b> the signal is split; one half passes a delay line τ; a correlator (hybrids and four detector diodes) produces two video outputs proportional to cos(2πfτ) and sin(2πfτ). Their ratio gives the angle φ, and f = φ/(2πτ).</p>
+    <p><b>Unambiguous bandwidth:</b> φ repeats every 360°, so one line measures f without ambiguity only over 1/τ. For 16 GHz, τ ≤ 62.5 ps.</p>
+    <p><b>Multi-line IFM:</b> several lines in ratio n (for example 62.5 ps, 250 ps, 1 ns, 4 ns for n = 4). The shortest gives a coarse, unambiguous frequency; each longer one is n times finer but ambiguous, and the coarser answer picks which of its n possible values is right.</p>
+    <p><b>Limiting amplifier:</b> an amplifier driven into hard saturation so its output amplitude is constant; it makes the correlator outputs independent of signal level. With two signals, it strengthens the stronger and suppresses the weaker (the capture effect, about 6 dB extra suppression of a small signal).</p>
+  </div>
+  <div class="col">
+    <p>The IFM answers the crystal video receiver's missing field. It is wide open over 2–18 GHz, so POI is 100 %, and it measures frequency on every pulse to a few MHz. Accuracy comes from the longest delay: σ<sub>f</sub> = σ<sub>φ</sub>/(2πτ<sub>L</sub>). A 5° phase error on the 62.5 ps line alone is (5/360)/62.5 ps = 222 MHz; on a 4 ns line it is 3.5 MHz. The phase error has two parts: noise, which falls as the signal rises, and hardware error (line dispersion, correlator imbalance, temperature drift), which does not.</p>
+    <p>The correlator is a square-law device over the full 16 GHz, like the crystal video receiver. Its noise is integrated down by the video filter, so the video SNR is SNR<sub>RF</sub>²·(B<sub>R</sub>/B<sub>v</sub>)/(1 + 2·SNR<sub>RF</sub>): large even when the RF SNR in 16 GHz is near 0 dB.</p>
+  </div>
+  <div class="eq">φ = 2π f τ (mod 2π) &nbsp;&nbsp; f<sub>unamb</sub> = 1/τ<sub>1</sub> &nbsp;&nbsp; σ<sub>f</sub> = σ<sub>φ</sub> / (2π τ<sub>L</sub>) &nbsp;&nbsp; σ<sub>φ</sub> = √(1/SNR<sub>v</sub> + σ<sub>hw</sub>²) &nbsp;&nbsp; P<sub>amb</sub> ≈ erfc(π / (n σ<sub>φ</sub> √2)) per stage<small>SNR<sub>v</sub> is the video SNR after the correlator (B<sub>R</sub> 16 GHz, B<sub>v</sub> 10 MHz here). A stage resolves the next line's ambiguity correctly when its phase error is below π/n. Sensitivity is taken as the input level that gives SNR<sub>v</sub> = 20 dB (5.7° noise phase error).</small></div>
+  <h3>Worked example: 4 lines, ratio 4, 3° hardware error</h3>
+  <div class="col"><p>Noise in 16 GHz with NF 10 dB is −174 + 10 + 102.0 = −62.0 dBm. A −60 dBm pulse has SNR<sub>RF</sub> = 2.0 dB (1.57); SNR<sub>v</sub> = 1.57² × 1 600 / 4.14 = 953, that is 29.8 dB, so σ<sub>φ,noise</sub> = 1/√953 = 0.032 rad = 1.86°. With 3° hardware error the total is √(1.86² + 3²) = 3.53°. On the 4 ns line: σ<sub>f</sub> = (3.53/360)/4 ns = 2.45 MHz rms. Each coarser stage must keep its error under 180°/4 = 45°: at 3.53° rms that is 12.7 standard deviations, so ambiguity errors are negligible. The receiver's sensitivity (SNR<sub>v</sub> = 20 dB) is −66.9 dBm.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive IFM uses one long line for accuracy: 4 ns gives 2.45 MHz, but its unambiguous range is 1/4 ns = 250 MHz, so a pulse at 9.40 GHz and one at 9.65 GHz read the same. The other naive IFM uses one short line for the full band: unambiguous over 16 GHz but σ<sub>f</sub> = (3.53/360)/62.5 ps = 157 MHz, useless for sorting. The third naive step is to stretch the ratio to n = 8 to save a line: with σ<sub>φ</sub> = 5.7° at the sensitivity limit and π/8 = 22.5° as the margin, an ambiguity error happens 4 standard deviations out, about 0.01 % per stage per pulse, which becomes visible in a stream of a million pulses per second.</p></div>
+  <h3>Side by side on one example: −60 dBm pulse at 9.40 GHz, 3° hardware error</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Delay lines</th><th>Longest τ</th><th>Unambiguous</th><th>σ<sub>f</sub></th><th>Ambiguity margin</th></tr>
+    <tr><td>1 line, 62.5 ps</td><td class="n">62.5 ps</td><td class="n">16 GHz</td><td class="n">157 MHz</td><td class="n">none needed</td></tr>
+    <tr><td>1 line, 4 ns</td><td class="n">4 ns</td><td class="n">250 MHz</td><td class="n">2.45 MHz</td><td class="n">not resolved</td></tr>
+    <tr><td>4 lines, n = 4</td><td class="n">4 ns</td><td class="n">16 GHz</td><td class="n">2.45 MHz</td><td class="n">45° vs 3.5° rms</td></tr>
+    <tr><td>3 lines, n = 8</td><td class="n">4 ns</td><td class="n">16 GHz</td><td class="n">2.45 MHz</td><td class="n">22.5° vs 3.5° rms</td></tr>
+  </table></div>
+  <div class="col"><p>Against the reference scenario the IFM gives: sensitivity −67 dBm, frequency 2.5 MHz rms (enough to sort A, B and C 15 MHz apart with under 1 % error), POI 100 %, and PDWs in under a microsecond. Its weakness is the next bench.</p></div>
+  <h3>How to choose the delay lines and the phase budget</h3>
+  <div class="col"><p>(1) The shortest line sets the unambiguous band: τ<sub>1</sub> ≤ 1/span. (2) The frequency accuracy target and the phase budget set the longest: τ<sub>L</sub> = σ<sub>φ</sub>/(2π σ<sub>f</sub>); for 2.5 MHz with 3.5°, 4 ns. (3) The ratio n is a trade between number of lines and ambiguity margin π/n; n = 4 with 4 or 5 lines is common. (4) The hardware phase error is a component budget: delay-line dispersion and temperature drift, correlator hybrid imbalance, detector matching; once it is larger than the noise term, more signal does not help. (5) The video bandwidth sets both the shortest pulse measured and the noise: 10 MHz handles pulses down to about 100 ns.</p></div>
+  <h3 class="try">Try it: one signal</h3>
+  <div class="col"><p>Left: the phasor (cos, sin) of the longest line for 300 pulses, with noise and hardware error; the orange line is the true angle. Right: the rms frequency error each line alone would give, on a log scale; the orange bar is the longest line, which sets the reported accuracy. Sliders and selects: input power, number of lines, the ratio n between lines, and the hardware phase error σ<sub>hw</sub>.</p></div>
+  <div class="bench">
+    <canvas id="cIf" width="640" height="300" aria-label="IFM phasor scatter on the longest delay line and rms frequency error of each line"></canvas>
+    <div class="ctrl">
+      <label for="ifP"><span>Input power</span> <b id="ifPv"></b></label><input id="ifP" type="range" min="-80" max="-20" step="1" value="-60">
+      <label for="ifL">Number of delay lines</label>
+      <select id="ifL"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option></select>
+      <label for="ifN">Ratio n between lines</label>
+      <select id="ifN"><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option></select>
+      <label for="ifH"><span>Hardware phase error σ<sub>hw</sub></span> <b id="ifHv"></b></label><input id="ifH" type="range" min="0" max="10" step="0.5" value="3">
+      <div class="readout" id="ifOut"></div>
+    </div>
+    <p class="cap">Signal at 9.40 GHz; shortest line 62.5 ps (16 GHz unambiguous); lines are 62.5 ps × n<sup>k</sup>. RF bandwidth 16 GHz, NF 10 dB, video bandwidth 10 MHz. The ambiguity probability is per pulse, summed over all stages.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (−60 dBm, 4 lines, n = 4, 3°): video SNR 29.8 dB, total phase error 3.53°, σ<sub>f</sub> 2.45 MHz, as in the worked example.</li>
+    <li>1 line: σ<sub>f</sub> about 157 MHz, the "short line only" row.</li>
+    <li>σ<sub>hw</sub> 0° at −60 dBm: σ<sub>f</sub> falls to about 1.3 MHz; at −40 dBm and 3°, it stays near 2.1 MHz, set by hardware.</li>
+    <li>3 lines, n = 8, at −70 dBm: total phase error 10.9°, and the ambiguity probability climbs to about 7.6 % per pulse.</li>
+  </ul></div>
+  <h3>Simultaneous signals: why the IFM fails</h3>
+  <div class="col">
+    <p>The correlator multiplies the input by its own delayed copy. With two signals present, a strong one (amplitude 1) and a weak one (amplitude r), the product has four terms: the strong signal with itself (angle φ<sub>1</sub>), the weak with itself (angle φ<sub>2</sub>, size r²), and two cross terms of size r that rotate at the difference frequency Δf. The video filter removes the cross terms only if Δf is well above B<sub>v</sub>. What is left is the sum of two phasors, and its angle is neither φ<sub>1</sub> nor φ<sub>2</sub>. The error is largest when the two phasors are 90° apart: arcsin(r²) in phase.</p>
+    <p>Worked example on a 1 ns line: a weak signal 10 dB below the strong one. Without a limiter r² = 0.1, worst phase error arcsin 0.1 = 5.7°, which is 15.9 MHz on 1 ns. A hard limiter before the correlator suppresses the weak signal further, to about r/(2 − r) = 0.19 (−14.5 dB), so r² = 0.035 and the worst error drops to 5.6 MHz. When the two are within a few dB of each other, the reported frequency is somewhere between them, or anywhere: the IFM silently produces a wrong PDW.</p>
+  </div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive view is that an IFM "reports the strongest signal". It does, only when the weaker one is more than about 10–15 dB down and far enough away in frequency for the video filter to remove the beat. With radar A at −50 dBm and a pulse from radar C overlapping at −58 dBm, 30 MHz away, the beat at 30 MHz is only partly removed by a 10 MHz video filter, and A's PDW frequency wobbles by several MHz during the overlap. In a dense scene with 1 µs pulses at 200 000 per second, 1 − e<sup>−0.4</sup> = 33 % of pulses overlap another (Step 9 of the filters module): a third of the IFM's PDWs are at risk.</p></div>
+  <h3>Side by side on one example: strong signal at 9.40 GHz, weak one 100 MHz above, 1 ns line, 10 MHz video</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Weak / strong</th><th>Limiter</th><th>Weak at correlator</th><th>Worst steady error (any phase difference)</th><th>Verdict</th></tr>
+    <tr><td class="n">−20 dB</td><td>yes</td><td class="n">−25.6 dB</td><td class="n">0.4 MHz</td><td>strong reported correctly</td></tr>
+    <tr><td class="n">−10 dB</td><td>yes</td><td class="n">−14.5 dB</td><td class="n">5.6 MHz</td><td>strong reported with a few MHz error</td></tr>
+    <tr><td class="n">−10 dB</td><td>no</td><td class="n">−10.0 dB</td><td class="n">15.9 MHz</td><td>error larger than the sort margin</td></tr>
+    <tr><td class="n">−2 dB</td><td>yes</td><td class="n">−3.6 dB</td><td class="n">≈ 70 MHz</td><td>reported frequency between the two: wrong PDW</td></tr>
+  </table></div>
+  <h3>How to make an IFM survive dense scenes</h3>
+  <div class="col"><p>(1) Put a limiter in front: the capture effect is free extra suppression of the weaker signal. (2) Choose B<sub>v</sub> as narrow as the shortest pulse allows, so beats from signals more than a few B<sub>v</sub> away are filtered. (3) Detect overlap and flag it: compare the cos/sin magnitudes against their single-signal values, or watch the phase change during the pulse; a flagged PDW is better than a wrong one. (4) Split the band with a filter bank ahead of several IFMs, so two signals in different sub-bands go to different IFMs. (5) In modern systems, use a digital channeliser (Step 5) for the dense part and keep the IFM for speed.</p></div>
+  <h3 class="try">Try it: two signals at once</h3>
+  <div class="col"><p>The bench plots the frequency the IFM reports, on a 1 ns line, during 2 µs when both pulses are present. Sliders and select: the weak signal's level relative to the strong one, their frequency difference Δf, the video bandwidth B<sub>v</sub> (which sets how much of the Δf beat gets through), and the limiter.</p></div>
+  <div class="bench">
+    <canvas id="cIs" width="640" height="300" aria-label="Frequency reported by an IFM while a strong and a weak pulse overlap"></canvas>
+    <div class="ctrl">
+      <label for="isR"><span>Weak / strong</span> <b id="isRv"></b></label><input id="isR" type="range" min="-30" max="0" step="1" value="-10">
+      <label for="isD"><span>Frequency difference Δf (log)</span> <b id="isDv"></b></label><input id="isD" type="range" min="0" max="3.3" step="0.001" value="2">
+      <label for="isV"><span>Video bandwidth B<sub>v</sub> (log)</span> <b id="isVv"></b></label><input id="isV" type="range" min="0" max="1.7" step="0.001" value="1">
+      <label for="isL">Limiting amplifier before correlator</label>
+      <select id="isL"><option value="on" selected>Yes (capture effect)</option><option value="off">No (linear)</option></select>
+      <div class="readout" id="isOut"></div>
+    </div>
+    <p class="cap">Two CW-like pulses overlapping for 2 µs, 1 ns delay line, single-pole video filter on the cross terms. Limiter modelled as weak/strong → r/(2 − r), about 6 dB extra suppression for small r. "Steady error" is what remains when the beat is fully filtered.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (−10 dB, 100 MHz, 10 MHz video, limiter): weak at the correlator −14.5 dB, steady error about 3 MHz, plus a ripple from the beat, which the 10 MHz video filter attenuates by 20 dB.</li>
+    <li>Limiter off: weak at the correlator −10 dB, the steady error roughly triples.</li>
+    <li>Weak −2 dB: the reported frequency moves well away from the strong signal, toward the weak one; the PDW is wrong.</li>
+    <li>Δf 250 MHz (90° apart on the 1 ns line) with 50 MHz video: the beat is only 14 dB down and the reported frequency ripples by about 16 MHz peak to peak; with 10 MHz video it is 28 dB down and the ripple is about 3 MHz.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Longest delay τ<sub>L</sub></td><td>Delay line length and material (coax, stripline)</td><td>4 ns</td><td>σ<sub>f</sub> 2.45 MHz with 3.5° phase error; emitters 15 MHz apart sorted at &lt; 1 % error</td></tr>
+    <tr><td>Phase error over band and temperature</td><td>Line dispersion, correlator hybrid balance, detector matching, calibration</td><td>≤ 3° rms</td><td>Floor on accuracy: 2.1 MHz at 4 ns no matter how strong the signal</td></tr>
+    <tr><td>Limiter suppression</td><td>Limiting amplifier design</td><td>Small-signal suppression ≈ 6 dB, flat phase vs drive</td><td>Weak overlapping signals −10 dB cost 5.6 MHz instead of 15.9 MHz on a 1 ns line</td></tr>
+    <tr><td>Video bandwidth</td><td>Detector load, video amplifiers</td><td>10 MHz</td><td>Pulses down to about 100 ns; beats from signals &gt; 30 MHz away filtered by &gt; 10 dB</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Delay line and hybrid designers:</b> the IFM's frequency accuracy is your phase match in degrees, divided by 2πτ. A 1° drift over temperature on a 4 ns line is 0.7 MHz of bias on every PDW.</li>
+    <li><b>Limiting amplifier designers:</b> phase change versus input level (AM-to-PM) is a frequency error, because the IFM cannot tell it from the delay line's phase.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Your correlator has 2° rms phase error. What longest delay gives 1 MHz rms with strong signals, and how many n = 4 lines are needed for 2–18 GHz?</summary><p>τ<sub>L</sub> = σ<sub>φ</sub>/(2π σ<sub>f</sub>) = (2/360)/1 MHz = 5.6 ns. Starting from 62.5 ps with n = 4: 62.5 ps, 250 ps, 1 ns, 4 ns, 16 ns. 4 ns is not enough, so 5 lines (16 ns, 0.35 MHz), or keep 4 lines and accept 1.4 MHz.</p></details>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="chan">
+  <div class="secno">Step 5</div>
+  <h2>Channelised receivers: analogue filter banks and digital polyphase channelisers</h2>
+  <div class="know"><h4>You already know</h4><p>A band-pass filter passes its band and rejects the rest, with a skirt whose steepness depends on its order and family (see the <a href="M04-filters.html">filters module</a>). An FFT of N samples splits a sampled band into N frequency bins. An ADC turns a band of up to half its sample rate into numbers (see the <a href="M07-adc-dac-sampling.html">ADC module</a>); a DDC and decimating filters move and narrow it (see the <a href="M09-digital-receiver.html">digital receiver module</a>).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Channelised receiver:</b> a bank of contiguous filters (channels) covering the IBW side by side, each with its own detector. Every channel is watched all the time, so POI is 100 % and each detection bandwidth is narrow.</p>
+    <p><b>Channel spacing Δ:</b> the frequency step between channel centres, here 20 MHz.</p>
+    <p><b>Crossover level:</b> the response of two neighbouring channels at the frequency halfway between them. At −3 dB, a signal there loses 3 dB in both; deeper crossovers leave holes; shallower ones overlap more.</p>
+    <p><b>Channel overlap:</b> channels wider than their spacing, so the responses overlap and a signal anywhere is well inside at least one channel. Overlap is what makes a signal appear in two channels at once.</p>
+    <p><b>Splitting:</b> one signal reported in two (or more) adjacent channels. It happens near a crossover, and for short pulses whose spectrum (main lobe 2/PW wide) is wider than a channel.</p>
+    <p><b>Digital channeliser:</b> an ADC followed by a digital filter bank that forms all channels at once. The efficient form is the <b>polyphase filter bank (PFB)</b>: one low-pass prototype filter of P·N taps, split into N branches of P taps (the "polyphase" parts), followed by an N-point FFT. It costs little more than the FFT, but each channel has the shape of the prototype filter instead of the FFT's sinc.</p>
+    <p><b>Taps per channel P:</b> the length of each polyphase branch. P = 1 is a plain FFT; P = 4 to 16 gives steep channel skirts.</p>
+    <p><b>Oversampled PFB:</b> channel outputs sampled at twice the channel spacing (2× oversampled) so channels can overlap without aliasing; a critically sampled bank (1×) needs channel skirts that stop within one spacing.</p>
+  </div>
+  <div class="col">
+    <p>The channeliser is the direct answer to the dilemma of Step 1: many narrow receivers side by side give both 100 % POI and the sensitivity of a narrow cell. An analogue channelised receiver for 2–18 GHz with 20 MHz channels would need 800 filters, detectors and comparators; real analogue designs use two levels (for example 16 sub-bands of 1 GHz, each down-converted to a common IF and split into 50 channels). A digital channeliser does the second level in an FPGA: a 1 GHz IF sampled at about 2.5 GS/s gives 50 channels of 20 MHz, all formed by one PFB.</p>
+    <p>Frequency accuracy is set by the channel width if the receiver reports only "which channel": Δ/√12 = 20/√12 = 5.8 MHz rms. A digital channeliser can do much better by measuring the phase change of the channel output from sample to sample (instantaneous frequency within the channel), reaching about 1 MHz rms on strong pulses. Two signals in different channels are reported separately; two in the same channel are not.</p>
+  </div>
+  <div class="eq">E<sub>k</sub> = ∫ S(f) · |H(f/Δ − k)|² df &nbsp;&nbsp; S(f) ∝ sinc²((f − f<sub>0</sub>)·PW) &nbsp;&nbsp; σ<sub>f</sub> (channel centre only) = Δ / √12 &nbsp;&nbsp; S<sub>channel</sub> = −174 + NF + 10·log Δ + SNR<small>E<sub>k</sub> is the energy of a rectangular pulse of width PW coming out of channel k, normalised to a long pulse at the channel centre. H is the channel response: a 5-pole Butterworth for the analogue bank, the FFT's sinc for P = 1, or a Hann-windowed sinc prototype for the PFB, scaled to give the chosen crossover level.</small></div>
+  <h3>Worked example: 20 MHz channels, a 1 µs pulse</h3>
+  <div class="col"><p>Sensitivity per channel is −174 + 10 + 73.0 + 15 = −76.0 dBm, the same as the 20 MHz superhet, but on all channels at once. A 1 µs pulse has a 2 MHz main lobe, well inside one 20 MHz channel: with an 8-tap PFB and a −3 dB crossover, a pulse 0.25 of a channel off centre loses only 0.05 dB and the next channel sees it 20 dB down. Moved to the crossover (offset 0.5), it loses 3.0 dB and appears equally in two channels. A 50 ns pulse at the channel centre has a 40 MHz main lobe: it loses 1.2 dB in its own channel and spills into both neighbours at about −11 dB.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive digital channeliser is a plain FFT (P = 1). Its channels are sinc-shaped: the crossover is −3.9 dB (fixed, not chosen), the response 1.5 channels away is only −13.4 dB and the sidelobes stay around −18 dB several channels out. A −30 dBm emitter then shows up at −48 dBm in channels 40–100 MHz away, far above the −76 dBm sensitivity: one strong radar lights up many channels and the PDW stream fills with false emitters. With P = 8 the response 1.5 channels away is below −100 dB, and what remains in distant channels is the pulse's own spectrum splatter, not the filter.</p></div>
+  <h3>Side by side on one example: 20 MHz channels, −3 dB crossover, 1 µs pulse 0.25 channel off centre</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Implementation</th><th>Crossover</th><th>Response 1.5 channels out</th><th>Worst leakage 2–5 channels out</th><th>Loss in own channel</th></tr>
+    <tr><td>Analogue, 5-pole Butterworth</td><td class="n">−3.0 dB</td><td class="n">−47.7 dB</td><td class="n">−60.2 dB</td><td class="n">0.07 dB</td></tr>
+    <tr><td>Digital FFT (P = 1)</td><td class="n">−3.9 dB</td><td class="n">−13.4 dB</td><td class="n">−17.7 dB</td><td class="n">0.97 dB</td></tr>
+    <tr><td>PFB, P = 4</td><td class="n">−3.0 dB</td><td class="n">−79.6 dB</td><td class="n">−71.5 dB</td><td class="n">0.26 dB</td></tr>
+    <tr><td>PFB, P = 8</td><td class="n">−3.0 dB</td><td class="n">−103 dB</td><td class="n">−89.3 dB</td><td class="n">0.05 dB</td></tr>
+  </table></div>
+  <div class="col"><p>Against the reference scenario a 20 MHz channeliser gives: sensitivity −76 dBm, POI 100 % within its IBW, frequency 5.8 MHz rms from the channel centre (about 1 MHz with digital fine frequency), and simultaneous signals in different channels handled. Radars A, B and C 15 MHz apart fall in adjacent channels, or sometimes the same one: with channel-centre frequency only, Step 0 says about 10 % of their pulses would be missorted.</p></div>
+  <h3>How to choose channel spacing, overlap and filter length</h3>
+  <div class="col"><p>(1) The channel spacing sets sensitivity (10·log Δ) and the shortest pulse that stays in one channel (PW ≥ about 2/Δ, 100 ns for 20 MHz). (2) Choose the crossover: −3 dB is the usual compromise; −1 dB (more overlap) almost removes the loss at the crossover but needs a 2× oversampled bank and makes more signals appear in two channels; −6 dB leaves a 6 dB sensitivity hole between channels. (3) Choose P for the rejection you need against strong neighbours: P = 8 gives about −90 dB, more than any ADC's spurious-free range, so P beyond 8 buys nothing in practice. (4) Always add channel-combining logic: a signal reported in two adjacent channels within a few dB, at the same TOA, is one signal. (5) The ADC sets the IBW and the dynamic range; the PFB cannot reject what the ADC itself creates (Step 8).</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>Top: the responses of seven neighbouring channels (grey, the strongest in teal) with the pulse's spectrum (orange dashed); the violet dashed line is the crossover level. Bottom: the energy each channel delivers, with the 6 dB band used to count splitting. Selects and sliders: implementation, crossover level, the signal's offset from the centre of channel 0 (0.5 = exactly at a crossover) and pulse width.</p></div>
+  <div class="bench">
+    <canvas id="cCh" width="640" height="360" aria-label="Channel responses of a filter bank and the energy a pulse delivers into each channel"></canvas>
+    <div class="ctrl">
+      <label for="chI">Implementation</label>
+      <select id="chI"><option value="ana">Analogue, 5-pole Butterworth</option><option value="fft">Digital FFT (P = 1)</option><option value="pfb4">Digital PFB, P = 4</option><option value="pfb8" selected>Digital PFB, P = 8</option><option value="pfb16">Digital PFB, P = 16</option></select>
+      <label for="chX">Crossover level</label>
+      <select id="chX"><option value="-1">−1 dB (overlapped, 2× oversampled)</option><option value="-3" selected>−3 dB</option><option value="-6">−6 dB</option></select>
+      <label for="chO"><span>Signal offset in channel</span> <b id="chOv"></b></label><input id="chO" type="range" min="0" max="1" step="0.01" value="0.25">
+      <label for="chW"><span>Pulse width (log)</span> <b id="chWv"></b></label><input id="chW" type="range" min="-1.7" max="1" step="0.001" value="0">
+      <div class="readout" id="chOut"></div>
+    </div>
+    <p class="cap">20 MHz channel spacing, rectangular pulse. Energies are relative to a long pulse at a channel centre. The FFT's crossover is fixed at −3.9 dB by its sinc shape, so the crossover select does not change it. Sensitivity includes the loss in the strongest channel. Outside its main lobe the pulse spectrum is drawn as its envelope 1/(π·x)².</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (PFB P = 8, −3 dB, offset 0.25, 1 µs): loss 0.05 dB, one channel within 6 dB, response 1.5 channels out about −103 dB.</li>
+    <li>Offset 0.50: loss 3.0 dB in two channels, "ch within 6 dB" = 2 (split), the worked example.</li>
+    <li>FFT (P = 1): response 1.5 channels out −13.4 dB, worst leakage −17.7 dB, the naive case.</li>
+    <li>PW 0.05 µs at offset 0: loss about 1.2 dB, neighbours at about −11 dB; at 0.02 µs the pulse splits over three channels.</li>
+    <li>Crossover −6 dB at offset 0.5: the hole between channels costs 6 dB, so the per-channel sensitivity becomes about −70 dBm.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Channel spacing</td><td>Filter bank design; ADC rate / FFT size</td><td>20 MHz</td><td>−76 dBm on all channels at once; 100 ns shortest pulse in one channel</td></tr>
+    <tr><td>Crossover level</td><td>Filter bandwidth vs spacing; prototype cut-off; oversampling</td><td>−3 dB</td><td>At most 3 dB sensitivity loss between channels; signals near crossovers appear twice</td></tr>
+    <tr><td>Adjacent-channel rejection</td><td>Analogue filter order; PFB taps P</td><td>≥ 60 dB 2 channels out</td><td>A strong emitter does not create false emitters in neighbouring channels</td></tr>
+    <tr><td>Channel amplitude and phase match</td><td>Filter tolerances; digital: none needed</td><td>±1 dB, ±5° across the bank</td><td>Amplitude-comparison frequency interpolation between channels; AOA by channel</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Analogue filter bank designers:</b> crossover level, skirt and match between hundreds of filters are the channeliser; Step 9 of the filters module shows the crossover cost.</li>
+    <li><b>ADC and FPGA designers:</b> the PFB's channels are only as clean as the ADC's spurs; the prototype filter length P is your FPGA multiplier budget (see the digital receiver module).</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>A 2.4 GS/s ADC feeds a critically sampled PFB with N = 128. What is the channel spacing, and what is the shortest pulse that stays in one channel?</summary><p>Δ = 2 400/128 = 18.75 MHz. A pulse's main lobe is 2/PW wide; for it to fit in one channel, 2/PW ≤ 18.75 MHz, so PW ≥ 107 ns. Shorter pulses split into neighbours and need the combining logic.</p></details>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="comp">
+  <div class="secno">Step 6</div>
+  <h2>The compressive (microscan) receiver</h2>
+  <div class="know"><h4>You already know</h4><p>A chirp is a signal whose frequency sweeps linearly in time. A dispersive delay line (DDL) delays each frequency by a different amount; matched to a chirp, it compresses it into a short pulse (pulse compression, see the <a href="M04-filters.html">filters module</a> Step 4 and the radar pulse page). Weighting (a window) lowers sidelobes at the cost of a wider main lobe.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Compressive receiver:</b> a receiver whose LO sweeps (chirps) rapidly across an IBW; the mixer output goes through a DDL whose delay-versus-frequency slope is the opposite of the sweep. Any input frequency becomes a chirp at the mixer output, and the DDL compresses it into a short pulse whose time of exit tells the input frequency. It is a real-time analogue Fourier transform.</p>
+    <p><b>Dispersion time T<sub>d</sub>:</b> the difference in delay across the DDL's bandwidth; also the time the receiver needs to analyse one sweep.</p>
+    <p><b>DDL bandwidth B:</b> the frequency range the DDL disperses, here 500 MHz; it is the compressive receiver's IBW.</p>
+    <p><b>Time-bandwidth product T<sub>d</sub>·B:</b> the number of independent frequency cells across B, and the compression ratio.</p>
+    <p><b>Frequency resolution:</b> about 1/T<sub>d</sub> for uniform weighting (−3 dB width 0.89/T<sub>d</sub>), wider with weighting; for a pulse shorter than T<sub>d</sub>, about 1/PW.</p>
+  </div>
+  <div class="col">
+    <p>The compressive receiver sits between the scanning superhet and the channeliser. Like a superhet it sweeps, but so fast (500 MHz in 1 µs, that is 500 THz/s, far beyond the B²/μ limit of an ordinary IF filter) that every frequency in the 500 MHz is visited once per microsecond: for pulses longer than the sweep, POI is effectively 100 %. Like a channeliser, it resolves many signals at once: a 1 µs, 500 MHz DDL gives 500 cells of about 1 MHz. Its output is a stream of 2 ns compressed pulses, one per signal per sweep, whose timing is the frequency: the hard part is the very fast logarithmic video and digitiser needed to read them.</p>
+  </div>
+  <div class="eq">μ = B / T<sub>d</sub> &nbsp;&nbsp; resolution ≈ k<sub>w</sub> / min(T<sub>d</sub>, PW) &nbsp;&nbsp; cells = B · T<sub>d</sub> &nbsp;&nbsp; compressed width ≈ 1/B &nbsp;&nbsp; S<sub>cell</sub> = −174 + NF + 10·log(ENBW / T<sub>d</sub>) + SNR<small>k<sub>w</sub> is the −3 dB width factor of the weighting: 0.89 uniform, 1.30 Hamming, 1.64 Blackman. ENBW is the equivalent noise bandwidth factor of the weighting: 1.00, 1.36, 1.73. Peak sidelobes: −13.3, −42.7 and −58.1 dB.</small></div>
+  <h3>Worked example: 500 MHz DDL, T<sub>d</sub> = 1 µs, Hamming weighting</h3>
+  <div class="col"><p>Sweep rate 500 MHz/µs. Resolution 1.30 MHz, 500 cells (about 380 resolvable at the weighted width), compressed output pulses about 2 ns wide. Noise bandwidth per cell 1.36 MHz, so sensitivity −174 + 10 + 61.3 + 15 = −87.7 dBm, 11.7 dB better than a 20 MHz channel. A second signal 3 MHz away and 20 dB weaker is resolved: Hamming sidelobes near 3 MHz are about −43 dB. With uniform weighting the sidelobe envelope at 3 MHz is about −18 dB, so the same weak signal is hidden.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive compressive receiver uses uniform weighting for the best resolution (0.89 MHz). Its −13.3 dB sidelobes mean every strong signal has a fence of false signals around it: a −30 dBm emitter puts −43 dBm sidelobes 1.5 MHz away and still about −50 dBm several MHz away, all far above the −89 dBm sensitivity. The second naive choice is a long DDL for resolution: a 10 µs line gives 0.13 MHz, but a 0.2 µs pulse uses only 0.2 µs of the sweep and its resolution falls to about 6.5 MHz, and pulses shorter than the sweep are only caught when the sweep passes their frequency while they are on.</p></div>
+  <h3>Side by side on one example: strong signal plus one 20 dB weaker 3 MHz away, long pulses</h3>
+  <div class="tw"><table class="t">
+    <tr><th>T<sub>d</sub>, weighting</th><th>Resolution</th><th>Peak sidelobe</th><th>Sensitivity per cell</th><th>Weak signal</th></tr>
+    <tr><td>1 µs, uniform</td><td class="n">0.89 MHz</td><td class="n">−13.3 dB</td><td class="n">−89.0 dBm</td><td>hidden by sidelobes</td></tr>
+    <tr><td>1 µs, Hamming</td><td class="n">1.30 MHz</td><td class="n">−42.7 dB</td><td class="n">−87.7 dBm</td><td>resolved</td></tr>
+    <tr><td>1 µs, Blackman</td><td class="n">1.64 MHz</td><td class="n">−58.1 dB</td><td class="n">−86.6 dBm</td><td>resolved</td></tr>
+    <tr><td>10 µs, Hamming</td><td class="n">0.13 MHz</td><td class="n">−42.7 dB</td><td class="n">−97.7 dBm</td><td>resolved (if PW ≥ 10 µs)</td></tr>
+  </table></div>
+  <h3>How to choose the dispersion time, bandwidth and weighting</h3>
+  <div class="col"><p>(1) T<sub>d</sub> should not exceed the shortest pulse you must resolve well: 1 µs suits search radars, 0.1–0.2 µs is needed for short fire-control pulses. (2) B is the IBW; cover 2–18 GHz with 32 bands of 500 MHz behind a switched or channelised front end. (3) Weighting: Hamming or Taylor for −40 dB sidelobes is the usual choice; the ENBW costs 1.3 dB of sensitivity and 46 % more width. (4) The DDL's own amplitude and phase ripple raise the sidelobes just as delay ripple does in pulse compression; specify it as a sidelobe level. (5) The output needs a log video amplifier and digitiser with about B bandwidth (500 MHz) and the dynamic range of the scene.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench plots the compressed output (time on the output is frequency at the input). Grey dashed: the strong signal alone; teal: both signals; violet: the true position and level of the weak one. Sliders and select: dispersion time T<sub>d</sub>, weighting, frequency difference Δf, the weak signal's level, and the pulse width (a pulse shorter than T<sub>d</sub> is analysed over its own length only).</p></div>
+  <div class="bench">
+    <canvas id="cCr" width="640" height="320" aria-label="Compressive receiver output for a strong and a weak signal"></canvas>
+    <div class="ctrl">
+      <label for="crT"><span>Dispersion time T<sub>d</sub> (log)</span> <b id="crTv"></b></label><input id="crT" type="range" min="-1" max="1" step="0.001" value="0">
+      <label for="crW">Weighting</label>
+      <select id="crW"><option value="uni">Uniform</option><option value="ham" selected>Hamming</option><option value="bla">Blackman</option></select>
+      <label for="crD"><span>Frequency difference Δf (log)</span> <b id="crDv"></b></label><input id="crD" type="range" min="-0.5" max="1.3" step="0.001" value="0.477">
+      <label for="crR"><span>Weak signal level</span> <b id="crRv"></b></label><input id="crR" type="range" min="-50" max="0" step="1" value="-20">
+      <label for="crP"><span>Pulse width (log)</span> <b id="crPv"></b></label><input id="crP" type="range" min="-1.3" max="1.3" step="0.001" value="1">
+      <div class="readout" id="crOut"></div>
+    </div>
+    <p class="cap">500 MHz DDL bandwidth, NF 10 dB, SNR 15 dB. Powers of the two signals are added (their relative phase varies from sweep to sweep). "Resolved" means Δf is at least one resolution width and the weak signal is at least 3 dB above the strong one's sidelobe envelope at Δf.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (1 µs, Hamming, 3 MHz, −20 dB, 10 µs pulse): resolution 1.30 MHz, peak sidelobe −42.7 dB, sensitivity −87.7 dBm, weak signal resolved.</li>
+    <li>Uniform: resolution 0.89 MHz but the sidelobe envelope at 3 MHz is about −18 dB, and the weak signal is not resolved.</li>
+    <li>Pulse width 0.2 µs: resolution about 6.5 MHz and the 3 MHz neighbour merges into the strong signal.</li>
+    <li>T<sub>d</sub> 10 µs: resolution 0.13 MHz and 5 000 cells, sensitivity −97.7 dBm, the last table row.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>DDL dispersion and bandwidth</td><td>SAW or other DDL design</td><td>T<sub>d</sub> 1 µs, B 500 MHz</td><td>500 cells of 1.3 MHz; −87.7 dBm sensitivity; 100 % POI for pulses ≥ 1 µs</td></tr>
+    <tr><td>DDL ripple and weighting</td><td>Transducer apodisation, matching</td><td>Sidelobes ≤ −40 dB</td><td>No false signals around strong emitters down to 40 dB below them</td></tr>
+    <tr><td>Sweep linearity</td><td>Chirp LO (synthesised or VCO with linearisation)</td><td>≤ 0.1 % non-linearity</td><td>Frequency read-out error and broadened compressed pulses</td></tr>
+    <tr><td>Log video bandwidth</td><td>Detector and log amplifier</td><td>≥ 500 MHz, 60 dB</td><td>2 ns compressed pulses measured without smearing neighbouring cells</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>SAW and DDL designers:</b> dispersion, bandwidth, insertion loss (often 30–40 dB, which the chain must make up without hurting NF) and ripple are the whole receiver's performance.</li>
+    <li><b>Chirp LO designers:</b> the sweep's linearity and repeatability are the frequency calibration.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>You need 0.5 MHz resolution with Hamming weighting. What T<sub>d</sub> is needed, and what does it do to 1 µs pulses?</summary><p>Resolution 1.30/T<sub>d</sub> = 0.5 MHz → T<sub>d</sub> = 2.6 µs. A 1 µs pulse fills only 1 µs of it, so its resolution is 1.30 MHz, not 0.5: the long line helps only pulses longer than itself.</p></details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="ktb">
+  <div class="secno">Step 7</div>
+  <h2>Sensitivity versus instantaneous bandwidth: the kTB penalty</h2>
+  <div class="know"><h4>You already know</h4><p>Thermal noise power is kTB: −174 dBm in 1 Hz at 290 K, so −114 dBm in 1 MHz and −72 dBm in 16 GHz. A receiver adds its noise figure on top, and needs a certain SNR to detect. In free space, received power falls as 20·log(4πR/λ).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Detection bandwidth (noise bandwidth of a cell):</b> the bandwidth of the noise that competes with the signal at the decision point: the IF filter of a superhet, one channel of a channeliser, one cell of a compressive receiver. It need not equal the IBW.</p>
+    <p><b>kTB penalty:</b> the loss of sensitivity from detecting in a wide bandwidth: 10·log(B<sub>1</sub>/B<sub>2</sub>) dB between two bandwidths, 10 dB per decade, 3 dB per doubling.</p>
+    <p><b>ERP (effective radiated power):</b> the emitter's transmit power plus its antenna gain toward the ESM, in dBm. A 1 MW (90 dBm) peak radar with a 30 dBi antenna has 120 dBm ERP in the main beam; its sidelobes might be 30–40 dB lower.</p>
+    <p><b>ESM range advantage:</b> the ESM receives the radar's signal one way (∝ 1/R²), while the radar receives its echo two ways (∝ 1/R⁴), so an ESM can usually hear a radar well beyond the range at which the radar sees it.</p>
+  </div>
+  <div class="col">
+    <p>Every architecture on this page can be placed on one line: sensitivity = −174 + NF + 10·log B<sub>cell</sub> + SNR. What distinguishes them is B<sub>cell</sub>: 16 GHz for a wideband detector, 20 MHz for a superhet or channel, 1.36 MHz for a compressive cell. Two do not quite fit the line: the crystal video receiver and the IFM, which are square-law over 16 GHz but integrate in a 10 MHz video bandwidth, so they lie about 20 dB better than "−174 + NF + 10·log 16 GHz + 15" would suggest, though still 8–10 dB worse than a 20 MHz channel.</p>
+    <p>Sensitivity converts to range through the one-way link: P<sub>r</sub> = ERP + G<sub>ESM</sub> − 20·log(4πR/λ). Setting P<sub>r</sub> equal to the sensitivity S gives R = (λ/4π)·10<sup>(ERP + G − S)/20</sup>. Each 6 dB of sensitivity doubles the range, so each factor of 4 in bandwidth halves it.</p>
+  </div>
+  <div class="eq">S = −174 + NF + 10·log B + SNR &nbsp;&nbsp; R = (λ / 4π) · 10<sup>(ERP + G − S) / 20</sup> &nbsp;&nbsp; ΔS = 10·log(B<sub>1</sub>/B<sub>2</sub>) &nbsp;&nbsp; R<sub>1</sub>/R<sub>2</sub> = (B<sub>2</sub>/B<sub>1</sub>)<sup>1/2</sup><small>Free space, line of sight; the radar horizon (see the radar pages) limits real ranges for surface emitters. B in Hz.</small></div>
+  <h3>Worked example: a radar's sidelobes heard at 9.4 GHz</h3>
+  <div class="col"><p>Take the emitter's sidelobe ERP as 90 dBm toward the ESM, an ESM antenna of 0 dBi, NF 10 dB, SNR 15 dB. λ = 3.19 cm. A 20 MHz channel has S = −76.0 dBm, so R = (0.0319/12.57) × 10<sup>(90 + 76)/20</sup> = 0.00254 × 2.0 × 10<sup>8</sup> = 506 km. A wide-open 16 GHz detector with S = −47.0 dBm reaches 18 km. A compressive cell at −87.7 dBm reaches about 1 940 km in free space, in practice limited by the horizon.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive comparison quotes every receiver's sensitivity at the same SNR and forgets the detection bandwidth. A "−70 dBm IFM" and a "−76 dBm channeliser" look 6 dB apart; but the channeliser holds that sensitivity for many signals at once, and the compressive receiver at −88 dBm is 12 dB better again in each 1.3 MHz cell. The other naive error is to narrow the cell for sensitivity below what the pulses allow: a 1 MHz cell is 13 dB better than 20 MHz on paper but loses 20 dB on a 0.1 µs pulse (Step 3).</p></div>
+  <h3>Side by side on one example: NF 10 dB, SNR 15 dB, sidelobe ERP 90 dBm, 9.4 GHz, 0 dBi</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Receiver</th><th>Detection bandwidth</th><th>Sensitivity</th><th>Free-space range</th></tr>
+    <tr><td>Wide-open detector, kTB over 16 GHz</td><td class="n">16 GHz</td><td class="n">−47.0 dBm</td><td class="n">18 km</td></tr>
+    <tr><td>IFM (video SNR 20 dB)</td><td class="n">16 GHz RF, 10 MHz video</td><td class="n">−66.9 dBm</td><td class="n">178 km</td></tr>
+    <tr><td>Crystal video, 30 dB preamplifier (TSS + 4)</td><td class="n">16 GHz RF, 10 MHz video</td><td class="n">−68.2 dBm</td><td class="n">207 km</td></tr>
+    <tr><td>Superhet or channel</td><td class="n">20 MHz</td><td class="n">−76.0 dBm</td><td class="n">506 km</td></tr>
+    <tr><td>Compressive cell, Hamming</td><td class="n">1.36 MHz</td><td class="n">−87.7 dBm</td><td class="n">1 940 km</td></tr>
+  </table></div>
+  <h3>How to choose the detection bandwidth</h3>
+  <div class="col"><p>(1) Find the weakest signal at the longest range you need: ERP toward you (usually sidelobes), your antenna gain, and the range give the sensitivity S required. (2) Subtract NF and SNR: −174 + NF + SNR + 10·log B ≤ S gives the largest B<sub>cell</sub>. (3) Check that B<sub>cell</sub> ≥ about 2/PW<sub>min</sub>; if not, the short pulses set the bandwidth and you must win sensitivity elsewhere (lower NF, more antenna gain, longer integration over many pulses). (4) Then choose the architecture that gives that B<sub>cell</sub> with the IBW Step 1 demands: if IBW ≫ B<sub>cell</sub>, it must be a channeliser or compressive receiver, not a scanning one.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>Top: sensitivity against detection bandwidth, with the architectures of this page as violet circles (the crystal video and IFM circles sit at 16 GHz). Bottom: the free-space detection range against bandwidth for the chosen emitter. Sliders: detection bandwidth, NF, required SNR, emitter ERP toward the ESM, ESM antenna gain, and frequency.</p></div>
+  <div class="bench">
+    <canvas id="cSe" width="640" height="380" aria-label="Sensitivity and free-space detection range against detection bandwidth"></canvas>
+    <div class="ctrl">
+      <label for="seB"><span>Detection bandwidth (log)</span> <b id="seBv"></b></label><input id="seB" type="range" min="5" max="10.204" step="0.001" value="7.301">
+      <label for="seN"><span>Noise figure</span> <b id="seNv"></b></label><input id="seN" type="range" min="2" max="20" step="0.5" value="10">
+      <label for="seS"><span>Required SNR</span> <b id="seSv"></b></label><input id="seS" type="range" min="5" max="20" step="0.5" value="15">
+      <label for="seE"><span>Emitter ERP toward ESM</span> <b id="seEv"></b></label><input id="seE" type="range" min="50" max="130" step="1" value="90">
+      <label for="seG"><span>ESM antenna gain</span> <b id="seGv"></b></label><input id="seG" type="range" min="-5" max="20" step="1" value="0">
+      <label for="seF"><span>Frequency</span> <b id="seFv"></b></label><input id="seF" type="range" min="2" max="18" step="0.1" value="9.4">
+      <div class="readout" id="seOut"></div>
+    </div>
+    <p class="cap">Free space, no horizon, no atmospheric loss. The crystal video circle uses a 30 dB preamplifier and 10 MHz video; the IFM circle the 20 dB video-SNR criterion of Step 4; both follow the NF slider but not the SNR slider.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (20 MHz, NF 10, SNR 15, ERP 90 dBm, 0 dBi, 9.4 GHz): sensitivity −76.0 dBm, range about 506 km, the worked example.</li>
+    <li>Bandwidth 16 GHz: −47.0 dBm and about 18 km; 1.36 MHz: about −87.7 dBm and 1 900 km.</li>
+    <li>Each halving of bandwidth multiplies the range by 1.414 (the readout's last line).</li>
+    <li>NF 4 dB instead of 10 dB at 20 MHz: 6 dB better, range doubles to about 1 000 km.</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Front-end NF</td><td>Limiter and filter loss before the LNA, LNA NF (see LNA and filters modules)</td><td>NF 10 dB over 2–18 GHz</td><td>Every dB of NF is a dB of sensitivity: 6 dB = half the detection range</td></tr>
+    <tr><td>Detection bandwidth</td><td>IF filter, channel spacing, DDL dispersion</td><td>20 MHz cell</td><td>−76 dBm; 506 km on a 90 dBm sidelobe ERP</td></tr>
+    <tr><td>Gain before wideband detectors</td><td>LNA chain gain</td><td>≥ 30 dB</td><td>Crystal video and IFM become noise-limited rather than detector-limited</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Limiter, filter and LNA designers:</b> the NF budget in front of an ESM is wider than a radar's (2–18 GHz, a limiter, a preselector), so every tenth of a dB of loss in front of the LNA appears on the range line directly.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>An ESM must hear a 70 dBm sidelobe ERP at 100 km at 3 GHz with a 0 dBi antenna, NF 12 dB and SNR 15 dB. What is the widest detection bandwidth that works?</summary><p>λ = 0.1 m. Free-space loss 20·log(4π × 10<sup>5</sup>/0.1) = 142.0 dB, so P<sub>r</sub> = 70 − 142 = −72.0 dBm. −174 + 12 + 15 + 10·log B ≤ −72 → 10·log B ≤ 75 → B ≤ 32 MHz. A 20 MHz channeliser works; a wideband IFM does not.</p></details>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="dr">
+  <div class="secno">Step 8</div>
+  <h2>Dynamic range: a strong and a weak signal at the same time</h2>
+  <div class="know"><h4>You already know</h4><p>Any amplifier, mixer or ADC is non-linear at high drive. Two tones f<sub>1</sub> and f<sub>2</sub> produce third-order products at 2f<sub>1</sub> − f<sub>2</sub> and 2f<sub>2</sub> − f<sub>1</sub>, rising 3 dB for each 1 dB of input. IIP3 is the input level where those products would equal the tones. AGC and switched attenuators move the range but do not widen it for signals that arrive together (see the <a href="M08-if-agc-dynamic-range.html">IF and AGC module</a>).</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Instantaneous dynamic range (IDR):</b> the ratio between the strongest and the weakest signals the receiver handles correctly at the same moment.</p>
+    <p><b>Two-tone spur-free dynamic range (SFDR):</b> the range over which two equal strong signals produce third-order products below the noise floor: ⅔·(IIP3 − noise floor).</p>
+    <p><b>Ghost (false signal):</b> a spur, intermodulation product or filter leakage that the receiver reports as an emitter.</p>
+    <p><b>Skirt leakage:</b> the part of a strong signal that a channel or IF filter tuned elsewhere still passes. It can hide a weak signal in that channel, or be reported as one.</p>
+    <p><b>ADC SFDR:</b> the level of the ADC's largest spur below a full-scale tone, in dBc; spurs from a strong signal land in other channels of a digital channeliser.</p>
+  </div>
+  <div class="col">
+    <p>A ship's own radars and a nearby warship can put −10 dBm into the ESM while a distant aircraft radar arrives at −75 dBm: 65 dB apart, at the same moment, perhaps 60 MHz apart. Each architecture fails this case in its own way. The crystal video receiver and the IFM cannot separate the two at all: one sums them, the other reports the strong one (with an error). The frequency-resolving receivers separate them only as well as their filter skirts, sidelobes and linearity allow: the weak signal must be above the strong signal's skirt at its frequency, and the strong signals' intermodulation must stay below the threshold or it is reported as an emitter that does not exist.</p>
+  </div>
+  <div class="eq">P<sub>IM3</sub>(2f<sub>1</sub> − f<sub>2</sub>) = 2P<sub>1</sub> + P<sub>2</sub> − 2·IIP3 &nbsp;&nbsp; SFDR = ⅔ · (IIP3 − N<sub>cell</sub>) &nbsp;&nbsp; N<sub>cell</sub> = −174 + NF + 10·log B<sub>cell</sub> &nbsp;&nbsp; weak seen if P<sub>2</sub> ≥ S and P<sub>2</sub> ≥ skirt(Δf) + 3 dB<small>All levels referred to the antenna. Digital channeliser model: ADC full scale −20 dBm at the antenna, SFDR 65 dBc; above full scale the ADC clips and every channel is corrupted.</small></div>
+  <h3>Worked example: −10 dBm and −20 dBm, 60 MHz apart, IIP3 +10 dBm, 20 MHz channels</h3>
+  <div class="col"><p>The noise floor of a 20 MHz cell is −174 + 10 + 73 = −91 dBm, so SFDR = ⅔ × (10 + 91) = 67.3 dB. The two signals are well within the channeliser's separation (60 MHz is three channels; a 5-pole Butterworth channel is 78 dB down there). But their IM3 product at f<sub>1</sub> − 60 MHz is 2(−10) + (−20) − 20 = −60 dBm, 16 dB above the −76 dBm sensitivity: the receiver reports a third emitter that does not exist. Drop the strong signal to −30 dBm with a weak one at −70 dBm: IM3 is −150 dBm, no ghost, and the weak signal is detected 6 dB above sensitivity.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive design gives the front end as much gain as possible for sensitivity. Every 10 dB of extra gain ahead of a fixed mixer or ADC lowers the input-referred IIP3 by 10 dB and the SFDR by 6.7 dB. With IIP3 at 0 dBm instead of +10 dBm, two −30 dBm signals already produce −90 dBm products, harmless; but two −15 dBm signals produce −45 dBm ghosts. In a digital channeliser the same over-drive pushes the ADC past full scale and every channel fills with spurs at once.</p></div>
+  <h3>Side by side on one example: strong −30 dBm, weak −70 dBm, 60 MHz apart, IIP3 +10 dBm</h3>
+  <div class="tw"><table class="t">
+    <tr><th>Architecture</th><th>Sensitivity</th><th>What is reported</th></tr>
+    <tr><td>Crystal video</td><td class="n">−68.2 dBm</td><td>One pulse, amplitude of the sum, no frequency; the weak emitter is invisible while they overlap</td></tr>
+    <tr><td>IFM</td><td class="n">−66.9 dBm</td><td>Strong only, frequency good (the weak one is 40 dB down); weak emitter invisible</td></tr>
+    <tr><td>Superhet, 20 MHz, tuned to the weak one</td><td class="n">−76.0 dBm</td><td>Weak detected (strong skirt 78 dB down); but only while tuned there</td></tr>
+    <tr><td>Analogue channelised, 20 MHz</td><td class="n">−76.0 dBm</td><td>Both detected, in channels 0 and +3</td></tr>
+    <tr><td>Digital channeliser, 20 MHz</td><td class="n">−76.0 dBm</td><td>Both detected; the ADC spur from the strong signal is at −95 dBm, below sensitivity</td></tr>
+    <tr><td>Compressive, 1 µs Hamming</td><td class="n">−87.7 dBm</td><td>Both detected; the strong signal's sidelobes are more than 40 dB down at 60 MHz</td></tr>
+  </table></div>
+  <h3>How to choose gain, IIP3 and the strong-signal strategy</h3>
+  <div class="col"><p>(1) Set the gain before the first non-linear stage only as high as the NF needs (Friis, see the LNA module); beyond that, gain only costs IIP3. (2) Make the SFDR of each cell at least the spread you must handle between simultaneous signals: 60 dB needs IIP3 − N<sub>cell</sub> ≥ 90 dB. (3) For a digital channeliser, place the ADC full scale above the strongest expected signal at the antenna and check that its SFDR (dBc) exceeds full scale minus sensitivity. (4) Use the preselector to keep strong out-of-band signals (your own radars) away from the wideband stages. (5) Where the scene is known to contain one very strong signal, a narrow notch or a band-stop in front can be worth more than any linearity improvement.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench shows the antenna-referred levels: the strong signal (orange), the weak one (teal), the third-order products (grey, red when they become ghosts above sensitivity), the strong signal's filter skirt for the chosen architecture, and the sensitivity line (violet). Select and sliders: architecture, strong signal level, the weak signal's level relative to the strong one, their spacing Δf, and the front-end IIP3.</p></div>
+  <div class="bench">
+    <canvas id="cDr" width="640" height="320" aria-label="Levels of a strong and a weak signal, their intermodulation products and the filter skirt of the chosen architecture"></canvas>
+    <div class="ctrl">
+      <label for="drA">Architecture</label>
+      <select id="drA"><option value="cv">Crystal video</option><option value="ifm">IFM</option><option value="sh">Superhet 20 MHz (tuned to weak)</option><option value="ach" selected>Analogue channelised 20 MHz</option><option value="dch">Digital channeliser 20 MHz</option><option value="cr">Compressive 1 µs Hamming</option></select>
+      <label for="drS"><span>Strong signal level</span> <b id="drSv"></b></label><input id="drS" type="range" min="-70" max="0" step="1" value="-30">
+      <label for="drW"><span>Weak / strong</span> <b id="drWv"></b></label><input id="drW" type="range" min="-70" max="0" step="1" value="-40">
+      <label for="drD"><span>Spacing Δf (log)</span> <b id="drDv"></b></label><input id="drD" type="range" min="0" max="2.7" step="0.001" value="1.778">
+      <label for="drI"><span>Front-end IIP3 (antenna-referred)</span> <b id="drIv"></b></label><input id="drI" type="range" min="-10" max="30" step="1" value="10">
+      <div class="readout" id="drOut"></div>
+    </div>
+    <p class="cap">NF 10 dB, SNR 15 dB. Channelised receivers place the weak signal in channel round(Δf/20 MHz); in channel 0 the two cannot be separated. Digital: PFB P = 8, ADC full scale −20 dBm at the antenna, ADC SFDR 65 dBc. IFM error is on a 4 ns line with the limiter of Step 4.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Defaults (analogue channelised, −30 dBm, −40 dB, 60 MHz, +10 dBm): weak at −70 dBm reported, IM3 at −150 dBm, SFDR 67.3 dB.</li>
+    <li>Strong −10 dBm and weak/strong −10 dB: the IM3 product at f<sub>1</sub> − Δf is −60 dBm, a ghost 16 dB above sensitivity, the worked example.</li>
+    <li>Digital channeliser with strong −15 dBm: above the −20 dBm full scale, the ADC clips and the whole band is corrupted.</li>
+    <li>Spacing 5 MHz with either channeliser: same channel, one PDW. The compressive receiver separates them once the weak one is within about 37 dB of the strong one (try weak/strong −30 dB).</li>
+    <li>IFM, weak/strong −3 dB: the strong signal is reported with an error up to about 12 MHz on the 4 ns line; at −1 dB the report becomes unreliable (Step 4).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>IIP3 of the front end</td><td>LNA, mixer and IF amplifier linearity; gain distribution</td><td>IIP3 ≥ +10 dBm at the antenna</td><td>Two −10 dBm emitters still create −60 dBm ghosts; two −30 dBm do not</td></tr>
+    <tr><td>Channel skirt</td><td>Filter order; PFB taps</td><td>≥ 70 dB three channels out</td><td>A −30 dBm emitter does not hide a −70 dBm one 60 MHz away</td></tr>
+    <tr><td>ADC full scale and SFDR</td><td>ADC choice, gain before it</td><td>FS −20 dBm at antenna, SFDR 65 dBc</td><td>Strong signals up to −20 dBm handled; their spurs stay below −85 dBm</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>LNA and mixer designers:</b> in an ESM, IIP3 matters as much as NF, because every pair of strong emitters in the band is a two-tone test running all the time.</li>
+    <li><b>ADC designers:</b> SFDR in dBc, not SNR, decides how many false emitters a digital channeliser reports.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>Two emitters at −20 dBm each are 50 MHz apart. What antenna-referred IIP3 keeps their IM3 products below a −76 dBm sensitivity?</summary><p>P<sub>IM3</sub> = 3(−20) − 2·IIP3 ≤ −76 → IIP3 ≥ (−60 + 76)/2 = +8 dBm. With a 2 dB margin, +10 dBm.</p></details>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="id">
+  <div class="secno">Step 9</div>
+  <h2>How each receiver feeds signal identification</h2>
+  <div class="know"><h4>You already know</h4><p>From Step 0: identification works on PDWs only. It sorts them into emitters (deinterleaving) by frequency, PW and AOA, then measures each emitter's PRI pattern and scan and compares them with a library. Part 5 of this series covers that processing.</p></div>
+  <div class="term"><h4>Definitions</h4>
+    <p><b>Missed pulse:</b> a pulse that arrived but produced no PDW (too weak, or the receiver was looking elsewhere).</p>
+    <p><b>Merged pulse:</b> two overlapping pulses reported as one PDW; the weaker one is lost and the PDW's fields may be wrong.</p>
+    <p><b>Corrupted PDW:</b> a PDW whose frequency (or other field) is wrong because of an overlap.</p>
+    <p><b>Duplicate PDW:</b> one pulse reported twice, for example in two adjacent channels.</p>
+    <p><b>Background pulses:</b> pulses from all the other emitters in the band, which the sorter must separate from the ones of interest.</p>
+  </div>
+  <div class="col">
+    <p>The sorter downstream can only be as good as the PDW stream it receives. Each architecture delivers a different kind of stream: the crystal video receiver gives excellent TOA and PW for every pulse but no frequency; the IFM gives a frequency for every pulse but corrupts it when pulses overlap; the scanning superhet gives accurate but intermittent PDWs; the channeliser gives frequency to a channel and handles overlaps, but splits pulses at the crossovers; the compressive receiver gives fine frequency but needs pulses at least as long as its sweep. Real ESM combine two or more: for example, a crystal video and IFM front end for fast, 100 %-POI warning, plus a digital channeliser for dense scenes and a superhet cued for fine analysis.</p>
+  </div>
+  <h3>Worked example: radars A, B, C 15 MHz apart, 20 ms of PDWs</h3>
+  <div class="col"><p>In 20 ms radar A sends 20 pulses, B about 54 and C about 80; add 100 000 background pulses per second (2 000 in 20 ms) spread over the 300 MHz shown. With a 20 MHz channeliser that reports channel centres, B and C, 15 MHz apart, often land in the same or adjacent channels: some of their PDWs are sorted to the wrong emitter. A digital channeliser with fine frequency (about 1–2 MHz) separates them cleanly. An IFM separates them too, except for the pulses that overlap a background pulse, which carry a wrong frequency.</p></div>
+  <h3>What goes wrong with the naive approach</h3>
+  <div class="col"><p>The naive view is to judge a receiver by its sensitivity and accuracy on a single pulse. The stream view is different: an IFM with 2.5 MHz accuracy that corrupts 5 % of PDWs in a dense scene sends the sorter 5 % of pulses with random frequencies, each of which looks like a new emitter or pollutes a real one. A channeliser with 5.8 MHz rms but no corrupted PDWs may sort better in that scene.</p></div>
+  <h3>Side by side: the reference scenario, what each receiver hands to identification</h3>
+  <div class="tw wide"><table class="t">
+    <tr><th>Receiver</th><th>Sensitivity</th><th>Frequency (rms)</th><th>POI (radar A, 60 s)</th><th>Simultaneous signals</th><th>PDW stream</th></tr>
+    <tr><td>Crystal video</td><td class="n">−68 dBm</td><td>none</td><td class="n">100 %</td><td>summed</td><td>TOA, PW, PA for every pulse; no RF</td></tr>
+    <tr><td>Scanning superhet 20 MHz</td><td class="n">−76 dBm</td><td class="n">5.8 MHz</td><td class="n">9 %</td><td>one window at a time</td><td>accurate but intermittent</td></tr>
+    <tr><td>IFM, 4 ns</td><td class="n">−67 dBm</td><td class="n">2.5 MHz</td><td class="n">100 %</td><td>strong captured, weak lost, errors</td><td>every pulse has RF; overlaps corrupted</td></tr>
+    <tr><td>Channelised 20 MHz (centre)</td><td class="n">−76 dBm</td><td class="n">5.8 MHz</td><td class="n">100 % in IBW</td><td>yes, if different channels</td><td>quantised RF; duplicates at crossovers</td></tr>
+    <tr><td>Digital channeliser, fine freq</td><td class="n">−76 dBm</td><td class="n">≈ 0.5–2 MHz</td><td class="n">100 % in IBW</td><td>yes, limited by ADC SFDR</td><td>the cleanest stream; IBW limited by the ADC</td></tr>
+    <tr><td>Compressive 1 µs</td><td class="n">−88 dBm</td><td class="n">≈ 0.5 MHz</td><td class="n">100 % for PW ≥ 1 µs</td><td>yes, sidelobes −43 dB</td><td>fine RF; short pulses partly missed</td></tr>
+  </table></div>
+  <h3>How to choose the receiver for the identification task</h3>
+  <div class="col"><p>(1) Warning in a fast platform: crystal video plus IFM, because speed and 100 % POI matter more than sensitivity. (2) Dense scenes (ships, coasts): channelised, preferably digital, because overlaps are the normal case. (3) Long-range, low-signal intelligence: narrow cells (compressive, or a cued superhet), because range is sensitivity. (4) Always check the stream, not the pulse: count missed, merged, corrupted and duplicated PDWs at the pulse density you expect.</p></div>
+  <h3 class="try">Try it</h3>
+  <div class="col"><p>The bench plots the PDWs one receiver produces in 20 ms, frequency against TOA. Radars A (orange), B (teal) and C (violet) have dotted lines at their true frequencies; grey dots are background pulses; red dots are corrupted or duplicated PDWs. Select and sliders: the receiver, the background pulse density, and the spacing between A, B and C.</p></div>
+  <div class="bench">
+    <canvas id="cPs" width="640" height="340" aria-label="PDW stream, measured frequency against time of arrival, for the chosen receiver"></canvas>
+    <div class="ctrl">
+      <label for="psA">Receiver</label>
+      <select id="psA"><option value="cv">Crystal video</option><option value="ifm">IFM (4 lines, 4 ns)</option><option value="sh">Scanning superhet 20 MHz</option><option value="ach">Channelised 20 MHz (centre only)</option><option value="dch" selected>Digital channeliser, fine frequency</option><option value="cr">Compressive 1 µs</option></select>
+      <label for="psD"><span>Background pulse density</span> <b id="psDv"></b></label><input id="psD" type="range" min="0" max="400" step="10" value="100">
+      <label for="psS"><span>Spacing A–B and B–C</span> <b id="psSv"></b></label><input id="psS" type="range" min="2" max="50" step="1" value="15">
+      <div class="readout" id="psOut"></div>
+    </div>
+    <p class="cap">20 ms of pulses: A at 9 400 MHz (PRI 1 ms, 1 µs, −50 dBm), B (370 µs, 0.5 µs, −58 dBm), C (250 µs ± 10 %, 0.2 µs, −64 dBm); background pulses 1 µs, −75 to −45 dBm, 9.3–9.6 GHz. The superhet steps 20 MHz windows over this 300 MHz only (15 steps of 1 ms). The compressive receiver catches a pulse shorter than 1 µs with probability PW/1 µs. "sorted right" assigns each PDW of A, B, C to the nearest true frequency.</p>
+  </div>
+  <div class="things"><h4>Things to check</h4><ul>
+    <li>Digital channeliser at defaults: 100 % of the PDWs of A, B and C sorted to the right emitter, rms error below 1 MHz.</li>
+    <li>Channelised (centre only): with 15 MHz spacing a visible fraction of PDWs is missorted, as Step 0 predicts for σ<sub>f</sub> ≈ 6 MHz.</li>
+    <li>IFM at 400 k pulses/s: red corrupted PDWs scattered in frequency, from overlaps with background pulses.</li>
+    <li>Crystal video: no frequency at all; the sorter has only TOA, PW and amplitude.</li>
+    <li>Compressive: C's 0.2 µs pulses are mostly missed (caught about 20 % of the time).</li>
+  </ul></div>
+  <h3>From your design to the system</h3>
+  <div class="tw wide"><table class="t chain">
+    <tr><th>Parameter</th><th>Your design choice</th><th>Datasheet spec</th><th>System effect</th></tr>
+    <tr><td>Overlap detection and flagging</td><td>IFM magnitude check; channel combining logic</td><td>Flag ≥ 95 % of overlapped pulses</td><td>Corrupted PDWs are marked, not sent to the sorter as new emitters</td></tr>
+    <tr><td>Channel combining</td><td>Adjacent-channel logic in FPGA</td><td>Merge within 3 dB, same TOA ± 50 ns</td><td>No duplicate PDWs at crossovers</td></tr>
+    <tr><td>PDW throughput</td><td>Encoder and interface design</td><td>≥ 1 M PDWs/s</td><td>No pulses dropped in the densest scene</td></tr>
+  </table></div>
+  <div class="comp"><h4>Where your component shows up</h4><ul>
+    <li><b>Every receiver designer:</b> the final customer of your component is the deinterleaving software. A spec written as "fraction of PDWs corrupted at a given density" is closer to what the system needs than one written as single-pulse accuracy.</li>
+  </ul></div>
+  <div class="check"><h4>Check yourself</h4>
+    <details><summary>In a scene of 300 000 pulses per second of 1 µs, about what fraction of an IFM's PDWs overlap another pulse?</summary><p>For random arrivals the probability that another pulse overlaps a given 1 µs pulse is 1 − e<sup>−2·PW·rate</sup> = 1 − e<sup>−0.6</sup> = 45 %. Not all overlaps corrupt the frequency (the weaker one may be 15 dB down), but this is why IFMs alone are not used in dense scenes.</p></details>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="summary">
+  <div class="secno">Step 10</div>
+  <h2>Summary: every ESM receiver parameter, what sets it, what it does to the system</h2>
+  <div class="tw wide"><table class="t">
+    <tr><th>Parameter</th><th>Set by</th><th>System effect</th></tr>
+    <tr><td>Frequency accuracy σ<sub>f</sub></td><td>Architecture; IFM longest delay and phase error; channel width and fine-frequency processing</td><td>Sorting error Q(Δf/2σ<sub>f</sub>): 0.6 % at 3 MHz vs 11 % at 6 MHz for emitters 15 MHz apart (Step 0)</td></tr>
+    <tr><td>TOA and PW accuracy</td><td>Video bandwidth, comparator, clock</td><td>PRI error √2·σ<sub>TOA</sub>; shortest pulse measured (Steps 0, 2)</td></tr>
+    <tr><td>Instantaneous bandwidth</td><td>Preselector, IF, ADC rate</td><td>Number of scan steps and so the POI: 0.6 % per scan at 20 MHz, 100 % wide open (Step 1)</td></tr>
+    <tr><td>Dwell and tuning time</td><td>Synthesiser or YIG speed, scan schedule</td><td>Must hold N·PRI; adds to revisit time (Steps 1, 3)</td></tr>
+    <tr><td>Detector TSS and preamplifier gain</td><td>Diode, video load, LNA gain and NF</td><td>Crystal video sensitivity: −48.5 dBm detector-limited, −72.2 dBm TSS with 30 dB gain (Step 2)</td></tr>
+    <tr><td>Video bandwidth</td><td>Detector capacitance, video amplifier</td><td>5 dB per decade of TSS against rise time 0.35/B<sub>v</sub> (Step 2)</td></tr>
+    <tr><td>IF bandwidth and sweep rate</td><td>IF filter, LO</td><td>Superhet sensitivity and pulses caught per pass; B²/μ ≥ 1 to keep up (Step 3)</td></tr>
+    <tr><td>IFM delay lines and phase error</td><td>Line lengths, ratio, hybrid and detector balance</td><td>σ<sub>f</sub> = σ<sub>φ</sub>/2πτ<sub>L</sub>: 2.45 MHz at 4 ns and 3.5° (Step 4)</td></tr>
+    <tr><td>Limiter capture</td><td>Limiting amplifier</td><td>IFM error with a −10 dB overlap: 5.6 MHz instead of 15.9 MHz on 1 ns (Step 4)</td></tr>
+    <tr><td>Channel spacing and crossover</td><td>Filter bank or PFB design, oversampling</td><td>Sensitivity per channel, loss and splitting at crossovers (Step 5)</td></tr>
+    <tr><td>Channel skirt / PFB taps</td><td>Filter order, prototype length P</td><td>Leakage of strong emitters into other channels: −13 dB FFT vs −100 dB P = 8 at 1.5 channels (Step 5)</td></tr>
+    <tr><td>DDL dispersion and weighting</td><td>DDL design, apodisation</td><td>Compressive resolution 1.3 MHz and −43 dB sidelobes at 1 µs Hamming (Step 6)</td></tr>
+    <tr><td>Detection (cell) bandwidth and NF</td><td>All of the above, front-end losses</td><td>Sensitivity 10·log B + NF; range halves for every 6 dB (Step 7)</td></tr>
+    <tr><td>IIP3, ADC full scale and SFDR</td><td>LNA, mixer, ADC, gain distribution</td><td>Ghost emitters from strong pairs; weak signals hidden or lost (Step 8)</td></tr>
+    <tr><td>Overlap handling, channel combining</td><td>Receiver logic and FPGA</td><td>Corrupted, merged and duplicate PDWs sent to identification (Step 9)</td></tr>
+  </table></div>
+  <p class="col" style="margin-top:20px">Related pages in this series: <a href="M01-lna-noise.html">LNA and receiver noise</a> (sensitivity, Friis, NF in front of the ESM); <a href="M04-filters.html">Filters and preselection</a> (sub-band banks, crossover, POI from the filter side); <a href="M08-if-agc-dynamic-range.html">IF chain, AGC and dynamic range</a>; <a href="M07-adc-dac-sampling.html">ADC, DAC and sampling</a> (ADC SFDR and full scale for digital channelisers); <a href="M09-digital-receiver.html">Digital receiver</a> (DDC, decimation and FPGA processing behind the PFB). Part 5 of the series takes the PDW stream from here into signal identification.</p>
+</section>
+
+<section id="gloss">
+  <h2>Glossary of terms introduced on this page</h2>
+  <dl class="gl">
+    <dt>ADC SFDR</dt><dd>Level of an ADC's largest spur below a full-scale tone, in dBc.</dd>
+    <dt>AOA</dt><dd>Angle of arrival: the direction a pulse came from.</dd>
+    <dt>Channel spacing Δ</dt><dd>Frequency step between the centres of adjacent channels of a channeliser.</dd>
+    <dt>Channelised receiver</dt><dd>A bank of contiguous filters, each with its own detector, all watched at once.</dd>
+    <dt>Compressive receiver</dt><dd>A fast-sweeping LO and a dispersive delay line that turn each input frequency into a short pulse at a time set by the frequency.</dd>
+    <dt>Crossover level</dt><dd>Response of two neighbouring channels halfway between their centres.</dd>
+    <dt>Crystal video receiver</dt><dd>Wideband filter, optional preamplifier, detector diode and video amplifier; no frequency measurement.</dd>
+    <dt>Deinterleaving</dt><dd>Sorting a mixed PDW stream back into one list per emitter.</dd>
+    <dt>Delay-line discriminator</dt><dd>Correlator that measures the phase shift through a delay line, giving cos and sin of 2πfτ.</dd>
+    <dt>Detection (cell) bandwidth</dt><dd>Bandwidth of the noise competing with the signal at the decision point.</dd>
+    <dt>Dispersion time T<sub>d</sub></dt><dd>Spread of delay across a dispersive delay line's bandwidth; the analysis time of a compressive receiver.</dd>
+    <dt>Dwell time</dt><dd>Time a scanning receiver stays on one frequency step.</dd>
+    <dt>ENBW</dt><dd>Equivalent noise bandwidth factor of a weighting window, relative to uniform.</dd>
+    <dt>ERP</dt><dd>Effective radiated power toward the receiver: transmit power plus antenna gain in that direction.</dd>
+    <dt>ESM</dt><dd>Electronic support measures: passive detection, measurement and identification of emitters.</dd>
+    <dt>Ghost</dt><dd>A false signal (spur, IM product, leakage) reported as an emitter.</dd>
+    <dt>IBW</dt><dd>Instantaneous bandwidth: the part of the band seen at one moment.</dd>
+    <dt>IDR</dt><dd>Instantaneous dynamic range: strongest to weakest signal handled correctly at the same time.</dd>
+    <dt>IFM</dt><dd>Instantaneous frequency measurement: wide-open frequency measurement from delay-line phase.</dd>
+    <dt>Illumination time T<sub>on</sub></dt><dd>Time an emitter's main beam points at the ESM on each rotation.</dd>
+    <dt>kTB penalty</dt><dd>Sensitivity lost by detecting in a wider bandwidth: 10 dB per decade.</dd>
+    <dt>Limiting amplifier</dt><dd>Amplifier in hard saturation; constant output, extra suppression of a weaker signal (capture effect).</dd>
+    <dt>PA</dt><dd>Pulse amplitude: received power of a pulse.</dd>
+    <dt>PDW</dt><dd>Pulse descriptor word: the record of TOA, PW, RF, PA and AOA for one pulse.</dd>
+    <dt>PFB</dt><dd>Polyphase filter bank: prototype filter split into N branches of P taps, followed by an FFT.</dd>
+    <dt>POI</dt><dd>Probability of intercept: chance of looking at the emitter's frequency while its beam is on the ESM, long enough.</dd>
+    <dt>PRI</dt><dd>Pulse repetition interval: time between successive pulses of one emitter.</dd>
+    <dt>PW</dt><dd>Pulse width.</dd>
+    <dt>Revisit time T<sub>r</sub></dt><dd>Time before a scanning receiver returns to the same step.</dd>
+    <dt>SFDR (two-tone)</dt><dd>⅔·(IIP3 − noise floor): range free of third-order spurs.</dd>
+    <dt>Splitting</dt><dd>One signal reported in two or more adjacent channels.</dd>
+    <dt>Sweep rate μ</dt><dd>Rate a swept LO moves in frequency, Hz/s.</dd>
+    <dt>TOA</dt><dd>Time of arrival of a pulse's leading edge.</dd>
+    <dt>TSS</dt><dd>Tangential sensitivity: input level at which the pulse just clears the baseline noise, about 8 dB video SNR.</dd>
+    <dt>Unambiguous bandwidth</dt><dd>Frequency range 1/τ over which one delay line's phase does not repeat.</dd>
+    <dt>Video bandwidth B<sub>v</sub></dt><dd>Bandwidth of the amplifier after the detector.</dd>
+  </dl>
+</section>
+
+<footer>General textbook material: Tsui, <i>Microwave Receivers with Electronic Warfare Applications</i> and <i>Digital Techniques for Wideband Receivers</i>; Wiley, <i>ELINT: The Interception and Analysis of Radar Signals</i>; Adamy, <i>EW 101</i> and <i>EW 102</i>; Schleher, <i>Electronic Warfare in the Information Age</i>; Skolnik, <i>Introduction to Radar Systems</i>; Lyons, <i>Understanding Digital Signal Processing</i>. Example numbers are illustrative and not tied to any RFME product.</footer>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const c0=299792458, deg=Math.PI/180, TAU=2*Math.PI;
+const db=x=>10*Math.log10(x), lin=x=>Math.pow(10,x/10);
+function fmt(x,u,d){ if(!isFinite(x)) return 'n/a'; const a=Math.abs(x);
+  if(u==='m'){ if(a>=1000) return (x/1000).toFixed(d??2)+' km'; if(a<1) return (x*100).toFixed(d??1)+' cm'; return x.toFixed(d??2)+' m'; }
+  if(u==='Hz'){ if(a>=1e9) return (x/1e9).toFixed(d??2)+' GHz'; if(a>=1e6) return (x/1e6).toFixed(d??2)+' MHz'; if(a>=1e3) return (x/1e3).toFixed(d??2)+' kHz'; return x.toFixed(d??0)+' Hz'; }
+  if(u==='s'){ if(a<1e-6) return (x*1e9).toFixed(d??0)+' ns'; if(a<1e-3) return (x*1e6).toFixed(d??2)+' µs'; if(a<1) return (x*1e3).toFixed(d??1)+' ms'; return x.toFixed(d??2)+' s'; }
+  return x.toFixed(d??2)+(u?' '+u:''); }
+function ro(el,pairs){ el.innerHTML=pairs.map(p=>`<span>${p[0]}</span><span>${p[1]}</span>`).join(''); }
+function ctx(c){ const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height); g.font='12px "IBM Plex Mono",monospace'; return g; }
+function frame(g,x0,y0,w,h,n){ g.strokeStyle=css('--grid'); g.lineWidth=1; for(let i=1;i<n;i++){ const y=y0+h*i/n; g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); } g.strokeStyle=css('--line'); g.strokeRect(x0,y0,w,h); }
+const redraws=[];
+function bind(ids,fn){ ids.forEach(i=>$(i).addEventListener('input',fn)); redraws.push(fn); fn(); }
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const sdb=x=>(x>=0?'+':'')+x.toFixed(2)+' dB';
+function plot(g,x0,y0,w,h,xa,xb,ya,yb,curves,o){
+  o=o||{}; const X=x=>x0+w*(x-xa)/(xb-xa), Y=v=>y0+h*(yb-clamp(v,ya,yb))/(yb-ya);
+  const ny=o.ny||5; frame(g,x0,y0,w,h,ny); g.fillStyle=css('--muted');
+  for(let k=0;k<=ny;k++){ const v=ya+(yb-ya)*k/ny; const s=(o.fy?o.fy(v):v.toFixed(0)); g.fillText(s,x0-6-g.measureText(s).width,Y(v)+4); }
+  const nx=o.nx||4; for(let k=0;k<=nx;k++){ const v=xa+(xb-xa)*k/nx; const s=o.fx?o.fx(v):v.toFixed(0); g.fillText(s,clamp(X(v)-g.measureText(s).width/2,x0-10,x0+w-g.measureText(s).width+10),y0+h+15); }
+  if(o.xl){ g.fillText(o.xl,x0+w-g.measureText(o.xl).width,y0+h+29); }
+  if(o.yl){ g.fillText(o.yl,x0,y0-6); }
+  curves.forEach(c=>{ g.strokeStyle=c.color; g.lineWidth=c.w||1.6; g.setLineDash(c.dash||[]); g.beginPath(); let st=false;
+    for(let i=0;i<c.x.length;i++){ const xv=c.x[i]; if(xv<xa||xv>xb||!isFinite(c.y[i])) continue; const px=X(xv), py=Y(c.y[i]); st?g.lineTo(px,py):g.moveTo(px,py); st=true; } g.stroke(); });
+  g.setLineDash([]); g.lineWidth=1; return {X,Y};
+}
+function vline(g,x,y0,h,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y0+h); g.stroke(); g.setLineDash([]); }
+function hline(g,x0,w,y,color,dash){ g.strokeStyle=color; g.setLineDash(dash||[4,4]); g.beginPath(); g.moveTo(x0,y); g.lineTo(x0+w,y); g.stroke(); g.setLineDash([]); }
+function dot(g,x,y,color,r){ g.fillStyle=color; g.beginPath(); g.arc(x,y,r||4,0,TAU); g.fill(); }
+function txt(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x,y); }
+function txtR(g,s,x,y,color){ g.fillStyle=color||css('--ink'); g.fillText(s,x-g.measureText(s).width,y); }
+function lbl(g,s,x,y,color){ const w=g.measureText(s).width; g.fillStyle=css('--panel'); g.globalAlpha=0.85; g.fillRect(x-2,y-11,w+4,14); g.globalAlpha=1; txt(g,s,x,y,color); }
+const sl=id=>+$(id).value;
+function setv(id,s){ $(id+'v').textContent=s; }
+function area(c,pr){ return {x0:pr.l,y0:pr.t,w:c.width-pr.l-pr.r,h:c.height-pr.t-pr.b}; }
+function shade(g,x1,x2,y0,h,color,al){ g.globalAlpha=al||0.12; g.fillStyle=color; g.fillRect(Math.min(x1,x2),y0,Math.abs(x2-x1),h); g.globalAlpha=1; }
+const fMHz=x=>(Math.abs(x)>=1000?(x/1000).toFixed(2)+' GHz':x.toFixed(x<10?2:0)+' MHz');
+
+/* ---------- ESM helpers ---------- */
+const SPAN=16000; /* MHz, 2–18 GHz */
+const sensB=(Bhz,nf,snr)=>-174+(nf??10)+db(Bhz)+(snr??15);
+function rng(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function gauss(r){ let u=0; while(u===0) u=r(); const v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*v); }
+function erfc(x){ const z=Math.abs(x), t=1/(1+0.5*z); const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277))))))))); return x>=0?r:2-r; }
+const Qf=x=>0.5*erfc(x/Math.SQRT2);
+function pct(p){ if(!isFinite(p)) return 'n/a'; if(p<1e-5) return '< 0.001 %'; const v=100*p; return v.toFixed(v<0.1?3:(v<10?2:1))+' %'; }
+/* crystal video: noise-limited term (Tsui-style, B in MHz) and detector-limited term, combined as output noise voltages (RSS) */
+function cvN(BR,Bv,NF){ return -114+NF+db(6.31*Bv+2.5*Math.sqrt(Math.max(0,2*BR*Bv-Bv*Bv))); }
+function cvD(Bv,G){ return -52+5*Math.log10(Bv/2)-G; }
+function cvTss(BR,Bv,NF,G){ const n=cvN(BR,Bv,NF), d=cvD(Bv,G); return 5*Math.log10(Math.pow(10,2*n/10)+Math.pow(10,2*d/10)); }
+/* IFM correlator: video SNR from RF SNR over BR, video bandwidth Bv */
+function ifmSnr(P,NF,BRhz,Bvhz){ const s=lin(P-(-174+NF+db(BRhz))); return {sin:s, sv:s*s*(BRhz/Bvhz)/(1+2*s)}; }
+function ifmSens(NF){ /* input level where video SNR = 20 dB */ const k=16e9/10e6, x=(2*100+Math.sqrt(4e4+4*k*100))/(2*k); return -174+NF+db(16e9)+db(x); }
+const PRI0=1e-3;
+
+/* ---------- Step 0: PDW accuracy and deinterleaving ---------- */
+function pdDraw(){
+  const c=$('cPd'), g=ctx(c);
+  const sf=Math.pow(10,sl('pdF')), df=sl('pdS'), st=sl('pdT'), dp=sl('pdP');
+  setv('pdF',sf.toFixed(sf<1?2:1)+' MHz rms'); setv('pdS',df.toFixed(0)+' MHz'); setv('pdT',st.toFixed(0)+' ns rms'); setv('pdP',dp.toFixed(2)+' µs');
+  const sp=Math.SQRT2*st/1000; /* PRI error, µs */
+  const pf=Qf(df/(2*sf)), pp=Qf(dp/(2*sp));
+  const H=c.height, half=(c.width-80)/2;
+  function panel(x0,w,sep,sig,title,xl,p){
+    const A={x0:x0,y0:40,w:w,h:H-40-46}; const ext=sep/2+4*sig; const xa=-ext, xb=ext;
+    const pdf=(x,m)=>Math.exp(-0.5*((x-m)/sig)**2);
+    const xs=[],y1=[],y2=[]; for(let i=0;i<=400;i++){ const x=xa+(xb-xa)*i/400; xs.push(x); y1.push(pdf(x,-sep/2)); y2.push(pdf(x,sep/2)); }
+    const dec=ext<2?2:(ext<20?1:0);
+    const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,0,1.1,[{x:xs,y:y1,color:css('--trace'),w:2},{x:xs,y:y2,color:css('--trace2'),w:2}],{nx:4,ny:2,fx:v=>(v>0?'+':'')+v.toFixed(dec),fy:()=>'',xl:xl});
+    g.globalAlpha=0.3; g.fillStyle=css('--bad'); g.beginPath(); g.moveTo(P.X(0),P.Y(0)); xs.forEach((x,i)=>{ if(x>=0) g.lineTo(P.X(x),P.Y(y1[i])); }); g.lineTo(P.X(xb),P.Y(0)); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(P.X(xa),P.Y(0)); xs.forEach((x,i)=>{ if(x<=0) g.lineTo(P.X(x),P.Y(y2[i])); }); g.lineTo(P.X(0),P.Y(0)); g.closePath(); g.fill(); g.globalAlpha=1;
+    vline(g,P.X(0),A.y0,A.h,css('--accent'));
+    txt(g,title,x0,16,css('--ink')); txt(g,'wrongly sorted: '+pct(p),x0,32,css('--bad'));
+  }
+  panel(36,half-20,df,sf,'frequency, emitters '+df.toFixed(0)+' MHz apart','MHz from midpoint',pf);
+  panel(36+half+44,half-20,dp,sp,'PRI, emitters '+dp.toFixed(2)+' µs apart','µs from midpoint',pp);
+  ro($('pdOut'),[['separation / σ (freq)',(df/sf).toFixed(2)],['missorted (freq)',pct(pf)],['σ<sub>f</sub> for 1 % errors',(df/(2*2.326)).toFixed(2)+' MHz'],['PRI error σ = √2·σ<sub>TOA</sub>',(sp*1000).toFixed(0)+' ns'],['separation / σ (PRI)',(dp/sp).toFixed(2)],['missorted (PRI)',pct(pp)],['σ<sub>TOA</sub> for 1 % errors',(dp*1000/(2*2.326*Math.SQRT2)).toFixed(0)+' ns']]);
+}
+bind(['pdF','pdS','pdT','pdP'],pdDraw);
+
+/* ---------- Step 1: POI and scan strategy ---------- */
+function poiCalc(ibw,Td,Ton,N){ const M=Math.max(1,Math.ceil(SPAN/ibw-1e-3)); const tau=N*PRI0; let Tr,p,zone;
+  if(M<=1){ Tr=0; p=Ton>=tau?1:0; zone=Ton-tau; } else { Tr=M*Td; zone=Ton+Td-2*tau; p=(tau>Math.min(Ton,Td))?0:Math.min(1,zone/Tr); }
+  return {M,Tr,p,tau,zone}; }
+function poiDraw(){
+  const c=$('cPoi'), g=ctx(c);
+  const ibw=Math.min(SPAN,+Math.pow(10,sl('poB')).toPrecision(3)), Td=sl('poD')*1e-3, Ton=sl('poO')*1e-3, Ts=sl('poS'), N=sl('poN'), Tobs=sl('poT');
+  setv('poB',fMHz(ibw)); setv('poD',fmt(Td,'s')); setv('poO',fmt(Ton,'s')); setv('poS',Ts.toFixed(1)+' s'); setv('poN',N+' pulse'+(N>1?'s':'')); setv('poT',Tobs.toFixed(0)+' s');
+  const r=poiCalc(ibw,Td,Ton,N); const scans=Math.floor(Tobs/Ts); const pc=1-Math.pow(1-r.p,scans);
+  const n90=r.p>=1?1:(r.p<=0?Infinity:Math.ceil(Math.log(0.1)/Math.log(1-r.p)));
+  /* top: one revisit cycle */
+  const x0=56, w=c.width-56-20;
+  txt(g,r.M>1?'one revisit cycle Tr = '+r.M+' × '+fmt(Td,'s')+' = '+fmt(r.Tr,'s'):'wide open: the receiver is always at the emitter frequency',x0,16,css('--ink'));
+  const ta=-Ton, tb=r.M>1?r.Tr:Math.max(Td,Ton)*1.5; const X=t=>x0+w*(t-ta)/(tb-ta);
+  g.strokeStyle=css('--line'); g.strokeRect(x0,26,w,84);
+  txt(g,'receiver at the emitter frequency',x0+4,42,css('--trace2'));
+  if(r.M>1){ shade(g,X(0),Math.max(X(Td),X(0)+2),48,16,css('--trace2'),0.75); }
+  else shade(g,X(ta),X(tb),48,16,css('--trace2'),0.75);
+  txt(g,'illumination start times that give ≥ '+N+' pulse'+(N>1?'s':'')+' in a look',x0+4,82,css('--accent'));
+  if(r.p>0){ const s0=r.M>1?(r.tau-Ton):ta, s1=r.M>1?(Td-r.tau):(tb); shade(g,X(Math.max(ta,s0)),Math.max(X(Math.min(tb,s1)),X(Math.max(ta,s0))+2),88,16,css('--accent'),0.75); }
+  else txt(g,'none: the look or the illumination is shorter than '+N+' PRI',x0+4,100,css('--bad'));
+  /* bottom: cumulative POI vs time */
+  const A={x0:56,y0:150,w:c.width-56-20,h:c.height-150-40};
+  const xs=[],ys=[]; for(let i=0;i<=600;i++){ const t=120*i/600; xs.push(t); ys.push(100*(1-Math.pow(1-r.p,Math.floor(t/Ts)))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,120,0,100,[{x:xs,y:ys,color:css('--accent'),w:2}],{nx:6,ny:4,fx:v=>v.toFixed(0),fy:v=>v.toFixed(0)+'%',xl:'observation time, s',yl:'cumulative POI'});
+  vline(g,P.X(Tobs),A.y0,A.h,css('--muted')); dot(g,P.X(Tobs),P.Y(100*pc),css('--accent'),5);
+  ro($('poOut'),[['steps M',String(r.M)],['revisit T<sub>r</sub>',r.M>1?fmt(r.Tr,'s'):'continuous'],['look needed N·PRI',fmt(r.tau,'s')],['POI per emitter scan',pct(r.p)],['emitter scans',String(scans)],['cumulative POI',pct(pc)],['time to 90 %',isFinite(n90)?(n90*Ts).toFixed(0)+' s':'never'],['sensitivity',sensB(ibw*1e6).toFixed(1)+' dBm']]);
+}
+bind(['poB','poD','poO','poS','poN','poT'],poiDraw);
+
+/* ---------- Step 2: crystal video ---------- */
+function cvDraw(){
+  const c=$('cCv'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const G=sl('cvG'), Bv=Math.pow(10,sl('cvV')), P=sl('cvP'), PW=Math.pow(10,sl('cvW'));
+  setv('cvG',G.toFixed(0)+' dB'); setv('cvV',Bv.toFixed(Bv<10?2:1)+' MHz'); setv('cvP',P.toFixed(0)+' dBm'); setv('cvW',fmt(PW*1e-6,'s'));
+  const n=cvN(SPAN,Bv,10), d=cvD(Bv,G), tss=cvTss(SPAN,Bv,10,G);
+  const tv=1/(TAU*Bv); /* µs */
+  const a=1-Math.exp(-PW/tv); const Af=2.5*lin(P-tss), Ap=Af*a;
+  const Wd=Math.max(3*PW,PW+10*tv), t0=-0.25*Wd, t1=Wd, ns=700, dt=(t1-t0)/ns;
+  const r=rng(11); const al=Math.min(1,dt/tv), sc=Math.sqrt((2-al)/al); let y=0; for(let i=0;i<200;i++) y=(1-al)*y+al*sc*gauss(r);
+  const sig=t=>t<0?0:(t<PW?Af*(1-Math.exp(-t/tv)):Af*a*Math.exp(-(t-PW)/tv));
+  const xs=[],ys=[],yc=[]; for(let i=0;i<=ns;i++){ const t=t0+i*dt; y=(1-al)*y+al*sc*gauss(r); xs.push(t); ys.push(sig(t)+y); yc.push(sig(t)); }
+  const yb=Math.max(10,1.15*(Ap+3));
+  const Pl=plot(g,A.x0,A.y0,A.w,A.h,t0,t1,-4,yb,[{x:xs,y:ys,color:css('--trace'),w:1.3},{x:xs,y:yc,color:css('--trace2'),w:1.6,dash:[5,3]}],{nx:5,ny:4,fx:v=>fmt(v*1e-6,'s',v===0?0:undefined),fy:v=>v.toFixed(v<10&&v>-10?1:0),xl:'time from pulse start',yl:'video output, in units of noise σ'});
+  hline(g,A.x0,A.w,Pl.Y(3),css('--accent')); lbl(g,'threshold 3σ',A.x0+A.w-100,Pl.Y(3)-4,css('--accent'));
+  vline(g,Pl.X(PW),A.y0,A.h,css('--muted'));
+  const t50a=-tv*Math.log(1-0.5*a), t50b=PW+tv*Math.log(2), pwm=t50b-t50a;
+  const sigT=tv/Math.max(1e-12,Af*(1-0.5*a)); const snrv=20*Math.log10(Math.max(1e-9,Ap));
+  lbl(g,'teal: video with noise; violet dashed: noise-free video; grey: true pulse end',A.x0+6,A.y0+14,css('--muted'));
+  ro($('cvOut'),[['TSS, noise',n.toFixed(1)+' dBm'],['TSS, detector',d.toFixed(1)+' dBm'],['TSS',tss.toFixed(1)+' dBm'],['working sens.',(tss+4).toFixed(1)+' dBm'],['rise time',fmt(0.35/Bv*1e-6,'s')],['peak reached',(100*a).toFixed(1)+' %'],['video SNR',snrv.toFixed(1)+' dB'],['reliable?',snrv>=16?'yes':'no'],['PW meas.',fmt(pwm*1e-6,'s')+' ('+(Math.round(100*(pwm/PW-1))===0?'0':(pwm>=PW?'+':'')+Math.round(100*(pwm/PW-1)))+' %)'],['TOA jitter',snrv>=8?fmt(sigT*1e-6,'s'):'n/a']]);
+}
+bind(['cvG','cvV','cvP','cvW'],cvDraw);
+
+/* ---------- Step 3: scanning superhet ---------- */
+function shDraw(){
+  const c=$('cSh'), g=ctx(c), A=area(c,{l:64,t:22,r:16,b:40});
+  const B=Math.pow(10,sl('shB')), Tsw=Math.pow(10,sl('shT')), PRI=sl('shP')*1e-3, PW=Math.pow(10,sl('shW'));
+  setv('shB',B.toFixed(B<10?2:1)+' MHz'); setv('shT',fmt(Tsw,'s')); setv('shP',fmt(PRI,'s')); setv('shW',fmt(PW*1e-6,'s'));
+  const mu=SPAN/Tsw; /* MHz/s */ const Tin=B/mu; const npp=Tin/PRI; const p1=Math.min(1,npp);
+  const fr=Math.min(1,B*B*1e12/(mu*1e6)); const frL=20*Math.log10(fr); const pwL=20*Math.log10(Math.min(1,PW*B));
+  const S=sensB(B*1e6)-frL-pwL; const Ton=0.02;
+  const Wt=Math.max(3*Tin,5*PRI); const ta=-Wt/2, tb=Wt/2; const ya=-2*B, yb=2*B;
+  const P=plot(g,A.x0,A.y0,A.w,A.h,ta,tb,ya,yb,[],{nx:4,ny:4,fx:v=>fmt(v,'s',Math.abs(v)<1e-12?0:undefined),fy:v=>(v>0?'+':'')+v.toFixed(B<5?1:0),xl:'time (receiver passes the emitter at 0)',yl:'MHz from the emitter frequency'});
+  g.save(); g.beginPath(); g.rect(A.x0,A.y0,A.w,A.h); g.clip();
+  g.globalAlpha=0.22; g.fillStyle=css('--trace'); g.beginPath();
+  const YY=v=>A.y0+A.h*(yb-v)/(yb-ya);
+  g.moveTo(P.X(ta),YY(mu*ta-B/2)); g.lineTo(P.X(tb),YY(mu*tb-B/2)); g.lineTo(P.X(tb),YY(mu*tb+B/2)); g.lineTo(P.X(ta),YY(mu*ta+B/2)); g.closePath(); g.fill(); g.globalAlpha=1;
+  g.strokeStyle=css('--trace'); g.lineWidth=1.5; g.beginPath(); g.moveTo(P.X(ta),YY(mu*ta)); g.lineTo(P.X(tb),YY(mu*tb)); g.stroke(); g.lineWidth=1;
+  hline(g,A.x0,A.w,YY(0),css('--muted'));
+  let hits=0; const k0=Math.floor(ta/PRI)-1, k1=Math.ceil(tb/PRI)+1;
+  for(let k=k0;k<=k1;k++){ const t=(k+0.37)*PRI; if(t<ta||t>tb) continue; const inb=Math.abs(mu*t)<B/2; if(inb) hits++;
+    g.fillStyle=inb?css('--accent'):css('--muted'); const x=P.X(t); g.fillRect(x-1,YY(0)-9,Math.max(2,A.w*PW*1e-6/Wt),18); }
+  g.restore();
+  lbl(g,'teal band: receiver pass band ('+B.toFixed(B<10?1:0)+' MHz) sweeping at '+(mu/1000).toFixed(mu<1000?3:1)+' GHz/s',A.x0+6,A.y0+14,css('--trace'));
+  lbl(g,'pulses at the emitter frequency: orange = caught ('+hits+'), grey = missed',A.x0+6,A.y0+30,css('--accent'));
+  /* inset: one pulse through the IF filter (single-pole envelope, time constant 1/(πB)) */
+  { const iw=170, ih=70, ix=A.x0+A.w-iw-8, iy=A.y0+A.h-ih-8; g.fillStyle=css('--panel'); g.fillRect(ix,iy,iw,ih); g.strokeStyle=css('--line'); g.strokeRect(ix,iy,iw,ih);
+    const tc=1/(Math.PI*B); const Tw=Math.max(2*PW,PW+4*tc); const env=t=>t<PW?1-Math.exp(-t/tc):(1-Math.exp(-PW/tc))*Math.exp(-(t-PW)/tc);
+    const X=t=>ix+6+(iw-12)*t/Tw, Y=v=>iy+ih-8-(ih-26)*v;
+    g.strokeStyle=css('--muted'); g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(0),Y(1)); g.lineTo(X(PW),Y(1)); g.lineTo(X(PW),Y(0)); g.stroke();
+    g.strokeStyle=css('--accent'); g.lineWidth=1.8; g.beginPath(); for(let i=0;i<=120;i++){ const t=Tw*i/120; i?g.lineTo(X(t),Y(env(t))):g.moveTo(X(t),Y(env(t))); } g.stroke(); g.lineWidth=1;
+    txt(g,'IF output, PW·B = '+(PW*B).toFixed(PW*B<10?2:0),ix+4,iy+13,css('--ink')); }
+  ro($('shOut'),[['sweep rate μ',(mu/1000).toFixed(mu<1000?3:1)+' GHz/s'],['time in band B/μ',fmt(Tin,'s')],['pulses per pass',npp.toFixed(npp<10?3:0)],['P(≥ 1 pulse/pass)',pct(p1)],['B²/μ (need ≥ 1)',(B*B*1e12/(mu*1e6)).toExponential(2)],['sweep-speed loss',sdb(-frL)],['PW·B (need ≥ 1)',(PW*B).toFixed(PW*B<10?2:0)],['short-pulse loss',sdb(-pwL)],['sensitivity',S.toFixed(1)+' dBm'],['σ<sub>f</sub> = B/√12',(B/Math.sqrt(12)).toFixed(2)+' MHz'],['full-band revisit',fmt(Tsw,'s')],['POI per beam',pct(Math.min(1,(Ton+Tin)/Tsw)*p1)]]);
+}
+bind(['shB','shT','shP','shW'],shDraw);
+
+/* ---------- Step 4a: IFM accuracy ---------- */
+function ifDraw(){
+  const c=$('cIf'), g=ctx(c);
+  const P=sl('ifP'), L=+$('ifL').value, n=+$('ifN').value, hw=sl('ifH');
+  setv('ifP',P.toFixed(0)+' dBm'); setv('ifH',hw.toFixed(1)+'°');
+  const t1=62.5e-12, tL=t1*Math.pow(n,L-1);
+  const s=ifmSnr(P,10,16e9,10e6); const sn=1/Math.sqrt(s.sv); const st=Math.sqrt(sn*sn+(hw*deg)**2);
+  const f=9.4e9; const phi=(TAU*f*tL)%TAU;
+  const pe1=erfc(Math.PI/(n*st*Math.SQRT2)); const pe=L>1?1-Math.pow(1-pe1,L-1):0;
+  /* polar */
+  const cx=150, cy=c.height/2+6, R=105;
+  txt(g,'longest line, τ = '+fmt(tL,'s',tL<1e-9?1:2),20,18,css('--ink'));
+  g.strokeStyle=css('--line'); g.beginPath(); g.arc(cx,cy,R,0,TAU); g.stroke(); g.beginPath(); g.moveTo(cx-R-8,cy); g.lineTo(cx+R+8,cy); g.moveTo(cx,cy-R-8); g.lineTo(cx,cy+R+8); g.stroke();
+  const r=rng(5); g.fillStyle=css('--trace'); g.globalAlpha=0.6;
+  for(let i=0;i<300;i++){ const a=phi+st*gauss(r), rr=R*(1+0.04*gauss(r)); g.fillRect(cx+rr*Math.cos(a)-1.5,cy-rr*Math.sin(a)-1.5,3,3); } g.globalAlpha=1;
+  g.strokeStyle=css('--accent'); g.lineWidth=2; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+R*Math.cos(phi),cy-R*Math.sin(phi)); g.stroke(); g.lineWidth=1;
+  txt(g,'φ = 2π f τ',cx+R*0.35*Math.cos(phi)+6,cy-R*0.35*Math.sin(phi),css('--accent'));
+  txt(g,'cos',cx+R+2,cy-4,css('--muted')); txt(g,'sin',cx+4,cy-R-10,css('--muted'));
+  /* bars: sigma_f per line */
+  const A={x0:350,y0:34,w:c.width-350-16,h:c.height-34-44};
+  frame(g,A.x0,A.y0,A.w,A.h,5); const la=-2, lb=3; const Y=v=>A.y0+A.h*(lb-clamp(Math.log10(v),la,lb))/(lb-la);
+  g.fillStyle=css('--muted'); for(let k=la;k<=lb;k++){ const s2=k>=0?String(Math.pow(10,k)):Math.pow(10,k).toFixed(-k); g.fillText(s2,A.x0-6-g.measureText(s2).width,Y(Math.pow(10,k))+4); }
+  txt(g,'rms frequency error per line, MHz (log)',A.x0,A.y0-8,css('--muted'));
+  const bw=A.w/5;
+  for(let k=0;k<L;k++){ const tk=t1*Math.pow(n,k); const sf=st/(TAU*tk)/1e6; const x=A.x0+k*bw+bw*0.2;
+    g.fillStyle=k===L-1?css('--accent'):css('--trace'); const yv=Y(sf); g.fillRect(x,yv,bw*0.6,A.y0+A.h-yv);
+    const lab=tk<1e-9?(tk*1e12).toFixed(tk<1e-10?1:0)+' ps':(tk*1e9).toFixed(tk<1e-8?2:0)+' ns'; g.fillStyle=css('--muted'); g.fillText(lab,x+bw*0.3-g.measureText(lab).width/2,A.y0+A.h+15);
+    const v=sf<1?sf.toFixed(2):sf.toFixed(0); g.fillStyle=css('--ink'); g.fillText(v,x+bw*0.3-g.measureText(v).width/2,Math.max(A.y0+12,yv-4)); }
+  txt(g,'delay of each line',A.x0+A.w-g.measureText('delay of each line').width,A.y0+A.h+29,css('--muted'));
+  const sfL=st/(TAU*tL)/1e6;
+  ro($('ifOut'),[['RF SNR (16 GHz)',db(s.sin).toFixed(1)+' dB'],['video SNR',db(s.sv).toFixed(1)+' dB'],['noise phase error',(sn/deg).toFixed(2)+'° rms'],['total phase error',(st/deg).toFixed(2)+'° rms'],['shortest line','62.5 ps'],['longest line τ<sub>L</sub>',fmt(tL,'s',tL<1e-9?1:2)],['σ<sub>f</sub>',sfL<1?sfL.toFixed(3)+' MHz':sfL.toFixed(sfL<10?2:1)+' MHz'],['P(ambiguity error)',L>1?pct(pe):'n/a'],['sensitivity',ifmSens(10).toFixed(1)+' dBm']]);
+}
+bind(['ifP','ifL','ifN','ifH'],ifDraw);
+
+/* ---------- Step 4b: IFM with two simultaneous signals ---------- */
+function isDraw(){
+  const c=$('cIs'), g=ctx(c), A=area(c,{l:64,t:22,r:16,b:40});
+  const R=sl('isR'), df=Math.pow(10,sl('isD')), Bv=Math.pow(10,sl('isV')), lim=$('isL').value==='on';
+  setv('isR',R.toFixed(0)+' dB'); setv('isD',df.toFixed(df<10?1:0)+' MHz'); setv('isV',Bv.toFixed(Bv<10?1:0)+' MHz');
+  const tau=1e-9; const r=Math.pow(10,R/20); const re=lim?(r<1?r/(2-r):1):r; const a2=re*re;
+  const f1=9400, f2=9400+df; const p1=TAU*f1*1e6*tau, p2=TAU*f2*1e6*tau;
+  const Hm=1/Math.sqrt(1+(df/Bv)**2), Hp=-Math.atan(df/Bv);
+  const T=2; /* µs of overlap */ const ns=600; const xs=[],ys=[]; let sum=0, mn=1e9, mx=-1e9, worst=0;
+  const wrap=x=>{ x=(x+Math.PI)%TAU; if(x<0) x+=TAU; return x-Math.PI; };
+  for(let i=0;i<=ns;i++){ const t=T*i/ns; const wt=TAU*df*t; /* df MHz, t µs */
+    let zr=Math.cos(p1)+a2*Math.cos(p2), zi=Math.sin(p1)+a2*Math.sin(p2);
+    zr+=re*Hm*(Math.cos(wt+p2+Hp)+Math.cos(-wt+p1-Hp)); zi+=re*Hm*(Math.sin(wt+p2+Hp)+Math.sin(-wt+p1-Hp));
+    const e=wrap(Math.atan2(zi,zr)-p1)/(TAU*tau)/1e6; const fm=f1+e; xs.push(t); ys.push(fm); sum+=fm; mn=Math.min(mn,fm); mx=Math.max(mx,fm); worst=Math.max(worst,Math.abs(e)); }
+  const mean=sum/(ns+1); const st=wrap(Math.atan2(a2*Math.sin(p2-p1),1+a2*Math.cos(p2-p1)))/(TAU*tau)/1e6;
+  const span=Math.max(df*1.3,(mx-mn)*1.2,20); const ya=Math.min(f1,mn)-0.15*span, yb=Math.max(f2,mx)+0.15*span;
+  const ya2=Math.floor(Math.max(ya,f1-520)/10)*10, yb2=Math.ceil(Math.min(yb,f1+520)/10)*10;
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,T,ya2,yb2,[{x:xs,y:ys,color:css('--trace'),w:1.8}],{nx:4,ny:4,fx:v=>v.toFixed(1)+' µs',fy:v=>v.toFixed(0),xl:'time while both pulses are present',yl:'reported frequency, MHz'});
+  hline(g,A.x0,A.w,P.Y(f1),css('--accent'),[]); lbl(g,'strong '+f1+' MHz',A.x0+6,P.Y(f1)-4,css('--accent'));
+  if(f2<=yb2){ hline(g,A.x0,A.w,P.Y(f2),css('--trace2'),[]); lbl(g,'weak '+f2.toFixed(df<10?1:0)+' MHz',A.x0+6,P.Y(f2)-4,css('--trace2')); }
+  hline(g,A.x0,A.w,P.Y(mean),css('--muted')); lbl(g,'mean reported',A.x0+A.w-120,P.Y(mean)-4,css('--muted'));
+  ro($('isOut'),[['weak/strong, corr.',(20*Math.log10(re)).toFixed(1)+' dB'],['Δφ on 1 ns line',((((p2-p1)/deg)%360+360)%360).toFixed(0)+'°'],['steady error',st.toFixed(2)+' MHz'],['beat after video',(20*Math.log10(Hm)).toFixed(1)+' dB'],['mean reported',mean.toFixed(1)+' MHz'],['ripple p-p',(mx-mn).toFixed(1)+' MHz'],['worst error',worst.toFixed(1)+' MHz']]);
+}
+bind(['isR','isD','isV','isL'],isDraw);
+
+/* ---------- Step 5: channelisers ---------- */
+const NCH=32; const chCache={};
+function protoResp(P,X){ /* Hann-windowed sinc prototype, P taps per channel; cutoff scaled so the crossover at ν=0.5 equals X (power) */
+  const key=P+'_'+X; if(chCache[key]) return chCache[key];
+  const L=P*NCH, cc=(L-1)/2; const win=n=>0.5-0.5*Math.cos(TAU*(n+0.5)/L);
+  const resp=(w,nu)=>{ let s=0, s0=0; for(let n=0;n<L;n++){ const x=(n-cc)/NCH*w; const h=(Math.abs(x)<1e-12?1:Math.sin(Math.PI*x)/(Math.PI*x))*win(n); s+=h*Math.cos(TAU*nu*(n-cc)/NCH); s0+=h; } return (s/s0)**2; };
+  let lo=0.3, hi=3; for(let i=0;i<40;i++){ const m=(lo+hi)/2; if(resp(m,0.5)<X) lo=m; else hi=m; }
+  const w=(lo+hi)/2; const tab=[]; for(let i=0;i<=1000;i++){ tab.push(Math.max(1e-12,resp(w,-5+i*0.01))); }
+  return chCache[key]={tab,w};
+}
+function chH(impl,X){ /* returns function of ν (channel units) -> power gain */
+  if(impl==='ana'){ const b=Math.pow(1/X-1,-1/10); return nu=>1/(1+Math.pow(2*Math.abs(nu)/b,10)); }
+  if(impl==='fft'){ return nu=>{ const a=Math.PI*nu; if(Math.abs(a)<1e-9) return 1; const v=Math.sin(a)/(NCH*Math.sin(a/NCH)); return Math.max(1e-12,v*v); }; }
+  const P=+impl.slice(3); const t=protoResp(P,X).tab; return nu=>{ const u=(clamp(nu,-5,5)+5)/0.01; const i=Math.min(999,Math.floor(u)), f=u-i; return t[i]*(1-f)+t[i+1]*f; };
+}
+function chDraw(){
+  const c=$('cCh'), g=ctx(c);
+  const impl=$('chI').value, X=lin(+$('chX').value), off=sl('chO'), PW=Math.pow(10,sl('chW'));
+  setv('chO',off.toFixed(2)+' channel'); setv('chW',fmt(PW*1e-6,'s'));
+  const D=20; const H=chH(impl,X); const xo=impl==='fft'?H(0.5):X;
+  /* channel energies */
+  const k0=-3, k1=3; const E=[]; const dn=0.005, a=D*PW; const norm=1/a;
+  for(let k=k0;k<=k1;k++){ let s=0; for(let nu=-9;nu<=9;nu+=dn){ const x=(nu-off)*a; const sc=Math.abs(x)<1e-12?1:(Math.sin(Math.PI*x)/(Math.PI*x))**2; s+=sc*H(nu-k)*dn; } E.push(s/norm); }
+  let kb=0; E.forEach((e,i)=>{ if(e>E[kb]) kb=i; }); const Eb=E[kb]; const within=E.filter(e=>db(e)>=db(Eb)-6).length;
+  /* top: responses */
+  const A={x0:56,y0:24,w:c.width-56-16,h:150};
+  const curves=[]; for(let k=k0;k<=k1;k++){ const xs=[],ys=[]; for(let i=0;i<=500;i++){ const nu=-3.8+7.6*i/500; xs.push(nu); ys.push(db(H(nu-k))); } curves.push({x:xs,y:ys,color:k===kb+k0?css('--trace'):css('--line'),w:k===kb+k0?2:1.3}); }
+  const sx=[],sy=[]; for(let i=0;i<=800;i++){ const nu=-3.8+7.6*i/800; const x=(nu-off)*a; sx.push(nu); sy.push(db(Math.max(1e-12,Math.abs(x)<1e-12?1:(Math.abs(x)<1?(Math.sin(Math.PI*x)/(Math.PI*x))**2:1/(Math.PI*x)**2)))); }
+  curves.push({x:sx,y:sy,color:css('--accent'),w:1.6,dash:[5,3]});
+  const P=plot(g,A.x0,A.y0,A.w,A.h,-3.8,3.8,-70,0,curves,{nx:4,ny:7,fx:v=>(v*D).toFixed(0),fy:v=>v.toFixed(0),yl:'channel responses (grey, teal = strongest) and pulse spectrum (orange), dB'});
+  hline(g,A.x0,A.w,P.Y(db(xo)),css('--trace2'));
+  /* bottom: bars */
+  const B={x0:56,y0:A.y0+A.h+44,w:A.w,h:c.height-(A.y0+A.h+44)-26};
+  frame(g,B.x0,B.y0,B.w,B.h,4); const Yb=v=>B.y0+B.h*(clamp(-v,0,40))/40;
+  g.fillStyle=css('--muted'); [0,-10,-20,-30,-40].forEach(v=>{ const s=String(v); g.fillText(s,B.x0-6-g.measureText(s).width,Yb(v)+4); });
+  txt(g,'energy out of each channel, dB (dashed: 6 dB below strongest)',B.x0,B.y0-6,css('--muted'));
+  for(let k=k0;k<=k1;k++){ const i=k-k0; const x=P.X(k)-14; const v=db(E[i]); g.fillStyle=v>=db(Eb)-6?css('--trace'):css('--line'); const yv=Yb(v); g.fillRect(x,yv,28,B.y0+B.h-yv); g.fillStyle=css('--muted'); const s='ch '+(k>0?'+':'')+k; g.fillText(s,x+14-g.measureText(s).width/2,B.y0+B.h+14); }
+  hline(g,B.x0,B.w,Yb(db(Eb)-6),css('--accent'));
+  txt(g,'MHz',A.x0+A.w-28,A.y0+A.h+15+14,css('--muted'));
+  ro($('chOut'),[['channel spacing','20 MHz'],['crossover',db(xo).toFixed(2)+' dB'],['at 1.5 channels',db(H(1.5)).toFixed(1)+' dB'],['leakage 2–5 ch',(()=>{ let m=0; for(let nu=2;nu<=5;nu+=0.01) m=Math.max(m,H(nu)); return db(m).toFixed(1)+' dB'; })()],['strongest channel','ch '+(kb+k0>0?'+':'')+(kb+k0)],['loss, best channel',sdb(db(Eb))],['ch within 6 dB',String(within)+(within>1?' (split)':'')],['sensitivity',(sensB(20e6)-db(Eb)).toFixed(1)+' dBm'],['σ<sub>f</sub>, centre only',(D/Math.sqrt(12)).toFixed(2)+' MHz']]);
+}
+bind(['chI','chX','chO','chW'],chDraw);
+
+/* ---------- Step 6: compressive receiver ---------- */
+function crWin(type,K){ const w=[]; for(let k=0;k<K;k++){ const x=(k+0.5)/K; w.push(type==='uni'?1:(type==='ham'?0.54-0.46*Math.cos(TAU*x):0.42-0.5*Math.cos(TAU*x)+0.08*Math.cos(2*TAU*x))); } return w; }
+function crDraw(){
+  const c=$('cCr'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const Td=Math.pow(10,sl('crT')), wt=$('crW').value, df=Math.pow(10,sl('crD')), R=sl('crR'), PW=Math.pow(10,sl('crP'));
+  setv('crT',fmt(Td*1e-6,'s')); setv('crD',df.toFixed(df<1?2:(df<10?1:0))+' MHz'); setv('crR',R.toFixed(0)+' dB'); setv('crP',fmt(PW*1e-6,'s'));
+  const Te=Math.min(Td,PW); const K=256; const w=crWin(wt,K); let sw=0, sw2=0; w.forEach(v=>{ sw+=v; sw2+=v*v; }); const enbw=K*sw2/(sw*sw);
+  const W=f=>{ let re=0, im=0; for(let k=0;k<K;k++){ const t=(k+0.5)*Te/K; re+=w[k]*Math.cos(TAU*f*t); im-=w[k]*Math.sin(TAU*f*t); } return (re*re+im*im)/(sw*sw); }; /* f in MHz, t in µs */
+  let lo=0, hi=3/Te; for(let i=0;i<40;i++){ const m=(lo+hi)/2; if(W(m)>0.5) lo=m; else hi=m; } const res=2*lo;
+  let nul=0; for(let f=0.02/Te; f<6/Te; f+=0.02/Te){ if(W(f)<W(f-0.02/Te)&&W(f)<W(f+0.02/Te)){ nul=f; break; } }
+  let psl=-200; for(let f=nul; f<12/Te; f+=0.01/Te) psl=Math.max(psl,db(W(f)));
+  const r2=lin(R); const ext=Math.max(5/Te,0.6*df); const xa=-ext, xb=df+ext;
+  const xs=[],ys=[],y1=[]; for(let i=0;i<=700;i++){ const f=xa+(xb-xa)*i/700; const a1=W(f), a2=r2*W(f-df); xs.push(f); ys.push(db(Math.max(1e-12,a1+a2))); y1.push(db(Math.max(1e-12,a1))); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,-80,0,[{x:xs,y:y1,color:css('--line'),w:1.2,dash:[4,3]},{x:xs,y:ys,color:css('--trace'),w:2}],{nx:4,ny:4,fx:v=>v.toFixed(Math.abs(xb-xa)<10?1:0),fy:v=>v.toFixed(0),xl:'frequency offset from the strong signal, MHz (time on the output)',yl:'compressed output, dB'});
+  vline(g,P.X(df),A.y0,A.h,css('--trace2')); dot(g,P.X(df),P.Y(R),css('--trace2'),4);
+  let lk=W(df); if(df>nul){ for(let f=Math.max(nul,df-0.5/Te); f<=df+0.5/Te; f+=0.01/Te) lk=Math.max(lk,W(f)); } /* sidelobe envelope: the exact null position depends on timing */
+  const leak=db(Math.max(1e-12,lk)); const resolved=(df>=res)&&(R>=leak+3);
+  lbl(g,'grey dashed: strong signal alone; violet: where the weak one is',A.x0+6,A.y0+14,css('--muted'));
+  lbl(g,resolved?'weak signal resolved':'weak signal NOT resolved',A.x0+6,A.y0+30,resolved?css('--good'):css('--bad'));
+  ro($('crOut'),[['analysed length',fmt(Te*1e-6,'s')],['resolution (−3 dB)',res.toFixed(res<1?3:2)+' MHz'],['T<sub>d</sub>·B product',(500*Td).toFixed(0)],['cells in 500 MHz',(500/res).toFixed(0)],['peak sidelobe',psl.toFixed(1)+' dB'],['sidelobes at Δf',leak.toFixed(1)+' dB'],['weak resolved?',resolved?'yes':'no'],['noise BW per cell',(enbw/Te).toFixed(2)+' MHz'],['sensitivity per cell',sensB(enbw/Te*1e6).toFixed(1)+' dBm'],['output pulse ≈ 1/B','2 ns']]);
+}
+bind(['crT','crW','crD','crR','crP'],crDraw);
+
+/* ---------- Step 7: sensitivity vs bandwidth, and range ---------- */
+function seDraw(){
+  const c=$('cSe'), g=ctx(c);
+  const lB=sl('seB'), NF=sl('seN'), S=sl('seS'), ERP=sl('seE'), Gr=sl('seG'), fG=sl('seF');
+  const B=Math.pow(10,lB); setv('seB',fmt(B,'Hz')); setv('seN',NF.toFixed(1)+' dB'); setv('seS',S.toFixed(1)+' dB'); setv('seE',ERP.toFixed(0)+' dBm'); setv('seG',Gr.toFixed(0)+' dBi'); setv('seF',fG.toFixed(1)+' GHz');
+  const lam=c0/(fG*1e9); const rng_=s=>lam/(4*Math.PI)*Math.pow(10,(ERP+Gr-s)/20);
+  const la=5, lb=11, lmax=Math.log10(16e9);
+  const xs=[],ys=[],rs=[]; for(let i=0;i<=300;i++){ const lx=la+(lmax-la)*i/300; xs.push(lx); const s=sensB(Math.pow(10,lx),NF,S); ys.push(s); rs.push(Math.log10(rng_(s)/1000)); }
+  const fx=v=>{ const b=Math.pow(10,Math.round(v)); return b>=1e9?(b/1e9).toFixed(0)+'G':(b>=1e6?(b/1e6).toFixed(0)+'M':(b/1e3).toFixed(0)+'k'); };
+  const A={x0:56,y0:22,w:c.width-56-16,h:150};
+  const P=plot(g,A.x0,A.y0,A.w,A.h,la,lb,-120,-30,[{x:xs,y:ys,color:css('--trace'),w:2}],{nx:6,ny:3,fx:fx,fy:v=>v.toFixed(0),yl:'sensitivity, dBm (lower is better)'});
+  const cvS=cvTss(SPAN,10,NF,30)+4, ifS=ifmSens(NF);
+  const marks=[['compressive cell 1.36 MHz',Math.log10(1.36e6),sensB(1.36e6,NF,S)],['channel / superhet 20 MHz',Math.log10(20e6),sensB(20e6,NF,S)],['crystal video (TSS + 4)',lmax,cvS],['IFM (video SNR 20 dB)',lmax,ifS]];
+  marks.forEach((m,i)=>{ const x=P.X(m[1]), y=P.Y(m[2]); g.strokeStyle=css('--trace2'); g.lineWidth=1.5; g.beginPath(); g.arc(x-(i>=2?(i-2)*10:0),y,4.5,0,TAU); g.stroke(); g.lineWidth=1;
+    const s=m[0]+' '+m[2].toFixed(1); const tx=i>=2?x+10:x+8; const ty=i===0?y+18:(i===1?y+18:(i===2?y-10:y+20)); lbl(g,s,i>=2?clamp(tx,A.x0,A.x0+A.w-g.measureText(s).width-4):tx,ty,css('--trace2')); });
+  dot(g,P.X(lB),P.Y(sensB(B,NF,S)),css('--accent'),5);
+  const A2={x0:56,y0:A.y0+A.h+44,w:A.w,h:c.height-(A.y0+A.h+44)-40};
+  const r0=Math.min(...rs), r1=Math.max(...rs); const ya=Math.floor(r0), yb=Math.max(ya+1,Math.ceil(r1));
+  const P2=plot(g,A2.x0,A2.y0,A2.w,A2.h,la,lb,ya,yb,[{x:xs,y:rs,color:css('--accent'),w:2}],{nx:6,ny:Math.min(6,yb-ya),fx:fx,fy:v=>{ const k=Math.pow(10,v); return k>=1?k.toFixed(0):k.toFixed(-Math.floor(v)); },xl:'noise bandwidth of one detection cell (log)',yl:'free-space detection range, km (log)'});
+  const Rk=rng_(sensB(B,NF,S))/1000; dot(g,P2.X(lB),P2.Y(Math.log10(Rk)),css('--accent'),5);
+  const kTB=-174+db(B);
+  ro($('seOut'),[['kTB',kTB.toFixed(1)+' dBm'],['noise floor kTB + NF',(kTB+NF).toFixed(1)+' dBm'],['sensitivity',sensB(B,NF,S).toFixed(1)+' dBm'],['penalty vs 1 MHz',sdb(db(B/1e6))],['received at 100 km',(ERP+Gr-20*Math.log10(4*Math.PI*1e5/lam)).toFixed(1)+' dBm'],['free-space range',Rk>=1?Rk.toFixed(Rk<10?2:0)+' km':(Rk*1000).toFixed(0)+' m'],['range × per B/2','× '+Math.pow(10,3.0103/20).toFixed(3)]]);
+}
+bind(['seB','seN','seS','seE','seG','seF'],seDraw);
+
+/* ---------- Step 8: dynamic range, strong and weak together ---------- */
+const ARCH={
+  cv:{name:'Crystal video',cell:16e9},
+  ifm:{name:'IFM',cell:16e9},
+  sh:{name:'Superhet 20 MHz (tuned to the weak signal)',cell:20e6},
+  ach:{name:'Analogue channelised 20 MHz',cell:20e6},
+  dch:{name:'Digital channeliser 20 MHz',cell:20e6},
+  cr:{name:'Compressive 1 µs, Hamming',cell:1.36e6}
+};
+const butt5=nu=>1/(1+Math.pow(2*Math.abs(nu),10));
+let hamW=null; function hamResp(fMHz){ if(!hamW) hamW=crWin('ham',256); const K=256; let re=0,im=0,s=0; for(let k=0;k<K;k++){ const t=(k+0.5)/K; re+=hamW[k]*Math.cos(TAU*fMHz*t); im-=hamW[k]*Math.sin(TAU*fMHz*t); s+=hamW[k]; } return (re*re+im*im)/(s*s); }
+function hamEnv(f){ /* envelope of the Hamming response beyond the main lobe (peak-hold over ±1 cell) */ let m=0; for(let x=Math.max(0,f-1);x<=f+1;x+=0.05) m=Math.max(m,hamResp(x)); return m; }
+function drDraw(){
+  const c=$('cDr'), g=ctx(c), A=area(c,{l:56,t:22,r:16,b:40});
+  const ar=$('drA').value, Ps=sl('drS'), Rw=sl('drW'), df=Math.pow(10,sl('drD')), IP=sl('drI');
+  setv('drS',Ps.toFixed(0)+' dBm'); setv('drW',Rw.toFixed(0)+' dB'); setv('drD',df.toFixed(df<10?1:0)+' MHz'); setv('drI',IP.toFixed(0)+' dBm');
+  const Pw=Ps+Rw; const a=ARCH[ar]; const nf=-174+10+db(a.cell); let sens=nf+15;
+  if(ar==='cv') sens=cvTss(SPAN,10,10,30)+4; if(ar==='ifm') sens=ifmSens(10);
+  const im1=2*Ps+Pw-2*IP, im2=Ps+2*Pw-2*IP; /* at f1-df and f2+df */
+  const sfdr=2/3*(IP-nf);
+  let skirt=f=>-300; if(ar==='sh'||ar==='ach') skirt=f=>Ps+db(butt5(f/20)); if(ar==='dch'){ const H=chH('pfb8',lin(-3)); skirt=f=>Ps+db(H(f/20)); } if(ar==='cr') skirt=f=>Ps+db(Math.max(1e-12,Math.abs(f)<1.5?hamResp(Math.abs(f)):hamEnv(Math.abs(f))));
+  const FS=-20, SF=65; const clip=(ar==='dch'&&Ps>FS); const adcSp=ar==='dch'?Ps-SF:-300;
+  let wkLeak=-300, wkOK=false, same=false, msg='', ifmErr='n/a';
+  if(ar==='cv'){ msg='one pulse reported, amplitude of the sum; no frequency'; }
+  else if(ar==='ifm'){ const r=Math.pow(10,Rw/20), re=r<1?r/(2-r):1; const e=Math.asin(Math.min(1,re*re))/(TAU*4e-9)/1e6; msg=re*re>=0.5?'frequency report unreliable':'strong reported, error up to '+e.toFixed(1)+' MHz (4 ns line)'; ifmErr=re*re>=0.5?'unreliable':'up to '+e.toFixed(1)+' MHz'; }
+  else { if(ar==='ach'||ar==='dch'){ const kw=Math.round(df/20); same=kw===0; wkLeak=skirt(kw*20); } else wkLeak=skirt(df);
+    wkOK=!same&&!clip&&Pw>=sens&&Pw>=wkLeak+3&&(ar!=='dch'||Pw>=adcSp+3);
+    msg=same?'same 20 MHz channel: one PDW':(clip?'ADC clipped: whole band corrupted':(wkOK?'weak signal detected':'weak signal lost')); }
+  const ghost1=(ar!=='cv'&&ar!=='ifm')&&im1>=sens&&!clip, ghost2=(ar!=='cv'&&ar!=='ifm')&&im2>=sens&&!clip;
+  const xa=-1.6*df-20, xb=2.6*df+20; const xs=[],ys=[]; for(let i=0;i<=600;i++){ const f=xa+(xb-xa)*i/600; xs.push(f); ys.push(skirt(f)); }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,xa,xb,-120,10,ar==='cv'||ar==='ifm'?[]:[{x:xs,y:ys,color:css('--line'),w:1.4}],{nx:4,ny:5,fx:v=>(v>0?'+':'')+v.toFixed(0),fy:v=>v.toFixed(0),xl:'MHz from the strong signal',yl:'level at the antenna, dBm'});
+  hline(g,A.x0,A.w,P.Y(sens),css('--trace2')); lbl(g,'sensitivity '+sens.toFixed(1),A.x0+A.w-150,P.Y(sens)-4,css('--trace2'));
+  const bar=(f,v,col,lab)=>{ if(v<-120) return; const x=P.X(f); g.fillStyle=col; g.fillRect(x-3,P.Y(v),6,P.Y(-120)-P.Y(v)); lbl(g,lab,clamp(x+6,A.x0,A.x0+A.w-110),P.Y(v)+12,col); };
+  bar(0,Ps,css('--accent'),'strong'); bar(df,Pw,css('--trace'),'weak');
+  bar(-df,im1,ghost1?css('--bad'):css('--muted'),ghost1?'IM3 ghost':'IM3'); bar(2*df,im2,ghost2?css('--bad'):css('--muted'),ghost2?'IM3 ghost':'IM3');
+  if(ar==='dch'){ bar(2.3*df,adcSp,adcSp>=sens?css('--bad'):css('--muted'),'ADC spur'); }
+  lbl(g,a.name+': '+msg,A.x0+6,A.y0+14,wkOK||ar==='cv'||ar==='ifm'?css('--ink'):css('--bad'));
+  ro($('drOut'),[['cell noise floor',nf.toFixed(1)+' dBm'],['sensitivity',sens.toFixed(1)+' dBm'],['two-tone SFDR',sfdr.toFixed(1)+' dB'],['weak signal',Pw.toFixed(1)+' dBm'],['skirt at weak',(wkLeak<-250?'n/a':wkLeak.toFixed(1)+' dBm')],['weak reported?',(ar==='cv'||ar==='ifm')?'no (merged)':(wkOK?'yes':'no')],['IM3 f1−Δf, dBm',im1.toFixed(1)+(ghost1?' ghost':'')],['IM3 f2+Δf, dBm',im2.toFixed(1)+(ghost2?' ghost':'')],['ADC spur',ar==='dch'?(clip?'clipped':adcSp.toFixed(1)+' dBm'):'n/a'],['IFM freq error',ar==='ifm'?ifmErr:'n/a']]);
+}
+bind(['drA','drS','drW','drD','drI'],drDraw);
+
+/* ---------- Step 9: PDW stream into identification ---------- */
+function psDraw(){
+  const c=$('cPs'), g=ctx(c), A=area(c,{l:64,t:22,r:16,b:40});
+  const ar=$('psA').value, dens=sl('psD'), sp=sl('psS');
+  setv('psD',dens.toFixed(0)+' k pulses/s'); setv('psS',sp.toFixed(0)+' MHz');
+  const r=rng(23); const T=20e-3; const em=[{f:9400,pri:1e-3,pw:1e-6,amp:-50,col:css('--accent')},{f:9400+sp,pri:370e-6,pw:0.5e-6,amp:-58,col:css('--trace')},{f:9400+2*sp,pri:250e-6,pw:0.2e-6,amp:-64,col:css('--trace2')}];
+  const pul=[]; em.forEach((e,i)=>{ let t=r()*e.pri; while(t<T){ pul.push({t,pw:e.pw,f:e.f,amp:e.amp+gauss(r)*0.5,e:i}); t+=e.pri*(i===2?(0.9+0.2*r()):1); } });
+  const nb=Math.round(dens*1e3*T); for(let i=0;i<nb;i++) pul.push({t:r()*T,pw:1e-6,f:9300+300*r(),amp:-75+30*r(),e:3});
+  pul.sort((a,b)=>a.t-b.t);
+  const sens={cv:cvTss(SPAN,10,10,30)+4,ifm:ifmSens(10),sh:sensB(20e6),ach:sensB(20e6),dch:sensB(20e6),cr:sensB(1.36e6)}[ar];
+  const out=[]; let missed=0, merged=0, dup=0;
+  const ov=(a,b)=>a.t<b.t+b.pw&&b.t<a.t+a.pw;
+  const chan=f=>Math.floor((f-9300)/20);
+  pul.forEach((p,i)=>{ p.rnd=r(); p.g=gauss(r); });
+  for(let i=0;i<pul.length;i++){ const p=pul[i]; if(p.amp<sens){ missed++; continue; }
+    let partner=null; for(let j=i-1;j>=0&&pul[j].t>p.t-2e-6;j--) if(ov(pul[j],p)&&pul[j].amp>=sens){ partner=pul[j]; break; }
+    if(!partner) for(let j=i+1;j<pul.length&&pul[j].t<p.t+p.pw;j++) if(ov(pul[j],p)&&pul[j].amp>=sens){ partner=pul[j]; break; }
+    const sameCh=partner&&chan(partner.f)===chan(p.f);
+    if(ar==='cv'){ if(partner&&partner.amp>p.amp){ merged++; continue; } out.push({t:p.t,f:NaN,e:p.e,bad:!!partner}); continue; }
+    if(ar==='ifm'){ if(partner&&partner.amp>p.amp){ merged++; continue; }
+      const sv=ifmSnr(p.amp,10,16e9,10e6).sv; const st=Math.sqrt(1/sv+(3*deg)**2); let f=p.f+p.g*st/(TAU*4e-9)/1e6; let bad=false;
+      if(partner){ const rr=Math.pow(10,(partner.amp-p.amp)/20), re=rr/(2-rr), a2=re*re; const dphi=TAU*(partner.f-p.f)*1e6*1e-9; const e=Math.atan2(a2*Math.sin(dphi),1+a2*Math.cos(dphi))/(TAU*1e-9)/1e6; f+=e+(p.rnd-0.5)*2*re*80; bad=true; }
+      out.push({t:p.t,f,e:p.e,bad}); continue; }
+    if(ar==='sh'){ const step=Math.floor(p.t/1e-3)%15; if(chan(p.f)!==step){ missed++; continue; } if(partner&&sameCh&&partner.amp>p.amp){ merged++; continue; } out.push({t:p.t,f:9310+20*step+(partner&&sameCh?0:0),e:p.e,bad:!!(partner&&sameCh)}); continue; }
+    if(ar==='ach'){ if(partner&&sameCh&&partner.amp>p.amp){ merged++; continue; } const k=chan(p.f), fr=(p.f-9300)/20-k; out.push({t:p.t,f:9310+20*k,e:p.e,bad:!!(partner&&sameCh)});
+      if(fr<0.1&&k>0){ out.push({t:p.t,f:9310+20*(k-1),e:p.e,bad:true,dup:true}); dup++; } else if(fr>0.9&&k<14){ out.push({t:p.t,f:9310+20*(k+1),e:p.e,bad:true,dup:true}); dup++; } continue; }
+    if(ar==='dch'){ if(partner&&sameCh&&partner.amp>p.amp){ merged++; continue; } const snr=lin(p.amp-sensB(20e6)+15); const sf=Math.max(0.3,20/Math.sqrt(12)/Math.sqrt(snr)*3); out.push({t:p.t,f:p.f+p.g*Math.min(sf,6),e:p.e,bad:!!(partner&&sameCh)}); continue; }
+    if(ar==='cr'){ const Td=1e-6; if(p.pw<Td&&p.rnd>p.pw/Td){ missed++; continue; } const sf=0.4*Math.max(1,Td/p.pw); out.push({t:p.t,f:p.f+p.g*sf,e:p.e,bad:false}); continue; }
+  }
+  const P=plot(g,A.x0,A.y0,A.w,A.h,0,20,9300,9600,[],{nx:5,ny:6,fx:v=>v.toFixed(0)+' ms',fy:v=>v.toFixed(0),xl:'time of arrival',yl:'measured frequency, MHz'});
+  em.forEach(e=>{ hline(g,A.x0,A.w,P.Y(e.f),e.col,[2,4]); });
+  if(ar==='ach'||ar==='sh'){ g.strokeStyle=css('--grid'); for(let k=1;k<15;k++){ const y=P.Y(9300+20*k); g.beginPath(); g.moveTo(A.x0,y); g.lineTo(A.x0+A.w,y); g.stroke(); } }
+  const cols=[css('--accent'),css('--trace'),css('--trace2'),css('--muted')];
+  let nOK=0, nE=0, se=0, ne=0;
+  out.forEach(o=>{ const x=P.X(o.t*1e3); if(!isFinite(o.f)){ g.fillStyle=cols[o.e]; g.fillRect(x-1,A.y0+4,2,A.h-8); return; }
+    const y=P.Y(clamp(o.f,9300,9600)); g.fillStyle=o.bad?css('--bad'):cols[o.e]; g.fillRect(x-2,y-2,o.e<3?4:3,o.e<3?4:3);
+    if(o.e<3){ nE++; const tr=em[o.e].f; const near=em.reduce((b,e2,k)=>Math.abs(e2.f-o.f)<Math.abs(em[b].f-o.f)?k:b,0); if(near===o.e&&!o.dup) nOK++; if(!o.bad){ se+=(o.f-tr)**2; ne++; } } });
+  if(ar==='cv') lbl(g,'crystal video: no frequency, every PDW is drawn as a full-height tick',A.x0+6,A.y0+14,css('--ink'));
+  else lbl(g,'dotted: true A, B, C; red: corrupted or duplicate; grey: background',A.x0+6,A.y0+14,css('--muted'));
+  const arrived=pul.length, rms=ne?Math.sqrt(se/ne):NaN;
+  ro($('psOut'),[['pulses arrived',String(arrived)],['PDWs produced',String(out.length)],['missed',String(missed)],['merged (overlap)',String(merged)],['duplicates',String(dup)],['corrupted PDWs',String(out.filter(o=>o.bad&&!o.dup).length)],['rms freq error',ar==='cv'?'not measured':(isFinite(rms)?rms.toFixed(2)+' MHz':'n/a')],['sorted right',ar==='cv'?'n/a':(nE?(100*nOK/nE).toFixed(1)+' %':'n/a')]]);
+}
+bind(['psA','psD','psS'],psDraw);
+
+const rerender=()=>redraws.forEach(f=>f());
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(rerender);
+})();
+</script>
