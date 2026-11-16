@@ -294,7 +294,7 @@ h3.try{color:var(--accent)}
   </table></div>
   <div class="col"><p>Loss per metre rises roughly as f<sup>1.5</sup> from band to band (each guide is scaled to its band, so the wall area per metre shrinks while R<sub>s</sub> grows). At Ka band even waveguide costs 0.7 dB/m, which is why millimetre-wave systems put the electronics right behind the antenna. Copper instead of aluminium saves 22 %, silver plating 25 %; brass walls lose 1.5 times as much as aluminium.</p></div>
   <h3>How to choose the guide, the material and the run</h3>
-  <div class="col"><p>(1) The operating band picks the guide: the whole band must sit between 1.25 f<sub>c</sub> and the next mode's cut-off. (2) The loss budget sets the material: aluminium is light and cheap, copper or silver-plated aluminium for the lowest loss. (3) For wide instantaneous bandwidth (a chirp, an ESM band) check dispersion: the delay difference across the band × run length must be small against the compressed pulse width, or be equalised (module 09). (4) Choose components (bends, twists, flexible sections) for the same band; a flexible waveguide section loses several times more than rigid guide and is used only where needed. (5) Waveguide is bulky and needs flanges and pressurisation (Step 4), so short, flexible or wideband links stay in coax.</p></div>
+  <div class="col"><p>(1) The operating band picks the guide: the whole band must sit between 1.25 f<sub>c</sub> and the next mode's cut-off. (2) The loss budget sets the material: aluminium is light and simple, copper or silver-plated aluminium for the lowest loss. (3) For wide instantaneous bandwidth (a chirp, an ESM band) check dispersion: the delay difference across the band × run length must be small against the compressed pulse width, or be equalised (module 09). (4) Choose components (bends, twists, flexible sections) for the same band; a flexible waveguide section loses several times more than rigid guide and is used only where needed. (5) Waveguide is bulky and needs flanges and pressurisation (Step 4), so short, flexible or wideband links stay in coax.</p></div>
   <h3 class="try">Try it</h3>
   <div class="bench">
     <canvas id="cWg" width="640" height="330" aria-label="Waveguide attenuation and group velocity against frequency, with mode cut-offs"></canvas>
@@ -351,14 +351,14 @@ h3.try{color:var(--accent)}
   <div class="col"><p>The naive approach specifies every part to "VSWR 2:1" because the mismatch loss is only 0.51 dB. Put a 2:1 antenna and a 2:1 LNA input at the two ends of 3 m of low-loss cable (1 dB, v<sub>p</sub> 0.79): ρ = 0.333 × 0.333 × 0.794 = 0.088. The gain ripples by <b>1.54 dB peak to peak</b> every 39.5 MHz, the group delay by 4.5 ns, and every signal arrives with a copy of itself 25.3 ns later at −21.1 dB. After pulse compression that copy is a false target 3.8 m behind every real one (c·T/2), 21 dB down: far above a typical −35 dB range-sidelobe requirement. An ESM receiver measuring amplitude across the band sees a 1.5 dB comb on top of the antenna pattern.</p></div>
   <h3>Side by side on one example: 3 m, 1 dB of line, 9.5 GHz</h3>
   <div class="tw"><table class="t">
-    <tr><th>Ends and fixes</th><th>ρ</th><th>Ripple p-p</th><th>Delay ripple p-p</th><th>Echo</th><th>Price</th></tr>
+    <tr><th>Ends and fixes</th><th>ρ</th><th>Ripple p-p</th><th>Delay ripple p-p</th><th>Echo</th><th>Trade-off</th></tr>
     <tr><td>2.0 : 1 and 2.0 : 1</td><td class="n">0.088</td><td class="n">1.54 dB</td><td class="n">4.5 ns</td><td class="n">−21.1 dB</td><td>none</td></tr>
     <tr><td>Antenna 1.5, LNA 2.0</td><td class="n">0.053</td><td class="n">0.92 dB</td><td class="n">2.7 ns</td><td class="n">−25.5 dB</td><td>better antenna match</td></tr>
     <tr><td>Antenna 1.5, LNA 2.0, plus 4 connector pairs at 1.15</td><td class="n">mixed</td><td class="n">1.35 dB</td><td class="n">3.3 ns</td><td class="n">several</td><td>(the real case)</td></tr>
     <tr><td>Antenna 1.5, 3 dB pad at the LNA</td><td class="n">0.027</td><td class="n">0.46 dB</td><td class="n">1.3 ns</td><td class="n">−31.5 dB</td><td>+3 dB noise figure: unacceptable on receive</td></tr>
     <tr><td>Antenna 1.5, isolator or balanced LNA (1.2)</td><td class="n">0.014</td><td class="n">0.25 dB</td><td class="n">0.73 ns</td><td class="n">−36.8 dB</td><td>0.3 dB isolator loss, or a balanced LNA design</td></tr>
   </table></div>
-  <div class="col"><p>The ripple is set by the <i>product</i> of the two end reflections, so the cheapest fix is usually to make one end very good rather than both ends moderately good. An isolator (<a href="M06-limiter-duplexer.html">module 06</a>) or a balanced LNA gives VSWR 1.2 regardless of what the transistor wants. A pad works too, but in front of an LNA it costs its own value in noise figure; pads are fine on transmit drives and on test benches. Long lossy runs reduce ρ by themselves (20 m with 8 dB of loss: ρ = 0.011, ripple 0.18 dB) but the echo is then 169 ns late, so the group-delay ripple is still 3.6 ns, with a 5.9 MHz period.</p></div>
+  <div class="col"><p>The ripple is set by the <i>product</i> of the two end reflections, so the easiest fix is usually to make one end very good rather than both ends moderately good. An isolator (<a href="M06-limiter-duplexer.html">module 06</a>) or a balanced LNA gives VSWR 1.2 regardless of what the transistor wants. A pad works too, but in front of an LNA it costs its own value in noise figure; pads are fine on transmit drives and on test benches. Long lossy runs reduce ρ by themselves (20 m with 8 dB of loss: ρ = 0.011, ripple 0.18 dB) but the echo is then 169 ns late, so the group-delay ripple is still 3.6 ns, with a 5.9 MHz period.</p></div>
   <h3>How to choose the match of each part and the line lengths</h3>
   <div class="col"><p>(1) Start from the system limit: the allowed range sidelobe or amplitude flatness gives the largest ρ (−35 dB → ρ ≤ 0.018). (2) Split it between the two worst ends: |Γ<sub>A</sub>|·|Γ<sub>B</sub>| ≤ ρ / A². (3) Connectors and adapters in the middle make their own echoes with shorter delays; keep their count low and their VSWR ≤ 1.15. (4) The ripple period 1/T tells you what it does: a period much wider than the signal bandwidth looks like a slope (gain and delay tilt, correctable); a period narrower than the signal bandwidth produces distinct echoes (not correctable in general). (5) Do not trust the worst-case product VSWR to be rare: over a wide band and a temperature range, every phase alignment happens somewhere.</p></div>
   <h3 class="try">Try it</h3>
@@ -535,7 +535,7 @@ h3.try{color:var(--accent)}
     <tr><td>Electrical length</td><td>Run length, ε<sub>r</sub></td><td>Delay or phase-matched sets</td><td>Every ppm error scales with it: shorter runs, closer electronics</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Cable assembly suppliers:</b> phase-matched sets are matched at one temperature; the customer also needs the tracking over temperature and the flex spec at the highest frequency.</li>
+    <li><b>Cable assembly designers:</b> phase-matched sets are matched at one temperature; the system also needs the tracking over temperature and the flex spec at the highest frequency.</li>
     <li><b>Receiver and DF designers:</b> your channel-to-channel phase budget includes the cables; ask for their ppm curve across the knee (<a href="M11-esm-receivers.html">module 11</a>).</li>
     <li><b>Mechanical designers:</b> routing two channel cables together, in the same thermal environment, is worth more than a better cable in the wrong place.</li>
   </ul></div>
@@ -635,7 +635,7 @@ h3.try{color:var(--accent)}
     <tr><th>Family</th><th>Rated</th><th>TE<sub>11</sub> cut-off</th><th>VSWR per pair at rated f</th><th>Repeatability</th><th>Torque</th><th>Where it is used</th></tr>
     <tr><td>Type N</td><td class="n">18 GHz</td><td class="n">19.0 GHz</td><td class="n">1.15</td><td class="n">0.05 dB, 1.5°</td><td>1.36 N·m</td><td>Rugged, medium power, outdoor</td></tr>
     <tr><td>TNC</td><td class="n">11 GHz</td><td class="n">20.6 GHz</td><td class="n">1.17</td><td class="n">0.05 dB, 1.5°</td><td>0.56–0.68 N·m</td><td>Vibration (threaded BNC), avionics</td></tr>
-    <tr><td>SMA</td><td class="n">18 GHz</td><td class="n">24.4 GHz</td><td class="n">1.19</td><td class="n">0.05 dB, 1.5°</td><td>0.56 N·m</td><td>Modules, harnesses, cheap and compact</td></tr>
+    <tr><td>SMA</td><td class="n">18 GHz</td><td class="n">24.4 GHz</td><td class="n">1.19</td><td class="n">0.05 dB, 1.5°</td><td>0.56 N·m</td><td>Modules, harnesses, simple and compact</td></tr>
     <tr><td>3.5 mm</td><td class="n">26.5 GHz</td><td class="n">38.0 GHz</td><td class="n">1.09</td><td class="n">0.01 dB, 0.3°</td><td>0.9 N·m</td><td>Test ports, precision</td></tr>
     <tr><td>2.92 mm (K)</td><td class="n">40 GHz</td><td class="n">45.5 GHz</td><td class="n">1.11</td><td class="n">0.01 dB, 0.4°</td><td>0.9 N·m</td><td>Ka-band hardware</td></tr>
     <tr><td>2.4 mm</td><td class="n">50 GHz</td><td class="n">55.4 GHz</td><td class="n">1.11</td><td class="n">0.01 dB, 0.4°</td><td>0.9 N·m</td><td>Millimetre-wave test</td></tr>
@@ -675,7 +675,7 @@ h3.try{color:var(--accent)}
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
     <li><b>Module designers:</b> the connector launch onto your board is part of the connector's VSWR; a poor launch can double it.</li>
-    <li><b>Test engineers:</b> your test-port connector's repeatability is part of every measurement; precision families and torque spanners are cheaper than re-tests.</li>
+    <li><b>Test engineers:</b> your test-port connector's repeatability is part of every measurement; precision families and torque spanners are easier than re-tests.</li>
     <li><b>Integration and maintenance:</b> every disconnection of a phase-matched path needs a recalibration or a phase check.</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
@@ -780,7 +780,7 @@ h3.try{color:var(--accent)}
     <p><b>DF and angle errors</b> (Steps 5 and 6) come from the same lines: 54.8° of phase change in a 3 m solid-PTFE run at 0 °C, with 10 % mismatch between channels, is 1.74° of interferometer error at d/λ 0.5; rotary-joint differential gain and phase scale monopulse angles with bearing (±16 % at s = 20 dB). <b>Ripple</b> (Step 3) and <b>PIM</b> (Step 8) add false echoes and false signals that no amount of transmitter power removes.</p>
   </div>
   <h3>How to choose the architecture</h3>
-  <div class="col"><p>(1) Write the budget both ways: transmit loss to EIRP, receive loss to T<sub>sys</sub>, and their product to range. (2) If the receive budget fails, move the LNA towards the antenna first: it is cheap and fixes T<sub>sys</sub> almost completely. (3) If the transmit budget fails, use lower-loss line (waveguide, larger size, pressurised) or move the PA too (solid-state transmitters at the antenna, active arrays). (4) Budget the phase stability, ripple, connector repeatability and PIM of the runs in the same document as their loss; they are the same parts. (5) Repeat at the top of the band and the hottest temperature, where every loss is largest.</p></div>
+  <div class="col"><p>(1) Write the budget both ways: transmit loss to EIRP, receive loss to T<sub>sys</sub>, and their product to range. (2) If the receive budget fails, move the LNA towards the antenna first: it is simple and fixes T<sub>sys</sub> almost completely. (3) If the transmit budget fails, use lower-loss line (waveguide, larger size, pressurised) or move the PA too (solid-state transmitters at the antenna, active arrays). (4) Budget the phase stability, ripple, connector repeatability and PIM of the runs in the same document as their loss; they are the same parts. (5) Repeat at the top of the band and the hottest temperature, where every loss is largest.</p></div>
   <h3 class="try">Try it</h3>
   <div class="bench">
     <canvas id="cSy" width="640" height="330" aria-label="Radar range factor against run length for several line types, with the selected configuration marked"></canvas>
@@ -812,7 +812,7 @@ h3.try{color:var(--accent)}
     <tr><td>Rotary joint loss</td><td>Joint type and mode purity</td><td>Mean IL and wow</td><td>Counted twice like the run; its wow modulates range with bearing (Step 6)</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Every passive-path supplier:</b> your loss is multiplied by the length the installation forces and counted twice in a radar; quote it at the top of the band.</li>
+    <li><b>Every passive-path designer:</b> your loss is multiplied by the length the installation forces and counted twice in a radar; quote it at the top of the band.</li>
     <li><b>LNA designers:</b> a mast-top LNA must survive the environment (temperature, lightning, the transmitter's leakage through the duplexer; <a href="M06-limiter-duplexer.html">module 06</a>) in exchange for the 4–20 dB of noise it saves.</li>
     <li><b>System engineers:</b> one table with loss, ripple, phase, power, PIM and repeatability for each run keeps the passive path from being an afterthought.</li>
   </ul></div>

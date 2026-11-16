@@ -211,7 +211,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><th>Surface rms ε</th><th>Typical construction</th><th>Loss at 10 GHz (λ = 30 mm)</th><th>Loss at 35 GHz (λ = 8.6 mm)</th></tr>
     <tr><td>0.1 mm</td><td>Machined aluminium, CFRP composite on a precision mould</td><td class="n">−0.01 dB</td><td class="n">−0.09 dB</td></tr>
     <tr><td>0.5 mm</td><td>Spun or stamped aluminium, good panels</td><td class="n">−0.19 dB</td><td class="n">−2.3 dB</td></tr>
-    <tr><td>1.5 mm</td><td>Wire mesh on ribs, cheap panels, wind or thermal distortion</td><td class="n">−1.7 dB</td><td class="n">−21 dB (unusable)</td></tr>
+    <tr><td>1.5 mm</td><td>Wire mesh on ribs, simple panels, wind or thermal distortion</td><td class="n">−1.7 dB</td><td class="n">−21 dB (unusable)</td></tr>
   </table></div>
   <p class="col">The same dish can therefore be excellent at one frequency and useless at another. A mesh reflector also leaks through its holes unless the mesh pitch is well under λ/10, which is another reason mesh is a low-frequency construction.</p>
 
@@ -219,7 +219,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <canvas id="cDish" width="640" height="470" aria-label="Dish cross-section, aperture illumination and far-field pattern"></canvas>
     <div class="ctrl">
       <label for="dsP">Start from a build</label>
-      <select id="dsP"><option value="good" selected>Good prime-focus dish</option><option value="lowsl">Low-sidelobe (narrow horn)</option><option value="over">Over-lit (wide horn)</option><option value="mesh">Cheap mesh, rough surface</option><option value="cass">Cassegrain, large subreflector</option><option value="shallow">Same horn, shallow dish f/D 0.8</option><option value="deep">Same horn, deep dish f/D 0.25</option></select>
+      <select id="dsP"><option value="good" selected>Good prime-focus dish</option><option value="lowsl">Low-sidelobe (narrow horn)</option><option value="over">Over-lit (wide horn)</option><option value="mesh">Simple mesh, rough surface</option><option value="cass">Cassegrain, large subreflector</option><option value="shallow">Same horn, shallow dish f/D 0.8</option><option value="deep">Same horn, deep dish f/D 0.25</option></select>
       <label for="dsD">Diameter D <b id="dsDv"></b></label><input id="dsD" type="range" min="0.3" max="3" step="0.05" value="1">
       <label for="dsF">Frequency <b id="dsFv"></b></label><input id="dsF" type="range" min="1" max="40" step="0.5" value="10">
       <label for="dsR">f/D <b id="dsRv"></b></label><input id="dsR" type="range" min="0.25" max="1" step="0.01" value="0.4">
@@ -239,7 +239,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
 
   <h3>Feed arrangements</h3>
   <div class="tw"><table class="t">
-    <tr><th>Arrangement</th><th>How it works</th><th>Why it is chosen</th><th>Price paid</th></tr>
+    <tr><th>Arrangement</th><th>How it works</th><th>Why it is chosen</th><th>Trade-off</th></tr>
     <tr><td>Prime focus</td><td>Horn at the focus, facing the dish</td><td>Simplest; good at low f/D</td><td>Feed, struts and cables block the centre; receiver sits out on the struts or uses long lines</td></tr>
     <tr><td>Cassegrain</td><td>A convex (hyperbolic) subreflector folds the beam back to a horn at the vertex</td><td>Feed and electronics sit behind the dish; short, compact; easy monopulse feeds</td><td>Subreflector blockage, typically 10–20 % of D; two surfaces to make accurately</td></tr>
     <tr><td>Gregorian</td><td>A concave (elliptical) subreflector beyond the focus</td><td>As Cassegrain; extra freedom to shape the illumination</td><td>Longer structure</td></tr>
@@ -247,7 +247,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>Shaped / cut reflector</td><td>Surface deliberately not parabolic, or cut to a non-circular outline</td><td>Wide-and-short "orange peel" dish gives a fan beam; a cosecant² shape spreads elevation coverage evenly over height</td><td>Lower peak gain by design</td></tr>
   </table></div>
   <div class="col">
-    <p><b>Flat alternatives at the same frequency.</b> A <b>slotted-waveguide array</b> (the flat plate on many marine and airborne radars) cuts radiating slots into the wall of a waveguide. The slot offsets set the taper precisely, so −30 to −40 dB sidelobes and η of 0.7–0.8 are possible with no blockage. The cost is bandwidth of only a few percent, and the beam moves with frequency. A <b>microstrip patch array</b> is thin and cheap, but at 10 GHz the long feed lines of a 1 m panel can lose 2–4 dB, which comes straight off η. A <b>horn</b> on its own is very wideband with η around 0.5, but it is only practical at modest gain.</p>
+    <p><b>Flat alternatives at the same frequency.</b> A <b>slotted-waveguide array</b> (the flat plate on many marine and airborne radars) cuts radiating slots into the wall of a waveguide. The slot offsets set the taper precisely, so −30 to −40 dB sidelobes and η of 0.7–0.8 are possible with no blockage. The cost is bandwidth of only a few percent, and the beam moves with frequency. A <b>microstrip patch array</b> is thin and simple, but at 10 GHz the long feed lines of a 1 m panel can lose 2–4 dB, which comes straight off η. A <b>horn</b> on its own is very wideband with η around 0.5, but it is only practical at modest gain.</p>
   </div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
     <li><b>Feed horn:</b> the E- and H-plane patterns should match (corrugated and dual-mode horns do this), or the dish is lit unevenly and cross-polarisation rises. The phase centre location must be known and stable across the band.</li>
@@ -481,7 +481,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   </div>
   <div class="check"><h4>Check yourself</h4>
     <details><summary>A 2-D surveillance radar uses a fan beam, 1.5° wide in azimuth and 40° tall in elevation, and rotates 360°. How many beam positions does it have, and what is the catch?</summary><p>360/1.5 = 240 positions, all elevations at once, so it can rotate fast. The catch: low gain (about 26 dBi) and no measurement of target height.</p></details>
-    <details><summary>A radar detects a 1 m² target at 50 km while searching 90° × 30° in 3.4 s. The customer now wants 120° × 30° with the same frame time. What happens to the range?</summary><p>The volume grows by 120/90 = 1.33×, so SNR falls by 1.25 dB and the range falls by 1.33<sup>−1/4</sup> = 0.93 to about 46.6 km. To restore 50 km, increase the power-aperture by 1.33× or accept a 4.5 s frame.</p></details>
+    <details><summary>A radar detects a 1 m² target at 50 km while searching 90° × 30° in 3.4 s. Now the requirement becomes 120° × 30° with the same frame time. What happens to the range?</summary><p>The volume grows by 120/90 = 1.33×, so SNR falls by 1.25 dB and the range falls by 1.33<sup>−1/4</sup> = 0.93 to about 46.6 km. To restore 50 km, increase the power-aperture by 1.33× or accept a 4.5 s frame.</p></details>
     <details><summary>An engineer proposes a narrower beam to "get more range out of search". Is that right?</summary><p>Not if the antenna area and frame time are unchanged: a narrower beam needs a bigger antenna anyway. The search radar equation contains only P<sub>avg</sub>·A<sub>e</sub>, T<sub>f</sub> and Ω. A narrower beam improves angle accuracy, resolution and clutter rejection, not search range.</p></details>
     <details><summary>Per look, Pd = 0.3. How many looks give at least 90 % cumulative detection?</summary><p>1 − 0.7<sup>n</sup> ≥ 0.9 → 0.7<sup>n</sup> ≤ 0.1 → n ≥ 6.5, so 7 looks. With a 3.4 s frame that takes about 24 s.</p></details>
   </div>
@@ -606,7 +606,7 @@ function J0(x){ const ax=Math.abs(x);
   const p1=1.0+y*(-0.1098628627e-2+y*(0.2734510407e-4+y*(-0.2073370639e-5+y*0.2093887211e-6)));
   const p2=-0.1562499995e-1+y*(0.1430488765e-3+y*(-0.6911147651e-5+y*(0.7621095161e-6-y*0.934935152e-7)));
   return Math.sqrt(0.636619772/ax)*(Math.cos(xx)*p1-z*Math.sin(xx)*p2); }
-const dishSets={ good:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:6,name:'Good prime-focus dish'}, lowsl:{D:1,f:10,fD:0.4,bw:100,rms:0.3,blk:6,name:'Low-sidelobe: narrower horn'}, over:{D:1,f:10,fD:0.4,bw:160,rms:0.3,blk:6,name:'Over-lit: wider horn'}, mesh:{D:1,f:10,fD:0.4,bw:128,rms:1.5,blk:10,name:'Cheap mesh, 1.5 mm rms, bigger feed'}, cass:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:18,name:'Cassegrain, 18 % subreflector'}, shallow:{D:1,f:10,fD:0.8,bw:128,rms:0.3,blk:6,name:'Same horn on shallow dish, f/D 0.8'}, deep:{D:1,f:10,fD:0.25,bw:128,rms:0.3,blk:6,name:'Same horn on deep dish, f/D 0.25'} };
+const dishSets={ good:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:6,name:'Good prime-focus dish'}, lowsl:{D:1,f:10,fD:0.4,bw:100,rms:0.3,blk:6,name:'Low-sidelobe: narrower horn'}, over:{D:1,f:10,fD:0.4,bw:160,rms:0.3,blk:6,name:'Over-lit: wider horn'}, mesh:{D:1,f:10,fD:0.4,bw:128,rms:1.5,blk:10,name:'Simple mesh, 1.5 mm rms, bigger feed'}, cass:{D:1,f:10,fD:0.4,bw:128,rms:0.3,blk:18,name:'Cassegrain, 18 % subreflector'}, shallow:{D:1,f:10,fD:0.8,bw:128,rms:0.3,blk:6,name:'Same horn on shallow dish, f/D 0.8'}, deep:{D:1,f:10,fD:0.25,bw:128,rms:0.3,blk:6,name:'Same horn on deep dish, f/D 0.25'} };
 function dishModel(o){
   const lam=c0/(o.f*1e9), a=o.D/2, F=o.fD*o.D, psi0=2*Math.atan(1/(4*o.fD));
   const q=-1/Math.log10(Math.cos(o.bw/2*deg)); const feedP=p=>Math.abs(p)<Math.PI/2?Math.pow(Math.cos(p),q):0;

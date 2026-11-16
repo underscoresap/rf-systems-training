@@ -180,7 +180,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
     <details><summary>A 200 W PA feeds a 35 dBi antenna through 2 dB of loss. What is the EIRP in dBW?</summary><p>200 W = 23.0 dBW. 23.0 − 2 + 35 = 56.0 dBW (about 400 kW).</p></details>
-    <details><summary>Which is cheaper: 0.5 dB less loss after the PA, or a PA with 0.5 dB more output?</summary><p>They give the same EIRP. The loss reduction costs no DC power and makes no extra heat; the bigger PA needs 12 % more DC and gets 12 % hotter. Low-loss passives after the PA are almost always the cheaper watts.</p></details>
+    <details><summary>Which is easier: 0.5 dB less loss after the PA, or a PA with 0.5 dB more output?</summary><p>They give the same EIRP. The loss reduction costs no DC power and makes no extra heat; the bigger PA needs 12 % more DC and gets 12 % hotter. Low-loss passives after the PA are almost always the easier watts.</p></details>
   </div>
 </section>
 
@@ -231,7 +231,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
     <details><summary>Datasheet: Psat 50 dBm, P1dB 49 dBm. Is this PA soft or hard?</summary><p>Psat − P1dB = 1 dB, which corresponds to p ≈ 3. It is a fairly hard knee: good for efficiency close to saturation, but distortion rises abruptly once the envelope reaches the knee.</p></details>
-    <details><summary>Why is "Psat" alone not enough to compare two PAs?</summary><p>Because the drive and conditions at which it is quoted differ. One vendor quotes Psat at 3 dB compression, another at a fixed high drive where the device may be at 5 dB compression. Always compare P1dB, P3dB and the drive used.</p></details>
+    <details><summary>Why is "Psat" alone not enough to compare two PAs?</summary><p>Because the drive and conditions at which it is quoted differ. One datasheet quotes Psat at 3 dB compression, another at a fixed high drive where the device may be at 5 dB compression. Always compare P1dB, P3dB and the drive used.</p></details>
   </div>
 </section>
 
@@ -281,7 +281,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   <div class="comp"><h4>Where your component shows up</h4><ul>
     <li><b>Output matching network:</b> 0.3 dB of loss in the match at 50 W is 3.4 W of heat right next to the die, and it lowers η<sub>D</sub> by about 4 points.</li>
     <li><b>Bias and sequencing circuits:</b> the quiescent current sets where class AB sits between A and B. Drift of the gate voltage with temperature moves the quiescent current and with it efficiency, gain and AM-PM.</li>
-    <li><b>Mechanical and thermal engineers:</b> R<sub>th</sub> of the die is fixed by the vendor; the rest of the thermal path (flange, TIM, cold plate) is yours, and it adds directly to T<sub>j</sub>.</li>
+    <li><b>Mechanical and thermal engineers:</b> R<sub>th</sub> of the die is fixed by the device; the rest of the thermal path (flange, TIM, cold plate) is yours, and it adds directly to T<sub>j</sub>.</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
     <details><summary>A 10 W PA with 8 dB gain has η<sub>D</sub> = 50 %. What is its PAE and its heat?</summary><p>Pin = 10/6.31 = 1.58 W. P<sub>DC</sub> = 20 W. PAE = (10 − 1.58)/20 = 42 %. Heat = 20 + 1.58 − 10 = 11.6 W.</p></details>
@@ -649,10 +649,10 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
       <label for="tcD">Duty cycle <b id="tcDv"></b></label><input id="tcD" type="range" min="1" max="100" step="1" value="10">
       <div class="readout" id="tcOut"></div>
     </div>
-    <p class="cap">For each technology: how many devices (a binary combining tree for GaAs and GaN, one or two tubes for the TWT), and the average prime (DC) power and heat at the chosen duty cycle. Device powers and efficiencies are illustrative mid-range values, not any vendor's product. Solid-state devices are run 1 dB below Psat; each binary combining stage loses 0.25 dB, the output network 0.3 dB. TWT figures include the EPC and a 40 W standby (heater and control) load. Values beyond 4096 devices are shown as impractical.</p>
+    <p class="cap">For each technology: how many devices (a binary combining tree for GaAs and GaN, one or two tubes for the TWT), and the average prime (DC) power and heat at the chosen duty cycle. Device powers and efficiencies are illustrative mid-range values, not any particular device. Solid-state devices are run 1 dB below Psat; each binary combining stage loses 0.25 dB, the output network 0.3 dB. TWT figures include the EPC and a 40 W standby (heater and control) load. Values beyond 4096 devices are shown as impractical.</p>
   </div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Combiner and filter designers:</b> GaAs at high power means deep combining trees, and the tree's loss (yours) can eat the whole advantage of a cheaper device.</li>
+    <li><b>Combiner and filter designers:</b> GaAs at high power means deep combining trees, and the tree's loss (yours) can eat the whole advantage of a lower-grade device.</li>
     <li><b>Power-supply designers:</b> GaN needs 28–50 V at tens of amps with fast pulse response; TWTs need kilovolts with very low ripple, because ripple on the helix voltage is phase modulation (TWT phase pushing is tens of degrees per percent of voltage change).</li>
     <li><b>Reliability engineers:</b> SSPAs degrade gracefully (step 11); a TWT is a single wear-out item with a known cathode life.</li>
   </ul></div>

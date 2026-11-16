@@ -313,7 +313,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   <div class="tw"><table class="t">
     <tr><th>Idea</th><th>What happens</th></tr>
     <tr><td>Turn the receiver gain down by 10 dB everywhere</td><td>Clutter at 500 m now fits. But the noise floor now sits below the lowest ADC step, so weak far targets (−103 dBm at 10 km) fall into the ADC's own quantisation noise. You lose range, which is what the radar is for.</td></tr>
-    <tr><td>Use a 16-bit ADC</td><td>Gives about 24 dB more window, which helps, but costs sample rate, power and money, and strong clutter at very short range can still exceed it.</td></tr>
+    <tr><td>Use a 16-bit ADC</td><td>Gives about 24 dB more window, which helps, but costs sample rate, power and hardware, and strong clutter at very short range can still exceed it.</td></tr>
     <tr><td>Ordinary AGC (gain set from the average signal level)</td><td>Reacts too slowly: within one PRI the echo level changes by 70 dB in a few tens of µs. And a gain that changes by an unknown amount confuses CFAR and Doppler processing.</td></tr>
   </table></div>
 
@@ -479,7 +479,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>Doppler frequency</td><td>2 × 15 / 0.03</td><td class="n">1 000 Hz</td></tr>
   </table></div>
   <div class="col">
-    <p><b>The catch: the radar must know the phase it transmitted.</b> The measured echo phase is (target phase) − (transmitted phase). If the transmitter starts every pulse at a random phase, the 90° steps are hidden under a random number and nothing can be measured. That is the situation with a <b>magnetron</b>, a cheap oscillator-type transmitter that starts each pulse at a random phase (a <b>non-coherent</b> radar).</p>
+    <p><b>The catch: the radar must know the phase it transmitted.</b> The measured echo phase is (target phase) − (transmitted phase). If the transmitter starts every pulse at a random phase, the 90° steps are hidden under a random number and nothing can be measured. That is the situation with a <b>magnetron</b>, a simple oscillator-type transmitter that starts each pulse at a random phase (a <b>non-coherent</b> radar).</p>
     <p><b>The fix: a coherent radar.</b> Build the transmit pulse by amplifying a slice of a continuous, stable reference (the STALO), and use that same STALO as the receiver's LO. Now every pulse starts at a known phase, and any change in echo phase is due to the target. This is why Step 1 drew one master clock feeding both chains. (Older magnetron radars stored each pulse's phase and used it as a reference: "coherent on receive".)</p>
     <p><b>What limits coherence: your components.</b> Anything that changes the phase from pulse to pulse adds a false Doppler: STALO phase noise, PA phase changing with supply voltage or temperature (pulse-to-pulse phase stability), timing jitter. Step 7 shows how this spreads clutter over the Doppler bins.</p>
   </div>

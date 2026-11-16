@@ -122,7 +122,7 @@ h3.try{color:var(--accent)}
 <header class="top">
   <div class="eyebrow">Filters and Preselection · RF Systems for Component Engineers</div>
   <h1>Filters and preselection, from one resonator to probability of intercept</h1>
-  <p class="lede">A filter is the part of a chain that decides which frequencies are allowed to exist. In a receiver it keeps out everything that could become noise, an image, a spur or a blocker; in a transmitter it keeps your own harmonics and splatter out of everyone else's band. It does this at a price: loss, which in front of the LNA is noise; group delay, which smears pulses and chirps; size, power limits and temperature drift. This page builds those trade-offs from a single resonator and its Q, through filter families and group delay, to the frequency plan, blocking, transmit masks, technology choice and the ESM trade between preselector bandwidth and probability of intercept. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
+  <p class="lede">A filter is the part of a chain that decides which frequencies are allowed to exist. In a receiver it keeps out everything that could become noise, an image, a spur or a blocker; in a transmitter it keeps your own harmonics and splatter out of everyone else's band. It does this with a trade-off: loss, which in front of the LNA is noise; group delay, which smears pulses and chirps; size, power limits and temperature drift. This page builds those trade-offs from a single resonator and its Q, through filter families and group delay, to the frequency plan, blocking, transmit masks, technology choice and the ESM trade between preselector bandwidth and probability of intercept. Every term is defined before it is used, every step has worked numbers, and every datasheet line is traced from your design choice to the system effect.</p>
   <nav class="toc" aria-label="Sections">
     <a href="#role">0 What filters do in each chain</a><a href="#q">1 Response and Q</a><a href="#il">2 Insertion loss and noise</a><a href="#shape">3 Bandwidth, ripple, rejection, families</a><a href="#delay">4 Group delay and pulse fidelity</a><a href="#image">5 Image and half-IF</a><a href="#block">6 Blocking and intermod</a><a href="#tx">7 Transmit harmonics, mask, power</a><a href="#tech">8 Technologies and drift</a><a href="#esm">9 ESM bandwidth vs intercept</a><a href="#summary">10 Summary table</a><a href="#gloss">Glossary</a>
   </nav>
@@ -698,7 +698,7 @@ h3.try{color:var(--accent)}
     <tr><td>200 ns edges, no filter</td><td class="n">0.0 dB (meets)</td><td class="n">200 ns</td></tr>
   </table></div>
   <h3>How to choose edge shaping and the output filter</h3>
-  <div class="col"><p>(1) Shape the pulse edges first: slower edges cost no power and no filter loss; they fix the near-in violation that a filter cannot reach cheaply. (2) Then add an output filter only for what remains far out (harmonic-zone and spurious emissions). (3) Check the cost: each ns of extra rise time blurs range by 0.15 m and shortens the usable pulse; at high power the filter also dissipates (Step 7 above).</p></div>
+  <div class="col"><p>(1) Shape the pulse edges first: slower edges cost no power and no filter loss; they fix the near-in violation that a filter cannot reach easily. (2) Then add an output filter only for what remains far out (harmonic-zone and spurious emissions). (3) Check the cost: each ns of extra rise time blurs range by 0.15 m and shortens the usable pulse; at high power the filter also dissipates (Step 7 above).</p></div>
   <h3 class="try">Try it</h3>
   <div class="bench">
     <canvas id="cMk" width="640" height="320" aria-label="Spectrum of a trapezoidal radar pulse before and after the output band-pass filter, against an illustrative emission mask"></canvas>
@@ -805,7 +805,7 @@ h3.try{color:var(--accent)}
     <li><b>Switch designers:</b> in a switched bank, your switch loss is the filter bank's loss, and your isolation (unselected paths) sets the bank's out-of-band rejection floor.</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
-    <details><summary>Why are acoustic (SAW/BAW) filters so small for their Q?</summary><p>The acoustic wave travels about 10<sup>5</sup> times slower than light, so a resonator a fraction of an acoustic wavelength long is tiny. The price: low power handling, limited top frequency, and higher TCF unless temperature-compensated.</p></details>
+    <details><summary>Why are acoustic (SAW/BAW) filters so small for their Q?</summary><p>The acoustic wave travels about 10<sup>5</sup> times slower than light, so a resonator a fraction of an acoustic wavelength long is tiny. The trade-off: low power handling, limited top frequency, and higher TCF unless temperature-compensated.</p></details>
   </div>
 </section>
 

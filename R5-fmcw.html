@@ -204,7 +204,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>Target at 100 m</td><td class="n">0.67 µs</td><td class="n">1 MHz</td></tr>
     <tr><td>Target at 1 km</td><td class="n">6.7 µs</td><td class="n">10 MHz</td></tr>
   </table></div>
-  <div class="col"><p><b>Why this matters for hardware.</b> The radar uses 150 MHz of RF bandwidth, yet everything after the mixer only has to handle 0–10 MHz for targets out to 1 km. A 20 MS/s ADC is enough. This "bandwidth compression" is why FMCW radars are cheap and small, and why the IF chain and ADC of an FMCW radar look nothing like those of a pulse radar.</p></div>
+  <div class="col"><p><b>Why this matters for hardware.</b> The radar uses 150 MHz of RF bandwidth, yet everything after the mixer only has to handle 0–10 MHz for targets out to 1 km. A 20 MS/s ADC is enough. This "bandwidth compression" is why FMCW radars are simple and small, and why the IF chain and ADC of an FMCW radar look nothing like those of a pulse radar.</p></div>
   <div class="bench">
     <canvas id="cCh" width="640" height="330" aria-label="Transmitted and received chirps and the beat frequency"></canvas>
     <div class="ctrl">
@@ -298,7 +298,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr class="sum"><td>To keep 1 km within 1 bin</td><td colspan="2">δ &lt; 1 / (8τ) = 19 kHz, about 0.01 % of B</td></tr>
   </table></div>
   <div class="col">
-    <p><b>How radars get a straight ramp.</b> (1) A <b>PLL</b> whose divider ratio is stepped along the ramp (fractional-N ramping): the loop forces the VCO to follow, so the linearity is set by the reference, not by the VCO; the loop bandwidth must be wide enough to follow the ramp. (2) A <b>DDS</b> generating the ramp digitally, then multiplied or mixed up to RF. (3) An open-loop VCO with a measured pre-distortion table, cheaper but drifting with temperature.</p>
+    <p><b>How radars get a straight ramp.</b> (1) A <b>PLL</b> whose divider ratio is stepped along the ramp (fractional-N ramping): the loop forces the VCO to follow, so the linearity is set by the reference, not by the VCO; the loop bandwidth must be wide enough to follow the ramp. (2) A <b>DDS</b> generating the ramp digitally, then multiplied or mixed up to RF. (3) An open-loop VCO with a measured pre-distortion table, easier but drifting with temperature.</p>
   </div>
   <div class="bench">
     <canvas id="cNl" width="640" height="300" aria-label="Beat spectrum smeared by ramp nonlinearity"></canvas>

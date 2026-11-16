@@ -199,7 +199,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <canvas id="cIn" width="640" height="360" aria-label="Phase noise curve with the integration band shaded"></canvas>
     <div class="ctrl">
       <label for="inP"><span>Source</span></label>
-      <select id="inP"><option value="A">A: low-cost frac-N PLL, on-chip VCO</option><option value="B" selected>B: integer-N PLL, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option><option value="F">Flat −100 dBc/Hz (the worked example)</option></select>
+      <select id="inP"><option value="A">A: basic frac-N PLL, on-chip VCO</option><option value="B" selected>B: integer-N PLL, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option><option value="F">Flat −100 dBc/Hz (the worked example)</option></select>
       <label for="inLo"><span>Lower limit f₁</span> <b id="inLov"></b></label><input id="inLo" type="range" min="1" max="5" step="0.05" value="3">
       <label for="inHi"><span>Upper limit f₂</span> <b id="inHiv"></b></label><input id="inHi" type="range" min="4" max="8" step="0.05" value="6">
       <label for="inF"><span>Carrier f₀</span> <b id="inFv"></b></label><input id="inF" type="range" min="1" max="40" step="0.5" value="10">
@@ -310,7 +310,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>OCXO at 100 MHz</td><td class="n">−140 dBc/Hz</td><td class="n">−165 dBc/Hz</td></tr>
     <tr><td>+20·log 100</td><td class="n">+40 dB</td><td class="n">+40 dB</td></tr>
     <tr class="sum"><td>Ideal output at 10 GHz</td><td class="n">−100 dBc/Hz</td><td class="n">−125 dBc/Hz</td></tr>
-    <tr><td>Same with a low-cost 100 MHz VCXO (−110, −150)</td><td class="n">−70 dBc/Hz</td><td class="n">−110 dBc/Hz</td></tr>
+    <tr><td>Same with a basic 100 MHz VCXO (−110, −150)</td><td class="n">−70 dBc/Hz</td><td class="n">−110 dBc/Hz</td></tr>
     <tr><td>Multiplier chain residual floor (amplifiers, diodes)</td><td class="n">n/a</td><td class="n">−160 dBc/Hz, not limiting</td></tr>
   </table></div>
   <div class="bench">
@@ -404,7 +404,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   </div>
   <div class="col">
     <p><b>Integer-N: the step size is the comparison frequency.</b> If N may only be a whole number, the output can only move in steps of f<sub>PD</sub>. A radar that must tune in 1 MHz steps at 10 GHz needs f<sub>PD</sub> = 1 MHz and N = 10 000, which raises the in-band floor 20 dB compared with f<sub>PD</sub> = 100 MHz. The loop must also be at least 10 times narrower than f<sub>PD</sub> so the loop filter can suppress the <b>reference spur</b>: the small ripple the charge pump leaves on the tuning line at f<sub>PD</sub> (leakage, current mismatch), which frequency-modulates the VCO and makes spurs at ± f<sub>PD</sub>. Narrow loop means slow settling.</p>
-    <p><b>Fractional-N: N may have a fractional part.</b> The divider switches between N and N+1 in a pattern whose average is, for example, 100.0005. A sigma-delta (ΣΔ) modulator chooses the pattern so that the error it makes is pushed to high offsets (noise shaping), where the loop filter removes it. Now f<sub>PD</sub> can be 100 MHz with steps of a few Hz (f<sub>PD</sub>/2²⁴ = 6 Hz). The price: (1) <b>ΣΔ quantisation noise</b>, a hump rising at high offsets that a wide loop lets through; (2) <b>fractional spurs</b>, especially the <b>integer-boundary spur</b>: when the output is just above or below an exact multiple of f<sub>PD</sub>, a spur appears at the distance to that multiple. If that distance is inside the loop bandwidth, the loop cannot filter it.</p>
+    <p><b>Fractional-N: N may have a fractional part.</b> The divider switches between N and N+1 in a pattern whose average is, for example, 100.0005. A sigma-delta (ΣΔ) modulator chooses the pattern so that the error it makes is pushed to high offsets (noise shaping), where the loop filter removes it. Now f<sub>PD</sub> can be 100 MHz with steps of a few Hz (f<sub>PD</sub>/2²⁴ = 6 Hz). The trade-off: (1) <b>ΣΔ quantisation noise</b>, a hump rising at high offsets that a wide loop lets through; (2) <b>fractional spurs</b>, especially the <b>integer-boundary spur</b>: when the output is just above or below an exact multiple of f<sub>PD</sub>, a spur appears at the distance to that multiple. If that distance is inside the loop bandwidth, the loop cannot filter it.</p>
   </div>
   <div class="term"><h4>Terms</h4>
     <p><b>Channel step (resolution):</b> the smallest frequency change. Integer-N: f<sub>PD</sub>. Fractional-N: f<sub>PD</sub>/modulus.</p>
@@ -586,7 +586,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <canvas id="cRm" width="640" height="360" aria-label="Reciprocal mixing: blocker and wanted signal before and after the mixer"></canvas>
     <div class="ctrl">
       <label for="rmL"><span>LO</span></label>
-      <select id="rmL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <select id="rmL"><option value="A">A: basic frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
       <label for="rmP"><span>Blocker power</span> <b id="rmPv"></b></label><input id="rmP" type="range" min="-60" max="0" step="1" value="-20">
       <label for="rmO"><span>Blocker offset Δ</span> <b id="rmOv"></b></label><input id="rmO" type="range" min="4" max="8" step="0.05" value="6">
       <label for="rmB"><span>Channel bandwidth B</span> <b id="rmBv"></b></label><input id="rmB" type="range" min="3" max="7" step="0.05" value="6">
@@ -642,7 +642,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <canvas id="cRc" width="640" height="360" aria-label="Residual phase noise after range correlation versus Doppler offset"></canvas>
     <div class="ctrl">
       <label for="rcL"><span>Synthesiser</span></label>
-      <select id="rcL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <select id="rcL"><option value="A">A: basic frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
       <label for="rcR"><span>Clutter range R</span> <b id="rcRv"></b></label><input id="rcR" type="range" min="-0.5" max="2" step="0.001" value="1.1761">
       <label for="rcV"><span>Target radial speed</span> <b id="rcVv"></b></label><input id="rcV" type="range" min="1" max="300" step="1" value="30">
       <label for="rcT"><span>CPI</span> <b id="rcTv"></b></label><input id="rcT" type="range" min="0" max="2" step="0.02" value="1">
@@ -695,7 +695,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <canvas id="cSa" width="640" height="360" aria-label="Simulated SAR azimuth impulse response with synthesiser phase noise"></canvas>
     <div class="ctrl">
       <label for="saL"><span>Synthesiser</span></label>
-      <select id="saL"><option value="A">A: low-cost frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
+      <select id="saL"><option value="A">A: basic frac-N, on-chip VCO</option><option value="B" selected>B: integer-N, OCXO, discrete VCO</option><option value="C">C: low-noise OCXO, multiplier, DRO</option></select>
       <label for="saS"><span>Shift the whole L(f)</span> <b id="saSv"></b></label><input id="saS" type="range" min="-20" max="30" step="1" value="20">
       <label for="saT"><span>Aperture time T<sub>a</sub></span> <b id="saTv"></b></label><input id="saT" type="range" min="0.1" max="4" step="0.05" value="1">
       <label for="saR"><span>Range</span> <b id="saRv"></b></label><input id="saR" type="range" min="2" max="100" step="1" value="20">

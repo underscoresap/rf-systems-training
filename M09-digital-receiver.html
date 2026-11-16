@@ -205,7 +205,7 @@ h3.try{color:var(--accent)}
     <tr><td>Analog I/Q, trimmed to 0.1 dB, 1°</td><td class="n">2 at ≥ B</td><td>±B/2</td><td class="n">−39.6 dBc</td></tr>
     <tr><td>Digital I/Q (real ADC + NCO, Step 2)</td><td class="n">1 at ≥ 2B</td><td>±B/2 after DDC</td><td class="n">set by word length, &lt; −100 dBc</td></tr>
   </table></div>
-  <div class="col"><p>Digital I/Q wins on image rejection because the "LO paths" are two lookup tables of numbers: their gains are equal and their phases are 90° apart to the last bit, with no temperature drift. The price is one fast ADC instead of two slow ones, plus FPGA arithmetic.</p></div>
+  <div class="col"><p>Digital I/Q wins on image rejection because the "LO paths" are two lookup tables of numbers: their gains are equal and their phases are 90° apart to the last bit, with no temperature drift. The trade-off is one fast ADC instead of two slow ones, plus FPGA arithmetic.</p></div>
   <h3>How to choose the representation</h3>
   <div class="col"><p>(1) If the sign of frequency matters (Doppler sign, signals on both sides of the tuned frequency, ESM spectra), you need complex samples. (2) If the image level must be below about −40 dBc (radar clutter rejection, ESM spurious-free range), make I/Q digitally: sample the real IF and use an NCO and mixer (Step 2). (3) Analog I/Q is still used where the bandwidth is too wide for one ADC (several GHz), and then it needs calibration: each 0.1 dB and 1° of residual imbalance is worth about 40 dB of IRR, each 0.5 dB and 3° about 28 dB.</p></div>
   <h3 class="try">Try it</h3>
@@ -299,7 +299,7 @@ h3.try{color:var(--accent)}
     <tr><td>Accumulator N</td><td>Register width</td><td>Tuning step f<sub>s</sub>/2<sup>N</sup> (0.23 Hz)</td><td>Fine tuning; coherent hopping without phase jumps</td></tr>
     <tr><td>Phase bits P</td><td>Table depth, memory</td><td>Worst spur ≈ −6.02·P dBc</td><td>False targets near strong clutter; false emitters in ESM (P = 8: −48 dBc)</td></tr>
     <tr><td>Amplitude bits A</td><td>Table width</td><td>LO noise ≈ 6.02·A + 1.76 dB</td><td>Raises the noise floor if A is below the ADC word</td></tr>
-    <tr><td>Dither / CORDIC</td><td>Random generator, or shift-add stages</td><td>Spurs → noise; latency</td><td>Fewer false reports at the price of a slightly higher floor</td></tr>
+    <tr><td>Dither / CORDIC</td><td>Random generator, or shift-add stages</td><td>Spurs → noise; latency</td><td>Fewer false reports in exchange for a slightly higher floor</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
     <li><b>Synthesiser designers:</b> the NCO is a DDS (direct digital synthesiser) without the DAC. The same −6.02·P rule and the same "avoid simple fractions" advice apply to DDS chips you may use as references or chirp generators.</li>
@@ -319,7 +319,7 @@ h3.try{color:var(--accent)}
     <p><b>Decimation by R:</b> keeping one sample in every R. The output rate is f<sub>o</sub> = f<sub>s</sub>/R (1 000/16 = 62.5 MSPS). It is done because the wanted band (here ±10 MHz) is much narrower than the input rate: carrying 1 GSPS through the matched filter and FFT would waste 16 times the multipliers.</p>
     <p><b>Alias band:</b> after decimation, any frequency f lands at f − k·f<sub>o</sub> (k = 1, 2, …). The bands k·f<sub>o</sub> ± f<sub>p</sub> land exactly on the passband ±f<sub>p</sub>, so they must be suppressed before decimating. <b>Alias rejection:</b> the smallest attenuation over all those bands.</p>
     <p><b>Passband edge f<sub>p</sub>:</b> the highest wanted frequency. On the bench it is set as a fraction of the output Nyquist frequency f<sub>o</sub>/2; ±10 MHz at f<sub>o</sub> = 62.5 MSPS is 32 %.</p>
-    <p><b>CIC filter (cascaded integrator-comb):</b> N integrators (running sums) at the input rate, then decimation, then N combs (differences) at the output rate. It needs no multipliers, only adders, so it runs at 1 GSPS cheaply. Its response is a sinc to the power N, with nulls exactly at the centres of the alias bands. <b>Stages N:</b> how many integrator-comb pairs.</p>
+    <p><b>CIC filter (cascaded integrator-comb):</b> N integrators (running sums) at the input rate, then decimation, then N combs (differences) at the output rate. It needs no multipliers, only adders, so it runs at 1 GSPS easily. Its response is a sinc to the power N, with nulls exactly at the centres of the alias bands. <b>Stages N:</b> how many integrator-comb pairs.</p>
     <p><b>Droop:</b> the loss at the passband edge relative to 0 Hz. A CIC droops because its sinc response is already falling at f<sub>p</sub>. <b>Bit growth:</b> the integrators grow by N·log<sub>2</sub>R bits and must not overflow (Step 7).</p>
     <p><b>FIR filter (finite impulse response):</b> a weighted sum of the last K samples (K = taps), one multiplier per tap. It can have any shape, including the inverse of the CIC droop (a <b>compensating FIR</b>), but costs multipliers.</p>
     <p><b>Processing gain:</b> the SNR improvement from removing noise outside the wanted band: 10·log<sub>10</sub>R for an ideal filter.</p>
@@ -341,7 +341,7 @@ h3.try{color:var(--accent)}
     <tr><td>CIC, N = 5</td><td class="n">1.84 dB</td><td class="n">−73.7 dB</td><td class="n">0</td><td class="n">20</td></tr>
     <tr><td>CIC N = 4 (↓8) + 63-tap compensating FIR (↓2)</td><td class="n">0.33 dB</td><td class="n">−84.4 dB</td><td class="n">63 × 62.5 M × 2 = 7.9 G/s</td><td class="n">12</td></tr>
   </table></div>
-  <div class="col"><p>Each CIC stage adds about 14.7 dB of alias rejection here and 0.37 dB of droop. The CIC alone cannot be both flat and selective. The usual answer is a split: the CIC does the large, cheap part of the rate reduction (here by 8, to 125 MSPS) and a FIR at the lower rate does the last factor of 2, flattens the droop and sharpens the edge. The FIR runs at 125 MSPS rather than 1 GSPS, so its multipliers cost 8 times less than they would at the input.</p></div>
+  <div class="col"><p>Each CIC stage adds about 14.7 dB of alias rejection here and 0.37 dB of droop. The CIC alone cannot be both flat and selective. The usual answer is a split: the CIC does the large, simple part of the rate reduction (here by 8, to 125 MSPS) and a FIR at the lower rate does the last factor of 2, flattens the droop and sharpens the edge. The FIR runs at 125 MSPS rather than 1 GSPS, so its multipliers cost 8 times less than they would at the input.</p></div>
   <h3>How to choose R, N and the FIR</h3>
   <div class="col"><p>(1) <b>R</b> from the bandwidth: the output rate must exceed the signal bandwidth with room for the filter edge, typically f<sub>o</sub> ≥ 1.25 × B (20 MHz × 1.25 = 25 MHz minimum; 62.5 MSPS leaves a generous edge). Larger R gives more processing gain (10·log R) and fewer multipliers later. (2) <b>N</b> from the alias rejection needed: at least the dynamic range you want protected from out-of-band signals, for example 60 dB → N = 4 at this passband fraction. Narrower passband fractions give more rejection per stage. (3) <b>Bit growth</b> N·log<sub>2</sub>R must fit the integrator registers: 4 × 4 = 16 extra bits on a 14-bit input, so 30-bit registers. (4) <b>The FIR</b> where droop matters (pulse compression sidelobes, Step 4, are sensitive to passband ripple and tilt): its taps set how flat and how sharp; more taps cost multipliers and latency ((K − 1)/2 samples of delay).</p></div>
   <h3 class="try">Try it</h3>
@@ -531,7 +531,7 @@ h3.try{color:var(--accent)}
     <p><b>Threshold factor α:</b> the multiplier on the estimated noise; threshold = α × average. It is set once from the wanted <b>P<sub>fa</sub></b> (probability that a noise-only cell crosses the threshold): for cell averaging, α = N·(P<sub>fa</sub><sup>−1/N</sup> − 1).</p>
     <p><b>CFAR loss:</b> the extra SNR a target needs, compared with a detector that knows the noise exactly, to be detected with the same probability (here P<sub>d</sub> = 0.5 on a fluctuating target). It exists because the estimate from N cells wobbles, so α must be larger than ln(1/P<sub>fa</sub>).</p>
     <p><b>CA and GO:</b> cell-averaging uses the average of all N cells; greatest-of averages each side separately and uses the larger, which is safer at clutter edges. <b>Fixed threshold:</b> α × the noise measured once in a quiet region, not CFAR at all; it is on the bench only to show the problem.</p>
-    <p><b>Running sum:</b> the hardware trick that makes CFAR cheap: as the window slides by one cell, add the cell entering each half and subtract the one leaving. Cost: 4 adders per cell, whatever N is.</p>
+    <p><b>Running sum:</b> the hardware trick that makes CFAR simple: as the window slides by one cell, add the cell entering each half and subtract the one leaving. Cost: 4 adders per cell, whatever N is.</p>
     <p><b>α implementation:</b> how firmware multiplies by α. A DSP block multiplies exactly (to its word length). A <b>shift</b> multiplies by a power of two for free. <b>Shift-and-add</b> builds α from a few powers of two (22 = 16 + 4 + 2: three shifts and two adders).</p>
   </div>
   <div class="col">
@@ -821,7 +821,7 @@ h3.try{color:var(--accent)}
     <tr><td>NCO accumulator N</td><td>Register width</td><td>Tuning step 0.23 Hz at 1 GSPS (N = 32)</td></tr>
     <tr><td>NCO phase bits P</td><td>LUT depth (block RAM)</td><td>Spurs ≈ −6.02·P dBc: −48 (8), −72 (12), −96 (16): false targets and emitters</td></tr>
     <tr><td>NCO amplitude bits A</td><td>LUT width</td><td>LO noise 6.02·A + 1.76 dB; keep 2 bits above the ADC</td></tr>
-    <tr><td>Decimation R</td><td>Output bandwidth needed</td><td>Processing gain 10·log R (12 dB at 16); later stages R times cheaper</td></tr>
+    <tr><td>Decimation R</td><td>Output bandwidth needed</td><td>Processing gain 10·log R (12 dB at 16); later stages R times easier</td></tr>
     <tr><td>CIC stages N</td><td>Alias rejection needed</td><td>−58.9 dB alias, 1.47 dB droop, 16 bits growth (N = 4, R = 16)</td></tr>
     <tr><td>Compensating FIR</td><td>Taps, coefficients</td><td>Flat passband for low compression sidelobes; multipliers 2K·f<sub>o</sub></td></tr>
     <tr><td>Bandwidth B</td><td>Chirp, ADC, decimation</td><td>Range resolution c/2B (7.5 m at 20 MHz)</td></tr>

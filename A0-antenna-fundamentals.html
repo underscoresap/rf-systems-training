@@ -217,7 +217,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
   <div class="eq">BW (fraction of f₀) ≈ (S − 1) / (Q·√S)       e.g. Q = 10, S = 2:  BW ≈ 1/(10 × 1.414) = 7.1 %
     <small>A small antenna (size ≪ λ) stores a lot of energy for the little it radiates, so it has high Q and is narrowband: this is a physical limit (the Chu limit), not a design shortfall. Wideband antennas (horns, spirals, Vivaldis, log-periodics) avoid a single resonance.</small></div>
   <div class="term"><h4>Terms: what "bandwidth" means on an antenna datasheet</h4>
-    <p><b>Impedance bandwidth:</b> the band where VSWR ≤ 2 (RL ≥ 9.5 dB) or RL ≥ 10 dB, whichever the vendor states.</p>
+    <p><b>Impedance bandwidth:</b> the band where VSWR ≤ 2 (RL ≥ 9.5 dB) or RL ≥ 10 dB, whichever the datasheet states.</p>
     <p><b>Pattern (gain) bandwidth:</b> the band where gain, beamwidth and sidelobes stay within limits. A dish is matched over the feed's band, but its beamwidth still changes with λ (step 5).</p>
     <p><b>Axial-ratio bandwidth:</b> for circularly polarised antennas, the band where axial ratio ≤ 3 dB (step 7). Often the narrowest of the three.</p>
     <p><b>Instantaneous vs tunable:</b> an antenna may cover a wide band only when retuned, or only with its beam moving (squint, step 7).</p>
@@ -321,7 +321,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>(1 − |Γ|²) mismatch</td><td>Power reflected at the port (step 2). Enters realised gain.</td><td class="n">0.89–0.99</td></tr>
   </table></div>
   <div class="eq">Directivity D = D_max · η_i · η_s · η_p · η_b          Gain G = η_rad · D          Realised gain G_R = (1 − |Γ|²) · G
-    <small>Spillover and blockage reduce directivity because the power still radiates, only in the wrong directions. Ohmic loss reduces gain but not directivity, because that power is never radiated. Vendors differ in whether "aperture efficiency" includes ohmic and mismatch loss; ask.</small></div>
+    <small>Spillover and blockage reduce directivity because the power still radiates, only in the wrong directions. Ohmic loss reduces gain but not directivity, because that power is never radiated. Datasheets differ in whether "aperture efficiency" includes ohmic and mismatch loss; ask.</small></div>
   <div class="term"><h4>Terms</h4>
     <p><b>Effective aperture A<sub>e</sub>:</b> the receiving area. A receive antenna in a wave of power density S (W/m²) delivers P = S·A<sub>e</sub> to a matched load. For every antenna, large or small: <b>A<sub>e</sub> = Gλ²/4π</b>. For an aperture antenna A<sub>e</sub> = η<sub>ap</sub>·A (physical area). Even a tiny dipole has an effective aperture, 0.13λ².</p>
     <p><b>EIRP (effective isotropic radiated power):</b> transmit power times gain, EIRP = P<sub>t</sub>·G<sub>R</sub>, or in dB, EIRP (dBW) = P<sub>t</sub> (dBW) + G<sub>R</sub> (dBi). It is the power an isotropic antenna would need to give the same power density in the direction of the beam.</p>

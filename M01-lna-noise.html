@@ -300,7 +300,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>LNA gain</td><td>Number of stages, device size, feedback</td><td>G = 20 dB</td><td>Mixer's 2 610 K is reduced to 33 K. At 10 dB gain it would be 261 K and NF 4.25 dB.</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Limiter and filter designers:</b> your insertion loss is a noise figure. 0.3 dB saved in front of the LNA is as good as a 0.3 dB better LNA, and usually cheaper.</li>
+    <li><b>Limiter and filter designers:</b> your insertion loss is a noise figure. 0.3 dB saved in front of the LNA is as good as a 0.3 dB better LNA, and usually easier.</li>
     <li><b>LNA designers:</b> gain is not just "nice to have". It must be high enough that NF<sub>2</sub>/G<sub>1</sub> is small, but not so high that the mixer overloads (Step 6).</li>
     <li><b>Mixer and ADC designers:</b> your NF matters through the LNA gain. A 25 dB NF ADC behind 30 dB of LNA gain adds only about 92 K.</li>
   </ul></div>
@@ -687,7 +687,7 @@ footer{padding-top:24px;font-size:13px;color:var(--muted)}
     <tr><td>Loss before LNA</td><td>Limiter, filter, cable</td><td>0.5 dB</td><td>Adds 35 K and multiplies the LNA noise by 1.12; ≈ −3 % radar range at T<sub>A</sub> 290 K</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Radar (R1, R3):</b> NF enters the range equation as F<sup>−1/4</sup>. A 1 dB NF improvement ≈ 6 % range ≈ 1.26× transmit power, usually the cheapest dB in the system.</li>
+    <li><b>Radar (R1, R3):</b> NF enters the range equation as F<sup>−1/4</sup>. A 1 dB NF improvement ≈ 6 % range ≈ 1.26× transmit power, usually the easiest dB in the system.</li>
     <li><b>ESM (Part 4):</b> NF enters as F<sup>−1/2</sup>, twice as strongly, and the ESM receiver must also survive strong emitters (Steps 6–7). Expect a fight between NF, IP3 and limiter loss.</li>
     <li><b>Satcom and space-looking radar:</b> T<sub>A</sub> is small, so G/T is dominated by the LNA and the loss in front of it.</li>
   </ul></div>

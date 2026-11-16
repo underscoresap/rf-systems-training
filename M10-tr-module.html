@@ -348,7 +348,7 @@ h3.try{color:var(--accent)}
     <tr><td>Array size</td><td>Number of modules</td><td>N</td><td>Random floor −3 dB per doubling; quantisation lobe unchanged</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Phase-shifter designers:</b> the customer's sidelobe specification may be met with fewer bits than the rms rule suggests, if the system decorrelates; ask how the beam steering rounds.</li>
+    <li><b>Phase-shifter designers:</b> the sidelobe specification may be met with fewer bits than the rms rule suggests, if the system decorrelates; ask how the beam steering rounds.</li>
     <li><b>Module test:</b> the measured insertion phase of every module is the natural random offset; keep it in the calibration file even after trimming.</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
@@ -600,7 +600,7 @@ h3.try{color:var(--accent)}
     <tr><td>Scanned to 60°</td><td class="n">71.2 dBW</td><td class="n">3.9 dB/K</td><td class="n">75.1 dB</td></tr>
   </table></div>
   <h3>How to choose element power, front-end loss and noise figure</h3>
-  <div class="col"><p>(1) The system needs a value of EIRP·G/T (from the radar equation at the required range). (2) N is the most powerful lever (9 dB per doubling) but the most expensive. (3) Doubling P<sub>el</sub> gives +3 dB EIRP and costs twice the DC power and heat per module (Step 10); the same +3 dB from N costs 41 % more modules but also adds 1.5 dB of G/T. (4) The front-end loss L<sub>f</sub> is paid twice, once in EIRP and once in G/T: 1 dB less circulator and limiter loss is worth almost 2 dB of radar product, as much as 17 % more modules. (5) LNA NF only affects G/T: 1 dB better NF is +1 dB here. (6) Scanning costs cos θ on both paths: −3 dB each at 60°, −6 dB of radar product, before the scan-impedance effects of Step 8.</p></div>
+  <div class="col"><p>(1) The system needs a value of EIRP·G/T (from the radar equation at the required range). (2) N is the most powerful lever (9 dB per doubling) but the most demanding. (3) Doubling P<sub>el</sub> gives +3 dB EIRP and costs twice the DC power and heat per module (Step 10); the same +3 dB from N costs 41 % more modules but also adds 1.5 dB of G/T. (4) The front-end loss L<sub>f</sub> is paid twice, once in EIRP and once in G/T: 1 dB less circulator and limiter loss is worth almost 2 dB of radar product, as much as 17 % more modules. (5) LNA NF only affects G/T: 1 dB better NF is +1 dB here. (6) Scanning costs cos θ on both paths: −3 dB each at 60°, −6 dB of radar product, before the scan-impedance effects of Step 8.</p></div>
   <h3 class="try">Try it</h3>
   <div class="bench">
     <canvas id="cEi" width="640" height="340" aria-label="Array EIRP and G/T against number of elements for the chosen element power, front-end loss, noise figure and scan angle"></canvas>
@@ -630,10 +630,10 @@ h3.try{color:var(--accent)}
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
     <li><b>Circulator and limiter designers:</b> your 0.1 dB is multiplied by every module and paid on both transmit and receive.</li>
-    <li><b>PA designers:</b> per-element power trades directly against heat (Step 10) and against the number of modules the customer has to buy.</li>
+    <li><b>PA designers:</b> per-element power trades directly against heat (Step 10) and against the number of modules the array needs.</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
-    <details><summary>An array of 1024 elements must gain 3 dB of radar product. Compare the three ways.</summary><p>Double P<sub>el</sub>: +3 dB EIRP, +3 dB product, twice the heat. Increase N by 2<sup>1/3</sup> = 1.26 (1290 elements): +2 dB EIRP and +1 dB G/T. Cut L<sub>f</sub> by 1.5 dB: +1.5 dB on each path. The loss route is the cheapest if it is physically possible.</p></details>
+    <details><summary>An array of 1024 elements must gain 3 dB of radar product. Compare the three ways.</summary><p>Double P<sub>el</sub>: +3 dB EIRP, +3 dB product, twice the heat. Increase N by 2<sup>1/3</sup> = 1.26 (1290 elements): +2 dB EIRP and +1 dB G/T. Cut L<sub>f</sub> by 1.5 dB: +1.5 dB on each path. The loss route is the easiest if it is physically possible.</p></details>
   </div>
 </section>
 
@@ -829,7 +829,7 @@ h3.try{color:var(--accent)}
     <tr><td>Subarray size</td><td>Beamformer architecture</td><td>M</td><td>M = 8: −0.14 dB at 10 % band; M = 16: −0.58 dB and −10 dB lobes</td></tr>
   </table></div>
   <div class="comp"><h4>Where your component shows up</h4><ul>
-    <li><b>Phase-shifter designers:</b> "phase flatness over the band" is good for narrowband arrays and exactly wrong for TTD; know which the customer wants.</li>
+    <li><b>Phase-shifter designers:</b> "phase flatness over the band" is good for narrowband arrays and exactly wrong for TTD; know which the system needs.</li>
     <li><b>Delay-line and switch designers:</b> TTD modules need long lines with low loss and good matching across many states; the loss varies with state and must be equalised (Step 3).</li>
   </ul></div>
   <div class="check"><h4>Check yourself</h4>
